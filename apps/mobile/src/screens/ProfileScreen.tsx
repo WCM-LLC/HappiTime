@@ -19,7 +19,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.xxl + spacing.md,
     paddingHorizontal: spacing.lg
   },
   title: {

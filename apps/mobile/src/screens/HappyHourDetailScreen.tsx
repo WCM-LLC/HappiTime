@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background
   },
   scrollContent: {
-    paddingTop: spacing.lg,
+    paddingTop: spacing.xxl + spacing.md,
     paddingBottom: spacing.xl
   },
   heroWrap: {

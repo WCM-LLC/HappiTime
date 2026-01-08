@@ -25,6 +25,7 @@ export const SegmentedTabs: React.FC<Props> = ({
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.container}
+      style={styles.scroll}
     >
       {tabs.map((tab) => {
         const selected = tab.key === activeKey;
@@ -49,8 +50,12 @@ export const SegmentedTabs: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
+  scroll: {
+    flexGrow: 0
+  },
   container: {
     flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
     paddingVertical: spacing.xs,
     paddingRight: spacing.lg,

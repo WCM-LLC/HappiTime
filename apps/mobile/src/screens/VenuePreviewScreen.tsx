@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.xxl + spacing.md,
     paddingBottom: spacing.xl
   },
   title: {
