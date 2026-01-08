@@ -1,0 +1,102 @@
+[
+  {
+    "col": "neighborhood",
+    "nulls": 318,
+    "total": 318
+  },
+  {
+    "col": "distance_miles",
+    "nulls": 318,
+    "total": 318
+  },
+  {
+    "col": "start_time",
+    "nulls": 318,
+    "total": 318
+  },
+  {
+    "col": "end_time",
+    "nulls": 318,
+    "total": 318
+  },
+  {
+    "col": "average_price",
+    "nulls": 318,
+    "total": 318
+  },
+  {
+    "col": "website_url",
+    "nulls": 316,
+    "total": 318
+  },
+  {
+    "col": "rating",
+    "nulls": 294,
+    "total": 318
+  },
+  {
+    "col": "opening_hours",
+    "nulls": 221,
+    "total": 318
+  },
+  {
+    "col": "business_url",
+    "nulls": 212,
+    "total": 318
+  },
+  {
+    "col": "phone",
+    "nulls": 159,
+    "total": 318
+  },
+  {
+    "col": "address",
+    "nulls": 156,
+    "total": 318
+  },
+  {
+    "col": "cuisine_type",
+    "nulls": 9,
+    "total": 318
+  },
+  {
+    "col": "id",
+    "nulls": 0,
+    "total": 318
+  },
+  {
+    "col": "name",
+    "nulls": 0,
+    "total": 318
+  },
+  {
+    "col": "happy_days",
+    "nulls": 0,
+    "total": 318
+  },
+  {
+    "col": "deal_description",
+    "nulls": 0,
+    "total": 318
+  },
+  {
+    "col": "status",
+    "nulls": 0,
+    "total": 318
+  },
+  {
+    "col": "last_confirmed_at",
+    "nulls": 0,
+    "total": 318
+  },
+  {
+    "col": "created_at",
+    "nulls": 0,
+    "total": 318
+  },
+  {
+    "col": "updated_at",
+    "nulls": 0,
+    "total": 318
+  }
+]

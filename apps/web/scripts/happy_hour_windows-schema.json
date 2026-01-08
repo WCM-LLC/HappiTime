@@ -1,0 +1,75 @@
+{
+  "required": [
+    "id",
+    "venue_id",
+    "dow",
+    "start_time",
+    "end_time",
+    "timezone",
+    "status",
+    "created_at",
+    "updated_at"
+  ],
+  "summary": [
+    {
+      "column": "id",
+      "type": "string",
+      "format": "uuid"
+    },
+    {
+      "column": "venue_id",
+      "type": "string",
+      "format": "uuid"
+    },
+    {
+      "column": "dow",
+      "type": "array",
+      "format": "integer[]"
+    },
+    {
+      "column": "start_time",
+      "type": "string",
+      "format": "time without time zone"
+    },
+    {
+      "column": "end_time",
+      "type": "string",
+      "format": "time without time zone"
+    },
+    {
+      "column": "timezone",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "status",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "created_at",
+      "type": "string",
+      "format": "timestamp with time zone"
+    },
+    {
+      "column": "updated_at",
+      "type": "string",
+      "format": "timestamp with time zone"
+    },
+    {
+      "column": "label",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "restaurant_id",
+      "type": "string",
+      "format": "uuid"
+    },
+    {
+      "column": "last_confirmed_at",
+      "type": "string",
+      "format": "timestamp with time zone"
+    }
+  ]
+}

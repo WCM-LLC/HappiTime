@@ -1,0 +1,372 @@
+[
+  {
+    "org": "54th Street Grill & Bar",
+    "venue_count": 7,
+    "venues": [
+      "Blue Springs",
+      "Independence",
+      "Kansas City",
+      "Lee's Summit",
+      "Liberty",
+      "Olathe",
+      "Zona Rosa"
+    ]
+  },
+  {
+    "org": "Beer Kitchen",
+    "venue_count": 1,
+    "venues": [
+      "Beer Kitchen"
+    ]
+  },
+  {
+    "org": "Blu Hwy",
+    "venue_count": 1,
+    "venues": [
+      "Blu Hwy"
+    ]
+  },
+  {
+    "org": "Blue Sushi Sake Grill",
+    "venue_count": 1,
+    "venues": [
+      "Blue Sushi Sake Grill"
+    ]
+  },
+  {
+    "org": "Bogey's Windy City Pub",
+    "venue_count": 1,
+    "venues": [
+      "Bogey's Windy City Pub"
+    ]
+  },
+  {
+    "org": "Border Brewing Company",
+    "venue_count": 1,
+    "venues": [
+      "Border Brewing Company"
+    ]
+  },
+  {
+    "org": "BRGR Kitchen and Bar",
+    "venue_count": 1,
+    "venues": [
+      "BRGR Kitchen and Bar"
+    ]
+  },
+  {
+    "org": "Bristol",
+    "venue_count": 1,
+    "venues": [
+      "Bristol"
+    ]
+  },
+  {
+    "org": "Brooksider Sports Bar & Grill",
+    "venue_count": 1,
+    "venues": [
+      "Brooksider Sports Bar & Grill"
+    ]
+  },
+  {
+    "org": "Brown & Loe",
+    "venue_count": 1,
+    "venues": [
+      "Brown & Loe"
+    ]
+  },
+  {
+    "org": "Cafe Corazon",
+    "venue_count": 1,
+    "venues": [
+      "Cafe Corazon"
+    ]
+  },
+  {
+    "org": "Char Bar",
+    "venue_count": 1,
+    "venues": [
+      "Char Bar"
+    ]
+  },
+  {
+    "org": "Chaz Restaurant & Lounge",
+    "venue_count": 1,
+    "venues": [
+      "Chaz Restaurant & Lounge"
+    ]
+  },
+  {
+    "org": "City Barrel",
+    "venue_count": 1,
+    "venues": [
+      "City Barrel"
+    ]
+  },
+  {
+    "org": "City Barrel Brewery + Kitchen",
+    "venue_count": 1,
+    "venues": [
+      "City Barrel Brewery + Kitchen"
+    ]
+  },
+  {
+    "org": "Cooper's Hawk Winery & Restaurants",
+    "venue_count": 1,
+    "venues": [
+      "Cooper's Hawk Winery & Restaurants"
+    ]
+  },
+  {
+    "org": "Dott Boss",
+    "venue_count": 1,
+    "venues": [
+      "Dott Boss"
+    ]
+  },
+  {
+    "org": "Double Tap",
+    "venue_count": 1,
+    "venues": [
+      "Double Tap"
+    ]
+  },
+  {
+    "org": "Extra Virgin",
+    "venue_count": 1,
+    "venues": [
+      "Extra Virgin"
+    ]
+  },
+  {
+    "org": "Fox and Pearl",
+    "venue_count": 1,
+    "venues": [
+      "Fox and Pearl"
+    ]
+  },
+  {
+    "org": "Gram & Dun",
+    "venue_count": 1,
+    "venues": [
+      "Gram & Dun"
+    ]
+  },
+  {
+    "org": "Harry's Bard & Tables",
+    "venue_count": 1,
+    "venues": [
+      "Harry's Bard & Tables"
+    ]
+  },
+  {
+    "org": "Houlihan's Restaurant & Bar",
+    "venue_count": 2,
+    "venues": [
+      "Leawood",
+      "Lee's Summit"
+    ]
+  },
+  {
+    "org": "JJ's Restaurant",
+    "venue_count": 1,
+    "venues": [
+      "JJ's Restaurant"
+    ]
+  },
+  {
+    "org": "Johnny's Tavern",
+    "venue_count": 3,
+    "venues": [
+      "Blue Springs",
+      "Lee's Summit",
+      "Power & Light"
+    ]
+  },
+  {
+    "org": "Kona Grill",
+    "venue_count": 1,
+    "venues": [
+      "Kona Grill"
+    ]
+  },
+  {
+    "org": "Konrad's Kitchen and Tap House",
+    "venue_count": 1,
+    "venues": [
+      "Konrad's Kitchen and Tap House"
+    ]
+  },
+  {
+    "org": "La Bodega",
+    "venue_count": 1,
+    "venues": [
+      "La Bodega"
+    ]
+  },
+  {
+    "org": "Lidia's",
+    "venue_count": 1,
+    "venues": [
+      "Lidia's"
+    ]
+  },
+  {
+    "org": "Michael Forbes Bar and Grille",
+    "venue_count": 1,
+    "venues": [
+      "Michael Forbes Bar and Grille"
+    ]
+  },
+  {
+    "org": "O'Dowd's",
+    "venue_count": 1,
+    "venues": [
+      "O'Dowd's"
+    ]
+  },
+  {
+    "org": "Plate",
+    "venue_count": 1,
+    "venues": [
+      "Leawood"
+    ]
+  },
+  {
+    "org": "Rye",
+    "venue_count": 2,
+    "venues": [
+      "Leawood",
+      "Plaza"
+    ]
+  },
+  {
+    "org": "Southside Bar & Grille",
+    "venue_count": 1,
+    "venues": [
+      "Southside Bar & Grille"
+    ]
+  },
+  {
+    "org": "Stock Hill",
+    "venue_count": 1,
+    "venues": [
+      "Stock Hill"
+    ]
+  },
+  {
+    "org": "Streetcar Grille & Tavern",
+    "venue_count": 1,
+    "venues": [
+      "Streetcar Grille & Tavern"
+    ]
+  },
+  {
+    "org": "Summit Grill",
+    "venue_count": 3,
+    "venues": [
+      "Gladstone",
+      "Lee's Summit",
+      "Waldo"
+    ]
+  },
+  {
+    "org": "Tannin Wine Bar & Kitchen",
+    "venue_count": 1,
+    "venues": [
+      "Tannin Wine Bar & Kitchen"
+    ]
+  },
+  {
+    "org": "Taps",
+    "venue_count": 1,
+    "venues": [
+      "Taps"
+    ]
+  },
+  {
+    "org": "Teocali Mexican Restaurant & Cantina",
+    "venue_count": 1,
+    "venues": [
+      "Teocali Mexican Restaurant & Cantina"
+    ]
+  },
+  {
+    "org": "The Bar",
+    "venue_count": 5,
+    "venues": [
+      "Mission",
+      "Olathe",
+      "Prairie Village",
+      "West",
+      "West Plaza"
+    ]
+  },
+  {
+    "org": "The Peanut",
+    "venue_count": 1,
+    "venues": [
+      "The Peanut"
+    ]
+  },
+  {
+    "org": "The Quaff Bar & Grill",
+    "venue_count": 1,
+    "venues": [
+      "The Quaff Bar & Grill"
+    ]
+  },
+  {
+    "org": "The Rockhill Grille",
+    "venue_count": 1,
+    "venues": [
+      "The Rockhill Grille"
+    ]
+  },
+  {
+    "org": "Third Street Social",
+    "venue_count": 3,
+    "venues": [
+      "Lee's Summit",
+      "Northland",
+      "South Plaza"
+    ]
+  },
+  {
+    "org": "Trezo Mare Restaurant and Lounge",
+    "venue_count": 1,
+    "venues": [
+      "Trezo Mare Restaurant and Lounge"
+    ]
+  },
+  {
+    "org": "Unforked",
+    "venue_count": 3,
+    "venues": [
+      "Crown Center",
+      "Overland Park",
+      "Westwood"
+    ]
+  },
+  {
+    "org": "Vintner",
+    "venue_count": 1,
+    "venues": [
+      "Vintner"
+    ]
+  },
+  {
+    "org": "Waldo Thai",
+    "venue_count": 1,
+    "venues": [
+      "Waldo Thai"
+    ]
+  },
+  {
+    "org": "Yard House",
+    "venue_count": 1,
+    "venues": [
+      "Yard House"
+    ]
+  }
+]

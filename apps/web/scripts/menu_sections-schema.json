@@ -1,0 +1,42 @@
+{
+  "required": [
+    "id",
+    "menu_id",
+    "name",
+    "sort_order",
+    "created_at",
+    "updated_at"
+  ],
+  "summary": [
+    {
+      "column": "id",
+      "type": "string",
+      "format": "uuid"
+    },
+    {
+      "column": "menu_id",
+      "type": "string",
+      "format": "uuid"
+    },
+    {
+      "column": "name",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "sort_order",
+      "type": "integer",
+      "format": "integer"
+    },
+    {
+      "column": "created_at",
+      "type": "string",
+      "format": "timestamp with time zone"
+    },
+    {
+      "column": "updated_at",
+      "type": "string",
+      "format": "timestamp with time zone"
+    }
+  ]
+}

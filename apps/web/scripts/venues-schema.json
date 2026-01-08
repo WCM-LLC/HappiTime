@@ -1,0 +1,122 @@
+{
+  "required": [
+    "id",
+    "org_id",
+    "name",
+    "tags",
+    "status",
+    "created_at",
+    "updated_at",
+    "city",
+    "state",
+    "zip",
+    "app_name_preference"
+  ],
+  "summary": [
+    {
+      "column": "id",
+      "type": "string",
+      "format": "uuid"
+    },
+    {
+      "column": "org_id",
+      "type": "string",
+      "format": "uuid"
+    },
+    {
+      "column": "name",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "address",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "phone",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "website",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "neighborhood",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "tags",
+      "type": "array",
+      "format": "text[]"
+    },
+    {
+      "column": "price_tier",
+      "type": "integer",
+      "format": "integer"
+    },
+    {
+      "column": "status",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "published_at",
+      "type": "string",
+      "format": "timestamp with time zone"
+    },
+    {
+      "column": "created_at",
+      "type": "string",
+      "format": "timestamp with time zone"
+    },
+    {
+      "column": "updated_at",
+      "type": "string",
+      "format": "timestamp with time zone"
+    },
+    {
+      "column": "city",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "state",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "timezone",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "zip",
+      "type": "integer",
+      "format": "bigint"
+    },
+    {
+      "column": "lat",
+      "type": "number",
+      "format": "double precision"
+    },
+    {
+      "column": "lng",
+      "type": "number",
+      "format": "double precision"
+    },
+    {
+      "column": "last_confirmed_at",
+      "type": "string",
+      "format": "timestamp with time zone"
+    },
+    {
+      "column": "app_name_preference",
+      "type": "string",
+      "format": "text"
+    }
+  ]
+}

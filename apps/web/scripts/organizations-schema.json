@@ -1,0 +1,27 @@
+[
+  {
+    "column": "id",
+    "type": "string",
+    "format": "uuid"
+  },
+  {
+    "column": "name",
+    "type": "string",
+    "format": "text"
+  },
+  {
+    "column": "created_at",
+    "type": "string",
+    "format": "timestamp with time zone"
+  },
+  {
+    "column": "created_by",
+    "type": "string",
+    "format": "uuid"
+  },
+  {
+    "column": "slug",
+    "type": "string",
+    "format": "text"
+  }
+]

@@ -1,0 +1,102 @@
+[
+  {
+    "column": "id",
+    "type": "integer",
+    "format": "bigint"
+  },
+  {
+    "column": "name",
+    "type": "string",
+    "format": "text"
+  },
+  {
+    "column": "address",
+    "type": "string",
+    "format": "text"
+  },
+  {
+    "column": "neighborhood",
+    "type": "string",
+    "format": "text"
+  },
+  {
+    "column": "phone",
+    "type": "string",
+    "format": "text"
+  },
+  {
+    "column": "distance_miles",
+    "type": "number",
+    "format": "double precision"
+  },
+  {
+    "column": "cuisine_type",
+    "type": "string",
+    "format": "text"
+  },
+  {
+    "column": "happy_days",
+    "type": "array",
+    "format": "text[]"
+  },
+  {
+    "column": "start_time",
+    "type": "string",
+    "format": "time without time zone"
+  },
+  {
+    "column": "end_time",
+    "type": "string",
+    "format": "time without time zone"
+  },
+  {
+    "column": "deal_description",
+    "type": "string",
+    "format": "text"
+  },
+  {
+    "column": "average_price",
+    "type": "number",
+    "format": "numeric"
+  },
+  {
+    "column": "status",
+    "type": "string",
+    "format": "text"
+  },
+  {
+    "column": "last_confirmed_at",
+    "type": "string",
+    "format": "timestamp with time zone"
+  },
+  {
+    "column": "created_at",
+    "type": "string",
+    "format": "timestamp with time zone"
+  },
+  {
+    "column": "updated_at",
+    "type": "string",
+    "format": "timestamp with time zone"
+  },
+  {
+    "column": "business_url",
+    "type": "string",
+    "format": "text"
+  },
+  {
+    "column": "website_url",
+    "type": "string",
+    "format": "text"
+  },
+  {
+    "column": "opening_hours",
+    "type": "string",
+    "format": "text"
+  },
+  {
+    "column": "rating",
+    "type": "number",
+    "format": "numeric"
+  }
+]

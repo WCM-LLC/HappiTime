@@ -1,0 +1,5409 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "",
+    "title": "standard public schema",
+    "version": "14.1"
+  },
+  "host": "ujflcrjsiyhofnomurco.supabase.co:443",
+  "basePath": "/",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json",
+    "application/vnd.pgrst.object+json;nulls=stripped",
+    "application/vnd.pgrst.object+json",
+    "text/csv"
+  ],
+  "produces": [
+    "application/json",
+    "application/vnd.pgrst.object+json;nulls=stripped",
+    "application/vnd.pgrst.object+json",
+    "text/csv"
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "produces": [
+          "application/openapi+json",
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "summary": "OpenAPI description (this document)",
+        "tags": [
+          "Introspection"
+        ]
+      }
+    },
+    "/published_happy_hour_windows": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.dow"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.start_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.end_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.timezone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.label"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/published_happy_hour_windows"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "published_happy_hour_windows"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.published_happy_hour_windows"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "published_happy_hour_windows"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.dow"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.start_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.end_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.timezone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.label"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "published_happy_hour_windows"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.dow"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.start_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.end_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.timezone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.published_happy_hour_windows.label"
+          },
+          {
+            "$ref": "#/parameters/body.published_happy_hour_windows"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "published_happy_hour_windows"
+        ]
+      }
+    },
+    "/venue_members": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.org_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.assigned_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/venue_members"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "venue_members"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.venue_members"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "venue_members"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.org_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.assigned_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.created_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "venue_members"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.org_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.assigned_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_members.created_at"
+          },
+          {
+            "$ref": "#/parameters/body.venue_members"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "venue_members"
+        ]
+      }
+    },
+    "/happy_hour_offers": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.window_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.category"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/happy_hour_offers"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "happy_hour_offers"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.happy_hour_offers"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "happy_hour_offers"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.window_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.category"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "happy_hour_offers"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.window_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.category"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_offers.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.happy_hour_offers"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "happy_hour_offers"
+        ]
+      }
+    },
+    "/notion_venue_import": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Address"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Phone Number"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Business URL"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Happy Hour Category"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Happy Hour Details"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Opening Hours"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Rating"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Website URL"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/notion_venue_import"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "notion_venue_import"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.notion_venue_import"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "notion_venue_import"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Address"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Phone Number"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Business URL"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Happy Hour Category"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Happy Hour Details"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Opening Hours"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Rating"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Website URL"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "notion_venue_import"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Address"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Phone Number"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Business URL"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Happy Hour Category"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Happy Hour Details"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Opening Hours"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Rating"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.notion_venue_import.Website URL"
+          },
+          {
+            "$ref": "#/parameters/body.notion_venue_import"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "notion_venue_import"
+        ]
+      }
+    },
+    "/happy_hour_places": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.address"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.neighborhood"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.phone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.distance_miles"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.cuisine_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.happy_days"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.start_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.end_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.deal_description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.average_price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.last_confirmed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.business_url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.website_url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.opening_hours"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.rating"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/happy_hour_places"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "happy_hour_places"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.happy_hour_places"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "happy_hour_places"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.address"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.neighborhood"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.phone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.distance_miles"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.cuisine_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.happy_days"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.start_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.end_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.deal_description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.average_price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.last_confirmed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.business_url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.website_url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.opening_hours"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.rating"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "happy_hour_places"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.address"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.neighborhood"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.phone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.distance_miles"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.cuisine_type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.happy_days"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.start_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.end_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.deal_description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.average_price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.last_confirmed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.business_url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.website_url"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.opening_hours"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_places.rating"
+          },
+          {
+            "$ref": "#/parameters/body.happy_hour_places"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "happy_hour_places"
+        ]
+      }
+    },
+    "/happy_hour_windows": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.dow"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.start_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.end_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.timezone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.label"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.restaurant_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.last_confirmed_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/happy_hour_windows"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "happy_hour_windows"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.happy_hour_windows"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "happy_hour_windows"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.dow"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.start_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.end_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.timezone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.label"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.restaurant_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.last_confirmed_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "happy_hour_windows"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.dow"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.start_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.end_time"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.timezone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.label"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.restaurant_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_windows.last_confirmed_at"
+          },
+          {
+            "$ref": "#/parameters/body.happy_hour_windows"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "happy_hour_windows"
+        ]
+      }
+    },
+    "/venue_media": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.storage_bucket"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.storage_path"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.caption"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.sort_order"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/venue_media"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "venue_media"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.venue_media"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "venue_media"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.storage_bucket"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.storage_path"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.caption"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.sort_order"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "venue_media"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.type"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.storage_bucket"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.storage_path"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.title"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.caption"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.sort_order"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venue_media.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.venue_media"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "venue_media"
+        ]
+      }
+    },
+    "/menu_items": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.section_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.is_happy_hour"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.sort_order"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/menu_items"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "menu_items"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.menu_items"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "menu_items"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.section_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.is_happy_hour"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.sort_order"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "menu_items"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.section_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.description"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.price"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.is_happy_hour"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.sort_order"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_items.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.menu_items"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "menu_items"
+        ]
+      }
+    },
+    "/menus": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.menus.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.is_active"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/menus"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.menus"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.menus.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.is_active"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.menus.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.venue_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menus.is_active"
+          },
+          {
+            "$ref": "#/parameters/body.menus"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "menus"
+        ]
+      }
+    },
+    "/org_invites": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.org_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.email"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.venue_ids"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.token"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.invited_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.expires_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.accepted_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.accepted_by"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/org_invites"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "org_invites"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.org_invites"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "org_invites"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.org_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.email"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.venue_ids"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.token"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.invited_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.expires_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.accepted_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.accepted_by"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "org_invites"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.org_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.email"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.venue_ids"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.token"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.invited_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.expires_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.accepted_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_invites.accepted_by"
+          },
+          {
+            "$ref": "#/parameters/body.org_invites"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "org_invites"
+        ]
+      }
+    },
+    "/menu_sections": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.menu_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.sort_order"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.updated_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/menu_sections"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "menu_sections"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.menu_sections"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "menu_sections"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.menu_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.sort_order"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.updated_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "menu_sections"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.menu_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.sort_order"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.menu_sections.updated_at"
+          },
+          {
+            "$ref": "#/parameters/body.menu_sections"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "menu_sections"
+        ]
+      }
+    },
+    "/happy_hour_window_menus": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_window_menus.happy_hour_window_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_window_menus.menu_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_window_menus.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/happy_hour_window_menus"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "happy_hour_window_menus"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.happy_hour_window_menus"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "happy_hour_window_menus"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_window_menus.happy_hour_window_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_window_menus.menu_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_window_menus.created_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "happy_hour_window_menus"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_window_menus.happy_hour_window_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_window_menus.menu_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.happy_hour_window_menus.created_at"
+          },
+          {
+            "$ref": "#/parameters/body.happy_hour_window_menus"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "happy_hour_window_menus"
+        ]
+      }
+    },
+    "/organizations": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.organizations.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organizations.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organizations.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organizations.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organizations.slug"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/organizations"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.organizations"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.organizations.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organizations.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organizations.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organizations.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organizations.slug"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.organizations.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organizations.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organizations.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organizations.created_by"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organizations.slug"
+          },
+          {
+            "$ref": "#/parameters/body.organizations"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "organizations"
+        ]
+      }
+    },
+    "/organization_members": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.organization_members.organization_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organization_members.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organization_members.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organization_members.created_at"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/organization_members"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "organization_members"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.organization_members"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "organization_members"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.organization_members.organization_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organization_members.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organization_members.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organization_members.created_at"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "organization_members"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.organization_members.organization_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organization_members.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organization_members.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.organization_members.created_at"
+          },
+          {
+            "$ref": "#/parameters/body.organization_members"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "organization_members"
+        ]
+      }
+    },
+    "/venues": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.venues.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.org_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.address"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.phone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.website"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.neighborhood"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.tags"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.price_tier"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.published_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.city"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.state"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.timezone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.zip"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.lat"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.lng"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.last_confirmed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.app_name_preference"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/venues"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "venues"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.venues"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "venues"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.venues.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.org_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.address"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.phone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.website"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.neighborhood"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.tags"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.price_tier"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.published_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.city"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.state"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.timezone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.zip"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.lat"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.lng"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.last_confirmed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.app_name_preference"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "venues"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.venues.id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.org_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.name"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.address"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.phone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.website"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.neighborhood"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.tags"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.price_tier"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.status"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.published_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.updated_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.city"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.state"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.timezone"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.zip"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.lat"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.lng"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.last_confirmed_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.venues.app_name_preference"
+          },
+          {
+            "$ref": "#/parameters/body.venues"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "venues"
+        ]
+      }
+    },
+    "/org_members": {
+      "get": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.org_members.org_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_members.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_members.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_members.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_members.email"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/order"
+          },
+          {
+            "$ref": "#/parameters/range"
+          },
+          {
+            "$ref": "#/parameters/rangeUnit"
+          },
+          {
+            "$ref": "#/parameters/offset"
+          },
+          {
+            "$ref": "#/parameters/limit"
+          },
+          {
+            "$ref": "#/parameters/preferCount"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "schema": {
+              "items": {
+                "$ref": "#/definitions/org_members"
+              },
+              "type": "array"
+            }
+          },
+          "206": {
+            "description": "Partial Content"
+          }
+        },
+        "tags": [
+          "org_members"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/body.org_members"
+          },
+          {
+            "$ref": "#/parameters/select"
+          },
+          {
+            "$ref": "#/parameters/preferPost"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created"
+          }
+        },
+        "tags": [
+          "org_members"
+        ]
+      },
+      "delete": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.org_members.org_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_members.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_members.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_members.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_members.email"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "org_members"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "$ref": "#/parameters/rowFilter.org_members.org_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_members.user_id"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_members.role"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_members.created_at"
+          },
+          {
+            "$ref": "#/parameters/rowFilter.org_members.email"
+          },
+          {
+            "$ref": "#/parameters/body.org_members"
+          },
+          {
+            "$ref": "#/parameters/preferReturn"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        },
+        "tags": [
+          "org_members"
+        ]
+      }
+    },
+    "/rpc/has_venue_assignment": {
+      "get": {
+        "parameters": [
+          {
+            "format": "uuid",
+            "in": "query",
+            "name": "p_venue_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) has_venue_assignment"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_venue_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_venue_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) has_venue_assignment"
+        ]
+      }
+    },
+    "/rpc/hh_days_from_text": {
+      "get": {
+        "parameters": [
+          {
+            "format": "text",
+            "in": "query",
+            "name": "s",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) hh_days_from_text"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "s": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "s"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) hh_days_from_text"
+        ]
+      }
+    },
+    "/rpc/is_org_manager": {
+      "get": {
+        "parameters": [
+          {
+            "format": "uuid",
+            "in": "query",
+            "name": "p_org_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) is_org_manager"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_org_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_org_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) is_org_manager"
+        ]
+      }
+    },
+    "/rpc/is_org_owner": {
+      "get": {
+        "parameters": [
+          {
+            "format": "uuid",
+            "in": "query",
+            "name": "p_org_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) is_org_owner"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_org_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_org_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) is_org_owner"
+        ]
+      }
+    },
+    "/rpc/is_org_host": {
+      "get": {
+        "parameters": [
+          {
+            "format": "uuid",
+            "in": "query",
+            "name": "p_org_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) is_org_host"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_org_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_org_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) is_org_host"
+        ]
+      }
+    },
+    "/rpc/is_org_member": {
+      "get": {
+        "parameters": [
+          {
+            "format": "uuid",
+            "in": "query",
+            "name": "p_org_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) is_org_member"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_org_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_org_id"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) is_org_member"
+        ]
+      }
+    },
+    "/rpc/whoami": {
+      "get": {
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) whoami"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) whoami"
+        ]
+      }
+    },
+    "/rpc/create_organization": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "args",
+            "required": true,
+            "schema": {
+              "properties": {
+                "p_name": {
+                  "format": "text",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "p_name"
+              ],
+              "type": "object"
+            }
+          },
+          {
+            "$ref": "#/parameters/preferParams"
+          }
+        ],
+        "produces": [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "(rpc) create_organization"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "published_happy_hour_windows": {
+      "properties": {
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "venue_id": {
+          "description": "Note:\nThis is a Foreign Key to `venues.id`.<fk table='venues' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "dow": {
+          "format": "integer[]",
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "start_time": {
+          "format": "time without time zone",
+          "type": "string"
+        },
+        "end_time": {
+          "format": "time without time zone",
+          "type": "string"
+        },
+        "timezone": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "label": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "venue_members": {
+      "required": [
+        "venue_id",
+        "org_id",
+        "user_id",
+        "created_at"
+      ],
+      "properties": {
+        "venue_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `venues.id`.<fk table='venues' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "org_id": {
+          "description": "Note:\nThis is a Foreign Key to `organizations.id`.<fk table='organizations' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "user_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "assigned_by": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "happy_hour_offers": {
+      "required": [
+        "id",
+        "venue_id",
+        "category",
+        "description",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "venue_id": {
+          "description": "Note:\nThis is a Foreign Key to `venues.id`.<fk table='venues' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "window_id": {
+          "description": "Note:\nThis is a Foreign Key to `happy_hour_windows.id`.<fk table='happy_hour_windows' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "category": {
+          "format": "text",
+          "type": "string"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        },
+        "description": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "draft",
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "notion_venue_import": {
+      "properties": {
+        "Name": {
+          "format": "text",
+          "type": "string"
+        },
+        "Address": {
+          "format": "text",
+          "type": "string"
+        },
+        "Phone Number": {
+          "format": "text",
+          "type": "string"
+        },
+        "Business URL": {
+          "format": "text",
+          "type": "string"
+        },
+        "Happy Hour Category": {
+          "format": "text",
+          "type": "string"
+        },
+        "Happy Hour Details": {
+          "format": "text",
+          "type": "string"
+        },
+        "Opening Hours": {
+          "format": "text",
+          "type": "string"
+        },
+        "Rating": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "Website URL": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "happy_hour_places": {
+      "required": [
+        "id",
+        "name",
+        "happy_days",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "bigint",
+          "type": "integer"
+        },
+        "name": {
+          "format": "text",
+          "type": "string"
+        },
+        "address": {
+          "format": "text",
+          "type": "string"
+        },
+        "neighborhood": {
+          "format": "text",
+          "type": "string"
+        },
+        "phone": {
+          "format": "text",
+          "type": "string"
+        },
+        "distance_miles": {
+          "format": "double precision",
+          "type": "number"
+        },
+        "cuisine_type": {
+          "format": "text",
+          "type": "string"
+        },
+        "happy_days": {
+          "format": "text[]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "start_time": {
+          "format": "time without time zone",
+          "type": "string"
+        },
+        "end_time": {
+          "format": "time without time zone",
+          "type": "string"
+        },
+        "deal_description": {
+          "format": "text",
+          "type": "string"
+        },
+        "average_price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "status": {
+          "default": "verified",
+          "format": "text",
+          "type": "string"
+        },
+        "last_confirmed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "business_url": {
+          "format": "text",
+          "type": "string"
+        },
+        "website_url": {
+          "format": "text",
+          "type": "string"
+        },
+        "opening_hours": {
+          "format": "text",
+          "type": "string"
+        },
+        "rating": {
+          "format": "numeric",
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "happy_hour_windows": {
+      "required": [
+        "id",
+        "venue_id",
+        "dow",
+        "start_time",
+        "end_time",
+        "timezone",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "venue_id": {
+          "description": "Note:\nThis is a Foreign Key to `venues.id`.<fk table='venues' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "dow": {
+          "format": "integer[]",
+          "items": {
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "start_time": {
+          "format": "time without time zone",
+          "type": "string"
+        },
+        "end_time": {
+          "format": "time without time zone",
+          "type": "string"
+        },
+        "timezone": {
+          "default": "America/Chicago",
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "published",
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "label": {
+          "format": "text",
+          "type": "string"
+        },
+        "restaurant_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "last_confirmed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "venue_media": {
+      "required": [
+        "id",
+        "venue_id",
+        "type",
+        "storage_bucket",
+        "storage_path",
+        "sort_order",
+        "status",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "venue_id": {
+          "description": "Note:\nThis is a Foreign Key to `venues.id`.<fk table='venues' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "type": {
+          "format": "text",
+          "type": "string"
+        },
+        "storage_bucket": {
+          "format": "text",
+          "type": "string"
+        },
+        "storage_path": {
+          "format": "text",
+          "type": "string"
+        },
+        "title": {
+          "format": "text",
+          "type": "string"
+        },
+        "caption": {
+          "format": "text",
+          "type": "string"
+        },
+        "sort_order": {
+          "default": 0,
+          "format": "integer",
+          "type": "integer"
+        },
+        "status": {
+          "default": "draft",
+          "format": "text",
+          "type": "string"
+        },
+        "created_by": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "menu_items": {
+      "required": [
+        "id",
+        "section_id",
+        "name",
+        "is_happy_hour",
+        "sort_order",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "section_id": {
+          "description": "Note:\nThis is a Foreign Key to `menu_sections.id`.<fk table='menu_sections' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "name": {
+          "format": "text",
+          "type": "string"
+        },
+        "description": {
+          "format": "text",
+          "type": "string"
+        },
+        "price": {
+          "format": "numeric",
+          "type": "number"
+        },
+        "is_happy_hour": {
+          "default": false,
+          "format": "boolean",
+          "type": "boolean"
+        },
+        "sort_order": {
+          "default": 0,
+          "format": "integer",
+          "type": "integer"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "menus": {
+      "required": [
+        "id",
+        "venue_id",
+        "name",
+        "status",
+        "created_at",
+        "updated_at",
+        "is_active"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "venue_id": {
+          "description": "Note:\nThis is a Foreign Key to `venues.id`.<fk table='venues' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "name": {
+          "format": "text",
+          "type": "string"
+        },
+        "status": {
+          "default": "draft",
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "is_active": {
+          "default": true,
+          "format": "boolean",
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "org_invites": {
+      "required": [
+        "id",
+        "org_id",
+        "email",
+        "role",
+        "venue_ids",
+        "token",
+        "invited_by",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "org_id": {
+          "description": "Note:\nThis is a Foreign Key to `organizations.id`.<fk table='organizations' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "email": {
+          "format": "text",
+          "type": "string"
+        },
+        "role": {
+          "format": "text",
+          "type": "string"
+        },
+        "venue_ids": {
+          "format": "uuid[]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "token": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "invited_by": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "expires_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "accepted_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "accepted_by": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "menu_sections": {
+      "required": [
+        "id",
+        "menu_id",
+        "name",
+        "sort_order",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "menu_id": {
+          "description": "Note:\nThis is a Foreign Key to `menus.id`.<fk table='menus' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "name": {
+          "format": "text",
+          "type": "string"
+        },
+        "sort_order": {
+          "default": 0,
+          "format": "integer",
+          "type": "integer"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "happy_hour_window_menus": {
+      "required": [
+        "happy_hour_window_id",
+        "menu_id",
+        "created_at"
+      ],
+      "properties": {
+        "happy_hour_window_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `happy_hour_windows.id`.<fk table='happy_hour_windows' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "menu_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `menus.id`.<fk table='menus' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "organizations": {
+      "required": [
+        "id",
+        "name",
+        "created_at"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "name": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_by": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "slug": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "organization_members": {
+      "properties": {
+        "organization_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `organizations.id`.<fk table='organizations' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "user_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "role": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "venues": {
+      "required": [
+        "id",
+        "org_id",
+        "name",
+        "tags",
+        "status",
+        "created_at",
+        "updated_at",
+        "city",
+        "state",
+        "zip",
+        "app_name_preference"
+      ],
+      "properties": {
+        "id": {
+          "default": "gen_random_uuid()",
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "org_id": {
+          "description": "Note:\nThis is a Foreign Key to `organizations.id`.<fk table='organizations' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "name": {
+          "format": "text",
+          "type": "string"
+        },
+        "address": {
+          "format": "text",
+          "type": "string"
+        },
+        "phone": {
+          "format": "text",
+          "type": "string"
+        },
+        "website": {
+          "format": "text",
+          "type": "string"
+        },
+        "neighborhood": {
+          "format": "text",
+          "type": "string"
+        },
+        "tags": {
+          "format": "text[]",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "price_tier": {
+          "format": "integer",
+          "type": "integer"
+        },
+        "status": {
+          "default": "draft",
+          "format": "text",
+          "type": "string"
+        },
+        "published_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "updated_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "city": {
+          "format": "text",
+          "type": "string"
+        },
+        "state": {
+          "format": "text",
+          "type": "string"
+        },
+        "timezone": {
+          "format": "text",
+          "type": "string"
+        },
+        "zip": {
+          "format": "bigint",
+          "type": "integer"
+        },
+        "lat": {
+          "format": "double precision",
+          "type": "number"
+        },
+        "lng": {
+          "format": "double precision",
+          "type": "number"
+        },
+        "last_confirmed_at": {
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "app_name_preference": {
+          "default": "org",
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "org_members": {
+      "required": [
+        "org_id",
+        "user_id",
+        "role",
+        "created_at"
+      ],
+      "properties": {
+        "org_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `organizations.id`.<fk table='organizations' column='id'/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "user_id": {
+          "description": "Note:\nThis is a Primary Key.<pk/>",
+          "format": "uuid",
+          "type": "string"
+        },
+        "role": {
+          "format": "text",
+          "type": "string"
+        },
+        "created_at": {
+          "default": "now()",
+          "format": "timestamp with time zone",
+          "type": "string"
+        },
+        "email": {
+          "format": "text",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  },
+  "parameters": {
+    "preferParams": {
+      "name": "Prefer",
+      "description": "Preference",
+      "required": false,
+      "in": "header",
+      "type": "string"
+    },
+    "preferReturn": {
+      "name": "Prefer",
+      "description": "Preference",
+      "required": false,
+      "enum": [
+        "return=representation",
+        "return=minimal",
+        "return=none"
+      ],
+      "in": "header",
+      "type": "string"
+    },
+    "preferCount": {
+      "name": "Prefer",
+      "description": "Preference",
+      "required": false,
+      "enum": [
+        "count=none"
+      ],
+      "in": "header",
+      "type": "string"
+    },
+    "preferPost": {
+      "name": "Prefer",
+      "description": "Preference",
+      "required": false,
+      "enum": [
+        "return=representation",
+        "return=minimal",
+        "return=none",
+        "resolution=ignore-duplicates",
+        "resolution=merge-duplicates"
+      ],
+      "in": "header",
+      "type": "string"
+    },
+    "select": {
+      "name": "select",
+      "description": "Filtering Columns",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "on_conflict": {
+      "name": "on_conflict",
+      "description": "On Conflict",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "order": {
+      "name": "order",
+      "description": "Ordering",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "range": {
+      "name": "Range",
+      "description": "Limiting and Pagination",
+      "required": false,
+      "in": "header",
+      "type": "string"
+    },
+    "rangeUnit": {
+      "name": "Range-Unit",
+      "description": "Limiting and Pagination",
+      "required": false,
+      "default": "items",
+      "in": "header",
+      "type": "string"
+    },
+    "offset": {
+      "name": "offset",
+      "description": "Limiting and Pagination",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "limit": {
+      "name": "limit",
+      "description": "Limiting and Pagination",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.published_happy_hour_windows": {
+      "name": "published_happy_hour_windows",
+      "description": "published_happy_hour_windows",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/published_happy_hour_windows"
+      }
+    },
+    "rowFilter.published_happy_hour_windows.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.published_happy_hour_windows.venue_id": {
+      "name": "venue_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.published_happy_hour_windows.dow": {
+      "name": "dow",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.published_happy_hour_windows.start_time": {
+      "name": "start_time",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.published_happy_hour_windows.end_time": {
+      "name": "end_time",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.published_happy_hour_windows.timezone": {
+      "name": "timezone",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.published_happy_hour_windows.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.published_happy_hour_windows.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.published_happy_hour_windows.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.published_happy_hour_windows.label": {
+      "name": "label",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.venue_members": {
+      "name": "venue_members",
+      "description": "venue_members",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/venue_members"
+      }
+    },
+    "rowFilter.venue_members.venue_id": {
+      "name": "venue_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_members.org_id": {
+      "name": "org_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_members.user_id": {
+      "name": "user_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_members.assigned_by": {
+      "name": "assigned_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_members.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.happy_hour_offers": {
+      "name": "happy_hour_offers",
+      "description": "happy_hour_offers",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/happy_hour_offers"
+      }
+    },
+    "rowFilter.happy_hour_offers.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_offers.venue_id": {
+      "name": "venue_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_offers.window_id": {
+      "name": "window_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_offers.category": {
+      "name": "category",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_offers.title": {
+      "name": "title",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_offers.description": {
+      "name": "description",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_offers.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_offers.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_offers.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.notion_venue_import": {
+      "name": "notion_venue_import",
+      "description": "notion_venue_import",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/notion_venue_import"
+      }
+    },
+    "rowFilter.notion_venue_import.Name": {
+      "name": "Name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notion_venue_import.Address": {
+      "name": "Address",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notion_venue_import.Phone Number": {
+      "name": "Phone Number",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notion_venue_import.Business URL": {
+      "name": "Business URL",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notion_venue_import.Happy Hour Category": {
+      "name": "Happy Hour Category",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notion_venue_import.Happy Hour Details": {
+      "name": "Happy Hour Details",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notion_venue_import.Opening Hours": {
+      "name": "Opening Hours",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notion_venue_import.Rating": {
+      "name": "Rating",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.notion_venue_import.Website URL": {
+      "name": "Website URL",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.happy_hour_places": {
+      "name": "happy_hour_places",
+      "description": "happy_hour_places",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/happy_hour_places"
+      }
+    },
+    "rowFilter.happy_hour_places.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.name": {
+      "name": "name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.address": {
+      "name": "address",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.neighborhood": {
+      "name": "neighborhood",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.phone": {
+      "name": "phone",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.distance_miles": {
+      "name": "distance_miles",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.cuisine_type": {
+      "name": "cuisine_type",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.happy_days": {
+      "name": "happy_days",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.start_time": {
+      "name": "start_time",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.end_time": {
+      "name": "end_time",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.deal_description": {
+      "name": "deal_description",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.average_price": {
+      "name": "average_price",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.last_confirmed_at": {
+      "name": "last_confirmed_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.business_url": {
+      "name": "business_url",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.website_url": {
+      "name": "website_url",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.opening_hours": {
+      "name": "opening_hours",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_places.rating": {
+      "name": "rating",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.happy_hour_windows": {
+      "name": "happy_hour_windows",
+      "description": "happy_hour_windows",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/happy_hour_windows"
+      }
+    },
+    "rowFilter.happy_hour_windows.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_windows.venue_id": {
+      "name": "venue_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_windows.dow": {
+      "name": "dow",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_windows.start_time": {
+      "name": "start_time",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_windows.end_time": {
+      "name": "end_time",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_windows.timezone": {
+      "name": "timezone",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_windows.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_windows.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_windows.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_windows.label": {
+      "name": "label",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_windows.restaurant_id": {
+      "name": "restaurant_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_windows.last_confirmed_at": {
+      "name": "last_confirmed_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.venue_media": {
+      "name": "venue_media",
+      "description": "venue_media",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/venue_media"
+      }
+    },
+    "rowFilter.venue_media.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_media.venue_id": {
+      "name": "venue_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_media.type": {
+      "name": "type",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_media.storage_bucket": {
+      "name": "storage_bucket",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_media.storage_path": {
+      "name": "storage_path",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_media.title": {
+      "name": "title",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_media.caption": {
+      "name": "caption",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_media.sort_order": {
+      "name": "sort_order",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_media.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_media.created_by": {
+      "name": "created_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_media.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venue_media.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.menu_items": {
+      "name": "menu_items",
+      "description": "menu_items",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/menu_items"
+      }
+    },
+    "rowFilter.menu_items.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menu_items.section_id": {
+      "name": "section_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menu_items.name": {
+      "name": "name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menu_items.description": {
+      "name": "description",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menu_items.price": {
+      "name": "price",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menu_items.is_happy_hour": {
+      "name": "is_happy_hour",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menu_items.sort_order": {
+      "name": "sort_order",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menu_items.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menu_items.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.menus": {
+      "name": "menus",
+      "description": "menus",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/menus"
+      }
+    },
+    "rowFilter.menus.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menus.venue_id": {
+      "name": "venue_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menus.name": {
+      "name": "name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menus.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menus.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menus.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menus.is_active": {
+      "name": "is_active",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.org_invites": {
+      "name": "org_invites",
+      "description": "org_invites",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/org_invites"
+      }
+    },
+    "rowFilter.org_invites.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_invites.org_id": {
+      "name": "org_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_invites.email": {
+      "name": "email",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_invites.role": {
+      "name": "role",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_invites.venue_ids": {
+      "name": "venue_ids",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_invites.token": {
+      "name": "token",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_invites.invited_by": {
+      "name": "invited_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_invites.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_invites.expires_at": {
+      "name": "expires_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_invites.accepted_at": {
+      "name": "accepted_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_invites.accepted_by": {
+      "name": "accepted_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.menu_sections": {
+      "name": "menu_sections",
+      "description": "menu_sections",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/menu_sections"
+      }
+    },
+    "rowFilter.menu_sections.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menu_sections.menu_id": {
+      "name": "menu_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menu_sections.name": {
+      "name": "name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menu_sections.sort_order": {
+      "name": "sort_order",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menu_sections.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.menu_sections.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.happy_hour_window_menus": {
+      "name": "happy_hour_window_menus",
+      "description": "happy_hour_window_menus",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/happy_hour_window_menus"
+      }
+    },
+    "rowFilter.happy_hour_window_menus.happy_hour_window_id": {
+      "name": "happy_hour_window_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_window_menus.menu_id": {
+      "name": "menu_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.happy_hour_window_menus.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.organizations": {
+      "name": "organizations",
+      "description": "organizations",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/organizations"
+      }
+    },
+    "rowFilter.organizations.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.organizations.name": {
+      "name": "name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.organizations.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.organizations.created_by": {
+      "name": "created_by",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.organizations.slug": {
+      "name": "slug",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.organization_members": {
+      "name": "organization_members",
+      "description": "organization_members",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/organization_members"
+      }
+    },
+    "rowFilter.organization_members.organization_id": {
+      "name": "organization_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.organization_members.user_id": {
+      "name": "user_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.organization_members.role": {
+      "name": "role",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.organization_members.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.venues": {
+      "name": "venues",
+      "description": "venues",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/venues"
+      }
+    },
+    "rowFilter.venues.id": {
+      "name": "id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.org_id": {
+      "name": "org_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.name": {
+      "name": "name",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.address": {
+      "name": "address",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.phone": {
+      "name": "phone",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.website": {
+      "name": "website",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.neighborhood": {
+      "name": "neighborhood",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.tags": {
+      "name": "tags",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.price_tier": {
+      "name": "price_tier",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.status": {
+      "name": "status",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.published_at": {
+      "name": "published_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.updated_at": {
+      "name": "updated_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.city": {
+      "name": "city",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.state": {
+      "name": "state",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.timezone": {
+      "name": "timezone",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.zip": {
+      "name": "zip",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.lat": {
+      "name": "lat",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.lng": {
+      "name": "lng",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.last_confirmed_at": {
+      "name": "last_confirmed_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.venues.app_name_preference": {
+      "name": "app_name_preference",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "body.org_members": {
+      "name": "org_members",
+      "description": "org_members",
+      "required": false,
+      "in": "body",
+      "schema": {
+        "$ref": "#/definitions/org_members"
+      }
+    },
+    "rowFilter.org_members.org_id": {
+      "name": "org_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_members.user_id": {
+      "name": "user_id",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_members.role": {
+      "name": "role",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_members.created_at": {
+      "name": "created_at",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    },
+    "rowFilter.org_members.email": {
+      "name": "email",
+      "required": false,
+      "in": "query",
+      "type": "string"
+    }
+  },
+  "externalDocs": {
+    "description": "PostgREST Documentation",
+    "url": "https://postgrest.org/en/v14/references/api.html"
+  }
+}

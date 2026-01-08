@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "outDir": "dist",
+    "declaration": true,
+    "strict": true,
+    "moduleResolution": "node",
+    "module": "ESNext",
+    "target": "ESNext",
+    "esModuleInterop": true
+  },
+  "include": ["**/*.ts", "**/*.tsx", "**/*.d.ts"],
+  "exclude": ["dist", "node_modules"]
+}

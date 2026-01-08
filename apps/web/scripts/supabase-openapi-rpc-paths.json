@@ -1,0 +1,10 @@
+[
+  "/rpc/has_venue_assignment",
+  "/rpc/hh_days_from_text",
+  "/rpc/is_org_manager",
+  "/rpc/is_org_owner",
+  "/rpc/is_org_host",
+  "/rpc/is_org_member",
+  "/rpc/whoami",
+  "/rpc/create_organization"
+]

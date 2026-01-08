@@ -1,0 +1,14 @@
+{
+  "name": "@happitime/shared-api",
+  "version": "0.0.1",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "@happitime/shared-types": "0.0.1"
+  }
+}

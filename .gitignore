@@ -1,0 +1,32 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+
+# Next.js
+.next/
+out/
+
+# Expo / React Native
+.expo/
+.expo-shared/
+android/
+ios/
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Supabase CLI artifacts
+.supabase/
+apps/web/.tools/
+supabase/.temp/
+supabase/.cache/
+
+# Env
+.env
+.env.*
+apps/web/.env*
+apps/mobile/.env*

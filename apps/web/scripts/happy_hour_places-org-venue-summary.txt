@@ -1,0 +1,11 @@
+organizations: 50
+venues: 70
+
+54th Street Grill & Bar: Blue Springs, Independence, Kansas City, Lee's Summit, Liberty, Olathe, Zona Rosa
+Houlihan's Restaurant & Bar: Leawood, Lee's Summit
+Johnny's Tavern: Blue Springs, Lee's Summit, Power & Light
+Rye: Leawood, Plaza
+Summit Grill: Gladstone, Lee's Summit, Waldo
+The Bar: Mission, Olathe, Prairie Village, West, West Plaza
+Third Street Social: Lee's Summit, Northland, South Plaza
+Unforked: Crown Center, Overland Park, Westwood

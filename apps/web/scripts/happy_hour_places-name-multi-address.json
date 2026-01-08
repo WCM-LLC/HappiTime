@@ -1,0 +1,41 @@
+[
+  {
+    "name": "Brooksider Sports Bar & Grill",
+    "addresses": [
+      "",
+      "330 Brookside Plaza Brookside Kansas City, Missouri 64113",
+      "6330 Brookside Plaza Brookside, Kansas City, Missouri 64113",
+      "6330 Brookside Plaza, Kansas City, MO 64113"
+    ]
+  },
+  {
+    "name": "Harry's Bard & Tables",
+    "addresses": [
+      "",
+      "501 Westport Rd, Kansas City, MO 64111",
+      "501 Westport Rd, Old Westport, Kansas City, Missouri, 64111, United States"
+    ]
+  },
+  {
+    "name": "Kona Grill",
+    "addresses": [
+      "",
+      "444 Ward Pkwy Country Club Plaza Kansas City, Missouri 64112",
+      "444 Ward Pkwy, Kansas City, MO 64112"
+    ]
+  },
+  {
+    "name": "The Peanut",
+    "addresses": [
+      "",
+      "418 W 9th St. Quality Hill Kansas City, Missouri 64105"
+    ]
+  },
+  {
+    "name": "Unforked -- Westwood",
+    "addresses": [
+      "4719 Rainbow Blvd, Westport View, Westwood, Kansas, 66205, United States",
+      "4719 Rainbow Blvd, Westwood, KS 66205"
+    ]
+  }
+]

@@ -1,0 +1,24 @@
+{
+  "required": [
+    "happy_hour_window_id",
+    "menu_id",
+    "created_at"
+  ],
+  "summary": [
+    {
+      "column": "happy_hour_window_id",
+      "type": "string",
+      "format": "uuid"
+    },
+    {
+      "column": "menu_id",
+      "type": "string",
+      "format": "uuid"
+    },
+    {
+      "column": "created_at",
+      "type": "string",
+      "format": "timestamp with time zone"
+    }
+  ]
+}

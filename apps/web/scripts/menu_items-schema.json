@@ -1,0 +1,58 @@
+{
+  "required": [
+    "id",
+    "section_id",
+    "name",
+    "is_happy_hour",
+    "sort_order",
+    "created_at",
+    "updated_at"
+  ],
+  "summary": [
+    {
+      "column": "id",
+      "type": "string",
+      "format": "uuid"
+    },
+    {
+      "column": "section_id",
+      "type": "string",
+      "format": "uuid"
+    },
+    {
+      "column": "name",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "description",
+      "type": "string",
+      "format": "text"
+    },
+    {
+      "column": "price",
+      "type": "number",
+      "format": "numeric"
+    },
+    {
+      "column": "is_happy_hour",
+      "type": "boolean",
+      "format": "boolean"
+    },
+    {
+      "column": "sort_order",
+      "type": "integer",
+      "format": "integer"
+    },
+    {
+      "column": "created_at",
+      "type": "string",
+      "format": "timestamp with time zone"
+    },
+    {
+      "column": "updated_at",
+      "type": "string",
+      "format": "timestamp with time zone"
+    }
+  ]
+}

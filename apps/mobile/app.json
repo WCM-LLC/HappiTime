@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "HappyHour",
+    "slug": "happyhour-mobile",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "happyhours",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jwill7486.happyhourmobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.jwill7486.happyhourmobile"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "11746dbf-de7c-408d-80c3-45859e657550"
+      }
+    },
+    "owner": "jwill7486",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/11746dbf-de7c-408d-80c3-45859e657550"
+    }
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "allowJs": false,
+    "baseUrl": ".",
+    "jsx": "react-native",
+    "lib": [
+      "esnext"
+    ],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "noEmit": true,
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": [
+      "react",
+      "react-native",
+      "react-native-screens"
+    ]
+  },
+  "include": [
+    "src",
+    "App.tsx",
+    "components",
+    "constants",
+    "hooks"
+  ],
+  "extends": "./node_modules/expo/tsconfig.base.json"
+}
