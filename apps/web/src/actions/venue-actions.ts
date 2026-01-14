@@ -32,7 +32,7 @@ function toNumberOrNull(v: FormDataEntryValue | null | undefined) {
   return Number.isFinite(n) ? n : null;
 }
 
-function redirectWithError(orgId: string, venueId: string, error: string) {
+function redirectWithError(orgId: string, venueId: string, error: string): never {
   redirect(`/orgs/${orgId}/venues/${venueId}?error=${error}`);
 }
 

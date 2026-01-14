@@ -1,4 +1,4 @@
 // packages/shared-api/src/index.ts
-export * from "./client";
-export * from "./happyhour";
-export * from "./menus";
+export * from "./client.js";
+export * from "./happyhour.js";
+export * from "./menus.js";

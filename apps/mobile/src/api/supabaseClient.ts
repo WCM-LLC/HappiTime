@@ -1,17 +1,39 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseClient } from "@happitime/shared-api";
+import Constants from "expo-constants";
 import "react-native-url-polyfill/auto";
 
-const SUPABASE_URL =
-  process.env.EXPO_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? "https://ujflcrjsiyhofnomurco.supabase.co";
-const SUPABASE_ANON_KEY =
-  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqZmxjcmpzaXlob2Zub211cmNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMTY2MDQsImV4cCI6MjA4MjY5MjYwNH0.oW1YYoBE0TuJg0iyngMSY2RY-X0dEZrjQIhb-Oy2Gqs";
+const manifestExtra = (
+  Constants.manifest as { extra?: Record<string, unknown> } | undefined
+)?.extra;
+const manifest2Extra = (
+  Constants as { manifest2?: { extra?: Record<string, unknown> } }
+)?.manifest2?.extra;
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    storage: AsyncStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: false,
+const extra =
+  (Constants.expoConfig?.extra as Record<string, unknown> | undefined) ??
+  manifestExtra ??
+  manifest2Extra;
+
+const supabaseUrl =
+  process.env.EXPO_PUBLIC_SUPABASE_URL ??
+  (extra?.supabaseUrl as string | undefined);
+
+const supabaseKey =
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ??
+  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+  (extra?.supabaseAnonKey as string | undefined) ??
+  (extra?.supabasePublishableKey as string | undefined);
+
+export const supabase = createSupabaseClient({
+  supabaseUrl,
+  supabaseKey,
+  clientOptions: {
+    auth: {
+      storage: AsyncStorage,
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+    },
   },
 });

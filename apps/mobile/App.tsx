@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { supabase } from "./src/api/supabaseClient";
+import { useConfigPushNotifications } from "./src/hooks/useConfigPushNotifications";
 import { useMagicLinkListener } from "./src/hooks/useMagicLinkListener";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { AuthScreen } from "./src/screens/AuthScreen";
@@ -12,11 +13,11 @@ export default function App() {
   return () => console.log("❌ App unmounted");
 }, []);
 
-  useMagicLinkListener();
-  console.log("App render");
-
   const [booting, setBooting] = useState(true);
   const [session, setSession] = useState<any>(null);
+  useMagicLinkListener();
+  useConfigPushNotifications(session);
+  console.log("App render");
 
   useEffect(() => {
     let isMounted = true;

@@ -2,6 +2,7 @@
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createSupaClient, SupabaseClient } from '@supabase/supabase-js';
+import { getPublicSupabaseEnv } from "@happitime/shared-env";
 
 type ServiceRoleKeyError = 'missing' | 'invalid';
 
@@ -29,9 +30,11 @@ export function getServiceRoleKeyError(): ServiceRoleKeyError | null {
 export async function createClient() {
   const cookieStore = await cookies(); // ✅ Next.js 15: cookies() is async
 
+  const { url, anonKey } = getPublicSupabaseEnv();
+
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         getAll() {
@@ -53,15 +56,12 @@ export async function createClient() {
 }
 
 export function createServiceClient(): SupabaseClient {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL;
-  const key =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-    process.env.SUPABASE_ANON_KEY;
+  const { url } = getPublicSupabaseEnv();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!url || !key) {
-    throw new Error('Missing Supabase credentials in environment variables');
+  if (!key) {
+    throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY in environment variables');
   }
 
-  return createSupaClient(url, key, { auth: { persistSession: false } });
+  return createSupaClient(url, key, { auth: { persistSession: false } });       
 }

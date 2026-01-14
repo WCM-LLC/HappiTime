@@ -12,6 +12,10 @@ type InviteDetails = {
   org: { name: string } | null;
 };
 
+type RawInviteDetails = Omit<InviteDetails, 'org'> & {
+  org: { name: string }[] | { name: string } | null;
+};
+
 const ERROR_MESSAGES: Record<string, string> = {
   missing_token: 'Missing invite token.',
   invalid_invite: 'Invite not found or already expired.',
@@ -70,7 +74,9 @@ export default async function InvitePage({
       if (fetchErr || !data) {
         inviteError = 'Invite not found.';
       } else {
-        invite = data as InviteDetails;
+        const raw = data as unknown as RawInviteDetails;
+        const org = Array.isArray(raw.org) ? raw.org[0] ?? null : raw.org;
+        invite = { ...raw, org };
         const venueIds = Array.isArray(invite.venue_ids) ? invite.venue_ids : [];
         if (venueIds.length) {
           const { data: venues } = await admin

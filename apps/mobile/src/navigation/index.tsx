@@ -2,8 +2,7 @@
 import React from "react";
 import {
   NavigationContainer,
-  DefaultTheme,
-  type RouteProp
+  DefaultTheme
 } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -45,7 +44,7 @@ function AppTabs() {
 
   return (
     <Tab.Navigator
-      screenOptions={({ route }: { route: RouteProp<MainTabParamList, keyof MainTabParamList> }) => ({
+      screenOptions={({ route }: { route: { name: keyof MainTabParamList } }) => ({
         headerShown: false,
         tabBarShowLabel: false,
         tabBarStyle: {

@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "98bcc402-9aa1-41d3-be38-a08b9f736b78"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.jwill7486.happitimemonorepo",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}

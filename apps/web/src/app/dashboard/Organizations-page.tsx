@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import UserBar from '@/components/UserBar';
+import UserBar from '@/components/layout/UserBar';
 import { createClient } from '@/utils/supabase/server';
 import { createVenue } from '../../actions/organization-actions';
 

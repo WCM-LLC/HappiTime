@@ -17,7 +17,7 @@ import {
   deleteSection,
   createItem,
   updateItem,
-  deleteMenuItem,
+  deleteItem,
   publishMenu,
   unpublishMenu,
 } from '@/actions/venue-actions';
@@ -95,7 +95,7 @@ interface Coordinates {
   lon: number;
 }
 
-export function distanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
+function distanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const toRad = (x: number): number => (x * Math.PI) / 180;
   const R = 3958.8; // miles
 
@@ -225,10 +225,9 @@ export default async function VenuePage({
             <button formAction={updateVenue.bind(null, orgId, venueId)}>Save changes</button>
           </form>
           <a href={venueDeepLink(v?.id)}>Preview in app</a>
-</div>
-<a href={venueDeepLink(v?.id)}>Preview in app</a>
+        </div>
 
-<div className="card">
+        <div className="card">
           <h3 style={{ marginTop: 0 }}>Happy hour times</h3>
 
           {(happyHours as HappyHourWindow[] | null)?.length ? (
@@ -496,7 +495,7 @@ export default async function VenuePage({
                                         </button>
                                         <button
                                           className="secondary"
-                                          formAction={deleteMenuItem.bind(null, orgId, venueId)}
+                                          formAction={deleteItem.bind(null, orgId, venueId)}
                                         >
                                           Delete
                                         </button>

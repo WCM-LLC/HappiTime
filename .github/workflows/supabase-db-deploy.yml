@@ -25,3 +25,4 @@ jobs:
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
       - name: Apply migrations
         run: supabase db push
+

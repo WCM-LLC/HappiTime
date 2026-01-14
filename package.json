@@ -7,8 +7,25 @@
     "packages/*"
   ],
   "scripts": {
-    "build:shared": "npm run build --workspace @happitime/shared-types && npm run build --workspace @happitime/shared-api",
+    "build:shared": "npm run build --workspace @happitime/shared-env && npm run build --workspace @happitime/shared-types && npm run build --workspace @happitime/shared-api",
     "dev:web": "npm run dev --workspace web",
-    "dev:mobile": "npm run build:shared && npm run start --workspace mobile"
+    "dev:mobile": "npm run build:shared && npm run start --workspace mobile",
+    "lint": "npm run lint --workspace web && npm run lint --workspace mobile",
+    "typecheck": "npm run build:shared && npm run typecheck --workspace web && npm run typecheck --workspace mobile",
+    "test": "npm run build:shared && node --test test/*.test.mjs",
+    "build:web": "npm run build:shared && npm run build --workspace web",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:status": "supabase status",
+    "supabase:reset": "supabase db reset",
+    "supabase:push": "supabase db push",
+    "supabase:gen-types": "supabase gen types typescript --local > supabase/types/generated.ts"
+  },
+  "devDependencies": {
+    "next": "^15.0.0",
+    "react-dom": "19.1.0"
+  },
+  "dependencies": {
+    "react": "19.1.0"
   }
 }

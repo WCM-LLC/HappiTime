@@ -1,23 +1,23 @@
 {
   "expo": {
-    "name": "HappyHour",
-    "slug": "happyhour-mobile",
+    "name": "HappiTime",
+    "slug": "happitime-mobile",
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "scheme": "happyhours",
+    "scheme": "happitime",
     "assetBundlePatterns": [
       "**/*"
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.jwill7486.happyhourmobile",
+      "bundleIdentifier": "com.jwill7486.happitime.mobile",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.jwill7486.happyhourmobile"
+      "package": "com.jwill7486.happitime.mobile"
     },
     "web": {
       "bundler": "metro",

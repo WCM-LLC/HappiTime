@@ -6,7 +6,7 @@ import type {
   MenuSection,
   MenuItem
 } from "@happitime/shared-types";
-import { createSupabaseClient } from "./client";
+import { createSupabaseClient } from "./client.js";
 
 export type MenuItemSummary = Pick<
   MenuItem,

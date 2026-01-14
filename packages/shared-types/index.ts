@@ -1,7 +1,7 @@
 // packages/shared-types/src/index.ts
 
 // Import the generated Supabase Database type
-import type { Database as SupabaseDatabase } from "../../supabase/types/generated";
+import type { Database as SupabaseDatabase } from "../../supabase/types/generated.js";
 
 // Re-export the raw Database type
 export type Database = SupabaseDatabase;

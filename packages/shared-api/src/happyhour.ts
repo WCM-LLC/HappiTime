@@ -9,7 +9,7 @@ import type {
   HappyHourWindow,
   HappyHourOffer
 } from "@happitime/shared-types";
-import { createSupabaseClient } from "./client";
+import { createSupabaseClient } from "./client.js";
 
 export type HappyHourWindowWithVenueAndOffers = HappyHourWindow & {
   venue: Venue | null;

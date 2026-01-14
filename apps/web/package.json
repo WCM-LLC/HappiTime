@@ -8,9 +8,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
     "purge:auth-users": "node scripts/purge-auth-users.mjs"
   },
   "dependencies": {
+    "@happitime/shared-env": "0.0.1",
     "@supabase/ssr": "^0.5.0",
     "@supabase/supabase-js": "^2.49.0",
     "next": "^15.0.0",

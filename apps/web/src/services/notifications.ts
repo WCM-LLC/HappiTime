@@ -23,8 +23,12 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
     return Notification.permission;
   }
 
+  if (Notification.permission === 'default') {
+    return 'prompt';
+  }
+
   const result = await Notification.requestPermission();
-  return result;
+  return result === 'default' ? 'prompt' : result;
 }
 
 export async function scheduleLocalNotification(

@@ -21,10 +21,10 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function getOrigin() {
+async function getOrigin() {
   const env = process.env.NEXT_PUBLIC_SITE_URL;
   if (env) return env.replace(/\/+$/, '');
-  const hdrs = headers();
+  const hdrs = await headers();
   const origin = hdrs.get('origin');
   if (origin) return origin.replace(/\/+$/, '');
   const host = hdrs.get('host');
@@ -159,7 +159,7 @@ export async function createOrgInvite(orgId: string, formData: FormData) {
     redirect(`/orgs/${orgId}/access?error=invite_create_failed`);
   }
 
-  const redirectTo = `${getOrigin()}/invite?token=${token}`;
+  const redirectTo = `${await getOrigin()}/invite?token=${token}`;
   const { error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
     redirectTo,
   });

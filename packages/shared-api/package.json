@@ -2,6 +2,7 @@
   "name": "@happitime/shared-api",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -9,6 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
-    "@happitime/shared-types": "0.0.1"
+    "@happitime/shared-types": "0.0.1",
+    "@happitime/shared-env": "0.0.1"
   }
 }

@@ -8,9 +8,12 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "eslint . --ext .ts,.tsx"
+    "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@happitime/shared-api": "0.0.1",
+    "@happitime/shared-types": "0.0.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.9.0",
     "@react-navigation/native": "^7.0.0",
@@ -20,10 +23,12 @@
     "babel-preset-expo": "~54.0.9",
     "eslint-config-expo": "~10.0.0",
     "expo": "^54.0.30",
-    "expo-constants": "18.0.12",
+    "expo-constants": "~18.0.13",
     "expo-dev-client": "~6.0.20",
+    "expo-device": "~8.0.10",
     "expo-linking": "~8.0.11",
     "expo-location": "~19.0.8",
+    "expo-notifications": "~0.32.16",
     "expo-status-bar": "~3.0.9",
     "expo-updates": "~29.0.15",
     "react": "19.1.0",

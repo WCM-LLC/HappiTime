@@ -525,6 +525,48 @@ export type Database = {
         }
         Relationships: []
       }
+      user_push_tokens: {
+        Row: {
+          app_version: string | null
+          created_at: string
+          device_model: string | null
+          device_name: string | null
+          expo_push_token: string
+          id: string
+          os_name: string | null
+          os_version: string | null
+          platform: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          app_version?: string | null
+          created_at?: string
+          device_model?: string | null
+          device_name?: string | null
+          expo_push_token: string
+          id?: string
+          os_name?: string | null
+          os_version?: string | null
+          platform: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          app_version?: string | null
+          created_at?: string
+          device_model?: string | null
+          device_name?: string | null
+          expo_push_token?: string
+          id?: string
+          os_name?: string | null
+          os_version?: string | null
+          platform?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       venue_media: {
         Row: {
           caption: string | null

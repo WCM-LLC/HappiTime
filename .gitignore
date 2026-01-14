@@ -18,6 +18,7 @@ ios/
 dist/
 build/
 coverage/
+*.tsbuildinfo
 
 # Supabase CLI artifacts
 .supabase/

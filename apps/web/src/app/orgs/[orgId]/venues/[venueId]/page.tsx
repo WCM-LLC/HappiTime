@@ -99,7 +99,7 @@ interface Coordinates {
   lon: number;
 }
 
-export function distanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
+function distanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const toRad = (x: number): number => (x * Math.PI) / 180;
   const R = 3958.8; // miles
 
