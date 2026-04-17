@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import VenueMediaUploader from '@/components/VenueMediaUploader';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createServiceClient } from '@/utils/supabase/server';
 import {
   updateVenue,
   addHappyHour,
@@ -114,19 +114,27 @@ function distanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): 
   );
 }
 
+function isAdminEmail(email: string | undefined): boolean {
+  if (!email) return false;
+  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
+    .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
+  return adminEmails.length === 0 || adminEmails.includes(email.toLowerCase());
+}
+
 export default async function VenuePage({
   params,
   searchParams,
 }: {
   params: Promise<{ orgId: string; venueId: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; from?: string }>;
 }) {
   const { orgId, venueId } = await params;
   const sp = await searchParams;
   const pageError = sp?.error;
+  const fromAdmin = sp?.from === 'admin';
 
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
+  const authClient = await createClient();
+  const { data: auth } = await authClient.auth.getUser();
   const user = auth.user;
 
   if (!user) {
@@ -137,7 +145,10 @@ export default async function VenuePage({
     );
   }
 
-  const { data: membership } = await supabase
+  const userIsAdmin = isAdminEmail(user.email);
+  const supabase = (fromAdmin && userIsAdmin) ? createServiceClient() : await createClient();
+
+  const { data: membership } = await (await createClient())
     .from('org_members')
     .select('role')
     .eq('org_id', orgId)
@@ -145,15 +156,15 @@ export default async function VenuePage({
     .maybeSingle();
 
   const role = String(membership?.role ?? '');
-  const isOwner = role === 'owner';
+  const isOwner = role === 'owner' || (fromAdmin && userIsAdmin);
   const isManager = role === 'manager' || role === 'admin' || role === 'editor';
   const isHost = role === 'host';
-  const canManageVenue = isOwner || isManager;
+  const canManageVenue = isOwner || isManager || (fromAdmin && userIsAdmin);
   const canEditMenuItems = canManageVenue || isHost;
 
   const { data: venue, error: venueErr } = await supabase
     .from('venues')
-    .select('id,org_id,name,address,city,state,zip,timezone,app_name_preference')
+    .select('id,org_id,name,org_name,address,city,state,zip,timezone,app_name_preference')
     .eq('id', venueId)
     .eq('org_id', orgId)
     .single();
@@ -196,7 +207,7 @@ export default async function VenuePage({
     .order('cnt', { ascending: false })
     .limit(20);
 
-  const v = venue as Venue | null;
+  const v = venue as (Venue & { org_name?: string | null }) | null;
   const menuList = (menus as Menu[] | null) ?? [];
   const menuSelections = new Map<string, Set<string>>();
 
@@ -207,6 +218,9 @@ export default async function VenuePage({
     menuSelections.get(link.happy_hour_window_id)?.add(link.menu_id);
   }
   const previewHref = `/app-preview/orgs/${orgId}/venues/${venueId}`;
+  const displayName = v?.org_name?.trim() || v?.name || 'Venue';
+  const locationLabel = v?.org_name?.trim() && v.org_name !== v?.name ? v.name : null;
+  const backHref = fromAdmin ? `/orgs/${orgId}?from=admin` : `/orgs/${orgId}`;
 
   return (
     <main className="container">
@@ -215,8 +229,9 @@ export default async function VenuePage({
 
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <div className="col" style={{ gap: 4 }}>
-            <h2 style={{ marginBottom: 0 }}>{v?.name ?? 'Venue'}</h2>
+            <h2 style={{ marginBottom: 0 }}>{displayName}</h2>
             <div className="muted">
+              {locationLabel ? `${locationLabel} · ` : ''}
               {v?.city || v?.state ? `${v?.city ?? ''}${v?.city && v?.state ? ', ' : ''}${v?.state ?? ''}` : '—'}
             </div>
           </div>
@@ -224,8 +239,13 @@ export default async function VenuePage({
             <Link href={previewHref} target="_blank" rel="noopener noreferrer">
               <button className="secondary">Preview in App</button>
             </Link>
-            <Link href={`/orgs/${orgId}`}>
-              <button className="secondary">Back to org</button>
+            {fromAdmin ? (
+              <Link href="/admin">
+                <button className="secondary">Return to console</button>
+              </Link>
+            ) : null}
+            <Link href={backHref}>
+              <button className="secondary">{fromAdmin ? 'Back to org' : 'Back to org'}</button>
             </Link>
           </div>
         </div>

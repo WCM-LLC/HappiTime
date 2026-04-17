@@ -61,6 +61,6 @@ export const getHappyHourDisplayNames = (window?: DisplayWindow | null) => {
     subtitleText,
     venueName,
     orgName,
-    label
+    label,
   };
 };

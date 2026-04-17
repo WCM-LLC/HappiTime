@@ -7,7 +7,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = auth.user;
 
   if (!user) {
-    redirect('/login');
+    redirect('/login?next=/admin');
   }
 
   const adminEmails = (process.env.ADMIN_EMAILS ?? '')
@@ -19,7 +19,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const isAdmin = adminEmails.length === 0 || adminEmails.includes(userEmail);
 
   if (!isAdmin) {
-    redirect('/dashboard');
+    redirect('/login?next=/admin&error=not_admin');
   }
 
   return <>{children}</>;

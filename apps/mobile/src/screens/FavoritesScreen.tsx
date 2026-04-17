@@ -1,6 +1,9 @@
 // src/screens/FavoritesScreen.tsx
 import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
+import { View, Text, StyleSheet, FlatList, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView, Share } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigation/types";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { HappyHourCard } from "../components/HappyHourCard";
@@ -8,6 +11,7 @@ import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useUserHistory, type HistoryEntry } from "../hooks/useUserHistory";
 import { useUserLists, type UserList } from "../hooks/useUserLists";
+import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useVenueCovers } from "../hooks/useVenueCovers";
 import { colors } from "../theme/colors";
@@ -15,6 +19,7 @@ import { spacing } from "../theme/spacing";
 import { distanceMiles } from "../utils/location";
 
 export const FavoritesScreen: React.FC = () => {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [tab, setTab] = useState<"favorites" | "history" | "lists">(
     "favorites"
   );
@@ -23,7 +28,9 @@ export const FavoritesScreen: React.FC = () => {
   const { venueIds: followedVenueIds, loading: followedLoading } =
     useUserFollowedVenues();
   const { entries: historyEntries, loading: historyLoading } = useUserHistory();
-  const { lists, loading: listsLoading } = useUserLists();
+  const { lists, loading: listsLoading, updateList, deleteList, shareWithFriend } = useUserLists();
+  const { followers } = useUserFollowers();
+  const [editingList, setEditingList] = useState<UserList | null>(null);
 
   const favoriteWindows = data;
   const favoritesWithDistance = useMemo(() => {
@@ -77,7 +84,7 @@ export const FavoritesScreen: React.FC = () => {
         tabs={[
           { key: "favorites", label: "Favorites" },
           { key: "history", label: "History" },
-          { key: "lists", label: "Lists" }
+          { key: "lists", label: "Itineraries" }
         ]}
         activeKey={tab}
         onChange={(key) => setTab(key as any)}
@@ -107,7 +114,7 @@ export const FavoritesScreen: React.FC = () => {
             <HappyHourCard
               window={item}
               coverUrl={item.venue?.id ? venueCovers[item.venue.id] ?? null : null}
-              onPress={() => {}}
+              onPress={() => navigation.navigate("HappyHourDetail", { windowId: item.id })}
             />
           )}
         />
@@ -141,15 +148,46 @@ export const FavoritesScreen: React.FC = () => {
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             ItemSeparatorComponent={() => <View style={styles.separator} />}
-            renderItem={({ item }) => <ListRow list={item} />}
+            renderItem={({ item }) => (
+              <ListRow list={item} onEdit={() => setEditingList(item)} />
+            )}
           />
         ) : (
           <EmptyState
-            title="No lists yet"
-            message="Tap the + tab to create your first list."
+            title="No itineraries yet"
+            message="Tap the + tab to create your first itinerary."
           />
         )
       )}
+
+      <EditListModal
+        list={editingList}
+        followers={followers}
+        onClose={() => setEditingList(null)}
+        onSave={async (id, updates) => {
+          const { error } = await updateList(id, updates);
+          if (error) Alert.alert("Couldn't save", error.message);
+          else setEditingList(null);
+        }}
+        onDelete={async (id) => {
+          Alert.alert("Delete itinerary", "This will permanently delete the itinerary.", [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Delete",
+              style: "destructive",
+              onPress: async () => {
+                const { error } = await deleteList(id);
+                if (error) Alert.alert("Couldn't delete", error.message);
+                else setEditingList(null);
+              },
+            },
+          ]);
+        }}
+        onShareWithFriend={async (listId, userId) => {
+          const { error } = await shareWithFriend(listId, userId);
+          if (error) Alert.alert("Couldn't share", error.message);
+        }}
+      />
     </View>
   );
 };
@@ -219,15 +257,13 @@ const HistoryRow: React.FC<HistoryRowProps> = ({ entry }) => {
   );
 };
 
-type ListRowProps = { list: UserList };
+type ListRowProps = { list: UserList; onEdit: () => void };
 
-const ListRow: React.FC<ListRowProps> = ({ list }) => (
-  <View style={styles.historyRow}>
-    <View style={[styles.historyInitial, styles.listIcon]}>
-      <Text style={styles.historyInitialText}>
-        {list.name.charAt(0).toUpperCase()}
-      </Text>
-    </View>
+const ListRow: React.FC<ListRowProps> = ({ list, onEdit }) => (
+  <Pressable
+    onPress={onEdit}
+    style={({ pressed }) => [styles.historyRow, pressed && { opacity: 0.75 }]}
+  >
     <View style={styles.historyText}>
       <Text style={styles.historyVenue}>{list.name}</Text>
       {list.description ? (
@@ -242,8 +278,229 @@ const ListRow: React.FC<ListRowProps> = ({ list }) => (
         {list.visibility === "public" ? "Public" : "Private"}
       </Text>
     </View>
-  </View>
+  </Pressable>
 );
+
+type EditListModalProps = {
+  list: UserList | null;
+  followers: import("../hooks/useUserFollowers").Follower[];
+  onClose: () => void;
+  onSave: (id: string, updates: { name: string; description: string | null; visibility: string }) => Promise<void>;
+  onDelete: (id: string) => void;
+  onShareWithFriend: (listId: string, userId: string) => Promise<void>;
+};
+
+const HAPPITIME_APP_STORE_URL = "https://apps.apple.com/app/happitime";
+const HAPPITIME_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.happitime";
+
+const EditListModal: React.FC<EditListModalProps> = ({
+  list,
+  followers,
+  onClose,
+  onSave,
+  onDelete,
+  onShareWithFriend,
+}) => {
+  const [name, setName] = useState(list?.name ?? "");
+  const [description, setDescription] = useState(list?.description ?? "");
+  const [isPublic, setIsPublic] = useState(list?.visibility === "public");
+  const [saving, setSaving] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [sharedIds, setSharedIds] = useState<Set<string>>(new Set());
+  const [sharingId, setSharingId] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (list) {
+      setName(list.name);
+      setDescription(list.description ?? "");
+      setIsPublic(list.visibility === "public");
+      setShowShare(false);
+      setSharedIds(new Set());
+    }
+  }, [list?.id]);
+
+  if (!list) return null;
+
+  const isValid = name.trim().length > 0;
+
+  const handleSave = async () => {
+    if (!isValid || saving) return;
+    setSaving(true);
+    await onSave(list.id, {
+      name: name.trim(),
+      description: description.trim() || null,
+      visibility: isPublic ? "public" : "private",
+    });
+    setSaving(false);
+  };
+
+  const handleShareFriend = async (userId: string) => {
+    setSharingId(userId);
+    await onShareWithFriend(list.id, userId);
+    setSharedIds((prev) => new Set(prev).add(userId));
+    setSharingId(null);
+  };
+
+  const handleShareOutside = async () => {
+    const storeUrl =
+      Platform.OS === "ios" ? HAPPITIME_APP_STORE_URL : HAPPITIME_PLAY_STORE_URL;
+    try {
+      await Share.share({
+        message: `Check out my "${list.name}" itinerary on HappiTime!\n\nDownload the app: ${storeUrl}`,
+        title: `${list.name} — HappiTime Itinerary`,
+      });
+    } catch {
+      // user cancelled share sheet
+    }
+  };
+
+  return (
+    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+      <Pressable style={editStyles.backdrop} onPress={onClose} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={editStyles.sheetWrap}
+      >
+        <View style={editStyles.sheet}>
+          <View style={editStyles.handle} />
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+
+            <View style={editStyles.titleRow}>
+              <Text style={editStyles.title}>Edit Itinerary</Text>
+              <Pressable
+                onPress={() => setShowShare((v) => !v)}
+                style={({ pressed }) => [editStyles.shareToggle, pressed && { opacity: 0.7 }]}
+              >
+                <Text style={editStyles.shareToggleText}>
+                  {showShare ? "← Edit" : "Share"}
+                </Text>
+              </Pressable>
+            </View>
+
+            {!showShare ? (
+              <>
+                <Text style={editStyles.label}>Itinerary name *</Text>
+                <TextInput
+                  style={editStyles.input}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Itinerary name"
+                  placeholderTextColor={colors.textMuted}
+                  autoFocus
+                  returnKeyType="next"
+                />
+
+                <Text style={editStyles.label}>Description (optional)</Text>
+                <TextInput
+                  style={[editStyles.input, editStyles.multilineInput]}
+                  value={description}
+                  onChangeText={setDescription}
+                  placeholder="What's this itinerary about?"
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  returnKeyType="done"
+                />
+
+                <Pressable
+                  onPress={() => setIsPublic((v) => !v)}
+                  style={({ pressed }) => [editStyles.visibilityRow, pressed && { opacity: 0.75 }]}
+                >
+                  <View style={editStyles.visibilityText}>
+                    <Text style={editStyles.visibilityLabel}>
+                      {isPublic ? "Public" : "Private"}
+                    </Text>
+                    <Text style={editStyles.visibilityHint}>
+                      {isPublic ? "Anyone can see this itinerary" : "Only you can see this itinerary"}
+                    </Text>
+                  </View>
+                  <View style={[editStyles.toggle, isPublic && editStyles.toggleOn]}>
+                    <View style={[editStyles.toggleThumb, isPublic && editStyles.toggleThumbOn]} />
+                  </View>
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [
+                    editStyles.saveButton,
+                    !isValid && editStyles.saveButtonDisabled,
+                    pressed && isValid && { opacity: 0.85 },
+                  ]}
+                  onPress={handleSave}
+                  disabled={!isValid || saving}
+                >
+                  <Text style={editStyles.saveButtonText}>
+                    {saving ? "Saving…" : "Save changes"}
+                  </Text>
+                </Pressable>
+
+                <Pressable
+                  style={({ pressed }) => [editStyles.deleteButton, pressed && { opacity: 0.75 }]}
+                  onPress={() => onDelete(list.id)}
+                >
+                  <Text style={editStyles.deleteButtonText}>Delete itinerary</Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <Text style={editStyles.shareSection}>Share with friends</Text>
+                {followers.length === 0 ? (
+                  <Text style={editStyles.shareEmpty}>
+                    You don't have any followers yet.
+                  </Text>
+                ) : (
+                  followers.map((f) => {
+                    const displayName =
+                      f.profile?.display_name ?? f.profile?.handle ?? f.follower_id.slice(0, 8);
+                    const alreadyShared = sharedIds.has(f.follower_id);
+                    const isSending = sharingId === f.follower_id;
+                    return (
+                      <View key={f.follower_id} style={editStyles.friendRow}>
+                        <View style={editStyles.friendAvatar}>
+                          <Text style={editStyles.friendAvatarText}>
+                            {displayName.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                        <Text style={editStyles.friendName}>{displayName}</Text>
+                        <Pressable
+                          onPress={() => handleShareFriend(f.follower_id)}
+                          disabled={alreadyShared || isSending}
+                          style={({ pressed }) => [
+                            editStyles.friendShareBtn,
+                            (alreadyShared) && editStyles.friendShareBtnSent,
+                            pressed && !alreadyShared && { opacity: 0.75 },
+                          ]}
+                        >
+                          <Text style={[
+                            editStyles.friendShareBtnText,
+                            alreadyShared && editStyles.friendShareBtnTextSent,
+                          ]}>
+                            {isSending ? "…" : alreadyShared ? "Sent" : "Share"}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    );
+                  })
+                )}
+
+                <View style={editStyles.divider} />
+
+                <Text style={editStyles.shareSection}>Share outside the app</Text>
+                <Text style={editStyles.shareHint}>
+                  Send a link — if they don't have HappiTime yet, they'll be directed to download it.
+                </Text>
+                <Pressable
+                  style={({ pressed }) => [editStyles.saveButton, pressed && { opacity: 0.85 }]}
+                  onPress={handleShareOutside}
+                >
+                  <Text style={editStyles.saveButtonText}>Share link</Text>
+                </Pressable>
+              </>
+            )}
+          </ScrollView>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+};
 
 type NearbyListProps = {
   items: HappyHourWindow[];
@@ -404,4 +661,215 @@ const styles = StyleSheet.create({
     backgroundColor: colors.pillActiveBg ?? colors.surface,
     borderColor: "transparent",
   }
+});
+
+const editStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  sheetWrap: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  sheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl + spacing.lg,
+    paddingTop: spacing.sm,
+    maxHeight: "85%",
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: "center",
+    marginBottom: spacing.md,
+  },
+  title: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: spacing.lg,
+  },
+  label: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginBottom: spacing.xs,
+  },
+  input: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.inputBackground ?? colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: 14,
+    color: colors.text,
+    marginBottom: spacing.md,
+  },
+  multilineInput: {
+    minHeight: 72,
+    textAlignVertical: "top",
+  },
+  visibilityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: spacing.md,
+    marginBottom: spacing.md,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+  },
+  visibilityText: {
+    flex: 1,
+  },
+  visibilityLabel: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  visibilityHint: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  toggle: {
+    width: 44,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.border,
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  toggleOn: {
+    backgroundColor: colors.pillActiveBg,
+  },
+  toggleThumb: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.background,
+    alignSelf: "flex-start",
+  },
+  toggleThumbOn: {
+    alignSelf: "flex-end",
+  },
+  saveButton: {
+    borderRadius: 999,
+    backgroundColor: colors.pillActiveBg,
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  saveButtonDisabled: {
+    opacity: 0.45,
+  },
+  saveButtonText: {
+    color: colors.pillActiveText,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  deleteButton: {
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+  },
+  deleteButtonText: {
+    color: colors.error ?? "#ef4444",
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.lg,
+  },
+  shareToggle: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  shareToggleText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  shareSection: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: spacing.sm,
+  },
+  shareEmpty: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginBottom: spacing.md,
+  },
+  shareHint: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginBottom: spacing.md,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.lg,
+  },
+  friendRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacing.md,
+  },
+  friendAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.sm,
+  },
+  friendAvatarText: {
+    color: colors.text,
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  friendName: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 14,
+  },
+  friendShareBtn: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    backgroundColor: colors.pillActiveBg,
+    minWidth: 60,
+    alignItems: "center",
+  },
+  friendShareBtnSent: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  friendShareBtnText: {
+    color: colors.pillActiveText,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  friendShareBtnTextSent: {
+    color: colors.textMuted,
+  },
 });

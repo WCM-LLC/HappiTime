@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { fetchVenueWithWindows, type VenueWithOrganization } from '@happitime/shared-api';
+import { fetchVenueWithWindows } from '@happitime/shared-api';
 import type { HappyHourWindow } from '@happitime/shared-types';
 import { createClient } from '@/utils/supabase/server';
 import styles from './preview.module.css';
@@ -88,7 +88,6 @@ export default async function AppPreviewVenuePage({
   } = await fetchVenueWithWindows(venueId, {
     supabase,
     orgId,
-    includeOrganization: true,
     throwOnError: false
   });
 
@@ -122,25 +121,12 @@ export default async function AppPreviewVenuePage({
     return acc;
   }, {});
 
-  const { count: venueCount, error: venueCountErr } = await supabase
-    .from('venues')
-    .select('id', { count: 'exact', head: true })
-    .eq('org_id', orgId);
-
-  const v: VenueWithOrganization | null = venue;
+  const v = venue;
   const windowsForVenue: HappyHourWindow[] = windows ?? [];
-  const fallbackVenueName = v?.name ?? 'This venue';
-  const orgName = v?.org?.name ?? null;
-  const appNamePreference = v?.app_name_preference ?? 'org';
-  const hasMultipleVenues =
-    !venueCountErr && typeof venueCount === 'number' ? venueCount > 1 : false;
-  const primaryName = (() => {
-    if (!orgName) return fallbackVenueName;
-    if (appNamePreference === 'venue') return fallbackVenueName;
-    return orgName;
-  })();
-  const venueSubtitle =
-    orgName && hasMultipleVenues && appNamePreference !== 'venue' ? fallbackVenueName : null;
+  const venueName = v?.name ?? 'This venue';
+  // Always use the denormalized org_name on the venue row
+  const primaryName = (v as any)?.org_name?.trim() || venueName;
+  const venueSubtitle = venueName !== primaryName ? venueName : null;
 
   const rating = (v as any)?.rating ?? null;
   const priceTier = (v as any)?.price_tier ?? null;

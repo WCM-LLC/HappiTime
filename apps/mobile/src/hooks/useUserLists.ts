@@ -97,11 +97,92 @@ export function useUserLists() {
     [user?.id, load]
   );
 
+  const updateList = useCallback(
+    async (
+      listId: string,
+      updates: { name?: string; description?: string | null; visibility?: string }
+    ): Promise<{ error: Error | null }> => {
+      if (!user?.id) return { error: new Error("Not signed in") };
+
+      const payload: Record<string, unknown> = {};
+      if (updates.name !== undefined) payload.name = updates.name.trim();
+      if ("description" in updates) payload.description = updates.description?.trim() || null;
+      if (updates.visibility !== undefined) payload.visibility = updates.visibility;
+
+      const { error } = await supabase
+        .from("user_lists")
+        .update(payload)
+        .eq("id", listId)
+        .eq("user_id", user.id);
+
+      if (error) return { error: new Error(error.message) };
+
+      await load();
+      return { error: null };
+    },
+    [user?.id, load]
+  );
+
+  const addVenue = useCallback(
+    async (listId: string, venueId: string): Promise<{ error: Error | null }> => {
+      if (!user?.id) return { error: new Error("Not signed in") };
+
+      const { error } = await (supabase as any)
+        .from("user_list_items")
+        .upsert({ list_id: listId, venue_id: venueId, added_by: user.id }, { onConflict: "list_id,venue_id" });
+
+      if (error) return { error: new Error(error.message) };
+
+      await load();
+      return { error: null };
+    },
+    [user?.id, load]
+  );
+
+  const removeVenue = useCallback(
+    async (listId: string, venueId: string): Promise<{ error: Error | null }> => {
+      if (!user?.id) return { error: new Error("Not signed in") };
+
+      const { error } = await (supabase as any)
+        .from("user_list_items")
+        .delete()
+        .eq("list_id", listId)
+        .eq("venue_id", venueId);
+
+      if (error) return { error: new Error(error.message) };
+
+      await load();
+      return { error: null };
+    },
+    [user?.id, load]
+  );
+
+  const shareWithFriend = useCallback(
+    async (listId: string, targetUserId: string): Promise<{ error: Error | null }> => {
+      if (!user?.id) return { error: new Error("Not signed in") };
+
+      const { error } = await (supabase as any).from("user_events").insert({
+        user_id: user.id,
+        event_type: "itinerary_share",
+        venue_id: null,
+        meta: { list_id: listId, shared_with_user_id: targetUserId },
+      });
+
+      if (error) return { error: new Error(error.message) };
+      return { error: null };
+    },
+    [user?.id]
+  );
+
   return {
     lists: state.lists,
     loading: state.loading,
     error: state.error,
     createList,
+    updateList,
     deleteList,
+    addVenue,
+    removeVenue,
+    shareWithFriend,
   };
 }

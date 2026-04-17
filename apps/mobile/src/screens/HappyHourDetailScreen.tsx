@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,17 @@ import {
   Pressable,
   ScrollView,
   useWindowDimensions,
-  Image
+  Image,
+  Platform,
+  Alert,
+  Modal,
+  FlatList,
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { useHappyHours } from "../hooks/useHappyHours";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
+import { useUserLists } from "../hooks/useUserLists";
 import { useVenueMenus } from "../hooks/useVenueMenus";
 import { useVenueCovers } from "../hooks/useVenueCovers";
 import { useUserLocation } from "../hooks/useUserLocation";
@@ -44,6 +49,10 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
     savingVenueId,
     toggleFollow
   } = useUserFollowedVenues();
+  const { lists, addVenue } = useUserLists();
+  const [showItineraryPicker, setShowItineraryPicker] = useState(false);
+  const [addedToIds, setAddedToIds] = useState<Set<string>>(new Set());
+  const [addingToId, setAddingToId] = useState<string | null>(null);
 
   const window = useMemo(
     () => data.find((w) => w.id === windowId),
@@ -160,12 +169,39 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
   };
 
   const handleSelect = () => {
-    // TODO: hook up to booking or selection flow when available.
+    const lat = venue.lat ?? null;
+    const lng = venue.lng ?? null;
+    if (lat != null && lng != null) {
+      const label = encodeURIComponent(titleText);
+      const url =
+        Platform.OS === "ios"
+          ? `maps://?ll=${lat},${lng}&q=${label}`
+          : `geo:${lat},${lng}?q=${label}`;
+      Linking.openURL(url).catch(() => {
+        Linking.openURL(`https://maps.google.com/?q=${lat},${lng}`).catch(() => {});
+      });
+    } else if (addressDisplay) {
+      const encoded = encodeURIComponent(addressDisplay);
+      const url =
+        Platform.OS === "ios"
+          ? `maps://?q=${encoded}`
+          : `geo:0,0?q=${encoded}`;
+      Linking.openURL(url).catch(() => {
+        Linking.openURL(`https://maps.google.com/?q=${encoded}`).catch(() => {});
+      });
+    }
   };
 
   const handleToggleSave = async () => {
     if (!venueId || followLoading) return;
+    const wasSaved = saved;
     await toggleFollow(venueId);
+    if (!wasSaved) {
+      Alert.alert(
+        "Saved!",
+        `${titleText} has been added to your Favorites. You'll see updates in the Activity tab.`
+      );
+    }
   };
 
   return (
@@ -222,7 +258,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
                 pressed && styles.heroButtonPressed
               ]}
             >
-              <Text style={styles.heroButtonText}>Select</Text>
+              <Text style={styles.heroButtonText}>Let's Go!</Text>
             </Pressable>
           </View>
         </View>
@@ -392,6 +428,15 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
               {saved ? "Saved" : "Save"}
             </Text>
           </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.actionButton,
+              pressed && styles.actionButtonPressed
+            ]}
+            onPress={() => setShowItineraryPicker(true)}
+          >
+            <Text style={styles.actionText}>Add to Itinerary</Text>
+          </Pressable>
           {venue.website && (
             <Pressable
               style={({ pressed }) => [
@@ -416,6 +461,72 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
           )}
         </View>
       </ScrollView>
+
+      <Modal
+        visible={showItineraryPicker}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowItineraryPicker(false)}
+      >
+        <Pressable
+          style={pickerStyles.backdrop}
+          onPress={() => setShowItineraryPicker(false)}
+        />
+        <View style={pickerStyles.sheet}>
+          <View style={pickerStyles.handle} />
+          <Text style={pickerStyles.title}>Add to Itinerary</Text>
+          {lists.length === 0 ? (
+            <Text style={pickerStyles.empty}>
+              No itineraries yet. Tap + to create one.
+            </Text>
+          ) : (
+            <FlatList
+              data={lists}
+              keyExtractor={(item) => item.id}
+              ItemSeparatorComponent={() => <View style={pickerStyles.sep} />}
+              renderItem={({ item }) => {
+                const added = addedToIds.has(item.id);
+                const adding = addingToId === item.id;
+                return (
+                  <Pressable
+                    style={({ pressed }) => [
+                      pickerStyles.row,
+                      pressed && { opacity: 0.75 },
+                    ]}
+                    disabled={added || adding}
+                    onPress={async () => {
+                      if (!venueId) return;
+                      setAddingToId(item.id);
+                      const { error } = await addVenue(item.id, venueId);
+                      setAddingToId(null);
+                      if (error) {
+                        Alert.alert("Couldn't add", error.message);
+                      } else {
+                        setAddedToIds((prev) => new Set(prev).add(item.id));
+                      }
+                    }}
+                  >
+                    <View style={pickerStyles.rowText}>
+                      <Text style={pickerStyles.rowName}>{item.name}</Text>
+                      {item.description ? (
+                        <Text style={pickerStyles.rowDesc} numberOfLines={1}>
+                          {item.description}
+                        </Text>
+                      ) : null}
+                    </View>
+                    <Text style={[
+                      pickerStyles.rowAction,
+                      added && pickerStyles.rowActionDone,
+                    ]}>
+                      {adding ? "…" : added ? "Added ✓" : "Add"}
+                    </Text>
+                  </Pressable>
+                );
+              }}
+            />
+          )}
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -682,4 +793,81 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600"
   }
+});
+
+const pickerStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+  },
+  sheet: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl + spacing.lg,
+    paddingTop: spacing.sm,
+    maxHeight: "60%",
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
+    alignSelf: "center",
+    marginBottom: spacing.md,
+  },
+  title: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: spacing.md,
+  },
+  empty: {
+    color: colors.textMuted,
+    fontSize: 14,
+    textAlign: "center",
+    paddingVertical: spacing.lg,
+  },
+  sep: {
+    height: 1,
+    backgroundColor: colors.border,
+    opacity: 0.6,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.md,
+  },
+  rowText: {
+    flex: 1,
+  },
+  rowName: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  rowDesc: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  rowAction: {
+    color: colors.pillActiveText,
+    fontSize: 13,
+    fontWeight: "600",
+    backgroundColor: colors.pillActiveBg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  rowActionDone: {
+    backgroundColor: colors.surface,
+    color: colors.textMuted,
+  },
 });

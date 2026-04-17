@@ -56,14 +56,14 @@ function AppTabs() {
         tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => {
           let name:
             | "house.fill"
-            | "magnifyingglass"
+            | "star.fill"
             | "plus.circle.fill"
             | "bell.fill"
             | "person.crop.circle.fill" = "house.fill";
           let size = 24;
 
           if (route.name === "Home") name = "house.fill";
-          if (route.name === "Favorites") name = "magnifyingglass";
+          if (route.name === "Favorites") name = "star.fill";
           if (route.name === "Add") {
             name = "plus.circle.fill";
             size = 30;

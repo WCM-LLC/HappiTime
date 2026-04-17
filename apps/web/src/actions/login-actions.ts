@@ -7,35 +7,54 @@ import { createClient } from '@/utils/supabase/server';
 export async function login(formData: FormData) {
   const supabase = await createClient();
 
-  const data = {
-    email: String(formData.get('email') ?? ''),
-    password: String(formData.get('password') ?? ''),
-  };
+  const email = String(formData.get('email') ?? '');
+  const password = String(formData.get('password') ?? '');
+  const next = String(formData.get('next') ?? '').trim();
 
-  const { error } = await supabase.auth.signInWithPassword(data);
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect('/login?error=bad_credentials');
+    const base = next ? `/login?next=${encodeURIComponent(next)}` : '/login';
+    redirect(`${base}&error=bad_credentials`);
   }
 
   revalidatePath('/', 'layout');
+
+  // Honor explicit redirect, then check if this email is an admin
+  if (next && next.startsWith('/')) {
+    redirect(next);
+  }
+
+  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (adminEmails.includes(email.toLowerCase())) {
+    redirect('/admin');
+  }
+
   redirect('/dashboard');
 }
 
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 
-  const data = {
-    email: String(formData.get('email') ?? ''),
-    password: String(formData.get('password') ?? ''),
-  };
+  const email = String(formData.get('email') ?? '');
+  const password = String(formData.get('password') ?? '');
+  const next = String(formData.get('next') ?? '').trim();
 
-  const { error } = await supabase.auth.signUp(data);
+  const { error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
     redirect('/login?error=signup_failed');
   }
 
   revalidatePath('/', 'layout');
+
+  if (next && next.startsWith('/')) {
+    redirect(next);
+  }
+
   redirect('/dashboard');
 }

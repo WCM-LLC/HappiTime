@@ -50,9 +50,9 @@ export const AddScreen: React.FC = () => {
         style={({ pressed }) => [styles.optionCard, pressed && styles.optionCardPressed]}
         onPress={() => setMode("list")}
       >
-        <Text style={styles.optionTitle}>New List</Text>
+        <Text style={styles.optionTitle}>New Itinerary</Text>
         <Text style={styles.optionText}>
-          Collect your favorite happy hours in one place.
+          Collect your favorite happy hours into a shareable itinerary.
         </Text>
       </Pressable>
     </View>
@@ -65,26 +65,35 @@ type NewListFormProps = {
 
 const NewListForm: React.FC<NewListFormProps> = ({ onBack }) => {
   const { createList } = useUserLists();
+  const { user, loading: authLoading } = useCurrentUser();
   const [listName, setListName] = useState("");
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
 
   const isValid = listName.trim().length > 0;
+  const canSubmit = isValid && !saving && !authLoading && !!user;
 
   const handleCreate = async () => {
     if (!isValid) return;
-    setSaving(true);
-    const { error } = await createList(listName, description);
-    setSaving(false);
-
-    if (error) {
-      Alert.alert("Something went wrong", error.message);
+    if (!user) {
+      Alert.alert("Sign in required", "Please sign in to create lists.");
       return;
     }
-
-    Alert.alert("List created!", `"${listName.trim()}" is ready. Find it in your Favorites.`, [
-      { text: "Done", onPress: onBack },
-    ]);
+    setSaving(true);
+    try {
+      const { error } = await createList(listName.trim(), description.trim() || undefined);
+      if (error) {
+        Alert.alert("Something went wrong", error.message);
+        return;
+      }
+      Alert.alert("Itinerary created!", `"${listName.trim()}" is ready. Find it in your Favorites.`, [
+        { text: "Done", onPress: onBack },
+      ]);
+    } catch (e: any) {
+      Alert.alert("Something went wrong", e?.message ?? "Unknown error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -100,13 +109,13 @@ const NewListForm: React.FC<NewListFormProps> = ({ onBack }) => {
           <Text style={styles.backText}>← Back</Text>
         </Pressable>
 
-        <Text style={styles.title}>New List</Text>
+        <Text style={styles.title}>New Itinerary</Text>
         <Text style={styles.subtitle}>
-          Give your list a name to get started.
+          Give your itinerary a name to get started.
         </Text>
 
         <View style={styles.formCard}>
-          <Text style={styles.label}>List name *</Text>
+          <Text style={styles.label}>Itinerary name *</Text>
           <TextInput
             style={styles.input}
             placeholder="e.g. Sunday Brunch Crawl"
@@ -138,7 +147,7 @@ const NewListForm: React.FC<NewListFormProps> = ({ onBack }) => {
             disabled={!isValid || saving}
           >
             <Text style={styles.submitButtonText}>
-              {saving ? "Creating…" : "Create list"}
+              {saving ? "Creating…" : "Create itinerary"}
             </Text>
           </Pressable>
         </View>

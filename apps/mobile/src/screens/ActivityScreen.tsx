@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useUserFollowers } from "../hooks/useUserFollowers";
+import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import type { RootStackParamList } from "../navigation/types";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
@@ -66,17 +67,6 @@ const MOCK_VENUES: ActivityItem[] = [
   }
 ];
 
-const MOCK_LISTS: ActivityItem[] = [
-  {
-    id: "21",
-    type: "save",
-    actor: "Sunday Brunch Crawl",
-    when: "4d",
-    message: "Saved your list",
-    unread: true
-  }
-];
-
 const formatWhen = (iso?: string | null) => {
   if (!iso) return "1d";
   const ts = Date.parse(iso);
@@ -87,30 +77,14 @@ const formatWhen = (iso?: string | null) => {
   return `${Math.max(1, diffDays)}d`;
 };
 
-const formatTagLabel = (tag: string) =>
-  tag
-    .replace(/[_-]+/g, " ")
-    .trim()
-    .split(/\s+/)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-
-const normalizeTag = (value: string) =>
-  value
-    .replace(/[_-]+/g, " ")
-    .trim()
-    .toLowerCase();
-
 const getWindowName = (window: HappyHourWindow) =>
   window.venue?.name ?? window.venue_name ?? "Venue";
 
-const getWindowTags = (window: HappyHourWindow) =>
-  (window.venue?.tags ?? []).map(normalizeTag).filter(Boolean);
-
 export const ActivityScreen: React.FC = () => {
-  const [tab, setTab] = useState<"friends" | "venues" | "lists">("friends");
+  const [tab, setTab] = useState<"friends" | "venues">("friends");
   const { data: windows } = useHappyHours();
   const { followers, loading: followersLoading, toggleFollow } = useUserFollowers();
+  const { venueIds: followedVenueIds } = useUserFollowedVenues();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [followingBack, setFollowingBack] = useState<Record<string, boolean>>({});
 
@@ -133,7 +107,7 @@ export const ActivityScreen: React.FC = () => {
   }, [followers]);
 
   const venuesData = useMemo<ActivityItem[]>(() => {
-    if (!windows.length) return MOCK_VENUES;
+    if (!windows.length) return followedVenueIds.length ? [] : MOCK_VENUES;
 
     const getWindowTs = (window: HappyHourWindow) => {
       const raw =
@@ -147,7 +121,12 @@ export const ActivityScreen: React.FC = () => {
       return Number.isNaN(ts) ? 0 : ts;
     };
 
-    const sorted = [...windows].sort(
+    // Only show windows for venues the user has saved (if any saved)
+    const relevant = followedVenueIds.length
+      ? windows.filter((w) => w.venue_id && followedVenueIds.includes(w.venue_id))
+      : windows;
+
+    const sorted = [...relevant].sort(
       (a, b) => getWindowTs(b) - getWindowTs(a)
     );
 
@@ -168,66 +147,12 @@ export const ActivityScreen: React.FC = () => {
         windowId: window.id
       };
     });
-  }, [windows]);
+  }, [windows, followedVenueIds]);
 
-  const listsData = useMemo<ActivityItem[]>(() => {
-    if (!windows.length) return MOCK_LISTS;
-
-    const tagMeta = new Map<
-      string,
-      { count: number; latest: string | null }
-    >();
-
-    for (const window of windows) {
-      const tags = getWindowTags(window);
-      if (tags.length === 0) continue;
-
-      for (const tag of tags) {
-        const existing = tagMeta.get(tag) ?? { count: 0, latest: null };
-        const candidate =
-          window.updated_at ??
-          window.last_confirmed_at ??
-          window.created_at ??
-          null;
-        const currentTs = existing.latest
-          ? Date.parse(existing.latest)
-          : Number.NaN;
-        const candidateTs = candidate ? Date.parse(candidate) : Number.NaN;
-
-        existing.count += 1;
-        if (
-          candidate &&
-          (Number.isNaN(currentTs) ||
-            (!Number.isNaN(candidateTs) && candidateTs > currentTs))
-        ) {
-          existing.latest = candidate;
-        }
-
-        tagMeta.set(tag, existing);
-      }
-    }
-
-    if (tagMeta.size === 0) return MOCK_LISTS;
-
-    return Array.from(tagMeta.entries())
-      .sort((a, b) => {
-        const aTs = a[1].latest ? Date.parse(a[1].latest) : 0;
-        const bTs = b[1].latest ? Date.parse(b[1].latest) : 0;
-        return bTs - aTs;
-      })
-      .map(([tag, meta], index) => ({
-        id: `list-${tag}-${index}`,
-        type: "save",
-        actor: formatTagLabel(tag),
-        when: formatWhen(meta.latest),
-        message: `${meta.count} venue${meta.count === 1 ? "" : "s"} in this list`
-      }));
-  }, [windows]);
 
   let data: ActivityItem[] = [];
   if (tab === "friends") data = friendsData;
   if (tab === "venues") data = venuesData;
-  if (tab === "lists") data = listsData;
 
   return (
     <View style={styles.container}>
@@ -235,8 +160,7 @@ export const ActivityScreen: React.FC = () => {
       <SegmentedTabs
         tabs={[
           { key: "friends", label: "Friends" },
-          { key: "venues", label: "Venues" },
-          { key: "lists", label: "Lists" }
+          { key: "venues", label: "Venues" }
         ]}
         activeKey={tab}
         onChange={(key) => setTab(key as any)}
@@ -253,6 +177,13 @@ export const ActivityScreen: React.FC = () => {
               <Text style={styles.emptyTitle}>No followers yet</Text>
               <Text style={styles.emptyText}>
                 When someone follows you, they'll appear here.
+              </Text>
+            </View>
+          ) : tab === "venues" && followedVenueIds.length === 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No saved venues</Text>
+              <Text style={styles.emptyText}>
+                Save a venue to see updates here.
               </Text>
             </View>
           ) : null
