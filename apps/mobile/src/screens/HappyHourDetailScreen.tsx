@@ -85,7 +85,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
     distance == null
       ? null
       : distance < 0.1
-        ? "<0.1 mi"
+        ? "nearby"
         : `${distance.toFixed(1)} mi`;
 
   const relatedWindows = useMemo(() => {

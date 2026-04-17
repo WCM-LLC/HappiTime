@@ -245,7 +245,7 @@ const NearbyList: React.FC<NearbyListProps> = ({ items }) => (
       const distance =
         typeof item.distance === "number"
           ? item.distance < 0.1
-            ? "<0.1 mi"
+            ? "nearby"
             : `${item.distance.toFixed(1)} mi`
           : "Distance unavailable";
       const venueName = item.venue?.name ?? item.venue_name ?? "Venue";

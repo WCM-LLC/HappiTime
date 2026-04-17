@@ -160,7 +160,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
                   color={colors.textMuted}
                 />
                 <Text style={styles.metaDistanceText}>
-                  {distance < 0.1 ? "<0.1 mi" : `${distance.toFixed(1)} mi`}
+                  {distance < 0.1 ? "nearby" : `${distance.toFixed(1)} mi`}
                 </Text>
               </View>
             )}

@@ -115,12 +115,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedCuisine, setSelectedCuisine] = useState("all");
   const [selectedPrice, setSelectedPrice] = useState<number | "all">("all");
 
+  // GPS coords with fallback to saved home location for sorting/centering
+  const effectiveCoords = React.useMemo(() => {
+    if (coords) return coords;
+    if (preferences.home_lat != null && preferences.home_lng != null) {
+      return { lat: preferences.home_lat, lng: preferences.home_lng };
+    }
+    return null;
+  }, [coords, preferences.home_lat, preferences.home_lng]);
+
   // Apply preference defaults once loaded
   React.useEffect(() => {
     if (preferences.price_tier_min != null) {
       setSelectedPrice(preferences.price_tier_min);
     }
-  }, [preferences.price_tier_min]);    
+  }, [preferences.price_tier_min]);
 
   const todayIndex = new Date().getDay();
 
@@ -139,14 +148,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     return todaysPlaces
       .map((window) => {
         if (typeof window.distance === "number") return window;
-        const lat = window.venue?.lat ?? null;
-        const lng = window.venue?.lng ?? null;
-        if (!coords || lat == null || lng == null) {
+        const venueLat = window.venue?.lat ?? null;
+        const venueLng = window.venue?.lng ?? null;
+        // Venues with no coordinates always sort to the end
+        if (venueLat == null || venueLng == null) {
+          return { ...window, distance: null };
+        }
+        if (!effectiveCoords) {
           return { ...window, distance: null };
         }
         return {
           ...window,
-          distance: distanceMiles(coords.lat, coords.lng, lat, lng)
+          distance: distanceMiles(effectiveCoords.lat, effectiveCoords.lng, venueLat, venueLng)
         };
       })
       .sort((a, b) => {
@@ -155,7 +168,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         if (b.distance == null) return -1;
         return a.distance - b.distance;
       });
-  }, [todaysPlaces, coords]);
+  }, [todaysPlaces, effectiveCoords]);
 
   const cuisineMeta = useMemo(() => {
     const cuisineSet = new Set<string>();
@@ -262,11 +275,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     });
   }, [filtered]);
 
-  const mapMarkerLocations = useMemo(() => {
-    return filtered
-      .map((place) => formatMapAddress(place))
-      .filter((address) => address.length > 0)
-      .slice(0, 4);
+  // Prefer lat/lng coords for markers — fall back to address string for venues not yet geocoded
+  const mapMarkers = useMemo(() => {
+    return filtered.slice(0, 4).flatMap((place, index) => {
+      const lat = place.venue?.lat ?? null;
+      const lng = place.venue?.lng ?? null;
+      const label = String.fromCharCode(65 + index);
+      if (lat != null && lng != null) {
+        return [{ label, location: `${lat},${lng}` }];
+      }
+      const address = formatMapAddress(place);
+      return address ? [{ label, location: address }] : [];
+    });
   }, [filtered]);
 
   const mapImageUrl = useMemo(() => {
@@ -276,10 +296,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
     const mapWidth = Math.min(640, Math.max(1, Math.floor(width - spacing.lg * 2)));
     const mapHeight = 240;
-    const center =
-      coords
-        ? `${coords.lat},${coords.lng}`
-        : mapMarkerLocations[0] ?? cityForMap ?? "United States";
+    // GPS position takes priority for center; fall back to home coords, then first venue, then city
+    const center = coords
+      ? `${coords.lat},${coords.lng}`
+      : effectiveCoords
+        ? `${effectiveCoords.lat},${effectiveCoords.lng}`
+        : mapMarkers[0]?.location ?? cityForMap ?? "United States";
 
     const params = new URLSearchParams({
       center,
@@ -290,6 +312,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       key: apiKey
     });
 
+    // "You are here" only from real GPS — never fake it with home coords
     if (coords) {
       params.append(
         "markers",
@@ -297,13 +320,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       );
     }
 
-    mapMarkerLocations.forEach((location, index) => {
-      const label = String.fromCharCode(65 + index);
+    mapMarkers.forEach(({ label, location }) => {
       params.append("markers", `color:0xf97316|label:${label}|${location}`);
     });
 
     return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
-  }, [cityForMap, coords, mapMarkerLocations, width]);
+  }, [cityForMap, coords, effectiveCoords, mapMarkers, width]);
 
   const cardWidth = Math.min(width - spacing.lg * 2, 300);
 
@@ -540,7 +562,7 @@ const VenueCard: React.FC<VenueCardProps> = ({ place, width, onSelect }) => {
     distance == null
       ? null
       : distance < 0.1
-        ? "<0.1 mi"
+        ? "nearby"
         : `${distance.toFixed(1)} mi`;
 
   return (
