@@ -7,6 +7,8 @@ export type MediaRow = {
   type: MediaType;
   title: string | null;
   storage_path: string;
+  sort_order: number;
+  status: string;
   created_at: string;
 };
 
@@ -16,6 +18,7 @@ export type MediaInsert = {
   type: MediaType;
   title: string | null;
   storage_path: string;
+  sort_order?: number;
 };
 
 type MediaTableName = 'venue_media' | 'media_assets';
@@ -87,9 +90,10 @@ export async function listVenueMedia(
 
   let query = supabase
     .from(table)
-    .select('id,type,title,storage_path,created_at')
+    .select('id,type,title,storage_path,sort_order,status,created_at')
     .eq('venue_id', venueId)
-    .order('created_at', { ascending: false });
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true });
 
   // Legacy table includes org_id; canonical table relies on venue-level RLS.
   if (table === 'media_assets') {
@@ -122,6 +126,9 @@ export async function insertVenueMedia(
           type: payload.type,
           title: payload.title,
           storage_path: payload.storage_path,
+          sort_order: payload.sort_order ?? 999,
+          status: 'published',
+          storage_bucket: 'venue-media',
         };
 
   const { error } = await supabase.from(table).insert(insertPayload);
@@ -130,4 +137,57 @@ export async function insertVenueMedia(
   }
 
   return { data: null, error: null, table };
+}
+
+export async function deleteVenueMedia(
+  supabase: SupabaseClient,
+  id: string,
+  storagePath: string
+): Promise<{ error: string | null }> {
+  const { error: storageError } = await supabase.storage
+    .from('venue-media')
+    .remove([storagePath]);
+
+  if (storageError) {
+    return { error: storageError.message ?? 'storage_delete_failed' };
+  }
+
+  const table = await resolveMediaTable(supabase);
+  if (!table) {
+    return { error: MISSING_TABLE_MESSAGE };
+  }
+
+  const { error: dbError } = await supabase.from(table).delete().eq('id', id);
+  if (dbError) {
+    return { error: dbError.message ?? 'db_delete_failed' };
+  }
+
+  return { error: null };
+}
+
+export async function setCoverPhoto(
+  supabase: SupabaseClient,
+  coverId: string,
+  allRows: Array<{ id: string }>
+): Promise<{ error: string | null }> {
+  const table = await resolveMediaTable(supabase);
+  if (!table) {
+    return { error: MISSING_TABLE_MESSAGE };
+  }
+
+  const others = allRows.filter((r) => r.id !== coverId);
+  const updates = [
+    { id: coverId, sort_order: 0 },
+    ...others.map((row, idx) => ({ id: row.id, sort_order: idx + 1 })),
+  ];
+
+  for (const u of updates) {
+    const { error } = await supabase
+      .from(table)
+      .update({ sort_order: u.sort_order })
+      .eq('id', u.id);
+    if (error) return { error: error.message ?? 'reorder_failed' };
+  }
+
+  return { error: null };
 }

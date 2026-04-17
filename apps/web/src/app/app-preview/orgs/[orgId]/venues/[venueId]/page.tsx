@@ -4,7 +4,12 @@ import type { HappyHourWindow } from '@happitime/shared-types';
 import { createClient } from '@/utils/supabase/server';
 import styles from './preview.module.css';
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function publicMediaUrl(storagePath: string) {
+  return `${SUPABASE_URL}/storage/v1/object/public/venue-media/${storagePath}`;
+}
 
 function formatTimeRange(start: string, end: string): string {
   if (!start || !end) return '';
@@ -41,12 +46,9 @@ function timeAgo(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const ts = new Date(iso).getTime();
   if (Number.isNaN(ts)) return null;
-
   const diffMs = Date.now() - ts;
   if (diffMs < 0) return null;
-
   const diffDays = diffMs / (1000 * 60 * 60 * 24);
-
   if (diffDays < 1) return 'today';
   if (diffDays < 2) return 'yesterday';
   if (diffDays < 7) return `${Math.floor(diffDays)} days ago`;
@@ -57,6 +59,18 @@ function timeAgo(iso: string | null | undefined): string | null {
   const months = Math.floor(diffDays / 30);
   return months === 1 ? '1 month ago' : `${months} months ago`;
 }
+
+function formatPrice(cents: number | null | undefined): string | null {
+  if (cents == null) return null;
+  return `$${(cents / 100).toFixed(2)}`;
+}
+
+function priceTierDollars(tier: number | null | undefined): string | null {
+  if (!tier || tier < 1) return null;
+  return '$'.repeat(tier);
+}
+
+type OfferRow = { id: string; name: string; description: string | null; price: number | null };
 
 export default async function AppPreviewVenuePage({
   params,
@@ -78,6 +92,36 @@ export default async function AppPreviewVenuePage({
     throwOnError: false
   });
 
+  // Fetch cover photo
+  const { data: mediaRows } = await supabase
+    .from('venue_media')
+    .select('storage_path, sort_order')
+    .eq('venue_id', venueId)
+    .eq('status', 'published')
+    .eq('type', 'image')
+    .order('sort_order', { ascending: true })
+    .limit(1);
+
+  const coverPath = mediaRows?.[0]?.storage_path ?? null;
+  const coverUrl = coverPath ? publicMediaUrl(coverPath) : null;
+
+  // Fetch happy hour offers for all windows
+  const windowIds = (windows ?? []).map((w) => w.id);
+  const { data: allOffers } = windowIds.length > 0
+    ? await supabase
+        .from('happy_hour_offers')
+        .select('id, name, description, price, window_id')
+        .in('window_id', windowIds)
+        .eq('status', 'published')
+        .order('sort_order', { ascending: true })
+    : { data: [] };
+
+  const offersByWindow = (allOffers ?? []).reduce<Record<string, OfferRow[]>>((acc, o: any) => {
+    if (!acc[o.window_id]) acc[o.window_id] = [];
+    acc[o.window_id].push({ id: o.id, name: o.name, description: o.description, price: o.price });
+    return acc;
+  }, {});
+
   const { count: venueCount, error: venueCountErr } = await supabase
     .from('venues')
     .select('id', { count: 'exact', head: true })
@@ -98,12 +142,15 @@ export default async function AppPreviewVenuePage({
   const venueSubtitle =
     orgName && hasMultipleVenues && appNamePreference !== 'venue' ? fallbackVenueName : null;
 
+  const rating = (v as any)?.rating ?? null;
+  const priceTier = (v as any)?.price_tier ?? null;
+
   return (
     <main className={styles.preview}>
       <div className={styles.previewMeta}>
         <div>
           <span className={styles.previewBadge}>Preview</span>
-          <span className={styles.previewMetaText}>HappyHour mobile app view</span>
+          <span className={styles.previewMetaText}>HappyTime mobile app view</span>
         </div>
         <Link className={styles.previewLink} href={`/orgs/${orgId}/venues/${venueId}`}>
           Back to editor
@@ -128,8 +175,44 @@ export default async function AppPreviewVenuePage({
 
             {windowsForVenue.length > 0 ? (
               <>
-                <h1 className={styles.title}>{primaryName}</h1>
-                <p className={styles.subtitle}>Preview of this venue in the app</p>
+                {/* Hero cover */}
+                {coverUrl ? (
+                  <div className={styles.heroContainer}>
+                    <img
+                      src={coverUrl}
+                      alt={`${primaryName} cover`}
+                      className={styles.heroCover}
+                    />
+                    <div className={styles.heroOverlay}>
+                      <h1 className={styles.heroTitle}>{primaryName}</h1>
+                      {venueSubtitle ? (
+                        <p className={styles.heroSubtitle}>{venueSubtitle}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : (
+                  <div className={styles.heroPlaceholder}>
+                    <h1 className={styles.title}>{primaryName}</h1>
+                    {venueSubtitle ? (
+                      <p className={styles.venueSubtitleBelow}>{venueSubtitle}</p>
+                    ) : null}
+                  </div>
+                )}
+
+                {/* Venue meta row */}
+                {(rating != null || priceTier != null || v?.city) ? (
+                  <div className={styles.metaRow}>
+                    {rating != null ? (
+                      <span className={styles.metaChip}>⭐ {Number(rating).toFixed(1)}</span>
+                    ) : null}
+                    {priceTier != null ? (
+                      <span className={styles.metaChip}>{priceTierDollars(priceTier)}</span>
+                    ) : null}
+                    {v?.city ? (
+                      <span className={styles.metaChip}>{v.city}{v.state ? `, ${v.state}` : ''}</span>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 <div className={styles.list}>
                   {windowsForVenue.map((window) => {
@@ -144,6 +227,7 @@ export default async function AppPreviewVenuePage({
                     const lastConfirmedText = timeAgo(lastConfirmedRaw);
                     const timeLabel = formatTimeRange(window.start_time, window.end_time);
                     const timezoneLabel = window.timezone ? ` (${window.timezone})` : '';
+                    const offers = offersByWindow[window.id] ?? [];
 
                     return (
                       <div key={window.id} className={styles.card}>
@@ -178,6 +262,27 @@ export default async function AppPreviewVenuePage({
                           <span className={styles.rowLabel}>Days</span>
                           <span className={styles.rowValue}>{formatDays(window.dow ?? [])}</span>
                         </div>
+
+                        {/* Offers / menu items */}
+                        {offers.length > 0 ? (
+                          <div className={styles.offersSection}>
+                            <div className={styles.offersSectionLabel}>Specials</div>
+                            {offers.map((offer) => (
+                              <div key={offer.id} className={styles.offerRow}>
+                                <div className={styles.offerAccentBar} />
+                                <div className={styles.offerContent}>
+                                  <span className={styles.offerName}>{offer.name}</span>
+                                  {offer.description ? (
+                                    <span className={styles.offerDesc}>{offer.description}</span>
+                                  ) : null}
+                                </div>
+                                {offer.price != null ? (
+                                  <span className={styles.offerPrice}>{formatPrice(offer.price)}</span>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
 
                         <div className={styles.footerRow}>
                           {lastConfirmedText ? (

@@ -181,6 +181,129 @@
   font-size: 12px;
 }
 
+.heroContainer {
+  position: relative;
+  width: calc(100% + 32px);
+  margin: -16px -16px 16px;
+  height: 180px;
+  overflow: hidden;
+}
+
+.heroCover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.heroOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.62) 0%, transparent 60%);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 12px 16px;
+}
+
+.heroTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.heroSubtitle {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: rgba(255,255,255,0.8);
+}
+
+.heroPlaceholder {
+  margin-bottom: 8px;
+}
+
+.venueSubtitleBelow {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.metaChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  font-size: 12px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.offersSection {
+  margin-top: 10px;
+  border-top: 1px solid #e5e7eb;
+  padding-top: 10px;
+}
+
+.offersSectionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.offerRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.offerAccentBar {
+  flex-shrink: 0;
+  width: 3px;
+  height: 14px;
+  border-radius: 2px;
+  background: #ff7a1a;
+  margin-top: 2px;
+}
+
+.offerContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.offerName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.offerDesc {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.offerPrice {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+  flex-shrink: 0;
+}
+
 @media (max-width: 520px) {
   .preview {
     padding: 20px 12px 32px;

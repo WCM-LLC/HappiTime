@@ -1,6 +1,6 @@
 // src/components/HappyHourCard.tsx
 import React from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions, Image } from "react-native";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
@@ -10,11 +10,13 @@ import { timeAgo } from "../utils/time";
 
 type HappyHourCardProps = {
   window: any;
+  coverUrl?: string | null;
   onPress?: () => void;
 };
 
 export const HappyHourCard: React.FC<HappyHourCardProps> = ({
   window,
+  coverUrl,
   onPress
 }) => {
   const venue = window.venue ?? null;
@@ -84,6 +86,13 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
       ]}
     >
       <View style={styles.hero}>
+        {coverUrl ? (
+          <Image
+            source={{ uri: coverUrl }}
+            style={StyleSheet.absoluteFillObject}
+            resizeMode="cover"
+          />
+        ) : null}
         <ScrollView
           horizontal
           pagingEnabled
@@ -97,7 +106,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
           {heroSlides.map((slide) => (
             <View
               key={slide}
-              style={[styles.heroSlide, { width: heroWidth }]}
+              style={[styles.heroSlide, { width: heroWidth }, coverUrl ? styles.heroSlideTransparent : null]}
             />
           ))}
         </ScrollView>
@@ -223,6 +232,9 @@ const styles = StyleSheet.create({
   heroSlide: {
     height: "100%",
     backgroundColor: colors.inputBackground
+  },
+  heroSlideTransparent: {
+    backgroundColor: "transparent"
   },
   heroDots: {
     position: "absolute",

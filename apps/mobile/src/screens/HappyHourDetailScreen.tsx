@@ -6,13 +6,15 @@ import {
   Linking,
   Pressable,
   ScrollView,
-  useWindowDimensions
+  useWindowDimensions,
+  Image
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { useHappyHours } from "../hooks/useHappyHours";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useVenueMenus } from "../hooks/useVenueMenus";
+import { useVenueCovers } from "../hooks/useVenueCovers";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
@@ -51,6 +53,8 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
   const venue = window?.venue ?? null;
   const venueId = window?.venue_id ?? null;
   const saved = isFollowing(venueId);
+  const venueCovers = useVenueCovers(venueId ? [venueId] : []);
+  const coverUrl = venueId ? venueCovers[venueId] ?? null : null;
   const { titleText, subtitleText } = getHappyHourDisplayNames(window);
 
   const {
@@ -87,6 +91,20 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
       : distance < 0.1
         ? "nearby"
         : `${distance.toFixed(1)} mi`;
+
+  const addressDisplay = useMemo(() => {
+    if (!venue?.address) return null;
+    const addr = venue.address;
+    // If address already contains the city (Google formatted_address), show as-is
+    if (venue.city && addr.toLowerCase().includes(venue.city.toLowerCase())) {
+      return addr;
+    }
+    const parts: string[] = [addr];
+    if (venue.city) parts.push(venue.city);
+    if (venue.state) parts.push(venue.state);
+    if (venue.zip) parts.push(String(venue.zip));
+    return parts.join(", ");
+  }, [venue]);
 
   const relatedWindows = useMemo(() => {
     if (!venue?.city) return [];
@@ -155,6 +173,13 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.heroWrap}>
           <View style={[styles.heroCard, { width: heroWidth }]}>
+            {coverUrl ? (
+              <Image
+                source={{ uri: coverUrl }}
+                style={StyleSheet.absoluteFillObject}
+                resizeMode="cover"
+              />
+            ) : null}
             <ScrollView
               horizontal
               pagingEnabled
@@ -168,7 +193,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
               {heroSlides.map((slide) => (
                 <View
                   key={slide}
-                  style={[styles.heroSlide, { width: heroWidth }]}
+                  style={[styles.heroSlide, { width: heroWidth }, coverUrl ? styles.heroSlideTransparent : null]}
                 />
               ))}
             </ScrollView>
@@ -237,14 +262,9 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
               </View>
             )}
           </View>
-          {venue.address && (
-            <Text style={styles.address}>
-              {venue.address}
-              {venue.city ? `, ${venue.city}` : ""}
-              {venue.state ? `, ${venue.state}` : ""}
-              {venue.zip ? ` ${venue.zip}` : ""}
-            </Text>
-          )}
+          {addressDisplay ? (
+            <Text style={styles.address}>{addressDisplay}</Text>
+          ) : null}
         </View>
 
         <View style={styles.detailRow}>
@@ -429,6 +449,9 @@ const styles = StyleSheet.create({
     height: "100%",
     backgroundColor: colors.inputBackground
   },
+  heroSlideTransparent: {
+    backgroundColor: "transparent"
+  },
   heroDots: {
     position: "absolute",
     bottom: 12,
@@ -587,14 +610,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm
   },
   menuDot: {
-    width: 14,
+    width: 3,
     height: 14,
-    borderRadius: 7,
+    borderRadius: 2,
     marginRight: spacing.md,
-    marginTop: 4
+    marginTop: 2
   },
   menuDotActive: {
-    backgroundColor: colors.text
+    backgroundColor: colors.primary
   },
   menuDotInactive: {
     backgroundColor: colors.border

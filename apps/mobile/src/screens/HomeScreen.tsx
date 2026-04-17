@@ -9,7 +9,11 @@ import {
   RefreshControl,
   Pressable,
   useWindowDimensions,
-  Image
+  Image,
+  Modal,
+  Alert,
+  Platform,
+  KeyboardAvoidingView
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
@@ -17,6 +21,8 @@ import Constants from "expo-constants";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useUserPreferences } from "../hooks/useUserPreferences";
+import { useVenueCovers } from "../hooks/useVenueCovers";
+import { getHappyHourDisplayNames } from "../utils/happyHourDisplay";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
 import { colors } from "../theme/colors";
@@ -86,8 +92,15 @@ const normalizeCuisine = (value: string) =>
 const getPlaceCuisines = (window: HappyHourWindow) =>
   (window.venue?.tags ?? []).map(normalizeCuisine).filter(Boolean);
 
-const getVenueName = (window: HappyHourWindow) =>
-  window.venue?.name ?? window.venue_name ?? "Venue";
+const getVenueName = (window: HappyHourWindow) => {
+  const { titleText } = getHappyHourDisplayNames(window);
+  return titleText;
+};
+
+const getVenueSubtitle = (window: HappyHourWindow): string | null => {
+  const { subtitleText } = getHappyHourDisplayNames(window);
+  return subtitleText;
+};
 
 const formatPriceTier = (tier?: number | null) =>
   typeof tier === "number" && tier > 0 ? "$".repeat(tier) : null;
@@ -108,12 +121,14 @@ const formatMapAddress = (window: HappyHourWindow) => {
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { data, loading, error, refreshing, refresh } = useHappyHours();
   const { coords, error: locationError } = useUserLocation();
-  const { preferences } = useUserPreferences();
+  const { preferences, savePreferences } = useUserPreferences();
   const { width } = useWindowDimensions();
 
   const [query, setQuery] = useState("");
   const [selectedCuisine, setSelectedCuisine] = useState("all");
   const [selectedPrice, setSelectedPrice] = useState<number | "all">("all");
+  const [cityPickerVisible, setCityPickerVisible] = useState(false);
+  const [cityDraft, setCityDraft] = useState("");
 
   // GPS coords with fallback to saved home location for sorting/centering
   const effectiveCoords = React.useMemo(() => {
@@ -240,6 +255,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     return list;
   }, [withDistance, query, selectedCuisine, selectedPrice]);
 
+  const filteredVenueIds = useMemo(
+    () => filtered.map((p) => p.venue?.id).filter((id): id is string => !!id),
+    [filtered]
+  );
+  const venueCovers = useVenueCovers(filteredVenueIds);
+
   const cityForMap = useMemo(() => {
     const cityPlace = todaysPlaces.find((place) => place.venue?.city);
     const city = cityPlace?.venue?.city;
@@ -250,8 +271,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
   const cityLabel = useMemo(() => {
     if (cityForMap) return cityForMap;
+    if (preferences.home_city) {
+      return preferences.home_state
+        ? `${preferences.home_city}, ${preferences.home_state}`
+        : preferences.home_city;
+    }
     return coords ? "Nearby" : "Set your city";
-  }, [cityForMap, coords]);
+  }, [cityForMap, coords, preferences.home_city, preferences.home_state]);
 
   const summaryText = useMemo(() => {
     const parts: string[] = ["Today"];
@@ -270,8 +296,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const mapLabels = useMemo(() => {
     return filtered.slice(0, 4).map((place) => {
       const price = formatPriceTier(getPriceTier(place));
-      const name = getVenueName(place);
-      return price ? `${name} - ${price}` : name;
+      const title = getVenueName(place);
+      const sub = getVenueSubtitle(place);
+      const displayName = sub ? `${title} · ${sub}` : title;
+      return price ? `${displayName} - ${price}` : displayName;
     });
   }, [filtered]);
 
@@ -327,6 +355,32 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
   }, [cityForMap, coords, effectiveCoords, mapMarkers, width]);
 
+  const openCityPicker = () => {
+    if (Platform.OS === "ios") {
+      Alert.prompt(
+        "Set your city",
+        "Enter city, state (e.g. Kansas City, MO)",
+        (input) => {
+          if (!input?.trim()) return;
+          const [city, ...rest] = input.split(",").map((s) => s.trim());
+          const state = rest[0] ?? null;
+          void savePreferences({ home_city: city, home_state: state });
+        },
+        "plain-text",
+        preferences.home_city
+          ? `${preferences.home_city}${preferences.home_state ? `, ${preferences.home_state}` : ""}`
+          : ""
+      );
+    } else {
+      setCityDraft(
+        preferences.home_city
+          ? `${preferences.home_city}${preferences.home_state ? `, ${preferences.home_state}` : ""}`
+          : ""
+      );
+      setCityPickerVisible(true);
+    }
+  };
+
   const cardWidth = Math.min(width - spacing.lg * 2, 300);
 
   if (loading && !refreshing && data.length === 0) {
@@ -367,7 +421,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             Find happy hours happening today.
           </Text>
 
-          <View style={styles.searchSummary}>
+          <Pressable
+            onPress={openCityPicker}
+            style={({ pressed }) => [styles.searchSummary, pressed && { opacity: 0.75 }]}
+          >
             <View style={styles.searchIcon}>
               <View style={styles.searchIconCircle} />
               <View style={styles.searchIconHandle} />
@@ -378,15 +435,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 {summaryText}
               </Text>
             </View>
-            <Pressable
-              onPress={() => {
-                // TODO: open city/date filter editing.
-              }}
-              style={styles.editButton}
-            >
+            <View style={styles.editButton}>
               <View style={styles.editIcon} />
-            </Pressable>
-          </View>
+            </View>
+          </Pressable>
 
           <View style={styles.queryRow}>
             <TextInput
@@ -504,6 +556,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 key={item.id}
                 place={item}
                 width={cardWidth}
+                coverUrl={item.venue?.id ? venueCovers[item.venue.id] ?? null : null}
                 onSelect={() =>
                   navigation.navigate("HappyHourDetail", { windowId: item.id })
                 }
@@ -512,6 +565,54 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </ScrollView>
         )}
       </ScrollView>
+
+      {/* Android city picker — iOS uses Alert.prompt above */}
+      <Modal
+        visible={cityPickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCityPickerVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior="padding"
+          style={styles.modalBackdrop}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Set your city</Text>
+            <Text style={styles.modalHint}>e.g. Kansas City, MO</Text>
+            <TextInput
+              value={cityDraft}
+              onChangeText={setCityDraft}
+              placeholder="City, State"
+              placeholderTextColor={colors.textMuted}
+              style={styles.modalInput}
+              autoFocus
+              autoCapitalize="words"
+            />
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={() => setCityPickerVisible(false)}
+                style={styles.modalButtonSecondary}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  const trimmed = cityDraft.trim();
+                  if (trimmed) {
+                    const [city, ...rest] = trimmed.split(",").map((s) => s.trim());
+                    void savePreferences({ home_city: city, home_state: rest[0] ?? null });
+                  }
+                  setCityPickerVisible(false);
+                }}
+                style={styles.modalButtonPrimary}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Save</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 };
@@ -540,11 +641,13 @@ const FilterChip: React.FC<ChipProps> = ({ label, selected, onPress }) => (
 type VenueCardProps = {
   place: HappyHourWindow;
   width: number;
+  coverUrl?: string | null;
   onSelect?: () => void;
 };
 
-const VenueCard: React.FC<VenueCardProps> = ({ place, width, onSelect }) => {   
+const VenueCard: React.FC<VenueCardProps> = ({ place, width, coverUrl, onSelect }) => {
   const name = getVenueName(place);
+  const locationLabel = getVenueSubtitle(place);
   const priceTier = formatPriceTier(getPriceTier(place));
 
   const ratingRaw = place.venue?.rating ?? null;
@@ -576,6 +679,13 @@ const VenueCard: React.FC<VenueCardProps> = ({ place, width, onSelect }) => {
       ]}
     >
       <View style={styles.cardHero}>
+        {coverUrl ? (
+          <Image
+            source={{ uri: coverUrl }}
+            style={StyleSheet.absoluteFillObject}
+            resizeMode="cover"
+          />
+        ) : null}
         <View style={styles.cardHeroDots}>
           <View style={[styles.cardHeroDot, styles.cardHeroDotActive]} />
           <View style={styles.cardHeroDot} />
@@ -586,6 +696,11 @@ const VenueCard: React.FC<VenueCardProps> = ({ place, width, onSelect }) => {
         <Text style={styles.cardTitle} numberOfLines={1}>
           {name}
         </Text>
+        {locationLabel ? (
+          <Text style={styles.cardLocationLabel} numberOfLines={1}>
+            {locationLabel}
+          </Text>
+        ) : null}
         <View style={styles.cardMetaRow}>
           <Text style={styles.cardMetaText}>
             {rating != null ? rating.toFixed(1) : "--"}{" "}
@@ -891,6 +1006,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: spacing.xs
   },
+  cardLocationLabel: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "500",
+    marginTop: 2,
+    marginBottom: spacing.xs
+  },
   cardMetaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -939,6 +1061,69 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 13,
     textAlign: "center"
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.lg
+  },
+  modalCard: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: spacing.lg,
+    width: "100%"
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: spacing.xs
+  },
+  modalHint: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginBottom: spacing.md
+  },
+  modalInput: {
+    color: colors.text,
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    marginBottom: spacing.md
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: spacing.sm
+  },
+  modalButtonSecondary: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  modalButtonSecondaryText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "500"
+  },
+  modalButtonPrimary: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    backgroundColor: colors.primary
+  },
+  modalButtonPrimaryText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600"
   }
 });
 

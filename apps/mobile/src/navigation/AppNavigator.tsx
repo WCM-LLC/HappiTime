@@ -109,6 +109,7 @@ export function AppNavigator() {
           options={{
             headerShown: true,
             title: "Details",
+            headerBackTitle: "Discover",
             headerTintColor: colors.text,
             headerStyle: { backgroundColor: colors.background }
           }}
@@ -119,6 +120,7 @@ export function AppNavigator() {
           options={{
             headerShown: true,
             title: "Venue Preview",
+            headerBackTitle: "Back",
             headerTintColor: colors.text,
             headerStyle: { backgroundColor: colors.background }
           }}

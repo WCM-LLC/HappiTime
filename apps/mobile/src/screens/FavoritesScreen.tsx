@@ -9,6 +9,7 @@ import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useUserHistory, type HistoryEntry } from "../hooks/useUserHistory";
 import { useUserLists, type UserList } from "../hooks/useUserLists";
 import { useUserLocation } from "../hooks/useUserLocation";
+import { useVenueCovers } from "../hooks/useVenueCovers";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { distanceMiles } from "../utils/location";
@@ -52,6 +53,12 @@ export const FavoritesScreen: React.FC = () => {
         followedVenueSet.has(window.venue_id)
     );
   }, [favoritesWithDistance, followedVenueSet]);
+
+  const favoriteVenueIds = useMemo(
+    () => favoriteOnly.map((w) => w.venue?.id).filter((id): id is string => !!id),
+    [favoriteOnly]
+  );
+  const venueCovers = useVenueCovers(favoriteVenueIds);
 
   const nearbyPlaces = useMemo(() => {
     const withDistance = favoriteOnly.filter(
@@ -97,7 +104,11 @@ export const FavoritesScreen: React.FC = () => {
             ) : null
           }
           renderItem={({ item }) => (
-            <HappyHourCard window={item} onPress={() => {}} />
+            <HappyHourCard
+              window={item}
+              coverUrl={item.venue?.id ? venueCovers[item.venue.id] ?? null : null}
+              onPress={() => {}}
+            />
           )}
         />
       )}

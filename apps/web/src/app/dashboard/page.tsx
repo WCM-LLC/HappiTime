@@ -64,6 +64,9 @@ export default async function DashboardPage({
             <h2 style={{ marginBottom: 0 }}>Dashboard</h2>
             <div className="muted">Organizations you have access to.</div>
           </div>
+          <Link href="/admin">
+            <button className="secondary" style={{ fontSize: 12, padding: '6px 12px' }}>Admin Console</button>
+          </Link>
         </div>
 
         {pageError ? (
