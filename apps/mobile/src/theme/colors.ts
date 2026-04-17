@@ -9,8 +9,8 @@ export const colors = {
   textMuted: "#777777",
 
   
-  primary: "#FF6A00",
-  accent: "#FF6A00",
+  primary: "#E05228",
+  accent: "#E05228",
 
   
   border: "#E5E5E5",

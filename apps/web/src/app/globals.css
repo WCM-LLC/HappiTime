@@ -1,3 +1,8 @@
+:root {
+  --brand: #E05228;
+  --brand-dark: #b83e1a;
+}
+
 html, body {
   padding: 0;
   margin: 0;
@@ -32,6 +37,14 @@ button {
   color: white;
   cursor: pointer;
 }
+button.brand {
+  background: var(--brand);
+  border-color: var(--brand);
+}
+button.brand:hover {
+  background: var(--brand-dark);
+  border-color: var(--brand-dark);
+}
 button.secondary {
   background: #fff;
   color: #111827;
@@ -41,5 +54,12 @@ input, select, textarea {
   border-radius: 10px;
   border: 1px solid #d1d5db;
   width: 100%;
+}
+input[type="checkbox"],
+input[type="radio"] {
+  width: auto;
+  height: auto;
+  padding: 0;
+  flex-shrink: 0;
 }
 hr { border: none; border-top: 1px solid #e5e7eb; }

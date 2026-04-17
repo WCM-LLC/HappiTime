@@ -2,7 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'HappyHour Client Portal',
+  title: 'HappiTime',
   description: 'Client platform to manage venues, menus, happy hours, and media.',
 };
 

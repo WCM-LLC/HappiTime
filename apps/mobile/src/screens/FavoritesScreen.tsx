@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 30,
     fontWeight: "700",
-    color: colors.accent ?? colors.primary,
+    color: colors.text,
     marginBottom: spacing.md,
     alignSelf: "center"
   },
