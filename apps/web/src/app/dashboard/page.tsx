@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import UserBar from '@/components/layout/UserBar';
 import { createClient } from '@/utils/supabase/server';
 import { createOrganization, deleteOrganization, updateOrganization } from '../../actions/dashboard-actions';
@@ -23,11 +24,7 @@ export default async function DashboardPage({
 
   // Middleware should have redirected, but keep it defensive
   if (!user) {
-    return (
-      <main className="container">
-        <p>Not authenticated.</p>
-      </main>
-    );
+    redirect('/login');
   }
 
   const { data, error } = await supabase
