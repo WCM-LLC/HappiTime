@@ -15,16 +15,19 @@ import {
   Platform,
   KeyboardAvoidingView
 } from "react-native";
+import MapView, { Marker, Region } from "react-native-maps";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import Constants from "expo-constants";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useUserPreferences } from "../hooks/useUserPreferences";
+import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useVenueCovers } from "../hooks/useVenueCovers";
 import { getHappyHourDisplayNames } from "../utils/happyHourDisplay";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
+import { IconSymbol } from "../../components/ui/icon-symbol";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { distanceMiles } from "../utils/location";
@@ -50,20 +53,6 @@ const normalizeEnvValue = (value?: string | null) => {
   return trimmed.replace(/^['"]|['"]$/g, "");
 };
 
-const getMapsProvider = () => {
-  const raw =
-    process.env.EXPO_PUBLIC_MAPS_PROVIDER ??
-    (expoExtra?.mapsProvider as string | undefined);
-  const value = normalizeEnvValue(raw);
-  return value ? value.toLowerCase() : "google";
-};
-
-const getMapsApiKey = () => {
-  const raw =
-    process.env.EXPO_PUBLIC_MAPS_API_KEY ??
-    (expoExtra?.mapsApiKey as string | undefined);
-  return normalizeEnvValue(raw);
-};
 
 const formatTagLabel = (tag: string) =>
   tag
@@ -110,18 +99,12 @@ const getPriceTier = (window: HappyHourWindow) => {
   return typeof tier === "number" && tier > 0 ? tier : null;
 };
 
-const formatMapAddress = (window: HappyHourWindow) => {
-  const venue = window.venue;
-  if (!venue) return "";
-  const zip = venue.zip == null ? null : String(venue.zip);
-  const parts = [venue.address, venue.city, venue.state, zip].filter(Boolean);
-  return parts.join(", ");
-};
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { data, loading, error, refreshing, refresh } = useHappyHours();
   const { coords, error: locationError } = useUserLocation();
   const { preferences, savePreferences } = useUserPreferences();
+  const { isFollowing, toggleFollow, savingVenueId } = useUserFollowedVenues();
   const { width } = useWindowDimensions();
 
   const [query, setQuery] = useState("");
@@ -293,67 +276,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     return parts.join(" | ");
   }, [selectedPrice, selectedCuisine, cuisineMeta.mode, query]);
 
-  const mapLabels = useMemo(() => {
-    return filtered.slice(0, 4).map((place) => {
-      const price = formatPriceTier(getPriceTier(place));
-      const title = getVenueName(place);
-      const sub = getVenueSubtitle(place);
-      const displayName = sub ? `${title} · ${sub}` : title;
-      return price ? `${displayName} - ${price}` : displayName;
-    });
-  }, [filtered]);
-
-  // Prefer lat/lng coords for markers — fall back to address string for venues not yet geocoded
-  const mapMarkers = useMemo(() => {
-    return filtered.slice(0, 4).flatMap((place, index) => {
-      const lat = place.venue?.lat ?? null;
-      const lng = place.venue?.lng ?? null;
-      const label = String.fromCharCode(65 + index);
-      if (lat != null && lng != null) {
-        return [{ label, location: `${lat},${lng}` }];
-      }
-      const address = formatMapAddress(place);
-      return address ? [{ label, location: address }] : [];
-    });
-  }, [filtered]);
-
-  const mapImageUrl = useMemo(() => {
-    const provider = getMapsProvider();
-    const apiKey = getMapsApiKey();
-    if (!apiKey || provider !== "google") return null;
-
-    const mapWidth = Math.min(640, Math.max(1, Math.floor(width - spacing.lg * 2)));
-    const mapHeight = 240;
-    // GPS position takes priority for center; fall back to home coords, then first venue, then city
-    const center = coords
-      ? `${coords.lat},${coords.lng}`
-      : effectiveCoords
-        ? `${effectiveCoords.lat},${effectiveCoords.lng}`
-        : mapMarkers[0]?.location ?? cityForMap ?? "United States";
-
-    const params = new URLSearchParams({
-      center,
-      zoom: coords ? "13" : "11",
-      size: `${mapWidth}x${mapHeight}`,
-      scale: "2",
-      maptype: "roadmap",
-      key: apiKey
-    });
-
-    // "You are here" only from real GPS — never fake it with home coords
-    if (coords) {
-      params.append(
-        "markers",
-        `color:0x1f2937|label:U|${coords.lat},${coords.lng}`
-      );
-    }
-
-    mapMarkers.forEach(({ label, location }) => {
-      params.append("markers", `color:0xf97316|label:${label}|${location}`);
-    });
-
-    return `https://maps.googleapis.com/maps/api/staticmap?${params.toString()}`;
-  }, [cityForMap, coords, effectiveCoords, mapMarkers, width]);
 
   const openCityPicker = () => {
     if (Platform.OS === "ios") {
@@ -501,36 +423,49 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         </View>
 
         <View style={styles.mapSection}>
-          <View style={styles.mapPlaceholder}>
-            {mapImageUrl && (
-              <Image
-                source={{ uri: mapImageUrl }}
-                style={styles.mapImage}
-                resizeMode="cover"
-              />
-            )}
-            <View style={styles.mapOverlay}>
-              {coords && (
-                <View style={[styles.mapLabel, styles.mapLabelActive, styles.mapLabelCenter]}>
-                  <Text style={styles.mapLabelTextActive}>You Are Here</Text>
-                </View>
-              )}
-              {mapLabels.map((label, index) => (
-                <View
-                  key={`${label}-${index}`}
-                  style={[styles.mapLabel, mapLabelPositions[index]]}
-                >
-                  <Text style={styles.mapLabelText} numberOfLines={1}>
-                    {label}
-                  </Text>
-                </View>
-              ))}
-            </View>
-            {!mapImageUrl && (
-              <Text style={styles.mapPlaceholderText}>
-                Map view placeholder
-              </Text>
-            )}
+          <View style={styles.mapContainer}>
+            <MapView
+              style={styles.mapView}
+              initialRegion={{
+                latitude: effectiveCoords?.lat ?? 39.0997,
+                longitude: effectiveCoords?.lng ?? -94.5786,
+                latitudeDelta: coords ? 0.06 : 0.1,
+                longitudeDelta: coords ? 0.06 : 0.1,
+              }}
+              showsUserLocation
+              showsMyLocationButton={false}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              pitchEnabled={false}
+              rotateEnabled={false}
+              onPress={() =>
+                navigation.navigate("AppTabs" as any, { screen: "Map" } as any)
+              }
+            >
+              {filtered.slice(0, 10).map((place) => {
+                const lat = place.venue?.lat;
+                const lng = place.venue?.lng;
+                if (lat == null || lng == null) return null;
+                const { titleText } = getHappyHourDisplayNames(place);
+                return (
+                  <Marker
+                    key={place.id}
+                    coordinate={{ latitude: lat, longitude: lng }}
+                    pinColor={colors.primary}
+                    title={titleText}
+                  />
+                );
+              })}
+            </MapView>
+            <Pressable
+              style={styles.mapExpandButton}
+              onPress={() =>
+                navigation.navigate("AppTabs" as any, { screen: "Map" } as any)
+              }
+            >
+              <IconSymbol name="arrow.up.left.and.arrow.down.right" size={14} color={colors.primary} />
+              <Text style={styles.mapExpandText}>Explore map</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -551,17 +486,23 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.carouselContent}
           >
-            {filtered.map((item) => (
-              <VenueCard
-                key={item.id}
-                place={item}
-                width={cardWidth}
-                coverUrl={item.venue?.id ? venueCovers[item.venue.id] ?? null : null}
-                onSelect={() =>
-                  navigation.navigate("HappyHourDetail", { windowId: item.id })
-                }
-              />
-            ))}
+            {filtered.map((item) => {
+              const venueId = item.venue_id ?? item.venue?.id ?? null;
+              return (
+                <VenueCard
+                  key={item.id}
+                  place={item}
+                  width={cardWidth}
+                  coverUrl={item.venue?.id ? venueCovers[item.venue.id] ?? null : null}
+                  isFavorite={isFollowing(venueId)}
+                  savingFavorite={savingVenueId === venueId}
+                  onToggleFavorite={() => venueId ? toggleFollow(venueId) : undefined}
+                  onSelect={() =>
+                    navigation.navigate("HappyHourDetail", { windowId: item.id })
+                  }
+                />
+              );
+            })}
           </ScrollView>
         )}
       </ScrollView>
@@ -642,10 +583,21 @@ type VenueCardProps = {
   place: HappyHourWindow;
   width: number;
   coverUrl?: string | null;
+  isFavorite?: boolean;
+  savingFavorite?: boolean;
+  onToggleFavorite?: () => void;
   onSelect?: () => void;
 };
 
-const VenueCard: React.FC<VenueCardProps> = ({ place, width, coverUrl, onSelect }) => {
+const VenueCard: React.FC<VenueCardProps> = ({
+  place,
+  width,
+  coverUrl,
+  isFavorite,
+  savingFavorite,
+  onToggleFavorite,
+  onSelect,
+}) => {
   const name = getVenueName(place);
   const locationLabel = getVenueSubtitle(place);
   const priceTier = formatPriceTier(getPriceTier(place));
@@ -712,17 +664,24 @@ const VenueCard: React.FC<VenueCardProps> = ({ place, width, coverUrl, onSelect 
         </View>
         <View style={styles.cardFooterRow}>
           <Text style={styles.cardPrice}>{priceTier ?? "$$"}</Text>
-          {onSelect ? (
-            <Pressable
-              onPress={onSelect}
-              style={({ pressed }) => [
-                styles.selectButton,
-                pressed && styles.selectButtonPressed
-              ]}
-            >
-              <Text style={styles.selectButtonText}>Select</Text>
-            </Pressable>
-          ) : null}
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              onToggleFavorite?.();
+            }}
+            disabled={savingFavorite}
+            hitSlop={8}
+            style={({ pressed }) => [
+              styles.heartButton,
+              pressed && styles.heartButtonPressed,
+            ]}
+          >
+            <IconSymbol
+              name={isFavorite ? "heart.fill" : "heart"}
+              size={22}
+              color={isFavorite ? colors.primary : colors.textMutedLight}
+            />
+          </Pressable>
         </View>
       </View>
     </Pressable>
@@ -747,7 +706,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background
   },
   scrollContent: {
-    paddingTop: spacing.xxl + spacing.md,
+    paddingTop: spacing.xxl + spacing.lg,
     paddingBottom: spacing.xl
   },
   header: {
@@ -755,24 +714,30 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     color: colors.text,
-    fontSize: 28,
-    fontWeight: "700",
+    fontSize: 30,
+    fontWeight: "800",
+    letterSpacing: -0.5,
     marginBottom: spacing.xs
   },
   pageSubtitle: {
     color: colors.textMuted,
     fontSize: 14,
-    marginBottom: spacing.md
+    marginBottom: spacing.lg
   },
   searchSummary: {
     flexDirection: "row",
     alignItems: "center",
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    shadowColor: colors.shadowSoft,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   searchIcon: {
     width: 18,
@@ -886,69 +851,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginTop: spacing.md
   },
-  mapPlaceholder: {
-    height: 240,
-    borderRadius: 16,
-    backgroundColor: colors.inputBackground,
-    borderWidth: 1,
+  mapContainer: {
+    height: 200,
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden"
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  mapPlaceholderText: {
-    color: colors.textMuted,
-    fontSize: 12
+  mapView: {
+    flex: 1,
   },
-  mapImage: {
-    ...StyleSheet.absoluteFillObject
-  },
-  mapOverlay: {
-    ...StyleSheet.absoluteFillObject
-  },
-  mapLabel: {
+  mapExpandButton: {
     position: "absolute",
+    bottom: spacing.sm,
+    right: spacing.sm,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: colors.surface,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.xs + 2,
     borderRadius: 999,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
-    backgroundColor: colors.background,
-    maxWidth: "70%"
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  mapLabelText: {
-    color: colors.text,
+  mapExpandText: {
     fontSize: 12,
-    fontWeight: "600"
-  },
-  mapLabelActive: {
-    backgroundColor: colors.pillActiveBg,
-    borderColor: colors.pillActiveBg
-  },
-  mapLabelTextActive: {
-    color: colors.pillActiveText,
-    fontSize: 12,
-    fontWeight: "600"
-  },
-  mapLabelCenter: {
-    top: "45%",
-    left: "32%"
-  },
-  mapLabelPos1: {
-    top: 20,
-    left: 18
-  },
-  mapLabelPos2: {
-    top: 62,
-    right: 16
-  },
-  mapLabelPos3: {
-    bottom: 70,
-    left: 22
-  },
-  mapLabelPos4: {
-    bottom: 28,
-    right: 30
+    fontWeight: "600",
+    color: colors.primary,
   },
   resultsHeader: {
     paddingHorizontal: spacing.lg,
@@ -964,19 +904,25 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md
   },
   card: {
-    backgroundColor: colors.card ?? colors.background,
-    borderRadius: 16,
-    borderWidth: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     marginRight: spacing.md,
-    overflow: "hidden"
+    overflow: "hidden",
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   cardPressed: {
-    opacity: 0.9
+    opacity: 0.92,
+    transform: [{ scale: 0.98 }],
   },
   cardHero: {
     height: 150,
-    backgroundColor: colors.inputBackground,
+    backgroundColor: colors.brandSubtle,
     justifyContent: "flex-end",
     alignItems: "center",
     paddingBottom: spacing.sm
@@ -1032,19 +978,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600"
   },
-  selectButton: {
-    backgroundColor: colors.pillActiveBg,
-    borderRadius: 999,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.xs
+  heartButton: {
+    padding: 4,
   },
-  selectButtonPressed: {
-    opacity: 0.85
-  },
-  selectButtonText: {
-    color: colors.pillActiveText,
-    fontSize: 12,
-    fontWeight: "600"
+  heartButtonPressed: {
+    opacity: 0.6,
+    transform: [{ scale: 1.15 }],
   },
   emptyState: {
     paddingHorizontal: spacing.lg,
@@ -1115,24 +1054,18 @@ const styles = StyleSheet.create({
     fontWeight: "500"
   },
   modalButtonPrimary: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm + 2,
     borderRadius: 999,
-    backgroundColor: colors.primary
+    backgroundColor: colors.primary,
   },
   modalButtonPrimaryText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "600"
+    fontWeight: "700"
   }
 });
 
-const mapLabelPositions = [
-  styles.mapLabelPos1,
-  styles.mapLabelPos2,
-  styles.mapLabelPos3,
-  styles.mapLabelPos4
-];
 
 
 

@@ -546,8 +546,9 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 30,
-    fontWeight: "700",
+    fontWeight: "800",
     color: colors.text,
+    letterSpacing: -0.5,
     marginBottom: spacing.md,
     alignSelf: "center"
   },
@@ -594,7 +595,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.md
   },
   nearbyDotActive: {
-    backgroundColor: colors.text
+    backgroundColor: colors.primary
   },
   nearbyDotInactive: {
     backgroundColor: colors.border
@@ -604,9 +605,8 @@ const styles = StyleSheet.create({
     fontSize: 13
   },
   separator: {
-    height: 1,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,
-    opacity: 0.6,
     marginLeft: 56
   },
   historyRow: {
@@ -618,15 +618,15 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
+    backgroundColor: colors.brandSubtle,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
     marginRight: spacing.md
   },
   historyInitialText: {
-    color: colors.text,
+    color: colors.brandDark,
     fontWeight: "700",
     fontSize: 15
   },
@@ -749,7 +749,7 @@ const editStyles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   toggleOn: {
-    backgroundColor: colors.pillActiveBg,
+    backgroundColor: colors.primary,
   },
   toggleThumb: {
     width: 22,
@@ -763,18 +763,19 @@ const editStyles = StyleSheet.create({
   },
   saveButton: {
     borderRadius: 999,
-    backgroundColor: colors.pillActiveBg,
+    backgroundColor: colors.primary,
     alignItems: "center",
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     marginBottom: spacing.sm,
   },
   saveButtonDisabled: {
     opacity: 0.45,
   },
   saveButtonText: {
-    color: colors.pillActiveText,
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   deleteButton: {
     alignItems: "center",
@@ -834,15 +835,15 @@ const editStyles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
+    backgroundColor: colors.brandSubtle,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center",
     marginRight: spacing.sm,
   },
   friendAvatarText: {
-    color: colors.text,
+    color: colors.brandDark,
     fontWeight: "700",
     fontSize: 14,
   },
@@ -855,7 +856,7 @@ const editStyles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: 999,
-    backgroundColor: colors.pillActiveBg,
+    backgroundColor: colors.primary,
     minWidth: 60,
     alignItems: "center",
   },

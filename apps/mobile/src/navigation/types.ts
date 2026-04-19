@@ -9,6 +9,7 @@ export type RootStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
+  Map: undefined;
   Favorites: undefined;
   Add: undefined;
   Activity: undefined;

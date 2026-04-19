@@ -1,6 +1,6 @@
 // src/screens/ProfileScreen.tsx
 import React, { useEffect, useState } from "react";
-import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { supabase } from "../api/supabaseClient";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useCurrentUser } from "../hooks/useCurrentUser";
@@ -32,6 +32,9 @@ export const ProfileScreen: React.FC = () => {
   const [homeCity, setHomeCity] = useState("");
   const [homeState, setHomeState] = useState("");
   const [notifPush, setNotifPush] = useState(true);
+  const [notifHappyHours, setNotifHappyHours] = useState(true);
+  const [notifVenueUpdates, setNotifVenueUpdates] = useState(true);
+  const [notifFriendActivity, setNotifFriendActivity] = useState(true);
   const [notifProduct, setNotifProduct] = useState(true);
   const [handle, setHandle] = useState("");
   const [bio, setBio] = useState("");
@@ -61,6 +64,9 @@ export const ProfileScreen: React.FC = () => {
     setHomeCity(preferences.home_city ?? "");
     setHomeState(preferences.home_state ?? "");
     setNotifPush(preferences.notifications_push);
+    setNotifHappyHours(preferences.notifications_happy_hours);
+    setNotifVenueUpdates(preferences.notifications_venue_updates);
+    setNotifFriendActivity(preferences.notifications_friend_activity);
     setNotifProduct(preferences.notifications_product);
   }, [preferences]);
 
@@ -88,7 +94,11 @@ export const ProfileScreen: React.FC = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.title}>Your Account</Text>
       <Text style={styles.subtitle}>
         Sign in, manage preferences, and see your saved happy hours here.
@@ -190,6 +200,40 @@ export const ProfileScreen: React.FC = () => {
           />
         </View>
 
+        {notifPush && (
+          <>
+            <View style={styles.switchRowIndented}>
+              <Text style={styles.labelSmall}>Happy hour reminders</Text>
+              <Switch
+                value={notifHappyHours}
+                onValueChange={setNotifHappyHours}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={colors.background}
+              />
+            </View>
+
+            <View style={styles.switchRowIndented}>
+              <Text style={styles.labelSmall}>Venue updates</Text>
+              <Switch
+                value={notifVenueUpdates}
+                onValueChange={setNotifVenueUpdates}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={colors.background}
+              />
+            </View>
+
+            <View style={styles.switchRowIndented}>
+              <Text style={styles.labelSmall}>Friend activity</Text>
+              <Switch
+                value={notifFriendActivity}
+                onValueChange={setNotifFriendActivity}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={colors.background}
+              />
+            </View>
+          </>
+        )}
+
         <View style={styles.switchRow}>
           <Text style={styles.label}>Product updates</Text>
           <Switch
@@ -211,6 +255,9 @@ export const ProfileScreen: React.FC = () => {
               home_city: homeCity.trim() || null,
               home_state: homeState.trim() || null,
               notifications_push: notifPush,
+              notifications_happy_hours: notifHappyHours,
+              notifications_venue_updates: notifVenueUpdates,
+              notifications_friend_activity: notifFriendActivity,
               notifications_product: notifProduct,
             })
           }
@@ -252,7 +299,7 @@ export const ProfileScreen: React.FC = () => {
           </View>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -260,13 +307,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  scrollContent: {
     paddingTop: spacing.xxl + spacing.md,
-    paddingHorizontal: spacing.lg
+    paddingHorizontal: spacing.lg,
+    paddingBottom: 120,
   },
   title: {
     color: colors.text,
-    fontSize: 26,
-    fontWeight: "700",
+    fontSize: 30,
+    fontWeight: "800",
+    letterSpacing: -0.5,
     marginBottom: spacing.sm
   },
   subtitle: {
@@ -276,10 +327,15 @@ const styles = StyleSheet.create({
   card: {
     marginTop: spacing.lg,
     padding: spacing.lg,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
-    backgroundColor: colors.surface ?? colors.background
+    backgroundColor: colors.surface ?? colors.background,
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   sectionTitle: {
     color: colors.text,
@@ -318,23 +374,37 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: spacing.md
   },
+  switchRowIndented: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: spacing.sm,
+    paddingLeft: spacing.lg,
+  },
+  labelSmall: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: "500",
+  },
   primaryButton: {
     borderRadius: 999,
-    backgroundColor: colors.pillActiveBg,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: spacing.sm
+    paddingVertical: spacing.md,
   },
   primaryButtonPressed: {
-    opacity: 0.9
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
   },
   primaryButtonDisabled: {
     opacity: 0.6
   },
   primaryButtonText: {
-    color: colors.pillActiveText,
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "600"
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   statusMessage: {
     marginTop: spacing.sm,
@@ -380,9 +450,10 @@ const styles = StyleSheet.create({
     flex: 1
   },
   statValue: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: "700"
+    color: colors.primary,
+    fontSize: 22,
+    fontWeight: "800",
+    letterSpacing: -0.3,
   },
   statLabel: {
     color: colors.textMuted,

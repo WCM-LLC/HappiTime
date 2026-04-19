@@ -284,8 +284,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontSize: 26,
-    fontWeight: "700",
+    fontSize: 30,
+    fontWeight: "800",
+    letterSpacing: -0.5,
     marginBottom: spacing.md
   },
   listContent: {
@@ -313,14 +314,14 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
+    backgroundColor: colors.brandSubtle,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     alignItems: "center",
     justifyContent: "center"
   },
   avatarInitial: {
-    color: colors.text,
+    color: colors.brandDark,
     fontWeight: "700",
     fontSize: 16
   },
@@ -331,8 +332,8 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.error,
-    borderWidth: 1,
+    backgroundColor: colors.primary,
+    borderWidth: 1.5,
     borderColor: colors.background
   },
   statusDotRead: {
@@ -366,7 +367,7 @@ const styles = StyleSheet.create({
     marginLeft: spacing.md
   },
   followButton: {
-    backgroundColor: colors.pillActiveBg,
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: 999,
@@ -382,9 +383,9 @@ const styles = StyleSheet.create({
     opacity: 0.85
   },
   followText: {
-    color: colors.pillActiveText,
+    color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: "600"
+    fontWeight: "700"
   },
   followTextActive: {
     color: colors.text
@@ -395,9 +396,8 @@ const styles = StyleSheet.create({
     borderRadius: 10
   },
   separator: {
-    height: 1,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,
-    opacity: 0.6,
     marginLeft: 56
   },
   emptyState: {

@@ -12,6 +12,9 @@ export type UserPreferences = {
   price_tier_max: number | null;
   cuisines: string[];
   notifications_push: boolean;
+  notifications_happy_hours: boolean;
+  notifications_venue_updates: boolean;
+  notifications_friend_activity: boolean;
   notifications_product: boolean;
   notifications_marketing: boolean;
 };
@@ -26,6 +29,9 @@ const DEFAULTS: UserPreferences = {
   price_tier_max: null,
   cuisines: [],
   notifications_push: true,
+  notifications_happy_hours: true,
+  notifications_venue_updates: true,
+  notifications_friend_activity: true,
   notifications_product: true,
   notifications_marketing: false,
 };
@@ -75,6 +81,9 @@ export function useUserPreferences() {
             price_tier_max: data.price_tier_max ?? null,
             cuisines: Array.isArray(data.cuisines) ? data.cuisines : [],
             notifications_push: data.notifications_push ?? true,
+            notifications_happy_hours: data.notifications_happy_hours ?? true,
+            notifications_venue_updates: data.notifications_venue_updates ?? true,
+            notifications_friend_activity: data.notifications_friend_activity ?? true,
             notifications_product: data.notifications_product ?? true,
             notifications_marketing: data.notifications_marketing ?? false,
           }

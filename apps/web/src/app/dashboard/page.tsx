@@ -13,7 +13,6 @@ type MembershipRow = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  // Next.js 15 passes searchParams as a Promise
   searchParams: Promise<{ error?: string }>;
 }) {
   const sp = await searchParams;
@@ -22,7 +21,6 @@ export default async function DashboardPage({
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
 
-  // Middleware should have redirected, but keep it defensive
   if (!user) {
     redirect('/login');
   }
@@ -31,18 +29,6 @@ export default async function DashboardPage({
     .from("org_members")
     .select("role, organizations:organizations ( id, name, slug )")
     .eq("user_id", user.id);
-
-
-  const memberships: MembershipRow[] = (data ?? []).map((m) => ({
-    role: String(m.role),
-    organizations: Array.isArray(m.organizations)
-      ? m.organizations.map((org) => ({
-          id: String(org.id),
-          name: String(org.name),
-          slug: String(org.slug ?? ''),
-        }))
-      : [],
-  }));
 
   const orgMemberships =
     (data ?? [])
@@ -55,87 +41,163 @@ export default async function DashboardPage({
       }));
 
   return (
-    <main className="container">
-      <div className="col" style={{ gap: 16 }}>
-        <UserBar />
+    <div className="min-h-screen bg-background">
+      <UserBar />
 
-        <div className="row" style={{ justifyContent: 'space-between' }}>
+      <main className="max-w-[var(--width-content)] mx-auto px-6 py-8">
+        {/* Page Header */}
+        <div className="flex items-start justify-between mb-8">
           <div>
-            <h2 style={{ marginBottom: 0 }}>Dashboard</h2>
-            <div className="muted">Organizations you have access to.</div>
+            <h1 className="text-display-md font-bold text-foreground tracking-tight">Dashboard</h1>
+            <p className="text-body-sm text-muted mt-1">Manage your organizations and venues.</p>
           </div>
           <Link href="/admin">
-            <button className="secondary" style={{ fontSize: 12, padding: '6px 12px' }}>Admin Console</button>
+            <span className="inline-flex items-center justify-center h-8 px-3 rounded-md text-caption font-medium text-muted hover:text-foreground hover:bg-surface border border-border transition-colors cursor-pointer">
+              Admin Console
+            </span>
           </Link>
         </div>
 
+        {/* Error Banner */}
         {pageError ? (
-          <div className="card error">
-            <strong>Something went wrong</strong>
-            <div className="muted">{pageError}</div>
+          <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-6">
+            <p className="text-body-sm font-medium text-error">Something went wrong</p>
+            <p className="text-body-sm text-error/80 mt-0.5">{pageError}</p>
           </div>
         ) : null}
 
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Create an organization (multi-location group)</h3>
-          <form className="row">
-            <input name="name" placeholder="e.g., The Smith Group" required />
-            <button formAction={createOrganization}>Create</button>
+        {/* Create Organization */}
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+          <div className="mb-4">
+            <h2 className="text-heading-sm font-semibold text-foreground">New organization</h2>
+            <p className="text-body-sm text-muted mt-0.5">
+              Organizations group multiple venues with shared staff access.
+            </p>
+          </div>
+          <form className="flex gap-3 items-end">
+            <div className="flex-1">
+              <label htmlFor="org-name" className="text-body-sm font-medium text-foreground block mb-1.5">
+                Organization name
+              </label>
+              <input
+                id="org-name"
+                name="name"
+                placeholder="e.g., The Smith Group"
+                required
+                className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+              />
+            </div>
+            <button
+              formAction={createOrganization}
+              className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer shrink-0"
+            >
+              Create
+            </button>
           </form>
-          <p className="muted" style={{ marginBottom: 0 }}>
-            An organization can contain multiple venues/locations and shared staff access.
-          </p>
         </div>
 
-        <div className="col" style={{ gap: 12 }}>
+        {/* Organizations List */}
+        <div>
+          <h2 className="text-heading-sm font-semibold text-foreground mb-4">Your organizations</h2>
+
           {error ? (
-            <div className="card error">
-              <strong>DB error</strong>
-              <div className="muted">{error.message}</div>
+            <div className="rounded-md border border-error bg-error-light px-4 py-3">
+              <p className="text-body-sm font-medium text-error">Database error</p>
+              <p className="text-body-sm text-error/80 mt-0.5">{error.message}</p>
             </div>
           ) : null}
 
           {orgMemberships.length === 0 ? (
-            <p className="muted">No organizations yet. Create one above.</p>
+            <div className="rounded-lg border border-dashed border-border-strong bg-surface/50 p-12 text-center">
+              <div className="text-muted-light text-display-md mb-3">&#9881;</div>
+              <p className="text-body-sm font-medium text-foreground">No organizations yet</p>
+              <p className="text-body-sm text-muted mt-1">
+                Create your first organization above to get started.
+              </p>
+            </div>
           ) : (
-            orgMemberships.map((m) => (
-              <div key={m.id} className="card">
-                <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-                  <div className="col" style={{ gap: 4 }}>
-                    <strong>{m.name}</strong>
-                    <span className="muted">Role: {m.role}</span>
-                  </div>
-                  <div className="row" style={{ gap: 8 }}>
-                    <Link href={`/orgs/${m.id}`}>
-                      <button className="secondary">Edit</button>
-                    </Link>
-                    {m.role === 'owner' ? (
-                      <ConfirmDeleteForm
-                        action={deleteOrganization.bind(null, m.id)}
-                        message="This will permanently delete all data for this organization. Continue?"
-                      >
-                        <button className="secondary" type="submit">
-                          Delete
-                        </button>
-                      </ConfirmDeleteForm>
-                    ) : null}
-                  </div>
-                </div>
+            <div className="flex flex-col gap-3">
+              {orgMemberships.map((m) => (
+                <div
+                  key={m.id}
+                  className="rounded-lg border border-border bg-surface shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-center justify-between p-5">
+                    <div className="flex items-center gap-4">
+                      {/* Avatar / Icon */}
+                      <div className="w-10 h-10 rounded-md bg-brand-subtle flex items-center justify-center shrink-0">
+                        <span className="text-heading-sm font-bold text-brand-dark">
+                          {m.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <h3 className="text-body-md font-semibold text-foreground">{m.name}</h3>
+                        <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-background text-muted border border-border mt-1">
+                          {m.role}
+                        </span>
+                      </div>
+                    </div>
 
-                {m.role === 'owner' ? (
-                  <form className="row" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                    <input name="name" defaultValue={m.name} placeholder="Organization name" required />
-                    <input name="slug" defaultValue={m.slug} placeholder="Slug (optional)" />
-                    <button className="secondary" formAction={updateOrganization.bind(null, m.id)}>
-                      Save
-                    </button>
-                  </form>
-                ) : null}
-              </div>
-            ))
+                    <div className="flex items-center gap-2">
+                      <Link href={`/orgs/${m.id}`}>
+                        <span className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-dark text-dark-foreground text-body-sm font-medium hover:bg-dark/90 transition-colors cursor-pointer">
+                          Manage
+                        </span>
+                      </Link>
+                      {m.role === 'owner' ? (
+                        <ConfirmDeleteForm
+                          action={deleteOrganization.bind(null, m.id)}
+                          message="This will permanently delete all data for this organization. Continue?"
+                        >
+                          <button
+                            type="submit"
+                            className="inline-flex items-center justify-center h-9 px-3 rounded-md text-body-sm font-medium text-error hover:bg-error-light border border-border transition-colors cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        </ConfirmDeleteForm>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {/* Inline Edit (owners only) */}
+                  {m.role === 'owner' ? (
+                    <div className="border-t border-border px-5 py-4 bg-background/50">
+                      <form className="flex items-end gap-3 flex-wrap">
+                        <div className="flex-1 min-w-[180px]">
+                          <label className="text-caption font-medium text-muted block mb-1">Name</label>
+                          <input
+                            name="name"
+                            defaultValue={m.name}
+                            placeholder="Organization name"
+                            required
+                            className="flex h-9 w-full rounded-md border border-border bg-surface px-3 py-1.5 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-[140px]">
+                          <label className="text-caption font-medium text-muted block mb-1">Slug</label>
+                          <input
+                            name="slug"
+                            defaultValue={m.slug}
+                            placeholder="url-slug"
+                            className="flex h-9 w-full rounded-md border border-border bg-surface px-3 py-1.5 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+                          />
+                        </div>
+                        <button
+                          formAction={updateOrganization.bind(null, m.id)}
+                          className="inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer shrink-0"
+                        >
+                          Save changes
+                        </button>
+                      </form>
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
           )}
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

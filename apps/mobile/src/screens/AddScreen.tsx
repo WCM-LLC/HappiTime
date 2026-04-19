@@ -301,8 +301,9 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontSize: 26,
-    fontWeight: "700",
+    fontSize: 30,
+    fontWeight: "800",
+    letterSpacing: -0.5,
     marginBottom: spacing.xs,
   },
   subtitle: {
@@ -312,14 +313,20 @@ const styles = StyleSheet.create({
   },
   optionCard: {
     backgroundColor: colors.surface ?? colors.background,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     padding: spacing.lg,
     marginBottom: spacing.md,
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   optionCardPressed: {
-    opacity: 0.85,
+    opacity: 0.92,
+    transform: [{ scale: 0.98 }],
   },
   optionCardDisabled: {
     opacity: 0.5,
@@ -344,16 +351,22 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   backText: {
-    color: colors.textMuted,
+    color: colors.primary,
     fontSize: 14,
+    fontWeight: "500",
   },
   formCard: {
     backgroundColor: colors.surface ?? colors.background,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     padding: spacing.lg,
     marginBottom: spacing.xl,
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   label: {
     color: colors.textMuted,
@@ -389,19 +402,21 @@ const styles = StyleSheet.create({
   submitButton: {
     marginTop: spacing.xs,
     borderRadius: 999,
-    backgroundColor: colors.pillActiveBg,
+    backgroundColor: colors.primary,
     alignItems: "center",
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
   },
   submitButtonDisabled: {
     opacity: 0.45,
   },
   submitButtonPressed: {
-    opacity: 0.85,
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
   },
   submitButtonText: {
-    color: colors.pillActiveText,
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
 });

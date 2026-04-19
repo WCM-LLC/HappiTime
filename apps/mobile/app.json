@@ -9,15 +9,33 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "plugins": [
+      [
+        "react-native-maps",
+        {
+          "googleMapsApiKey": "",
+          "googleMapsEnabled": false
+        }
+      ],
+      "expo-notifications"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.jwill7486.happitime.mobile",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "googleMapsApiKey": ""
       }
     },
     "android": {
-      "package": "com.jwill7486.happitime.mobile"
+      "package": "com.jwill7486.happitime.mobile",
+      "config": {
+        "googleMaps": {
+          "apiKey": ""
+        }
+      }
     },
     "web": {
       "bundler": "metro",

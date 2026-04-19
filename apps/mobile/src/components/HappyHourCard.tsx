@@ -27,7 +27,6 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
   const heroWidth = Math.max(1, width - spacing.lg * 2);
   const heroSlides = [0, 1, 2];
 
-  // Distance: attached in screens or derived from distance_miles.
   const distance: number | null =
     typeof window.distance === "number"
       ? window.distance
@@ -53,7 +52,6 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
     ? Math.round(reviewCountValue)
     : null;
 
-  // Trust signal: prefer explicit last_confirmed_at, fall back to updated_at
   const lastConfirmedRaw =
     (window as any).last_confirmed_at ??
     (venue && (venue as any).last_confirmed_at) ??
@@ -92,7 +90,13 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
             style={StyleSheet.absoluteFillObject}
             resizeMode="cover"
           />
-        ) : null}
+        ) : (
+          <View style={styles.heroPlaceholder}>
+            <Text style={styles.heroPlaceholderText}>
+              {titleText.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
         <ScrollView
           horizontal
           pagingEnabled
@@ -149,14 +153,14 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
             <View style={styles.metaLeft}>
               {rating != null && (
                 <View style={styles.metaItem}>
-                  <IconSymbol name="star.fill" size={14} color={colors.text} />
+                  <IconSymbol name="star.fill" size={13} color={colors.primary} />
                   <Text style={styles.metaText}>{rating.toFixed(1)}</Text>
                 </View>
               )}
               {reviewCount != null && (
                 <Text style={styles.metaSubtext}>
                   {rating != null
-                    ? `(${reviewCount} reviews)`
+                    ? `(${reviewCount})`
                     : `${reviewCount} reviews`}
                 </Text>
               )}
@@ -165,7 +169,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
               <View style={styles.metaRight}>
                 <IconSymbol
                   name="mappin.circle.fill"
-                  size={14}
+                  size={13}
                   color={colors.textMuted}
                 />
                 <Text style={styles.metaDistanceText}>
@@ -175,6 +179,8 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
             )}
           </View>
         )}
+
+        <View style={styles.divider} />
 
         <View style={styles.row}>
           <Text style={styles.rowLabel}>When</Text>
@@ -191,9 +197,12 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
 
         <View style={styles.footerRow}>
           {lastConfirmedText ? (
-            <Text style={styles.verifiedText}>
-              Verified {lastConfirmedText}
-            </Text>
+            <View style={styles.verifiedBadge}>
+              <IconSymbol name="checkmark.seal.fill" size={12} color={colors.success} />
+              <Text style={styles.verifiedText}>
+                Verified {lastConfirmedText}
+              </Text>
+            </View>
           ) : (
             <Text style={styles.verifiedTextMuted}>
               Last updated info not available
@@ -207,21 +216,37 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.card ?? colors.background,
-    borderRadius: 16,
-    padding: 0,
+    backgroundColor: colors.surface,
+    borderRadius: 14,
     marginBottom: spacing.lg,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
-    overflow: "hidden"
+    overflow: "hidden",
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   cardPressed: {
-    opacity: 0.9
+    opacity: 0.92,
+    transform: [{ scale: 0.99 }],
   },
   hero: {
-    height: 180,
-    backgroundColor: colors.inputBackground,
+    height: 190,
+    backgroundColor: colors.brandSubtle,
     position: "relative"
+  },
+  heroPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  heroPlaceholderText: {
+    fontSize: 48,
+    fontWeight: "800",
+    color: colors.primary,
+    opacity: 0.3,
   },
   heroScroll: {
     flex: 1
@@ -231,14 +256,14 @@ const styles = StyleSheet.create({
   },
   heroSlide: {
     height: "100%",
-    backgroundColor: colors.inputBackground
+    backgroundColor: "transparent"
   },
   heroSlideTransparent: {
     backgroundColor: "transparent"
   },
   heroDots: {
     position: "absolute",
-    bottom: 10,
+    bottom: 12,
     alignSelf: "center",
     flexDirection: "row",
     gap: 6
@@ -247,11 +272,11 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.background,
-    opacity: 0.6
+    backgroundColor: colors.surface,
+    opacity: 0.5
   },
   heroDotActive: {
-    backgroundColor: colors.text,
+    backgroundColor: colors.surface,
     opacity: 1
   },
   cardBody: {
@@ -268,6 +293,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 18,
     fontWeight: "700",
+    letterSpacing: -0.2,
     marginBottom: spacing.xs
   },
   venueNameTight: {
@@ -276,11 +302,11 @@ const styles = StyleSheet.create({
   venueSubtitle: {
     color: colors.textMuted,
     fontSize: 14,
-    fontWeight: "600",
+    fontWeight: "500",
     marginBottom: spacing.xs
   },
   address: {
-    color: colors.textMuted,
+    color: colors.textMutedLight,
     fontSize: 13
   },
   rightHeader: {
@@ -291,13 +317,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: 999,
-    backgroundColor: colors.pillActiveBg,
-    marginBottom: spacing.xs
+    backgroundColor: colors.primary,
   },
   labelText: {
-    color: colors.pillActiveText,
-    fontSize: 12,
-    fontWeight: "600"
+    color: "#FFFFFF",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   metaRow: {
     flexDirection: "row",
@@ -313,7 +339,7 @@ const styles = StyleSheet.create({
   metaItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4
+    gap: 3
   },
   metaText: {
     color: colors.text,
@@ -327,37 +353,50 @@ const styles = StyleSheet.create({
   metaRight: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4
+    gap: 3
   },
   metaDistanceText: {
     color: colors.textMuted,
-    fontSize: 12
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+    marginVertical: spacing.sm,
   },
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: spacing.xs
+    paddingVertical: spacing.xs,
   },
   rowLabel: {
     color: colors.textMuted,
-    fontSize: 13
+    fontSize: 13,
+    fontWeight: "500",
   },
   rowValue: {
     color: colors.text,
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "600",
     maxWidth: "60%",
     textAlign: "right"
   },
   footerRow: {
     marginTop: spacing.sm
   },
+  verifiedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   verifiedText: {
-    color: colors.textMuted,
-    fontSize: 12
+    color: colors.success,
+    fontSize: 12,
+    fontWeight: "500",
   },
   verifiedTextMuted: {
-    color: colors.textMuted,
+    color: colors.textMutedLight,
     fontSize: 12
   }
 });

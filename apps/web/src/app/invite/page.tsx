@@ -37,6 +37,14 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+/* ── Shared styles ── */
+const inputCls =
+  'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors';
+const btnPrimary =
+  'inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer';
+const btnSecondary =
+  'inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer';
+
 export default async function InvitePage({
   searchParams,
 }: {
@@ -96,87 +104,130 @@ export default async function InvitePage({
   const emailMismatch = Boolean(inviteEmail && userEmail && inviteEmail !== userEmail);
 
   return (
-    <main className="container">
-      <div className="col" style={{ gap: 16 }}>
-        <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h2 style={{ marginBottom: 0 }}>Invitation</h2>
-          <Link href="/">
-            <button className="secondary">Home</button>
+    <div className="min-h-screen bg-background flex items-center justify-center px-6">
+      <div className="w-full max-w-lg">
+        {/* ── Branding ── */}
+        <div className="text-center mb-6">
+          <Link href="/" className="inline-block">
+            <span className="text-heading-md font-bold text-foreground tracking-tight">
+              Happi<span className="text-brand">Time</span>
+            </span>
           </Link>
+          <h1 className="text-display-sm font-bold text-foreground tracking-tight mt-3">You're invited</h1>
+          <p className="text-body-sm text-muted mt-1">Join your team on HappiTime.</p>
         </div>
 
+        {/* ── Errors ── */}
         {errorMessage ? (
-          <div className="card error">
-            <strong>Error</strong>
-            <div className="muted">{errorMessage}</div>
+          <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-4">
+            <p className="text-body-sm font-medium text-error">Error</p>
+            <p className="text-body-sm text-error/80 mt-0.5">{errorMessage}</p>
           </div>
         ) : null}
 
         {inviteError ? (
-          <div className="card error">
-            <strong>Invite error</strong>
-            <div className="muted">{inviteError}</div>
+          <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-4">
+            <p className="text-body-sm font-medium text-error">Invite error</p>
+            <p className="text-body-sm text-error/80 mt-0.5">{inviteError}</p>
           </div>
         ) : null}
 
+        {/* ── Invite details card ── */}
         {invite ? (
-          <div className="card">
-            <div className="col" style={{ gap: 6 }}>
-              <strong>Organization</strong>
-              <div className="muted">{invite.org?.name ?? 'Unknown org'}</div>
-              <strong>Role</strong>
-              <div className="muted">{invite.role}</div>
-              <strong>Invited email</strong>
-              <div className="muted">{invite.email}</div>
-              {venueLabels.length ? (
-                <>
-                  <strong>Assigned venues</strong>
-                  <div className="muted">{venueLabels.join(', ')}</div>
-                </>
-              ) : (
-                <div className="muted">No venues assigned yet.</div>
-              )}
+          <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
+            {/* Invite summary */}
+            <div className="rounded-md border border-border bg-background p-4 mb-5">
+              <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+                <span className="text-caption font-medium text-muted">Organization</span>
+                <span className="text-body-sm text-foreground font-medium">{invite.org?.name ?? 'Unknown'}</span>
+
+                <span className="text-caption font-medium text-muted">Role</span>
+                <span className="inline-flex items-center">
+                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-brand-subtle text-brand-dark">
+                    {invite.role}
+                  </span>
+                </span>
+
+                <span className="text-caption font-medium text-muted">Email</span>
+                <span className="text-body-sm text-foreground">{invite.email}</span>
+
+                {venueLabels.length ? (
+                  <>
+                    <span className="text-caption font-medium text-muted">Venues</span>
+                    <span className="text-body-sm text-foreground">{venueLabels.join(', ')}</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-caption font-medium text-muted">Venues</span>
+                    <span className="text-caption text-muted-light">None assigned yet</span>
+                  </>
+                )}
+              </div>
+
               {invite.accepted_at ? (
-                <div className="muted">This invite has already been accepted.</div>
+                <p className="text-caption text-success font-medium mt-3">This invite has already been accepted.</p>
               ) : null}
               {invite.expires_at ? (
-                <div className="muted">Expires at {new Date(invite.expires_at).toLocaleString()}.</div>
+                <p className="text-caption text-muted mt-2">
+                  Expires {new Date(invite.expires_at).toLocaleString()}
+                </p>
               ) : null}
             </div>
 
+            {/* ── Actions ── */}
             {invite.accepted_at ? null : emailMismatch ? (
-              <div className="muted" style={{ marginTop: 12 }}>
-                You are signed in as {user?.email}. Please log in as {invite.email} to accept this invite.
+              <div className="rounded-md border border-warning bg-warning-light px-4 py-3">
+                <p className="text-body-sm text-warning font-medium">Email mismatch</p>
+                <p className="text-body-sm text-warning/80 mt-0.5">
+                  You're signed in as <strong>{user?.email}</strong>. Please log in as <strong>{invite.email}</strong> to accept.
+                </p>
               </div>
             ) : user ? (
-              <form style={{ marginTop: 12 }}>
+              <form>
                 <input type="hidden" name="token" value={token} />
-                <button formAction={acceptOrgInvite}>Accept invite</button>
+                <button formAction={acceptOrgInvite} className={btnPrimary + ' w-full'}>
+                  Accept invite
+                </button>
               </form>
             ) : (
-              <form className="col" style={{ gap: 10, marginTop: 12 }}>
+              <form className="flex flex-col gap-4">
                 <input type="hidden" name="token" value={token} />
-                <label>
-                  Email
-                  <input type="email" defaultValue={invite.email} disabled />
-                </label>
-                <label>
-                  Create password
-                  <input name="password" type="password" minLength={8} required />
-                </label>
-                <label>
-                  Confirm password
-                  <input name="password_confirm" type="password" minLength={8} required />
-                </label>
-                <button formAction={setInvitePassword}>Set password and accept invite</button>
-                <div className="muted">
-                  Already have access? <Link href="/login">Log in</Link>.
+
+                <div>
+                  <label className="text-body-sm font-medium text-foreground block mb-1.5">Email</label>
+                  <input type="email" defaultValue={invite.email} disabled className={inputCls + ' opacity-60'} />
                 </div>
+                <div>
+                  <label className="text-body-sm font-medium text-foreground block mb-1.5">Create password</label>
+                  <input name="password" type="password" minLength={8} required placeholder="At least 8 characters" className={inputCls} />
+                </div>
+                <div>
+                  <label className="text-body-sm font-medium text-foreground block mb-1.5">Confirm password</label>
+                  <input name="password_confirm" type="password" minLength={8} required placeholder="Re-enter your password" className={inputCls} />
+                </div>
+
+                <button formAction={setInvitePassword} className={btnPrimary + ' w-full'}>
+                  Set password and accept
+                </button>
+
+                <p className="text-caption text-muted text-center">
+                  Already have access?{' '}
+                  <Link href="/login" className="text-brand hover:text-brand-dark transition-colors font-medium">
+                    Log in
+                  </Link>
+                </p>
               </form>
             )}
           </div>
         ) : null}
+
+        {/* ── Home link ── */}
+        <div className="text-center mt-4">
+          <Link href="/" className="text-body-sm text-muted hover:text-foreground transition-colors">
+            &larr; Home
+          </Link>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

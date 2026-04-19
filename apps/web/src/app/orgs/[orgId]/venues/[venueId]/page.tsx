@@ -25,7 +25,7 @@ import {
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const HH_STATUS_PUBLISHED = 'published'; // UI check (must match actions.ts + DB constraint)
+const HH_STATUS_PUBLISHED = 'published';
 
 type Venue = {
   id: string;
@@ -41,7 +41,7 @@ type Venue = {
 
 type HappyHourWindow = {
   id: string;
-  dow: number[];                 // ✅ ARRAY
+  dow: number[];
   start_time: string;
   end_time: string;
   timezone: string;
@@ -84,7 +84,6 @@ type EventCount = {
 };
 
 function timeForInput(t: string) {
-  // "HH:MM:SS" -> "HH:MM"
   if (!t) return '';
   return t.length >= 5 ? t.slice(0, 5) : t;
 }
@@ -101,7 +100,7 @@ interface Coordinates {
 
 function distanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const toRad = (x: number): number => (x * Math.PI) / 180;
-  const R = 3958.8; // miles
+  const R = 3958.8;
 
   return (
     R *
@@ -139,9 +138,9 @@ export default async function VenuePage({
 
   if (!user) {
     return (
-      <main className="container">
-        <p>Not authenticated.</p>
-      </main>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted">Not authenticated.</p>
+      </div>
     );
   }
 
@@ -169,14 +168,12 @@ export default async function VenuePage({
     .eq('org_id', orgId)
     .single();
 
-  // ✅ happy_hour_windows has venue_id but may not have org_id
   const { data: happyHours, error: hhErr } = await supabase
     .from('happy_hour_windows')
     .select('id,dow,start_time,end_time,timezone,status,label')
     .eq('venue_id', venueId)
     .order('start_time', { ascending: true });
 
-  // ✅ FIXED: full select string + correct sort_order column names
   const { data: menus, error: menusErr } = await supabase
     .from('menus')
     .select(
@@ -222,168 +219,190 @@ export default async function VenuePage({
   const locationLabel = v?.org_name?.trim() && v.org_name !== v?.name ? v.name : null;
   const backHref = fromAdmin ? `/orgs/${orgId}?from=admin` : `/orgs/${orgId}`;
 
-  return (
-    <main className="container">
-      <div className="col" style={{ gap: 16 }}>
-        <UserBar />
+  /* ── Shared input class ── */
+  const inputCls =
+    'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors';
+  const selectCls =
+    'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors appearance-none';
+  const btnPrimary =
+    'inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer';
+  const btnSecondary =
+    'inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer';
+  const btnDanger =
+    'inline-flex items-center justify-center h-9 px-3 rounded-md text-body-sm font-medium text-error hover:bg-error-light border border-border transition-colors cursor-pointer';
+  const btnDark =
+    'inline-flex items-center justify-center h-9 px-4 rounded-md bg-dark text-dark-foreground text-body-sm font-medium hover:bg-dark/90 transition-colors cursor-pointer';
 
-        <div className="row" style={{ justifyContent: 'space-between' }}>
-          <div className="col" style={{ gap: 4 }}>
-            <h2 style={{ marginBottom: 0 }}>{displayName}</h2>
-            <div className="muted">
+  return (
+    <div className="min-h-screen bg-background">
+      <UserBar />
+
+      <main className="max-w-[var(--width-content)] mx-auto px-6 py-8">
+        {/* ── Page Header ── */}
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Link href={fromAdmin ? '/admin' : '/dashboard'} className="text-body-sm text-muted hover:text-foreground transition-colors">
+                {fromAdmin ? 'Admin' : 'Dashboard'}
+              </Link>
+              <span className="text-muted-light">/</span>
+              <Link href={backHref} className="text-body-sm text-muted hover:text-foreground transition-colors">
+                Organization
+              </Link>
+              <span className="text-muted-light">/</span>
+            </div>
+            <h1 className="text-display-md font-bold text-foreground tracking-tight">{displayName}</h1>
+            <p className="text-body-sm text-muted mt-1">
               {locationLabel ? `${locationLabel} · ` : ''}
               {v?.city || v?.state ? `${v?.city ?? ''}${v?.city && v?.state ? ', ' : ''}${v?.state ?? ''}` : '—'}
-            </div>
+            </p>
           </div>
-          <div className="row" style={{ gap: 8 }}>
+          <div className="flex items-center gap-2">
             <Link href={previewHref} target="_blank" rel="noopener noreferrer">
-              <button className="secondary">Preview in App</button>
+              <span className={btnDark}>Preview in App</span>
             </Link>
             {fromAdmin ? (
               <Link href="/admin">
-                <button className="secondary">Return to console</button>
+                <span className={btnSecondary}>Return to console</span>
               </Link>
             ) : null}
             <Link href={backHref}>
-              <button className="secondary">{fromAdmin ? 'Back to org' : 'Back to org'}</button>
+              <span className={btnSecondary}>&larr; Back</span>
             </Link>
           </div>
         </div>
 
-        {pageError ? (
-          <div className="card error">
-            <strong>Error</strong>
-            <div className="muted">{pageError}</div>
-          </div>
-        ) : null}
+        {/* ── Error Banners ── */}
+        {[
+          pageError && { title: 'Error', msg: pageError },
+          venueErr && { title: 'Venue load error', msg: venueErr.message },
+          hhErr && { title: 'Happy hour load error', msg: hhErr.message },
+          menusErr && { title: 'Menus load error', msg: menusErr.message },
+          windowMenusErr && { title: 'Menu mapping error', msg: windowMenusErr.message },
+        ]
+          .filter(Boolean)
+          .map((e, i) => (
+            <div key={i} className="rounded-md border border-error bg-error-light px-4 py-3 mb-4">
+              <p className="text-body-sm font-medium text-error">{(e as { title: string }).title}</p>
+              <p className="text-body-sm text-error/80 mt-0.5">{(e as { msg: string }).msg}</p>
+            </div>
+          ))}
 
-        {venueErr ? (
-          <div className="card error">
-            <strong>Venue load error</strong>
-            <div className="muted">{venueErr.message}</div>
+        {/* ══════════════════════════════════════════════
+            SECTION 1 — VENUE INFO
+        ══════════════════════════════════════════════ */}
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+          <div className="mb-5">
+            <h2 className="text-heading-sm font-semibold text-foreground">Venue info</h2>
+            <p className="text-body-sm text-muted mt-0.5">Core location details and display preferences.</p>
           </div>
-        ) : null}
 
-        {hhErr ? (
-          <div className="card error">
-            <strong>Happy hour load error</strong>
-            <div className="muted">{hhErr.message}</div>
-          </div>
-        ) : null}
+          <form className="flex flex-col gap-4">
+            <div>
+              <label htmlFor="vi-name" className="text-body-sm font-medium text-foreground block mb-1.5">
+                Name
+              </label>
+              <input id="vi-name" name="name" defaultValue={v?.name ?? ''} required readOnly={!canManageVenue} className={inputCls} />
+            </div>
 
-        {menusErr ? (
-          <div className="card error">
-            <strong>Menus load error</strong>
-            <div className="muted">{menusErr.message}</div>
-          </div>
-        ) : null}
-
-        {windowMenusErr ? (
-          <div className="card error">
-            <strong>Happy hour menu mapping load error</strong>
-            <div className="muted">{windowMenusErr.message}</div>
-          </div>
-        ) : null}
-
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Venue info</h3>
-          <form className="col" style={{ gap: 10 }}>
-            <label>
-              Name
-              <input name="name" defaultValue={v?.name ?? ''} required readOnly={!canManageVenue} />
-            </label>
-            <label>
-              App display name
-              <select
-                name="app_name_preference"
-                defaultValue={v?.app_name_preference ?? 'org'}
-                disabled={!canManageVenue}
-              >
+            <div>
+              <label htmlFor="vi-app-pref" className="text-body-sm font-medium text-foreground block mb-1.5">
+                App display name
+              </label>
+              <select id="vi-app-pref" name="app_name_preference" defaultValue={v?.app_name_preference ?? 'org'} disabled={!canManageVenue} className={selectCls}>
                 <option value="org">Organization name (default)</option>
-                <option value="venue">Venue/location name</option>
+                <option value="venue">Venue / location name</option>
               </select>
-              <span className="muted" style={{ fontSize: 12, display: 'block', marginTop: 4 }}>
-                Defaults to the organization name in the consumer app.
-              </span>
-            </label>
-            <div className="row">
-              <input
-                name="address"
-                placeholder="Address"
-                defaultValue={v?.address ?? ''}
-                readOnly={!canManageVenue}
-              />
-              <input
-                name="city"
-                placeholder="City"
-                defaultValue={v?.city ?? ''}
-                readOnly={!canManageVenue}
-              />
+              <p className="text-caption text-muted mt-1.5">
+                Controls the name shown in the consumer app.
+              </p>
             </div>
-            <div className="row">
-              <input
-                name="state"
-                placeholder="State"
-                defaultValue={v?.state ?? ''}
-                readOnly={!canManageVenue}
-              />
-              <input
-                name="zip"
-                placeholder="ZIP"
-                defaultValue={v?.zip ?? ''}
-                readOnly={!canManageVenue}
-              />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="vi-addr" className="text-body-sm font-medium text-foreground block mb-1.5">Street address</label>
+                <input id="vi-addr" name="address" placeholder="123 Main St" defaultValue={v?.address ?? ''} readOnly={!canManageVenue} className={inputCls} />
+              </div>
+              <div>
+                <label htmlFor="vi-city" className="text-body-sm font-medium text-foreground block mb-1.5">City</label>
+                <input id="vi-city" name="city" placeholder="Austin" defaultValue={v?.city ?? ''} readOnly={!canManageVenue} className={inputCls} />
+              </div>
             </div>
-            <label>
-              Timezone
-              <input
-                name="timezone"
-                defaultValue={v?.timezone ?? 'America/Chicago'}
-                readOnly={!canManageVenue}
-              />
-            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label htmlFor="vi-state" className="text-body-sm font-medium text-foreground block mb-1.5">State</label>
+                <input id="vi-state" name="state" placeholder="TX" defaultValue={v?.state ?? ''} readOnly={!canManageVenue} className={inputCls} />
+              </div>
+              <div>
+                <label htmlFor="vi-zip" className="text-body-sm font-medium text-foreground block mb-1.5">ZIP</label>
+                <input id="vi-zip" name="zip" placeholder="78701" defaultValue={v?.zip ?? ''} readOnly={!canManageVenue} className={inputCls} />
+              </div>
+              <div>
+                <label htmlFor="vi-tz" className="text-body-sm font-medium text-foreground block mb-1.5">Timezone</label>
+                <input id="vi-tz" name="timezone" defaultValue={v?.timezone ?? 'America/Chicago'} readOnly={!canManageVenue} className={inputCls} />
+              </div>
+            </div>
+
             {canManageVenue ? (
-              <button formAction={updateVenue.bind(null, orgId, venueId)}>Save changes</button>
+              <div>
+                <button formAction={updateVenue.bind(null, orgId, venueId)} className={btnPrimary}>
+                  Save changes
+                </button>
+              </div>
             ) : (
-              <span className="muted" style={{ fontSize: 12 }}>
-                You can view venue details, but editing requires manager access.
-              </span>
+              <p className="text-caption text-muted">You can view venue details, but editing requires manager access.</p>
             )}
           </form>
         </div>
 
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Happy hour times</h3>
+        {/* ══════════════════════════════════════════════
+            SECTION 2 — HAPPY HOUR TIMES
+        ══════════════════════════════════════════════ */}
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+          <div className="mb-5">
+            <h2 className="text-heading-sm font-semibold text-foreground">Happy hour times</h2>
+            <p className="text-body-sm text-muted mt-0.5">Define when happy hours are active and which menus apply.</p>
+          </div>
 
           {(happyHours as HappyHourWindow[] | null)?.length ? (
-            <div className="col" style={{ gap: 10 }}>
+            <div className="flex flex-col gap-4">
               {(happyHours as HappyHourWindow[]).map((h) => {
                 const isPublished = (h.status ?? '').toLowerCase() === HH_STATUS_PUBLISHED;
                 const selectedMenus = menuSelections.get(h.id) ?? new Set<string>();
+                const statusColor = isPublished
+                  ? 'bg-success-light text-success'
+                  : 'bg-warning-light text-warning';
 
                 return (
-                  <div key={h.id} className="card" style={{ background: 'var(--surface)' }}>
-                    <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                      <div className="col" style={{ gap: 4 }}>
-                        <strong>{formatDays(h.dow)}</strong>
-                        <span>
-                          {timeForInput(h.start_time)} - {timeForInput(h.end_time)}
-                          {h.label ? <span className="muted"> ({h.label})</span> : null}
-                        </span>
-                        <span className="muted">
-                          Status: <strong>{isPublished ? 'Published' : 'Draft'}</strong>
-                        </span>
+                  <div key={h.id} className="rounded-lg border border-border bg-background p-5">
+                    {/* ── Window summary row ── */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-md bg-brand-subtle flex items-center justify-center shrink-0">
+                          <span className="text-heading-sm font-bold text-brand-dark">&#9200;</span>
+                        </div>
+                        <div>
+                          <h3 className="text-body-md font-semibold text-foreground">{formatDays(h.dow)}</h3>
+                          <p className="text-body-sm text-muted mt-0.5">
+                            {timeForInput(h.start_time)} – {timeForInput(h.end_time)}
+                            {h.label ? <span className="text-muted-light"> · {h.label}</span> : null}
+                          </p>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium mt-1 ${statusColor}`}>
+                            {isPublished ? 'Published' : 'Draft'}
+                          </span>
+                        </div>
                       </div>
 
                       {canManageVenue ? (
-                        <form className="row" style={{ gap: 8 }}>
+                        <form>
                           <input type="hidden" name="hh_id" value={h.id} />
                           {isPublished ? (
-                            <button className="secondary" formAction={unpublishHappyHour.bind(null, orgId, venueId)}>
+                            <button className={btnSecondary} formAction={unpublishHappyHour.bind(null, orgId, venueId)}>
                               Unpublish
                             </button>
                           ) : (
-                            <button className="secondary" formAction={publishHappyHour.bind(null, orgId, venueId)}>
+                            <button className={btnPrimary} formAction={publishHappyHour.bind(null, orgId, venueId)}>
                               Publish
                             </button>
                           )}
@@ -393,82 +412,83 @@ export default async function VenuePage({
 
                     {canManageVenue ? (
                       <>
-                        <hr style={{ margin: '12px 0' }} />
+                        {/* ── Edit window ── */}
+                        <div className="border-t border-border mt-4 pt-4">
+                          <form className="flex flex-col gap-4">
+                            <input type="hidden" name="hh_id" value={h.id} />
 
-                        {/* ? Editable (even if published) */}
-                        <form className="col" style={{ gap: 10 }}>
-                          <input type="hidden" name="hh_id" value={h.id} />
-
-                          <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
-                            <div className="col" style={{ gap: 6 }}>
-                              <div className="muted">Days</div>
-                              <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+                            <div>
+                              <p className="text-caption font-medium text-muted mb-2">Days</p>
+                              <div className="flex flex-wrap gap-x-4 gap-y-2">
                                 {DOW.map((d, i) => (
-                                  <label key={d} className="row" style={{ gap: 6, alignItems: 'center' }}>
+                                  <label key={d} className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
                                     <input
                                       type="checkbox"
                                       name="dow"
                                       value={i}
                                       defaultChecked={(h.dow ?? []).includes(i)}
+                                      className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
                                     />
-                                    <span>{d}</span>
+                                    {d}
                                   </label>
                                 ))}
                               </div>
                             </div>
 
-                            <label style={{ width: 170 }}>
-                              Start
-                              <input name="start_time" type="time" defaultValue={timeForInput(h.start_time)} required />
-                            </label>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                              <div>
+                                <label className="text-caption font-medium text-muted block mb-1">Start</label>
+                                <input name="start_time" type="time" defaultValue={timeForInput(h.start_time)} required className={inputCls} />
+                              </div>
+                              <div>
+                                <label className="text-caption font-medium text-muted block mb-1">End</label>
+                                <input name="end_time" type="time" defaultValue={timeForInput(h.end_time)} required className={inputCls} />
+                              </div>
+                              <div className="col-span-2">
+                                <label className="text-caption font-medium text-muted block mb-1">Label (optional)</label>
+                                <input name="label" defaultValue={h.label ?? ''} placeholder="e.g., Late night, Brunch" className={inputCls} />
+                              </div>
+                            </div>
 
-                            <label style={{ width: 170 }}>
-                              End
-                              <input name="end_time" type="time" defaultValue={timeForInput(h.end_time)} required />
-                            </label>
+                            <div className="flex items-center gap-2">
+                              <button className={btnSecondary} formAction={updateHappyHour.bind(null, orgId, venueId)}>
+                                Save
+                              </button>
+                              <button className={btnDanger} formAction={deleteHappyHour.bind(null, orgId, venueId)}>
+                                Delete
+                              </button>
+                            </div>
+                          </form>
+                        </div>
 
-                            <label style={{ flex: 1, minWidth: 220 }}>
-                              Label (optional)
-                              <input name="label" defaultValue={h.label ?? ''} placeholder="e.g., Late night, Brunch" />
-                            </label>
-                          </div>
-
-                          <div className="row" style={{ gap: 8 }}>
-                            <button className="secondary" formAction={updateHappyHour.bind(null, orgId, venueId)}>
-                              Save
-                            </button>
-                            <button className="secondary" formAction={deleteHappyHour.bind(null, orgId, venueId)}>
-                              Delete
-                            </button>
-                          </div>
-                        </form>
-
-                        <hr style={{ margin: '12px 0' }} />
-
-                        <div className="col" style={{ gap: 8 }}>
-                          <strong>Menus available in this window</strong>
+                        {/* ── Menu associations ── */}
+                        <div className="border-t border-border mt-4 pt-4">
+                          <p className="text-body-sm font-medium text-foreground mb-2">Menus available in this window</p>
                           {menuList.length ? (
-                            <form className="col" style={{ gap: 8 }}>
+                            <form className="flex flex-col gap-3">
                               <input type="hidden" name="hh_id" value={h.id} />
-                              <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+                              <div className="flex flex-wrap gap-x-4 gap-y-2">
                                 {menuList.map((menu) => (
-                                  <label key={menu.id} className="row" style={{ gap: 6, alignItems: 'center' }}>
+                                  <label key={menu.id} className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
                                     <input
                                       type="checkbox"
                                       name="menu_ids"
                                       value={menu.id}
                                       defaultChecked={selectedMenus.has(menu.id)}
+                                      className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
                                     />
-                                    <span>{menu.name}</span>
+                                    {menu.name}
                                   </label>
                                 ))}
                               </div>
-                              <button className="secondary" formAction={updateHappyHourMenus.bind(null, orgId, venueId)}>
-                                Save menus
-                              </button>
+                              <div>
+                                <button className={btnSecondary} formAction={updateHappyHourMenus.bind(null, orgId, venueId)}>
+                                  Save menus
+                                </button>
+                              </div>
                             </form>
                           ) : (
-                            <span className="muted">Create a menu to attach it to this window.</span>
+                            <p className="text-caption text-muted">Create a menu below to attach it to this window.</p>
                           )}
                         </div>
                       </>
@@ -478,265 +498,359 @@ export default async function VenuePage({
               })}
             </div>
           ) : (
-            <p className="muted">No happy hour times yet.</p>
+            <div className="rounded-lg border border-dashed border-border-strong bg-background/50 p-8 text-center">
+              <div className="text-muted-light text-display-md mb-2">&#9200;</div>
+              <p className="text-body-sm font-medium text-foreground">No happy hour times yet</p>
+              <p className="text-body-sm text-muted mt-1">Add your first window below to get started.</p>
+            </div>
           )}
 
+          {/* ── Create new window ── */}
           {canManageVenue ? (
-            <>
-              <hr />
-
-              {/* ? Create new window (multi-day) */}
-              <form className="col" style={{ gap: 10 }}>
-                <div className="muted">Create a new window (can cover multiple days)</div>
-
-                <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
-                  <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+            <div className="border-t border-border mt-6 pt-6">
+              <p className="text-body-sm font-medium text-foreground mb-3">Add a new window</p>
+              <form className="flex flex-col gap-4">
+                <div>
+                  <p className="text-caption font-medium text-muted mb-2">Days</p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-2">
                     {DOW.map((d, i) => (
-                      <label key={d} className="row" style={{ gap: 6, alignItems: 'center' }}>
-                        <input type="checkbox" name="dow" value={i} defaultChecked={i === 1} />
-                        <span>{d}</span>
+                      <label key={d} className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="dow"
+                          value={i}
+                          defaultChecked={i === 1}
+                          className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                        />
+                        {d}
                       </label>
                     ))}
                   </div>
-
-                  <label style={{ width: 170 }}>
-                    Start
-                    <input name="start_time" type="time" required />
-                  </label>
-
-                  <label style={{ width: 170 }}>
-                    End
-                    <input name="end_time" type="time" required />
-                  </label>
-
-                  <label style={{ flex: 1, minWidth: 220 }}>
-                    Label (optional)
-                    <input name="label" placeholder="e.g., Late night, Brunch" />
-                  </label>
                 </div>
 
-                <button formAction={addHappyHour.bind(null, orgId, venueId)}>Add (Draft)</button>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-caption font-medium text-muted block mb-1">Start</label>
+                    <input name="start_time" type="time" required className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium text-muted block mb-1">End</label>
+                    <input name="end_time" type="time" required className={inputCls} />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="text-caption font-medium text-muted block mb-1">Label (optional)</label>
+                    <input name="label" placeholder="e.g., Late night, Brunch" className={inputCls} />
+                  </div>
+                </div>
+
+                <div>
+                  <button formAction={addHappyHour.bind(null, orgId, venueId)} className={btnPrimary}>
+                    Add window (draft)
+                  </button>
+                </div>
               </form>
-            </>
+            </div>
           ) : null}
         </div>
 
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Menus (structured)</h3>
+        {/* ══════════════════════════════════════════════
+            SECTION 3 — MENUS
+        ══════════════════════════════════════════════ */}
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <h2 className="text-heading-sm font-semibold text-foreground">Menus</h2>
+              <p className="text-body-sm text-muted mt-0.5">Structured menus with sections and items.</p>
+            </div>
+          </div>
 
+          {/* Create menu */}
           {canManageVenue ? (
-            <form className="row" style={{ marginBottom: 12 }}>
-              <input name="menu_name" placeholder="New menu name (e.g., Happy Hour Drinks)" required />
-              <button formAction={createMenu.bind(null, orgId, venueId)}>Create menu</button>
+            <form className="flex gap-3 items-end mb-6">
+              <div className="flex-1">
+                <label className="text-body-sm font-medium text-foreground block mb-1.5">New menu</label>
+                <input name="menu_name" placeholder="e.g., Happy Hour Drinks" required className={inputCls} />
+              </div>
+              <button formAction={createMenu.bind(null, orgId, venueId)} className={btnPrimary + ' shrink-0'}>
+                Create menu
+              </button>
             </form>
           ) : null}
 
           {(menus as Menu[] | null)?.length ? (
-            <div className="col" style={{ gap: 12 }}>
-              {(menus as Menu[]).map((m) => (
-                <div key={m.id} className="card" style={{ background: 'var(--surface)' }}>
-                  {/* Menu edit/delete */}
-                  {canManageVenue ? (
-                    <form className="row" style={{ justifyContent: 'space-between', gap: 10 }}>
-                      <input type="hidden" name="menu_id" value={m.id} />
+            <div className="flex flex-col gap-6">
+              {(menus as Menu[]).map((m) => {
+                const menuPublished = (m.status ?? '').toLowerCase() === HH_STATUS_PUBLISHED;
+                const menuStatusColor = menuPublished
+                  ? 'bg-success-light text-success'
+                  : 'bg-warning-light text-warning';
 
-                      <div className="col" style={{ gap: 6, flex: 1 }}>
-                        <input name="menu_name" defaultValue={m.name} required />
-                        <label className="row" style={{ gap: 8, alignItems: 'center' }}>
-                          <input type="checkbox" name="menu_is_active" defaultChecked={m.is_active} />
-                          <span className="muted">Active</span>
-                        </label>
-                      </div>
+                return (
+                  <div key={m.id} className="rounded-lg border border-border bg-background">
+                    {/* ── Menu header ── */}
+                    <div className="p-5 border-b border-border">
+                      {canManageVenue ? (
+                        <form className="flex flex-col gap-3">
+                          <input type="hidden" name="menu_id" value={m.id} />
 
-                      <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
-                        <button className="secondary" formAction={updateMenu.bind(null, orgId, venueId)}>
-                          Save
-                        </button>
-                        <button className="secondary" formAction={deleteMenu.bind(null, orgId, venueId)}>
-                          Delete
-                        </button>
-                      </div>
-                      <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-                        <span className="muted">Status:</span>
-                        <strong>
-                          {(m.status ?? '').toLowerCase() === HH_STATUS_PUBLISHED ? 'Published' : 'Draft'}
-                        </strong>
-                        {(m.status ?? '').toLowerCase() === HH_STATUS_PUBLISHED ? (
-                          <button className="secondary" formAction={unpublishMenu.bind(null, orgId, venueId)}>
-                            Unpublish
-                          </button>
-                        ) : (
-                          <button className="secondary" formAction={publishMenu.bind(null, orgId, venueId)}>
-                            Publish
-                          </button>
-                        )}
-                      </div>
-                    </form>
-                  ) : (
-                    <div className="row" style={{ justifyContent: 'space-between', gap: 10 }}>
-                      <div className="col" style={{ gap: 6 }}>
-                        <strong>{m.name}</strong>
-                        <span className="muted">
-                          Status: {(m.status ?? '').toLowerCase() === HH_STATUS_PUBLISHED ? 'Published' : 'Draft'}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="col" style={{ gap: 10, marginTop: 10 }}>
-                    {/* Create section */}
-                    {canManageVenue ? (
-                      <form className="row">
-                        <input type="hidden" name="menu_id" value={m.id} />
-                        <input name="section_name" placeholder="New section (e.g., Cocktails)" required />
-                        <button className="secondary" formAction={createSection.bind(null, orgId, venueId)}>
-                          Add section
-                        </button>
-                      </form>
-                    ) : null}
-
-                    {(m.menu_sections ?? []).length ? (
-                      (m.menu_sections ?? []).map((s) => (
-                        <div key={s.id} className="card">
-                          {/* Section edit/delete */}
-                          {canManageVenue ? (
-                            <form className="row" style={{ justifyContent: 'space-between', gap: 10 }}>
-                              <input type="hidden" name="section_id" value={s.id} />
-                              <input name="section_name" defaultValue={s.name} required style={{ flex: 1 }} />
-                              <div className="row" style={{ gap: 8 }}>
-                                <button className="secondary" formAction={updateSection.bind(null, orgId, venueId)}>
-                                  Save
-                                </button>
-                                <button className="secondary" formAction={deleteSection.bind(null, orgId, venueId)}>
-                                  Delete
-                                </button>
-                              </div>
-                            </form>
-                          ) : (
-                            <div className="row" style={{ justifyContent: 'space-between', gap: 10 }}>
-                              <strong>{s.name}</strong>
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 flex flex-col gap-3 sm:flex-row sm:items-center">
+                              <input name="menu_name" defaultValue={m.name} required className={inputCls + ' sm:max-w-xs'} />
+                              <label className="flex items-center gap-2 text-body-sm text-muted cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  name="menu_is_active"
+                                  defaultChecked={m.is_active}
+                                  className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                                />
+                                Active
+                              </label>
                             </div>
-                          )}
 
-                          <div className="col" style={{ gap: 8, marginTop: 10 }}>
-                            {/* Create item */}
-                            {canEditMenuItems ? (
-                              <form className="col" style={{ gap: 8 }}>
-                                <input type="hidden" name="section_id" value={s.id} />
-                                <div className="row">
-                                  <input name="item_name" placeholder="Item name" required />
-                                  <input name="item_price" type="number" step="0.01" placeholder="Price (optional)" />
-                                </div>
-                                <textarea name="item_description" placeholder="Description (optional)" rows={2} />
-                                <label className="row" style={{ gap: 8, alignItems: 'center' }}>
-                                  <input type="checkbox" name="item_is_happy_hour" />
-                                  <span className="muted">Happy hour item</span>
-                                </label>
-                                <button className="secondary" formAction={createItem.bind(null, orgId, venueId)}>
-                                  Add item
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${menuStatusColor}`}>
+                                {menuPublished ? 'Published' : 'Draft'}
+                              </span>
+                              {menuPublished ? (
+                                <button className={btnSecondary} formAction={unpublishMenu.bind(null, orgId, venueId)}>
+                                  Unpublish
                                 </button>
-                              </form>
-                            ) : (
-                              <span className="muted">Menu items are read-only for your role.</span>
-                            )}
+                              ) : (
+                                <button className={btnPrimary} formAction={publishMenu.bind(null, orgId, venueId)}>
+                                  Publish
+                                </button>
+                              )}
+                            </div>
+                          </div>
 
-                            {(s.menu_items ?? []).length ? (
-                              <div className="col" style={{ gap: 10 }}>
-                                {(s.menu_items ?? []).map((it) => (
-                                  <div key={it.id} className="card" >
-                                    {/* Item edit/delete */}
-                                    {canEditMenuItems ? (
-                                      <form className="col" style={{ gap: 8 }}>
-                                        <input type="hidden" name="item_id" value={it.id} />
-                                        <div className="row" style={{ gap: 10 }}>
-                                          <input name="item_name" defaultValue={it.name} required style={{ flex: 1 }} />
-                                          <input
-                                            name="item_price"
-                                            type="number"
-                                            step="0.01"
-                                            defaultValue={it.price ?? ''}
-                                            placeholder="Price"
-                                            style={{ width: 160 }}
-                                          />
-                                        </div>
-                                        <textarea
-                                          name="item_description"
-                                          defaultValue={it.description ?? ''}
-                                          placeholder="Description (optional)"
-                                          rows={2}
-                                        />
-                                        <label className="row" style={{ gap: 8, alignItems: 'center' }}>
-                                          <input
-                                            type="checkbox"
-                                            name="item_is_happy_hour"
-                                            defaultChecked={!!it.is_happy_hour}
-                                          />
-                                          <span className="muted">Happy hour item</span>
-                                        </label>
-
-                                        <div className="row" style={{ gap: 8 }}>
-                                          <button className="secondary" formAction={updateItem.bind(null, orgId, venueId)}>
-                                            Save
-                                          </button>
-                                          <button className="secondary" formAction={deleteItem.bind(null, orgId, venueId)}>
-                                            Delete
-                                          </button>
-                                        </div>
-                                      </form>
-                                    ) : (
-                                      <div className="col" style={{ gap: 6 }}>
-                                        <strong>{it.name}</strong>
-                                        <span className="muted">{it.description ?? 'No description'}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="muted">No items yet.</span>
-                            )}
+                          <div className="flex items-center gap-2">
+                            <button className={btnSecondary} formAction={updateMenu.bind(null, orgId, venueId)}>
+                              Save
+                            </button>
+                            <button className={btnDanger} formAction={deleteMenu.bind(null, orgId, venueId)}>
+                              Delete
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-body-md font-semibold text-foreground">{m.name}</h3>
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium mt-1 ${menuStatusColor}`}>
+                              {menuPublished ? 'Published' : 'Draft'}
+                            </span>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <span className="muted">No sections yet.</span>
-                    )}
+                      )}
+                    </div>
+
+                    {/* ── Sections ── */}
+                    <div className="p-5">
+                      {/* Add section */}
+                      {canManageVenue ? (
+                        <form className="flex gap-3 items-end mb-5">
+                          <input type="hidden" name="menu_id" value={m.id} />
+                          <div className="flex-1">
+                            <label className="text-caption font-medium text-muted block mb-1">New section</label>
+                            <input name="section_name" placeholder="e.g., Cocktails" required className={inputCls} />
+                          </div>
+                          <button className={btnSecondary + ' shrink-0'} formAction={createSection.bind(null, orgId, venueId)}>
+                            Add section
+                          </button>
+                        </form>
+                      ) : null}
+
+                      {(m.menu_sections ?? []).length ? (
+                        <div className="flex flex-col gap-5">
+                          {(m.menu_sections ?? []).map((s) => (
+                            <div key={s.id} className="rounded-md border border-border bg-surface p-4">
+                              {/* Section header */}
+                              {canManageVenue ? (
+                                <form className="flex items-center gap-3 mb-4">
+                                  <input type="hidden" name="section_id" value={s.id} />
+                                  <input name="section_name" defaultValue={s.name} required className={inputCls + ' flex-1'} />
+                                  <button className={btnSecondary} formAction={updateSection.bind(null, orgId, venueId)}>
+                                    Save
+                                  </button>
+                                  <button className={btnDanger} formAction={deleteSection.bind(null, orgId, venueId)}>
+                                    Delete
+                                  </button>
+                                </form>
+                              ) : (
+                                <h4 className="text-body-sm font-semibold text-foreground mb-4">{s.name}</h4>
+                              )}
+
+                              {/* Add item */}
+                              {canEditMenuItems ? (
+                                <form className="rounded-md border border-dashed border-border-strong bg-background/50 p-4 mb-4">
+                                  <input type="hidden" name="section_id" value={s.id} />
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                                    <div>
+                                      <label className="text-caption font-medium text-muted block mb-1">Item name</label>
+                                      <input name="item_name" placeholder="Item name" required className={inputCls} />
+                                    </div>
+                                    <div>
+                                      <label className="text-caption font-medium text-muted block mb-1">Price</label>
+                                      <input name="item_price" type="number" step="0.01" placeholder="Optional" className={inputCls} />
+                                    </div>
+                                  </div>
+                                  <div className="mb-3">
+                                    <label className="text-caption font-medium text-muted block mb-1">Description</label>
+                                    <textarea name="item_description" placeholder="Optional description" rows={2} className={inputCls + ' h-auto py-2'} />
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <label className="flex items-center gap-2 text-body-sm text-muted cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        name="item_is_happy_hour"
+                                        className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                                      />
+                                      Happy hour item
+                                    </label>
+                                    <button className={btnSecondary} formAction={createItem.bind(null, orgId, venueId)}>
+                                      Add item
+                                    </button>
+                                  </div>
+                                </form>
+                              ) : (
+                                <p className="text-caption text-muted mb-4">Menu items are read-only for your role.</p>
+                              )}
+
+                              {/* Item list */}
+                              {(s.menu_items ?? []).length ? (
+                                <div className="flex flex-col gap-3">
+                                  {(s.menu_items ?? []).map((it) => (
+                                    <div key={it.id} className="rounded-md border border-border bg-background p-4">
+                                      {canEditMenuItems ? (
+                                        <form className="flex flex-col gap-3">
+                                          <input type="hidden" name="item_id" value={it.id} />
+                                          <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
+                                            <input name="item_name" defaultValue={it.name} required className={inputCls} />
+                                            <input
+                                              name="item_price"
+                                              type="number"
+                                              step="0.01"
+                                              defaultValue={it.price ?? ''}
+                                              placeholder="Price"
+                                              className={inputCls}
+                                            />
+                                          </div>
+                                          <textarea
+                                            name="item_description"
+                                            defaultValue={it.description ?? ''}
+                                            placeholder="Description (optional)"
+                                            rows={2}
+                                            className={inputCls + ' h-auto py-2'}
+                                          />
+                                          <div className="flex items-center justify-between">
+                                            <label className="flex items-center gap-2 text-body-sm text-muted cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                name="item_is_happy_hour"
+                                                defaultChecked={!!it.is_happy_hour}
+                                                className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                                              />
+                                              Happy hour item
+                                            </label>
+                                            <div className="flex items-center gap-2">
+                                              <button className={btnSecondary} formAction={updateItem.bind(null, orgId, venueId)}>
+                                                Save
+                                              </button>
+                                              <button className={btnDanger} formAction={deleteItem.bind(null, orgId, venueId)}>
+                                                Delete
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </form>
+                                      ) : (
+                                        <div>
+                                          <div className="flex items-center justify-between">
+                                            <h5 className="text-body-sm font-semibold text-foreground">{it.name}</h5>
+                                            {it.price != null ? (
+                                              <span className="text-body-sm font-medium text-foreground">${Number(it.price).toFixed(2)}</span>
+                                            ) : null}
+                                          </div>
+                                          <p className="text-caption text-muted mt-0.5">{it.description ?? 'No description'}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-caption text-muted text-center py-2">No items yet.</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-caption text-muted">No sections yet. Add one above.</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <p className="muted">No menus yet.</p>
+            <div className="rounded-lg border border-dashed border-border-strong bg-background/50 p-8 text-center">
+              <div className="text-muted-light text-display-md mb-2">&#127860;</div>
+              <p className="text-body-sm font-medium text-foreground">No menus yet</p>
+              <p className="text-body-sm text-muted mt-1">Create your first menu above to start building.</p>
+            </div>
           )}
         </div>
 
+        {/* ══════════════════════════════════════════════
+            SECTION 4 — MEDIA
+        ══════════════════════════════════════════════ */}
         {canManageVenue ? (
-          <div className="card">
-            <h3 style={{ marginTop: 0 }}>Media (images, videos, menu PDFs)</h3>
+          <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+            <div className="mb-5">
+              <h2 className="text-heading-sm font-semibold text-foreground">Media</h2>
+              <p className="text-body-sm text-muted mt-0.5">Upload images, videos, or menu PDFs for this venue.</p>
+            </div>
             <VenueMediaUploader orgId={orgId} venueId={venueId} />
           </div>
         ) : null}
 
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Analytics (starter)</h3>
-          <p className="muted" style={{ marginTop: 0 }}>
-            This reads from <code>events</code> (user app) via the <code>venue_event_counts</code> view.
-          </p>
+        {/* ══════════════════════════════════════════════
+            SECTION 5 — ANALYTICS
+        ══════════════════════════════════════════════ */}
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+          <div className="mb-5">
+            <h2 className="text-heading-sm font-semibold text-foreground">Analytics</h2>
+            <p className="text-body-sm text-muted mt-0.5">
+              Event counts from the consumer app (<code className="text-caption bg-background px-1.5 py-0.5 rounded border border-border">venue_event_counts</code> view).
+            </p>
+          </div>
 
           {(eventCounts as EventCount[] | null)?.length ? (
-            <div className="col" style={{ gap: 8 }}>
-              {(eventCounts as EventCount[]).map((e) => (
-                <div key={e.event_type} className="row" style={{ justifyContent: 'space-between' }}>
-                  <strong>{e.event_type}</strong>
-                  <span className="muted">{e.cnt}</span>
-                </div>
-              ))}
+            <div className="rounded-md border border-border overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border bg-background">
+                    <th className="text-left text-caption font-medium text-muted px-4 py-2.5">Event type</th>
+                    <th className="text-right text-caption font-medium text-muted px-4 py-2.5">Count</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(eventCounts as EventCount[]).map((e, i) => (
+                    <tr key={e.event_type} className={`border-b border-border last:border-b-0 ${i % 2 === 0 ? 'bg-surface' : 'bg-background/50'}`}>
+                      <td className="text-body-sm text-foreground font-medium px-4 py-2.5">{e.event_type}</td>
+                      <td className="text-body-sm text-muted text-right tabular-nums px-4 py-2.5">{e.cnt}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
-            <p className="muted">No events recorded yet.</p>
+            <div className="rounded-lg border border-dashed border-border-strong bg-background/50 p-8 text-center">
+              <div className="text-muted-light text-display-md mb-2">&#128202;</div>
+              <p className="text-body-sm font-medium text-foreground">No events recorded yet</p>
+              <p className="text-body-sm text-muted mt-1">Analytics will appear here as users interact with your venue.</p>
+            </div>
           )}
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

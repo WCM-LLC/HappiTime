@@ -59,6 +59,18 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_service_role_key: 'Invalid server credentials for invitations. Check SUPABASE_SERVICE_ROLE_KEY.',
 };
 
+/* ── Shared styles ── */
+const inputCls =
+  'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors';
+const selectCls =
+  'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors appearance-none';
+const btnPrimary =
+  'inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer';
+const btnSecondary =
+  'inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer';
+const btnDanger =
+  'inline-flex items-center justify-center h-9 px-3 rounded-md text-body-sm font-medium text-error hover:bg-error-light border border-border transition-colors cursor-pointer';
+
 export default async function OrgAccessPage({
   params,
   searchParams,
@@ -77,9 +89,9 @@ export default async function OrgAccessPage({
 
   if (!user) {
     return (
-      <main className="container">
-        <p>Not authenticated.</p>
-      </main>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted">Not authenticated.</p>
+      </div>
     );
   }
 
@@ -94,18 +106,18 @@ export default async function OrgAccessPage({
 
   if (!isOwner) {
     return (
-      <main className="container">
-        <div className="col" style={{ gap: 16 }}>
-          <UserBar />
-          <div className="card error">
-            <strong>Not authorized</strong>
-            <div className="muted">Only organization owners can manage access.</div>
+      <div className="min-h-screen bg-background">
+        <UserBar />
+        <main className="max-w-[var(--width-content)] mx-auto px-6 py-8">
+          <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-6">
+            <p className="text-body-sm font-medium text-error">Not authorized</p>
+            <p className="text-body-sm text-error/80 mt-0.5">Only organization owners can manage access.</p>
           </div>
           <Link href={`/orgs/${orgId}`}>
-            <button className="secondary">Back to organization</button>
+            <span className={btnSecondary}>&larr; Back to organization</span>
           </Link>
-        </div>
-      </main>
+        </main>
+      </div>
     );
   }
 
@@ -154,83 +166,146 @@ export default async function OrgAccessPage({
   const errorMessage = pageError ? ERROR_MESSAGES[pageError] ?? pageError : null;
 
   return (
-    <main className="container">
-      <div className="col" style={{ gap: 16 }}>
-        <UserBar />
+    <div className="min-h-screen bg-background">
+      <UserBar />
 
-        <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-          <div className="col" style={{ gap: 4 }}>
-            <h2 style={{ marginBottom: 0 }}>{org?.name ?? 'Organization'}</h2>
-            <div className="muted">Manage staff invitations and access.</div>
+      <main className="max-w-[var(--width-content)] mx-auto px-6 py-8">
+        {/* ── Page Header ── */}
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Link href="/dashboard" className="text-body-sm text-muted hover:text-foreground transition-colors">
+                Dashboard
+              </Link>
+              <span className="text-muted-light">/</span>
+              <Link href={`/orgs/${orgId}`} className="text-body-sm text-muted hover:text-foreground transition-colors">
+                {org?.name ?? 'Organization'}
+              </Link>
+              <span className="text-muted-light">/</span>
+            </div>
+            <h1 className="text-display-md font-bold text-foreground tracking-tight">Manage access</h1>
+            <p className="text-body-sm text-muted mt-1">Invite staff, assign roles, and control venue access.</p>
           </div>
           <Link href={`/orgs/${orgId}`}>
-            <button className="secondary">Back to org</button>
+            <span className={btnSecondary}>&larr; Back</span>
           </Link>
         </div>
 
+        {/* ── Error Banner ── */}
         {errorMessage ? (
-          <div className="card error">
-            <strong>Action failed</strong>
-            <div className="muted">{errorMessage}</div>
-            {errorDetail ? <div className="muted">Details: {errorDetail}</div> : null}
+          <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-6">
+            <p className="text-body-sm font-medium text-error">Action failed</p>
+            <p className="text-body-sm text-error/80 mt-0.5">{errorMessage}</p>
+            {errorDetail ? <p className="text-caption text-error/60 mt-1">Details: {errorDetail}</p> : null}
           </div>
         ) : null}
 
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Invite staff</h3>
-          <form className="col" style={{ gap: 10 }}>
-            <label>
-              Email
-              <input name="email" type="email" placeholder="user@example.com" required />
-            </label>
-            <label>
-              Role
-              <select name="role" defaultValue="manager">
-                <option value="manager">Manager</option>
-                <option value="host">Host</option>
-              </select>
-            </label>
-            <div className="col" style={{ gap: 6 }}>
-              <strong>Assign venues</strong>
-              {venueRows.length ? (
-                venueRows.map((venue) => (
-                  <label key={venue.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input type="checkbox" name="venue_ids" value={venue.id} />
-                    <span>{venue.name}</span>
-                  </label>
-                ))
-              ) : (
-                <div className="muted">No venues yet. You can add venues first.</div>
-              )}
-              <span className="muted" style={{ fontSize: 12 }}>
-                You can update assignments later.
-              </span>
+        {/* ══════════════════════════════════════════════
+            SECTION 1 — INVITE STAFF
+        ══════════════════════════════════════════════ */}
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+          <div className="mb-5">
+            <h2 className="text-heading-sm font-semibold text-foreground">Invite staff</h2>
+            <p className="text-body-sm text-muted mt-0.5">Send an email invitation with a role and optional venue assignments.</p>
+          </div>
+
+          <form className="flex flex-col gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="inv-email" className="text-body-sm font-medium text-foreground block mb-1.5">
+                  Email
+                </label>
+                <input
+                  id="inv-email"
+                  name="email"
+                  type="email"
+                  placeholder="user@example.com"
+                  required
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label htmlFor="inv-role" className="text-body-sm font-medium text-foreground block mb-1.5">
+                  Role
+                </label>
+                <select id="inv-role" name="role" defaultValue="manager" className={selectCls}>
+                  <option value="manager">Manager</option>
+                  <option value="host">Host</option>
+                </select>
+              </div>
             </div>
-            <button formAction={createOrgInvite.bind(null, orgId)}>Send invite</button>
+
+            {venueRows.length ? (
+              <div>
+                <p className="text-body-sm font-medium text-foreground mb-2">Assign venues</p>
+                <div className="flex flex-wrap gap-x-5 gap-y-2">
+                  {venueRows.map((venue) => (
+                    <label key={venue.id} className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name="venue_ids"
+                        value={venue.id}
+                        className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                      />
+                      {venue.name}
+                    </label>
+                  ))}
+                </div>
+                <p className="text-caption text-muted mt-2">You can update assignments later.</p>
+              </div>
+            ) : (
+              <p className="text-caption text-muted">No venues yet. Add venues first, then assign them here.</p>
+            )}
+
+            <div>
+              <button formAction={createOrgInvite.bind(null, orgId)} className={btnPrimary}>
+                Send invite
+              </button>
+            </div>
           </form>
         </div>
 
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Pending invites</h3>
+        {/* ══════════════════════════════════════════════
+            SECTION 2 — PENDING INVITES
+        ══════════════════════════════════════════════ */}
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+          <div className="mb-5">
+            <h2 className="text-heading-sm font-semibold text-foreground">Pending invites</h2>
+            <p className="text-body-sm text-muted mt-0.5">Invitations that have been sent but not yet accepted.</p>
+          </div>
+
           {inviteRows.length ? (
-            <div className="col" style={{ gap: 12 }}>
+            <div className="flex flex-col gap-3">
               {inviteRows.map((invite) => {
                 const venuesForInvite =
                   invite.venue_ids?.map((id) => venueNameById.get(id) ?? id).filter(Boolean) ?? [];
                 return (
-                  <div key={invite.id} className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-                    <div className="col" style={{ gap: 4 }}>
-                      <strong>{invite.email}</strong>
-                      <span className="muted">Role: {invite.role}</span>
-                      <span className="muted">
-                        Venues: {venuesForInvite.length ? venuesForInvite.join(', ') : 'None assigned'}
-                      </span>
+                  <div key={invite.id} className="rounded-lg border border-border bg-background p-4 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-brand-subtle flex items-center justify-center shrink-0">
+                        <span className="text-body-sm font-bold text-brand-dark">
+                          {invite.email.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-body-sm font-semibold text-foreground">{invite.email}</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-background text-muted border border-border">
+                            {invite.role}
+                          </span>
+                          {venuesForInvite.length ? (
+                            <span className="text-caption text-muted">{venuesForInvite.join(', ')}</span>
+                          ) : (
+                            <span className="text-caption text-muted-light">No venues assigned</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     <ConfirmDeleteForm
                       action={cancelOrgInvite.bind(null, orgId, invite.id)}
                       message="Cancel this invite?"
                     >
-                      <button className="secondary" type="submit">
+                      <button className={btnDanger} type="submit">
                         Cancel
                       </button>
                     </ConfirmDeleteForm>
@@ -239,14 +314,25 @@ export default async function OrgAccessPage({
               })}
             </div>
           ) : (
-            <p className="muted">No pending invites.</p>
+            <div className="rounded-lg border border-dashed border-border-strong bg-background/50 p-8 text-center">
+              <div className="text-muted-light text-display-md mb-2">&#9993;</div>
+              <p className="text-body-sm font-medium text-foreground">No pending invites</p>
+              <p className="text-body-sm text-muted mt-1">Invitations you send will appear here until accepted.</p>
+            </div>
           )}
         </div>
 
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Current members</h3>
+        {/* ══════════════════════════════════════════════
+            SECTION 3 — CURRENT MEMBERS
+        ══════════════════════════════════════════════ */}
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+          <div className="mb-5">
+            <h2 className="text-heading-sm font-semibold text-foreground">Current members</h2>
+            <p className="text-body-sm text-muted mt-0.5">Update roles and venue assignments for existing staff.</p>
+          </div>
+
           {memberRows.length ? (
-            <div className="col" style={{ gap: 16 }}>
+            <div className="flex flex-col gap-4">
               {memberRows.map((member) => {
                 const label = member.email ?? member.user_id;
                 const assignedVenueIds = assignmentsByUser.get(member.user_id) ?? [];
@@ -254,73 +340,106 @@ export default async function OrgAccessPage({
                 const normalizedRole =
                   member.role === 'host' || member.role === 'viewer' ? 'host' : 'manager';
 
+                const roleBadgeColor = isMemberOwner
+                  ? 'bg-brand-subtle text-brand-dark'
+                  : member.role === 'manager' || member.role === 'admin' || member.role === 'editor'
+                    ? 'bg-success-light text-success'
+                    : 'bg-background text-muted';
+
                 return (
-                  <div key={member.user_id} className="card" >
-                    <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-                      <div className="col" style={{ gap: 4 }}>
-                        <strong>{label}</strong>
-                        <span className="muted">Role: {member.role}</span>
+                  <div key={member.user_id} className="rounded-lg border border-border bg-background">
+                    {/* ── Member header ── */}
+                    <div className="flex items-center justify-between p-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-brand-subtle flex items-center justify-center shrink-0">
+                          <span className="text-heading-sm font-bold text-brand-dark">
+                            {label.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-body-sm font-semibold text-foreground">{label}</p>
+                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium mt-0.5 ${roleBadgeColor}`}>
+                            {member.role}
+                          </span>
+                        </div>
                       </div>
+
                       {isMemberOwner ? null : (
                         <ConfirmDeleteForm
                           action={removeMember.bind(null, orgId, member.user_id)}
                           message="Remove this member and revoke access?"
                         >
-                          <button className="secondary" type="submit">
+                          <button className={btnDanger} type="submit">
                             Remove
                           </button>
                         </ConfirmDeleteForm>
                       )}
                     </div>
 
+                    {/* ── Member details ── */}
                     {isMemberOwner ? (
-                      <p className="muted" style={{ marginTop: 10 }}>
-                        Owners have full access to all venues.
-                      </p>
+                      <div className="border-t border-border px-5 py-4 bg-surface/50">
+                        <p className="text-caption text-muted">Owners have full access to all venues.</p>
+                      </div>
                     ) : (
-                      <form className="col" style={{ gap: 10, marginTop: 12 }}>
-                        <label>
-                          Role
-                          <select name="role" defaultValue={normalizedRole}>
-                            <option value="manager">Manager</option>
-                            <option value="host">Host</option>
-                          </select>
-                        </label>
-                        <div className="col" style={{ gap: 6 }}>
-                          <strong>Assigned venues</strong>
+                      <div className="border-t border-border px-5 py-5 bg-surface/50">
+                        <form className="flex flex-col gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-caption font-medium text-muted block mb-1">Role</label>
+                              <select name="role" defaultValue={normalizedRole} className={selectCls}>
+                                <option value="manager">Manager</option>
+                                <option value="host">Host</option>
+                              </select>
+                            </div>
+                          </div>
+
                           {venueRows.length ? (
-                            venueRows.map((venue) => (
-                              <label key={venue.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <input
-                                  type="checkbox"
-                                  name="venue_ids"
-                                  value={venue.id}
-                                  defaultChecked={assignedVenueIds.includes(venue.id)}
-                                />
-                                <span>{venue.name}</span>
-                              </label>
-                            ))
+                            <div>
+                              <p className="text-body-sm font-medium text-foreground mb-2">Assigned venues</p>
+                              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                                {venueRows.map((venue) => (
+                                  <label key={venue.id} className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      name="venue_ids"
+                                      value={venue.id}
+                                      defaultChecked={assignedVenueIds.includes(venue.id)}
+                                      className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                                    />
+                                    {venue.name}
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
                           ) : (
-                            <div className="muted">No venues yet.</div>
+                            <p className="text-caption text-muted">No venues yet.</p>
                           )}
-                        </div>
-                        <button
-                          className="secondary"
-                          formAction={updateMemberAccess.bind(null, orgId, member.user_id)}
-                        >
-                          Save access
-                        </button>
-                      </form>
+
+                          <div>
+                            <button
+                              className={btnSecondary}
+                              formAction={updateMemberAccess.bind(null, orgId, member.user_id)}
+                            >
+                              Save access
+                            </button>
+                          </div>
+                        </form>
+                      </div>
                     )}
                   </div>
                 );
               })}
             </div>
           ) : (
-            <p className="muted">No members yet.</p>
+            <div className="rounded-lg border border-dashed border-border-strong bg-background/50 p-8 text-center">
+              <div className="text-muted-light text-display-md mb-2">&#128101;</div>
+              <p className="text-body-sm font-medium text-foreground">No members yet</p>
+              <p className="text-body-sm text-muted mt-1">Send an invite above to add your first team member.</p>
+            </div>
           )}
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

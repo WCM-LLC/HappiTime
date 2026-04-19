@@ -264,7 +264,24 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
         </View>
 
         <View style={styles.infoSection}>
-          <Text style={styles.title}>{titleText}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{titleText}</Text>
+            <Pressable
+              onPress={handleToggleSave}
+              disabled={followLoading || savingVenueId === venueId}
+              hitSlop={10}
+              style={({ pressed }) => [
+                styles.titleHeart,
+                pressed && styles.titleHeartPressed,
+              ]}
+            >
+              <IconSymbol
+                name={saved ? "heart.fill" : "heart"}
+                size={24}
+                color={saved ? colors.primary : colors.textMutedLight}
+              />
+            </Pressable>
+          </View>
           {subtitleText && (
             <Text style={styles.subtitle}>{subtitleText}</Text>
           )}
@@ -272,7 +289,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
             <View style={styles.metaLeft}>
               {rating != null && (
                 <View style={styles.metaItem}>
-                  <IconSymbol name="star.fill" size={14} color={colors.text} />
+                  <IconSymbol name="star.fill" size={14} color={colors.primary} />
                   <Text style={styles.metaText}>{rating.toFixed(1)}</Text>
                 </View>
               )}
@@ -417,20 +434,6 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
           <Pressable
             style={({ pressed }) => [
               styles.actionButton,
-              pressed && styles.actionButtonPressed,
-              (followLoading || savingVenueId === venueId) &&
-                styles.actionButtonDisabled
-            ]}
-            onPress={handleToggleSave}
-            disabled={followLoading || savingVenueId === venueId}
-          >
-            <Text style={styles.actionText}>
-              {saved ? "Saved" : "Save"}
-            </Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
-              styles.actionButton,
               pressed && styles.actionButtonPressed
             ]}
             onPress={() => setShowItineraryPicker(true)}
@@ -546,9 +549,14 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     height: 220,
-    borderRadius: 16,
-    backgroundColor: colors.inputBackground,
-    overflow: "hidden"
+    borderRadius: 14,
+    backgroundColor: colors.brandSubtle,
+    overflow: "hidden",
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   heroScroll: {
     flex: 1
@@ -558,7 +566,7 @@ const styles = StyleSheet.create({
   },
   heroSlide: {
     height: "100%",
-    backgroundColor: colors.inputBackground
+    backgroundColor: colors.brandSubtle
   },
   heroSlideTransparent: {
     backgroundColor: "transparent"
@@ -588,9 +596,9 @@ const styles = StyleSheet.create({
   },
   heroButton: {
     flex: 1,
-    backgroundColor: colors.pillActiveBg,
+    backgroundColor: colors.primary,
     borderRadius: 999,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     alignItems: "center"
   },
   heroButtonLeft: {
@@ -600,26 +608,44 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm
   },
   heroButtonPressed: {
-    opacity: 0.85
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
   },
   heroButtonText: {
-    color: colors.pillActiveText,
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "600"
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   infoSection: {
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.md
   },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   title: {
+    flex: 1,
     color: colors.text,
-    fontSize: 24,
-    fontWeight: "700",
-    marginBottom: spacing.xs
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+    marginBottom: spacing.xs,
+    marginRight: spacing.sm,
+  },
+  titleHeart: {
+    padding: 4,
+  },
+  titleHeartPressed: {
+    opacity: 0.6,
+    transform: [{ scale: 1.2 }],
   },
   subtitle: {
     color: colors.textMuted,
     fontSize: 14,
+    fontWeight: "500",
     marginBottom: spacing.sm
   },
   metaRow: {
@@ -687,15 +713,22 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     color: colors.text,
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: spacing.sm
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: -0.2,
+    marginBottom: spacing.md,
   },
   menuList: {
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
-    padding: spacing.md
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   menuBlock: {
     marginBottom: spacing.md
@@ -775,23 +808,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg
   },
   actionButton: {
-    backgroundColor: colors.pillActiveBg,
+    backgroundColor: colors.primary,
     borderRadius: 999,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     alignItems: "center",
     marginBottom: spacing.sm
   },
   actionButtonPressed: {
-    opacity: 0.85
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
   },
   actionButtonDisabled: {
     opacity: 0.6
   },
   actionText: {
-    color: colors.pillActiveText,
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "600"
+    fontWeight: "700",
+    letterSpacing: 0.3,
   }
 });
 
@@ -834,9 +869,8 @@ const pickerStyles = StyleSheet.create({
     paddingVertical: spacing.lg,
   },
   sep: {
-    height: 1,
+    height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,
-    opacity: 0.6,
   },
   row: {
     flexDirection: "row",
@@ -857,10 +891,10 @@ const pickerStyles = StyleSheet.create({
     marginTop: 2,
   },
   rowAction: {
-    color: colors.pillActiveText,
+    color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: "600",
-    backgroundColor: colors.pillActiveBg,
+    fontWeight: "700",
+    backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: 999,

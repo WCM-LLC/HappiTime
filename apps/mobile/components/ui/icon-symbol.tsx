@@ -26,10 +26,15 @@ const MAPPING = {
   'bell.fill': 'notifications',
   'person.crop.circle.fill': 'account-circle',
   'star.fill': 'star',
+  'map.fill': 'map',
   'mappin.circle.fill': 'place',
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'heart': 'favorite-border',
+  'heart.fill': 'favorite',
+  'location.fill': 'my-location',
+  'xmark.circle.fill': 'cancel',
 } as const;
 
 type IconSymbolName = keyof typeof MAPPING;

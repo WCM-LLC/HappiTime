@@ -1,9 +1,9 @@
 import Link from 'next/link';
+import UserBar from '@/components/layout/UserBar';
 import { createClient } from '@/utils/supabase/server';
 import { createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
 import { OrgsTable, VenuesTable, WindowsTable, UsersTable } from './AdminTables';
 import type { OrgRow, VenueRow, WindowRow, UserRow } from './AdminTables';
-import styles from './admin.module.css';
 
 export default async function AdminPage() {
   const keyError = getServiceRoleKeyError();
@@ -112,9 +112,7 @@ export default async function AdminPage() {
   const windows: WindowRow[] = (windowsRaw ?? []).map((w: any) => ({
     id: w.id,
     venue_id: w.venue_id,
-    // Primary display: org_name (the brand), fallback to venue name
     venue_name: w.venue?.org_name || w.venue?.name || '—',
-    // Secondary: venue location name when different from brand
     location_name: w.venue?.name || '—',
     org_id: w.venue?.org_id || '',
     start_time: w.start_time,
@@ -137,69 +135,119 @@ export default async function AdminPage() {
   }
 
   const stats = [
-    { label: 'Organizations', value: orgCount ?? 0 },
-    { label: 'Venues', value: venueCount ?? 0 },
-    { label: 'Members', value: memberCount ?? 0 },
-    { label: 'Happy Hours', value: hhCount ?? 0 },
-    { label: 'Media Files', value: mediaCount ?? 0 },
+    { label: 'Organizations', value: orgCount ?? 0, icon: '&#9881;' },
+    { label: 'Venues', value: venueCount ?? 0, icon: '&#127866;' },
+    { label: 'Members', value: memberCount ?? 0, icon: '&#128101;' },
+    { label: 'Happy Hours', value: hhCount ?? 0, icon: '&#9200;' },
+    { label: 'Media Files', value: mediaCount ?? 0, icon: '&#128247;' },
   ];
 
   return (
-    <main className={styles.admin}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.heading}>HappiTime Admin</h1>
-          <p className={styles.subheading}>Signed in as {auth.user?.email}</p>
-        </div>
-        <Link href="/dashboard" className={styles.backLink}>← Dashboard</Link>
-      </div>
+    <div className="min-h-screen bg-background">
+      <UserBar />
 
-      {keyError ? (
-        <div className={styles.warningBanner}>
-          <strong>Limited mode:</strong> Add <code>SUPABASE_SERVICE_ROLE_KEY</code> to{' '}
-          <code>apps/web/.env.local</code> for full admin access (user list, RLS bypass).
-          {keyError === 'invalid' ? ' The current key is present but has the wrong role.' : ''}
-        </div>
-      ) : null}
-
-      {/* Stats */}
-      <div className={styles.statsGrid}>
-        {stats.map((s) => (
-          <div key={s.label} className={styles.statCard}>
-            <div className={styles.statValue}>{s.value.toLocaleString()}</div>
-            <div className={styles.statLabel}>{s.label}</div>
+      <main className="max-w-[var(--width-content)] mx-auto px-6 py-8">
+        {/* ── Page Header ── */}
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Link href="/dashboard" className="text-body-sm text-muted hover:text-foreground transition-colors">
+                Dashboard
+              </Link>
+              <span className="text-muted-light">/</span>
+            </div>
+            <h1 className="text-display-md font-bold text-foreground tracking-tight">Admin Console</h1>
+            <p className="text-body-sm text-muted mt-1">
+              Signed in as {auth.user?.email}
+            </p>
           </div>
-        ))}
-      </div>
+          <Link href="/dashboard">
+            <span className="inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-muted hover:text-foreground hover:bg-background transition-colors cursor-pointer">
+              &larr; Dashboard
+            </span>
+          </Link>
+        </div>
 
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Organizations ({orgs.length})</h2>
-        <OrgsTable orgs={orgs} />
-      </section>
+        {/* ── Warning Banner ── */}
+        {keyError ? (
+          <div className="rounded-md border border-warning bg-warning-light px-4 py-3 mb-6">
+            <p className="text-body-sm font-medium text-warning">Limited mode</p>
+            <p className="text-body-sm text-warning/80 mt-0.5">
+              Add <code className="text-caption bg-surface px-1.5 py-0.5 rounded border border-border">SUPABASE_SERVICE_ROLE_KEY</code> to{' '}
+              <code className="text-caption bg-surface px-1.5 py-0.5 rounded border border-border">apps/web/.env.local</code> for full admin access (user list, RLS bypass).
+              {keyError === 'invalid' ? ' The current key is present but has the wrong role.' : ''}
+            </p>
+          </div>
+        ) : null}
 
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Venues ({venues.length})</h2>
-        <VenuesTable venues={venues} />
-      </section>
+        {/* ── Stats Grid ── */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-10">
+          {stats.map((s) => (
+            <div key={s.label} className="rounded-lg border border-border bg-surface p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-caption font-semibold text-muted uppercase tracking-wider">{s.label}</span>
+                <span className="text-body-sm" dangerouslySetInnerHTML={{ __html: s.icon }} />
+              </div>
+              <div className="text-display-md font-bold text-foreground tracking-tight leading-none">
+                {s.value.toLocaleString()}
+              </div>
+            </div>
+          ))}
+        </div>
 
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Happy Hour Windows ({windows.length})</h2>
-        <WindowsTable windows={windows} venues={venues} />
-      </section>
-
-      {!keyError && users.length > 0 ? (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Users ({users.length})</h2>
-          <UsersTable users={users} />
+        {/* ── Organizations ── */}
+        <section className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-heading-sm font-semibold text-foreground">
+              Organizations <span className="text-muted font-normal">({orgs.length})</span>
+            </h2>
+          </div>
+          <OrgsTable orgs={orgs} />
         </section>
-      ) : null}
 
-      {keyError ? (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Users</h2>
-          <p className={styles.empty}>Add <code>SUPABASE_SERVICE_ROLE_KEY</code> to view user data.</p>
+        {/* ── Venues ── */}
+        <section className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-heading-sm font-semibold text-foreground">
+              Venues <span className="text-muted font-normal">({venues.length})</span>
+            </h2>
+          </div>
+          <VenuesTable venues={venues} />
         </section>
-      ) : null}
-    </main>
+
+        {/* ── Happy Hour Windows ── */}
+        <section className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-heading-sm font-semibold text-foreground">
+              Happy Hour Windows <span className="text-muted font-normal">({windows.length})</span>
+            </h2>
+          </div>
+          <WindowsTable windows={windows} venues={venues} />
+        </section>
+
+        {/* ── Users ── */}
+        {!keyError && users.length > 0 ? (
+          <section className="mb-10">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-heading-sm font-semibold text-foreground">
+                Users <span className="text-muted font-normal">({users.length})</span>
+              </h2>
+            </div>
+            <UsersTable users={users} />
+          </section>
+        ) : null}
+
+        {keyError ? (
+          <section className="mb-10">
+            <h2 className="text-heading-sm font-semibold text-foreground mb-4">Users</h2>
+            <div className="rounded-lg border border-dashed border-border-strong bg-surface/50 p-8 text-center">
+              <p className="text-body-sm text-muted">
+                Add <code className="text-caption bg-background px-1.5 py-0.5 rounded border border-border">SUPABASE_SERVICE_ROLE_KEY</code> to view user data.
+              </p>
+            </div>
+          </section>
+        ) : null}
+      </main>
+    </div>
   );
 }

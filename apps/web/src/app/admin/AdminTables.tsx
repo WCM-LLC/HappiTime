@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
 import { adminToggleWindow, adminToggleVenueStatus } from '@/actions/admin-actions';
-import styles from './admin.module.css';
 
 export type OrgRow = {
   id: string;
@@ -75,6 +74,16 @@ function relativeTime(iso: string | null): string {
 
 type SortDir = 'asc' | 'desc';
 
+/* ── Shared classes ── */
+const thCls =
+  'px-4 py-2.5 text-left text-caption font-semibold text-muted uppercase tracking-wider whitespace-nowrap cursor-pointer select-none';
+const tdCls = 'px-4 py-3 text-body-sm align-middle';
+const linkCls = 'text-brand font-semibold text-caption whitespace-nowrap hover:text-brand-dark transition-colors';
+const badgeGreen = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-success-light text-success';
+const badgeGray = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-background text-muted';
+const tableWrap = 'overflow-x-auto rounded-lg border border-border bg-surface shadow-sm';
+const tableCls = 'w-full border-collapse text-body-sm';
+
 function SortHeader({
   label,
   col,
@@ -90,12 +99,9 @@ function SortHeader({
 }) {
   const isActive = active === col;
   return (
-    <th
-      onClick={() => onClick(col)}
-      style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}
-    >
+    <th className={thCls} onClick={() => onClick(col)}>
       {label}
-      <span style={{ marginLeft: 4, opacity: isActive ? 1 : 0.3, fontSize: 10 }}>
+      <span className={`ml-1 text-[10px] ${isActive ? 'opacity-100' : 'opacity-30'}`}>
         {isActive ? (dir === 'asc' ? '▲' : '▼') : '▲'}
       </span>
     </th>
@@ -131,37 +137,42 @@ function useSort<T>(rows: T[], defaultCol: keyof T) {
   return { sorted, col: col as string, dir, toggle };
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+   ORGANIZATIONS TABLE
+   ════════════════════════════════════════════════════════════════════════ */
 export function OrgsTable({ orgs }: { orgs: OrgRow[] }) {
   const { sorted, col, dir, toggle } = useSort(orgs, 'name');
 
   return (
-    <div className={styles.tableWrap}>
-      <table className={styles.table}>
+    <div className={tableWrap}>
+      <table className={tableCls}>
         <thead>
-          <tr>
+          <tr className="border-b border-border bg-background">
             <SortHeader label="Name" col="name" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Slug" col="slug" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Venues" col="venue_count" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Members" col="member_count" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Created" col="created_at" active={col} dir={dir} onClick={toggle} />
-            <th></th>
+            <th className={thCls}></th>
           </tr>
         </thead>
         <tbody>
           {sorted.map((o) => (
-            <tr key={o.id}>
-              <td className={styles.bold}>{o.name}</td>
-              <td className={styles.mono}>{o.slug}</td>
-              <td>{o.venue_count}</td>
-              <td>{o.member_count}</td>
-              <td className={styles.muted}>{relativeTime(o.created_at)}</td>
-              <td>
-                <Link href={`/orgs/${o.id}?from=admin`} className={styles.tableLink}>Manage →</Link>
+            <tr key={o.id} className="border-b border-border last:border-b-0 hover:bg-background/50 transition-colors">
+              <td className={`${tdCls} font-semibold text-foreground`}>{o.name}</td>
+              <td className={`${tdCls} font-mono text-caption text-muted`}>{o.slug}</td>
+              <td className={`${tdCls} tabular-nums`}>{o.venue_count}</td>
+              <td className={`${tdCls} tabular-nums`}>{o.member_count}</td>
+              <td className={`${tdCls} text-muted`}>{relativeTime(o.created_at)}</td>
+              <td className={tdCls}>
+                <Link href={`/orgs/${o.id}?from=admin`} className={linkCls}>Manage &rarr;</Link>
               </td>
             </tr>
           ))}
           {sorted.length === 0 && (
-            <tr><td colSpan={6} className={styles.empty}>No organizations yet</td></tr>
+            <tr>
+              <td colSpan={6} className={`${tdCls} text-muted text-center py-8`}>No organizations yet</td>
+            </tr>
           )}
         </tbody>
       </table>
@@ -169,6 +180,9 @@ export function OrgsTable({ orgs }: { orgs: OrgRow[] }) {
   );
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+   VENUES TABLE
+   ════════════════════════════════════════════════════════════════════════ */
 export function VenuesTable({ venues }: { venues: VenueRow[] }) {
   const { sorted, col, dir, toggle } = useSort(venues, 'org_name');
   const [pending, startTransition] = useTransition();
@@ -183,17 +197,17 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
   }
 
   return (
-    <div className={styles.tableWrap}>
-      <table className={styles.table}>
+    <div className={tableWrap}>
+      <table className={tableCls}>
         <thead>
-          <tr>
+          <tr className="border-b border-border bg-background">
             <SortHeader label="Venue" col="org_name" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Location" col="city" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Status" col="status" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Media" col="media_count" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="HH Windows" col="hh_count" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Created" col="created_at" active={col} dir={dir} onClick={toggle} />
-            <th></th>
+            <th className={thCls}></th>
           </tr>
         </thead>
         <tbody>
@@ -202,34 +216,40 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
             const locationLabel = v.org_name && v.org_name !== v.name ? v.name : null;
             const isToggling = togglingId === v.id;
             return (
-              <tr key={v.id}>
-                <td>
-                  <span className={styles.bold}>{displayName}</span>
+              <tr key={v.id} className="border-b border-border last:border-b-0 hover:bg-background/50 transition-colors">
+                <td className={tdCls}>
+                  <span className="font-semibold text-foreground">{displayName}</span>
                   {locationLabel ? (
-                    <div className={styles.muted} style={{ fontSize: 11, marginTop: 1 }}>{locationLabel}</div>
+                    <div className="text-caption text-muted mt-0.5">{locationLabel}</div>
                   ) : null}
                 </td>
-                <td className={styles.muted}>{[v.city, v.state].filter(Boolean).join(', ') || '—'}</td>
-                <td>
+                <td className={`${tdCls} text-muted`}>{[v.city, v.state].filter(Boolean).join(', ') || '—'}</td>
+                <td className={tdCls}>
                   <button
                     onClick={() => handleStatusToggle(v)}
                     disabled={isToggling || pending}
-                    style={{ padding: '2px 8px', fontSize: 11, fontWeight: 700, border: 'none', borderRadius: 999, cursor: 'pointer', background: v.status === 'published' ? '#d1fae5' : '#f3f4f6', color: v.status === 'published' ? '#065f46' : '#6b7280' }}
+                    className={`${v.status === 'published' ? badgeGreen : badgeGray} cursor-pointer border-none transition-opacity ${isToggling ? 'opacity-50' : ''}`}
                   >
-                    {isToggling ? '…' : v.status ?? 'draft'}
+                    {isToggling ? '...' : v.status ?? 'draft'}
                   </button>
                 </td>
-                <td>{v.media_count > 0 ? <span className={styles.badgeGreen}>{v.media_count}</span> : <span className={styles.muted}>0</span>}</td>
-                <td>{v.hh_count > 0 ? <span className={styles.badgeGreen}>{v.hh_count}</span> : <span className={styles.muted}>0</span>}</td>
-                <td className={styles.muted}>{relativeTime(v.created_at)}</td>
-                <td>
-                  <Link href={`/orgs/${v.org_id}?from=admin`} className={styles.tableLink}>Edit →</Link>
+                <td className={tdCls}>
+                  {v.media_count > 0 ? <span className={badgeGreen}>{v.media_count}</span> : <span className="text-muted">0</span>}
+                </td>
+                <td className={tdCls}>
+                  {v.hh_count > 0 ? <span className={badgeGreen}>{v.hh_count}</span> : <span className="text-muted">0</span>}
+                </td>
+                <td className={`${tdCls} text-muted`}>{relativeTime(v.created_at)}</td>
+                <td className={tdCls}>
+                  <Link href={`/orgs/${v.org_id}?from=admin`} className={linkCls}>Edit &rarr;</Link>
                 </td>
               </tr>
             );
           })}
           {sorted.length === 0 && (
-            <tr><td colSpan={7} className={styles.empty}>No venues yet</td></tr>
+            <tr>
+              <td colSpan={7} className={`${tdCls} text-muted text-center py-8`}>No venues yet</td>
+            </tr>
           )}
         </tbody>
       </table>
@@ -237,6 +257,9 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
   );
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+   HAPPY HOUR WINDOWS TABLE
+   ════════════════════════════════════════════════════════════════════════ */
 export function WindowsTable({ windows, venues }: { windows: WindowRow[]; venues: VenueRow[] }) {
   const { sorted, col, dir, toggle } = useSort(windows, 'venue_name');
   const venueOrgMap = Object.fromEntries(venues.map((v) => [v.id, v.org_id]));
@@ -252,16 +275,16 @@ export function WindowsTable({ windows, venues }: { windows: WindowRow[]; venues
   }
 
   return (
-    <div className={styles.tableWrap}>
-      <table className={styles.table}>
+    <div className={tableWrap}>
+      <table className={tableCls}>
         <thead>
-          <tr>
+          <tr className="border-b border-border bg-background">
             <SortHeader label="Venue" col="venue_name" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Schedule" col="start_time" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Days" col="dow" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Status" col="status" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Created" col="created_at" active={col} dir={dir} onClick={toggle} />
-            <th></th>
+            <th className={thCls}></th>
           </tr>
         </thead>
         <tbody>
@@ -269,33 +292,37 @@ export function WindowsTable({ windows, venues }: { windows: WindowRow[]; venues
             const orgId = w.org_id || venueOrgMap[w.venue_id] || '';
             const isToggling = togglingId === w.id;
             return (
-              <tr key={w.id}>
-                <td>
-                  <span className={styles.bold}>{w.venue_name}</span>
+              <tr key={w.id} className="border-b border-border last:border-b-0 hover:bg-background/50 transition-colors">
+                <td className={tdCls}>
+                  <span className="font-semibold text-foreground">{w.venue_name}</span>
                   {w.location_name && w.location_name !== w.venue_name ? (
-                    <div className={styles.muted} style={{ fontSize: 11, marginTop: 1 }}>{w.location_name}</div>
+                    <div className="text-caption text-muted mt-0.5">{w.location_name}</div>
                   ) : null}
                 </td>
-                <td className={styles.mono}>{formatTime(w.start_time)} – {formatTime(w.end_time)}</td>
-                <td className={styles.mono}>{formatDow(w.dow)}</td>
-                <td>
+                <td className={`${tdCls} font-mono text-caption tabular-nums`}>
+                  {formatTime(w.start_time)} – {formatTime(w.end_time)}
+                </td>
+                <td className={`${tdCls} font-mono text-caption tabular-nums`}>{formatDow(w.dow)}</td>
+                <td className={tdCls}>
                   <button
                     onClick={() => handleToggle(w)}
                     disabled={isToggling || pending}
-                    style={{ padding: '2px 8px', fontSize: 11, fontWeight: 700, border: 'none', borderRadius: 999, cursor: 'pointer', background: w.status === 'published' ? '#d1fae5' : '#f3f4f6', color: w.status === 'published' ? '#065f46' : '#6b7280' }}
+                    className={`${w.status === 'published' ? badgeGreen : badgeGray} cursor-pointer border-none transition-opacity ${isToggling ? 'opacity-50' : ''}`}
                   >
-                    {isToggling ? '…' : w.status === 'published' ? 'published' : 'draft'}
+                    {isToggling ? '...' : w.status === 'published' ? 'published' : 'draft'}
                   </button>
                 </td>
-                <td className={styles.muted}>{relativeTime(w.created_at)}</td>
-                <td>
-                  <Link href={`/orgs/${orgId}/venues/${w.venue_id}?from=admin`} className={styles.tableLink}>Edit →</Link>
+                <td className={`${tdCls} text-muted`}>{relativeTime(w.created_at)}</td>
+                <td className={tdCls}>
+                  <Link href={`/orgs/${orgId}/venues/${w.venue_id}?from=admin`} className={linkCls}>Edit &rarr;</Link>
                 </td>
               </tr>
             );
           })}
           {sorted.length === 0 && (
-            <tr><td colSpan={6} className={styles.empty}>No windows yet</td></tr>
+            <tr>
+              <td colSpan={6} className={`${tdCls} text-muted text-center py-8`}>No windows yet</td>
+            </tr>
           )}
         </tbody>
       </table>
@@ -303,14 +330,17 @@ export function WindowsTable({ windows, venues }: { windows: WindowRow[]; venues
   );
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+   USERS TABLE
+   ════════════════════════════════════════════════════════════════════════ */
 export function UsersTable({ users }: { users: UserRow[] }) {
   const { sorted, col, dir, toggle } = useSort(users, 'created_at');
 
   return (
-    <div className={styles.tableWrap}>
-      <table className={styles.table}>
+    <div className={tableWrap}>
+      <table className={tableCls}>
         <thead>
-          <tr>
+          <tr className="border-b border-border bg-background">
             <SortHeader label="Email" col="email" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Joined" col="created_at" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Last Sign In" col="last_sign_in_at" active={col} dir={dir} onClick={toggle} />
@@ -318,12 +348,17 @@ export function UsersTable({ users }: { users: UserRow[] }) {
         </thead>
         <tbody>
           {sorted.map((u) => (
-            <tr key={u.id}>
-              <td className={styles.mono}>{u.email ?? '—'}</td>
-              <td className={styles.muted}>{relativeTime(u.created_at)}</td>
-              <td className={styles.muted}>{relativeTime(u.last_sign_in_at)}</td>
+            <tr key={u.id} className="border-b border-border last:border-b-0 hover:bg-background/50 transition-colors">
+              <td className={`${tdCls} font-mono text-caption text-foreground`}>{u.email ?? '—'}</td>
+              <td className={`${tdCls} text-muted`}>{relativeTime(u.created_at)}</td>
+              <td className={`${tdCls} text-muted`}>{relativeTime(u.last_sign_in_at)}</td>
             </tr>
           ))}
+          {sorted.length === 0 && (
+            <tr>
+              <td colSpan={3} className={`${tdCls} text-muted text-center py-8`}>No users yet</td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

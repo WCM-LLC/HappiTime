@@ -688,9 +688,12 @@ export type Database = {
           home_lng: number | null
           home_state: string | null
           max_distance_miles: number | null
+          notifications_friend_activity: boolean
+          notifications_happy_hours: boolean
           notifications_marketing: boolean
           notifications_product: boolean
           notifications_push: boolean
+          notifications_venue_updates: boolean
           price_tier_max: number | null
           price_tier_min: number | null
           updated_at: string
@@ -704,9 +707,12 @@ export type Database = {
           home_lng?: number | null
           home_state?: string | null
           max_distance_miles?: number | null
+          notifications_friend_activity?: boolean
+          notifications_happy_hours?: boolean
           notifications_marketing?: boolean
           notifications_product?: boolean
           notifications_push?: boolean
+          notifications_venue_updates?: boolean
           price_tier_max?: number | null
           price_tier_min?: number | null
           updated_at?: string
@@ -720,9 +726,12 @@ export type Database = {
           home_lng?: number | null
           home_state?: string | null
           max_distance_miles?: number | null
+          notifications_friend_activity?: boolean
+          notifications_happy_hours?: boolean
           notifications_marketing?: boolean
           notifications_product?: boolean
           notifications_push?: boolean
+          notifications_venue_updates?: boolean
           price_tier_max?: number | null
           price_tier_min?: number | null
           updated_at?: string

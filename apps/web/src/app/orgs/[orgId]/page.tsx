@@ -40,14 +40,13 @@ export default async function OrgPage({
 
   if (!user) {
     return (
-      <main className="container">
-        <p>Not authenticated.</p>
-      </main>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <p className="text-muted">Not authenticated.</p>
+      </div>
     );
   }
 
   const userIsAdmin = isAdminEmail(user.email);
-  // Use service role when admin is browsing so RLS doesn't block data
   const supabase = (fromAdmin && userIsAdmin) ? createServiceClient() : await createClient();
 
   const { data: membership } = await (await createClient())
@@ -73,118 +72,234 @@ export default async function OrgPage({
     .order('created_at', { ascending: false });
 
   return (
-    <main className="container">
-      <div className="col" style={{ gap: 16 }}>
-        <UserBar />
+    <div className="min-h-screen bg-background">
+      <UserBar />
 
-        <div className="row" style={{ justifyContent: 'space-between' }}>
-          <div className="col" style={{ gap: 4 }}>
-            <h2 style={{ marginBottom: 0 }}>
+      <main className="max-w-[var(--width-content)] mx-auto px-6 py-8">
+        {/* Page Header */}
+        <div className="flex items-start justify-between mb-8">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Link href={fromAdmin ? '/admin' : '/dashboard'} className="text-body-sm text-muted hover:text-foreground transition-colors">
+                {fromAdmin ? 'Admin' : 'Dashboard'}
+              </Link>
+              <span className="text-muted-light">/</span>
+            </div>
+            <h1 className="text-display-md font-bold text-foreground tracking-tight">
               {orgErr ? 'Organization' : org?.name}
-            </h2>
-            <div className="muted">Manage locations (venues) and staff access.</div>
+            </h1>
+            <p className="text-body-sm text-muted mt-1">Manage venues, locations, and staff access.</p>
           </div>
-          <div className="row" style={{ gap: 8 }}>
+          <div className="flex items-center gap-2">
             {isOwner && !fromAdmin ? (
               <Link href={`/orgs/${orgId}/access`}>
-                <button className="secondary">Manage access</button>
+                <span className="inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer">
+                  Manage access
+                </span>
               </Link>
             ) : null}
-            {fromAdmin ? (
-              <Link href="/admin">
-                <button className="secondary">Return to console</button>
-              </Link>
-            ) : (
-              <Link href="/dashboard">
-                <button className="secondary">Back</button>
-              </Link>
-            )}
+            <Link href={fromAdmin ? '/admin' : '/dashboard'}>
+              <span className="inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-muted hover:text-foreground hover:bg-background transition-colors cursor-pointer">
+                &larr; Back
+              </span>
+            </Link>
           </div>
         </div>
 
+        {/* Error Banner */}
         {pageError ? (
-          <div className="card error">
-            <strong>Error</strong>
-            <div className="muted">{pageError}</div>
+          <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-6">
+            <p className="text-body-sm font-medium text-error">Error</p>
+            <p className="text-body-sm text-error/80 mt-0.5">{pageError}</p>
           </div>
         ) : null}
 
+        {/* Add Venue Form */}
         {isOwner && !fromAdmin ? (
-          <div className="card">
-            <h3 style={{ marginTop: 0 }}>Add a venue/location</h3>
-            <form className="col" style={{ gap: 10 }}>
-              <label>
-                Venue name
-                <input name="name" placeholder="e.g., Smith's Taproom" required />
-              </label>
-              <div className="row">
-                <input name="address" placeholder="Street address (required)" required />
-                <input name="city" placeholder="City (required)" required />
+          <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+            <div className="mb-4">
+              <h2 className="text-heading-sm font-semibold text-foreground">Add a venue</h2>
+              <p className="text-body-sm text-muted mt-0.5">
+                Add a new location to this organization.
+              </p>
+            </div>
+            <form className="flex flex-col gap-4">
+              <div>
+                <label htmlFor="venue-name" className="text-body-sm font-medium text-foreground block mb-1.5">
+                  Venue name
+                </label>
+                <input
+                  id="venue-name"
+                  name="name"
+                  placeholder="e.g., Smith's Taproom"
+                  required
+                  className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+                />
               </div>
-              <div className="row">
-                <input name="state" placeholder="State (required)" required />
-                <input name="zip" placeholder="ZIP (required)" required />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="address" className="text-body-sm font-medium text-foreground block mb-1.5">
+                    Street address
+                  </label>
+                  <input
+                    id="address"
+                    name="address"
+                    placeholder="123 Main St"
+                    required
+                    className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="city" className="text-body-sm font-medium text-foreground block mb-1.5">
+                    City
+                  </label>
+                  <input
+                    id="city"
+                    name="city"
+                    placeholder="Austin"
+                    required
+                    className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+                  />
+                </div>
               </div>
-              <label>
-                Timezone
-                <input name="timezone" defaultValue="America/Chicago" />
-              </label>
-              <button formAction={createVenue.bind(null, orgId)}>Create venue</button>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label htmlFor="state" className="text-body-sm font-medium text-foreground block mb-1.5">
+                    State
+                  </label>
+                  <input
+                    id="state"
+                    name="state"
+                    placeholder="TX"
+                    required
+                    className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="zip" className="text-body-sm font-medium text-foreground block mb-1.5">
+                    ZIP code
+                  </label>
+                  <input
+                    id="zip"
+                    name="zip"
+                    placeholder="78701"
+                    required
+                    className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="timezone" className="text-body-sm font-medium text-foreground block mb-1.5">
+                    Timezone
+                  </label>
+                  <input
+                    id="timezone"
+                    name="timezone"
+                    defaultValue="America/Chicago"
+                    className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+                  />
+                </div>
+              </div>
+              <div>
+                <button
+                  formAction={createVenue.bind(null, orgId)}
+                  className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer"
+                >
+                  Create venue
+                </button>
+              </div>
             </form>
           </div>
         ) : null}
 
-        <div className="col" style={{ gap: 12 }}>
-          <h3 style={{ marginBottom: 0 }}>Venues</h3>
+        {/* Venues List */}
+        <div>
+          <h2 className="text-heading-sm font-semibold text-foreground mb-4">Venues</h2>
+
           {venuesErr ? (
-            <div className="card error">
-              <strong>DB error</strong>
-              <div className="muted">{venuesErr.message}</div>
+            <div className="rounded-md border border-error bg-error-light px-4 py-3">
+              <p className="text-body-sm font-medium text-error">Database error</p>
+              <p className="text-body-sm text-error/80 mt-0.5">{venuesErr.message}</p>
             </div>
           ) : null}
 
           {(venues as VenueRow[] | null)?.length ? (
-            (venues as VenueRow[]).map((v) => {
-              const displayName = v.org_name?.trim() || v.name;
-              const locationLabel = v.org_name?.trim() && v.org_name !== v.name ? v.name : null;
-              const venueHref = fromAdmin
-                ? `/orgs/${orgId}/venues/${v.id}?from=admin`
-                : `/orgs/${orgId}/venues/${v.id}`;
-              return (
-                <div key={v.id} className="card">
-                  <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-                    <div className="col" style={{ gap: 4 }}>
-                      <strong>{displayName}</strong>
-                      {locationLabel ? (
-                        <span className="muted" style={{ fontSize: 12 }}>{locationLabel}</span>
-                      ) : null}
-                      <span className="muted">
-                        {(v.city || v.state) ? `${v.city ?? ''}${v.city && v.state ? ', ' : ''}${v.state ?? ''}` : '—'}
-                        {v.status ? ` · ${v.status}` : ''}
-                      </span>
-                    </div>
-                    <div className="row" style={{ gap: 8 }}>
-                      <Link href={venueHref}>
-                        <button className="secondary">Manage</button>
-                      </Link>
-                      {isOwner && !fromAdmin ? (
-                        <form>
-                          <input type="hidden" name="venue_id" value={v.id} />
-                          <button className="secondary" formAction={deleteVenue.bind(null, orgId)}>
-                            Delete
-                          </button>
-                        </form>
-                      ) : null}
+            <div className="flex flex-col gap-3">
+              {(venues as VenueRow[]).map((v) => {
+                const displayName = v.org_name?.trim() || v.name;
+                const locationLabel = v.org_name?.trim() && v.org_name !== v.name ? v.name : null;
+                const venueHref = fromAdmin
+                  ? `/orgs/${orgId}/venues/${v.id}?from=admin`
+                  : `/orgs/${orgId}/venues/${v.id}`;
+                const statusColor = v.status === 'published'
+                  ? 'bg-success-light text-success'
+                  : v.status === 'draft'
+                    ? 'bg-warning-light text-warning'
+                    : 'bg-background text-muted';
+
+                return (
+                  <div
+                    key={v.id}
+                    className="rounded-lg border border-border bg-surface shadow-sm hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center justify-between p-5">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-md bg-brand-subtle flex items-center justify-center shrink-0">
+                          <span className="text-heading-sm font-bold text-brand-dark">
+                            {displayName.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <h3 className="text-body-md font-semibold text-foreground">{displayName}</h3>
+                          {locationLabel ? (
+                            <p className="text-caption text-muted">{locationLabel}</p>
+                          ) : null}
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-body-sm text-muted">
+                              {(v.city || v.state) ? `${v.city ?? ''}${v.city && v.state ? ', ' : ''}${v.state ?? ''}` : '—'}
+                            </span>
+                            {v.status ? (
+                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${statusColor}`}>
+                                {v.status}
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Link href={venueHref}>
+                          <span className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-dark text-dark-foreground text-body-sm font-medium hover:bg-dark/90 transition-colors cursor-pointer">
+                            Manage
+                          </span>
+                        </Link>
+                        {isOwner && !fromAdmin ? (
+                          <form>
+                            <input type="hidden" name="venue_id" value={v.id} />
+                            <button
+                              formAction={deleteVenue.bind(null, orgId)}
+                              className="inline-flex items-center justify-center h-9 px-3 rounded-md text-body-sm font-medium text-error hover:bg-error-light border border-border transition-colors cursor-pointer"
+                            >
+                              Delete
+                            </button>
+                          </form>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           ) : (
-            <p className="muted">No venues yet.</p>
+            <div className="rounded-lg border border-dashed border-border-strong bg-surface/50 p-12 text-center">
+              <div className="text-muted-light text-display-md mb-3">&#127866;</div>
+              <p className="text-body-sm font-medium text-foreground">No venues yet</p>
+              <p className="text-body-sm text-muted mt-1">
+                Add your first venue above to start managing Happy Hours.
+              </p>
+            </div>
           )}
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }

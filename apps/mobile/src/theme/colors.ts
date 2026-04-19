@@ -1,39 +1,66 @@
+/**
+ * HappiTime — Premium & Sophisticated palette
+ * Matches the web design system (globals.css @theme tokens).
+ *
+ * Primary: Copper / Amber (#C8965A)
+ * Background: Warm white (#FAFAF8)
+ * Foreground: Rich dark (#1A1A1A)
+ */
+
 export const colors = {
-  
-  background: "#FFFFFF",
+  /* ── Backgrounds ── */
+  background: "#FAFAF8",
   surface: "#FFFFFF",
   card: "#FFFFFF",
 
-  
-  text: "#111111",
-  textMuted: "#777777",
+  /* ── Text ── */
+  text: "#1A1A1A",
+  textMuted: "#6B6B6B",
+  textMutedLight: "#9B9B9B",
 
-  
-  primary: "#E05228",
-  accent: "#E05228",
+  /* ── Brand / Primary ── */
+  primary: "#C8965A",
+  primaryDark: "#B07D42",
+  accent: "#C8965A",
 
-  
-  border: "#E5E5E5",
+  /* ── Brand subtle (for avatars, tinted backgrounds) ── */
+  brandSubtle: "#F5EDE3",
+  brandDark: "#8B6535",
 
-  
-  success: "#059669",
-  error: "#DC2626",
+  /* ── Borders ── */
+  border: "#E8E5E0",
+  borderStrong: "#D4D0CA",
 
-  
-  pillActiveBg: "#000000",
+  /* ── Semantic ── */
+  success: "#2D7A4F",
+  successLight: "#E8F5EE",
+  error: "#C53030",
+  errorLight: "#FEF2F2",
+  warning: "#B8860B",
+  warningLight: "#FFFBEB",
+
+  /* ── Pills / Chips ── */
+  pillActiveBg: "#1A1A1A",
   pillActiveText: "#FFFFFF",
   pillInactiveBg: "#FFFFFF",
-  pillInactiveText: "#111111",
+  pillInactiveText: "#1A1A1A",
 
-  
-  inputBackground: "#FAFAFA",
-  inputBorder: "#E5E5E5",
+  /* ── Inputs ── */
+  inputBackground: "#F5F3F0",
+  inputBorder: "#E8E5E0",
   inputPlaceholder: "#9B9B9B",
 
+  /* ── Tab Bar ── */
   tabBarBackground: "#FFFFFF",
-  tabBarBorder: "#111111",
-  tabBarInactiveTint: "#B5B5B5",
+  tabBarBorder: "#E8E5E0",
+  tabBarActiveTint: "#C8965A",
+  tabBarInactiveTint: "#B5B0A8",
 
- 
-  shadowSoft: "rgba(17, 17, 17, 0.08)"
+  /* ── Dark surface (for dark buttons, dark cards) ── */
+  dark: "#1A1A1A",
+  darkForeground: "#FAFAF8",
+
+  /* ── Shadows ── */
+  shadowSoft: "rgba(26, 26, 26, 0.06)",
+  shadowMedium: "rgba(26, 26, 26, 0.12)",
 };

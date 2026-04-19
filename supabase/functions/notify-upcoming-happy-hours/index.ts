@@ -65,13 +65,14 @@ Deno.serve(async (req) => {
 
   const venueIds = [...new Set(windows.map((w: any) => w.venue_id).filter(Boolean))];
 
-  // Find users who follow these venues and have push tokens
+  // Find users who follow these venues and have push tokens + HH notifications enabled
   const { data: tokenRows, error: tokenErr } = await supabase
     .from("user_followed_venues")
     .select(`
       user_id,
       venue_id,
-      token:user_push_tokens!inner(expo_push_token)
+      token:user_push_tokens!inner(expo_push_token),
+      prefs:user_preferences!inner(notifications_push, notifications_happy_hours)
     `)
     .in("venue_id", venueIds);
 
@@ -94,6 +95,10 @@ Deno.serve(async (req) => {
   for (const row of tokenRows as any[]) {
     const token = row.token?.expo_push_token;
     if (!token || !token.startsWith("ExponentPushToken")) continue;
+    // Skip if user disabled push or happy hour notifications
+    const pushEnabled = row.prefs?.notifications_push !== false;
+    const hhEnabled = row.prefs?.notifications_happy_hours !== false;
+    if (!pushEnabled || !hhEnabled) continue;
 
     const window = venueWindowMap.get(row.venue_id);
     if (!window) continue;
@@ -107,7 +112,7 @@ Deno.serve(async (req) => {
       title: `🍹 Happy hour starting at ${startTime}`,
       body: `${venueName}${label} starts soon`,
       sound: "default",
-      data: { venueId: row.venue_id, windowId: window.id }
+      data: { type: "happy_hour", venueId: row.venue_id, windowId: window.id }
     });
   }
 

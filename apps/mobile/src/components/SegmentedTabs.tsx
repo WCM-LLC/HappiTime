@@ -1,6 +1,6 @@
 // src/components/SegmentedTabs.tsx
 import React from "react";
-import { ScrollView, Text, Pressable, StyleSheet } from "react-native";
+import { View, ScrollView, Text, Pressable, StyleSheet } from "react-native";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -21,37 +21,44 @@ export const SegmentedTabs: React.FC<Props> = ({
   onChange
 }) => {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.container}
-      style={styles.scroll}
-    >
-      {tabs.map((tab) => {
-        const selected = tab.key === activeKey;
-        return (
-          <Pressable
-            key={tab.key}
-            onPress={() => onChange(tab.key)}
-            style={({ pressed }) => [
-              styles.tab,
-              selected && styles.tabSelected,
-              pressed && styles.tabPressed
-            ]}
-          >
-            <Text style={selected ? styles.tabTextSelected : styles.tabText}>   
-              {tab.label}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
+    <View style={styles.wrapper}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.container}
+        style={styles.scroll}
+      >
+        {tabs.map((tab) => {
+          const selected = tab.key === activeKey;
+          return (
+            <Pressable
+              key={tab.key}
+              onPress={() => onChange(tab.key)}
+              style={({ pressed }) => [
+                styles.tab,
+                selected && styles.tabSelected,
+                pressed && styles.tabPressed
+              ]}
+            >
+              <Text style={selected ? styles.tabTextSelected : styles.tabText}>
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
+  wrapper: {
+    flexShrink: 0,
+    marginBottom: spacing.md,
+  },
   scroll: {
-    flexGrow: 0
+    flexGrow: 0,
+    overflow: "visible",
   },
   container: {
     flexDirection: "row",
@@ -59,20 +66,22 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingVertical: spacing.xs,
     paddingRight: spacing.lg,
-    marginBottom: spacing.md
   },
   tab: {
     flexGrow: 0,
+    flexShrink: 0,
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.sm + 2,
     borderRadius: 999,
     backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    minHeight: 40,
+    justifyContent: "center",
   },
   tabSelected: {
-    backgroundColor: colors.pillActiveBg,
-    borderColor: colors.pillActiveBg
+    backgroundColor: colors.primary,
+    borderColor: colors.primary
   },
   tabPressed: {
     opacity: 0.85
@@ -80,11 +89,14 @@ const styles = StyleSheet.create({
   tabText: {
     color: colors.text,
     fontSize: 14,
-    fontWeight: "500"
+    fontWeight: "500",
+    lineHeight: 18,
   },
   tabTextSelected: {
-    color: colors.pillActiveText,
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "600"
+    fontWeight: "700",
+    lineHeight: 18,
+    letterSpacing: 0.2,
   }
 });
