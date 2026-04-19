@@ -5,11 +5,11 @@ import { createClient } from '@/utils/supabase/client';
 
 type Provider = 'google' | 'apple' | 'facebook' | 'twitter';
 
-const PROVIDERS: { id: Provider; label: string }[] = [
-  { id: 'google', label: 'Continue with Google' },
-  { id: 'apple', label: 'Continue with Apple' },
-  { id: 'facebook', label: 'Continue with Facebook' },
-  { id: 'twitter', label: 'Continue with X (Twitter)' },
+const PROVIDERS: { id: Provider; label: string; icon: string }[] = [
+  { id: 'google', label: 'Continue with Google', icon: 'G' },
+  { id: 'apple', label: 'Continue with Apple', icon: '' },
+  { id: 'facebook', label: 'Continue with Facebook', icon: 'f' },
+  { id: 'twitter', label: 'Continue with X', icon: '𝕏' },
 ];
 
 export default function OAuthButtons() {
@@ -37,22 +37,18 @@ export default function OAuthButtons() {
   }
 
   return (
-    <div className="col">
+    <div className="flex flex-col gap-2.5">
       {PROVIDERS.map((p) => (
         <button
           key={p.id}
-          className="secondary"
           onClick={() => signIn(p.id)}
           disabled={busy !== null}
+          className="inline-flex items-center justify-center gap-3 h-10 w-full px-4 rounded-md border border-border bg-surface text-foreground text-body-sm font-medium hover:bg-background disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
         >
+          <span className="w-5 text-center text-body-sm font-semibold opacity-60">{p.icon}</span>
           {busy === p.id ? 'Redirecting…' : p.label}
         </button>
       ))}
-      <p className="muted" style={{ marginTop: 0 }}>
-        Note: Supabase supports many OAuth providers, but Instagram isn&apos;t a built-in auth provider.
-        If you truly need “Login with Instagram”, use a third-party auth provider (Auth0/Clerk/etc.) and
-        connect it via “Third-party auth”, or treat Instagram as a data integration instead.
-      </p>
     </div>
   );
 }
