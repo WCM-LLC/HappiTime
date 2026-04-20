@@ -8,8 +8,27 @@ export const metadata: Metadata = {
     template: "%s | HappiTime",
   },
   description:
-    "Find the best happy hours in Kansas City. Browse deals by neighborhood — Westport, Power & Light, Crossroads, Plaza, and more.",
-  metadataBase: new URL("https://happitime.com"),
+    "Find the best happy hours in Kansas City. Browse deals by neighborhood — Westport, Power & Light, Crossroads, Plaza, and more. Updated daily.",
+  keywords: [
+    "happy hour",
+    "Kansas City happy hour",
+    "KC happy hour",
+    "happy hour deals",
+    "happy hour specials",
+    "Kansas City bars",
+    "Kansas City restaurants",
+    "Westport happy hour",
+    "Power and Light happy hour",
+    "Crossroads happy hour",
+    "Plaza happy hour",
+    "drink specials",
+    "food specials",
+    "happy hour near me",
+  ],
+  metadataBase: new URL("https://happitime.biz"),
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -17,6 +36,7 @@ export const metadata: Metadata = {
     title: "HappiTime — Kansas City Happy Hour Guide",
     description:
       "Find the best happy hours in Kansas City. Browse deals by neighborhood.",
+    url: "https://happitime.biz",
   },
   twitter: {
     card: "summary_large_image",
@@ -27,7 +47,15 @@ export const metadata: Metadata = {
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
+  category: "food & drink",
 };
 
 export default function RootLayout({
@@ -48,8 +76,31 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@800&display=swap"
           rel="stylesheet"
         />
+        {/* Google Tag Manager — replace GTM-XXXXXXX with your container ID */}
+        {process.env.NEXT_PUBLIC_GTM_ID && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','${process.env.NEXT_PUBLIC_GTM_ID}');`,
+            }}
+          />
+        )}
       </head>
       <body className="min-h-screen">
+        {/* GTM noscript fallback */}
+        {process.env.NEXT_PUBLIC_GTM_ID && (
+          <noscript>
+            <iframe
+              src={`https://www.googletagmanager.com/ns.html?id=${process.env.NEXT_PUBLIC_GTM_ID}`}
+              height="0"
+              width="0"
+              style={{ display: "none", visibility: "hidden" }}
+            />
+          </noscript>
+        )}
         <SiteHeader />
         <main>{children}</main>
         <SiteFooter />

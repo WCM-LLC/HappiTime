@@ -1,8 +1,49 @@
 import { KC_NEIGHBORHOODS } from "@/lib/neighborhoods";
 
+const ORGANIZATION_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "HappiTime",
+  legalName: "Williams Consulting & Management LLC",
+  url: "https://happitime.biz",
+  logo: "https://happitime.biz/icon.png",
+  description:
+    "Happy hour discovery and venue marketing platform connecting consumers with local bars and restaurants.",
+  areaServed: {
+    "@type": "City",
+    name: "Kansas City",
+    "@id": "https://www.wikidata.org/wiki/Q41819",
+  },
+  contactPoint: {
+    "@type": "ContactPoint",
+    email: "admin@happitime.biz",
+    contactType: "customer support",
+  },
+  sameAs: [],
+};
+
+const WEBSITE_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "HappiTime",
+  url: "https://happitime.biz",
+  description:
+    "Find the best happy hours in Kansas City. Browse deals by neighborhood — Westport, Power & Light, Crossroads, Plaza, and more.",
+  publisher: { "@type": "Organization", name: "HappiTime" },
+};
+
 export default function HomePage() {
   return (
     <div className="mx-auto max-w-5xl px-6 py-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(ORGANIZATION_JSONLD) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE_JSONLD) }}
+      />
+
       {/* Hero */}
       <section className="text-center mb-16">
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-foreground leading-tight mb-4">

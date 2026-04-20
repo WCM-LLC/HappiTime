@@ -41,11 +41,11 @@ export default async function NeighborhoodPage({ params }: Props) {
   const todayIndex = new Date().getDay();
 
   const breadcrumbs = breadcrumbJsonLd([
-    { name: "HappiTime", url: "https://happitime.com/" },
-    { name: "Kansas City", url: "https://happitime.com/kc/" },
+    { name: "HappiTime", url: "https://happitime.biz/" },
+    { name: "Kansas City", url: "https://happitime.biz/kc/" },
     {
       name: neighborhood.name,
-      url: `https://happitime.com/kc/${neighborhood.slug}/`,
+      url: `https://happitime.biz/kc/${neighborhood.slug}/`,
     },
   ]);
 

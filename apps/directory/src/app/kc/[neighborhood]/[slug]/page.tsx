@@ -53,19 +53,19 @@ export default async function VenueDetailPage({ params }: Props) {
 
   const jsonLd = venueJsonLd(venue);
   const breadcrumbs = breadcrumbJsonLd([
-    { name: "HappiTime", url: "https://happitime.com/" },
-    { name: "Kansas City", url: "https://happitime.com/kc/" },
+    { name: "HappiTime", url: "https://happitime.biz/" },
+    { name: "Kansas City", url: "https://happitime.biz/kc/" },
     ...(neighborhood
       ? [
           {
             name: neighborhood.name,
-            url: `https://happitime.com/kc/${neighborhood.slug}/`,
+            url: `https://happitime.biz/kc/${neighborhood.slug}/`,
           },
         ]
       : []),
     {
       name: venue.name,
-      url: `https://happitime.com/kc/${neighborhoodSlug}/${slug}/`,
+      url: `https://happitime.biz/kc/${neighborhoodSlug}/${slug}/`,
     },
   ]);
 
