@@ -12,7 +12,9 @@
     "purge:auth-users": "node scripts/purge-auth-users.mjs"
   },
   "dependencies": {
+    "@happitime/shared-api": "0.0.1",
     "@happitime/shared-env": "0.0.1",
+    "@happitime/shared-types": "0.0.1",
     "@supabase/ssr": "^0.5.0",
     "@supabase/supabase-js": "^2.49.0",
     "class-variance-authority": "^0.7.1",
