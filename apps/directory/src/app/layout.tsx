@@ -45,7 +45,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@800&display=swap"
           rel="stylesheet"
         />
       </head>
@@ -63,13 +63,8 @@ function SiteHeader() {
   return (
     <header className="border-b border-border bg-surface sticky top-0 z-50">
       <div className="mx-auto max-w-5xl flex items-center justify-between px-6 py-4">
-        <a href="/" className="flex items-center gap-2">
-          <span className="text-xl font-extrabold tracking-tight text-foreground">
-            Happi
-          </span>
-          <span className="text-xl font-extrabold tracking-tight text-brand">
-            Time
-          </span>
+        <a href="/" className="flex items-center">
+          <HappiTimeLogo className="h-8" />
         </a>
         <nav className="flex items-center gap-6 text-sm font-medium text-muted">
           <a href="/kc/" className="hover:text-foreground transition-colors">
@@ -97,7 +92,10 @@ function SiteFooter() {
   return (
     <footer className="border-t border-border bg-surface mt-16">
       <div className="mx-auto max-w-5xl px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted">
-        <p>&copy; {new Date().getFullYear()} HappiTime. All rights reserved.</p>
+        <div className="flex items-center gap-3">
+          <HappiTimeLogo className="h-5" />
+          <span className="text-muted-light">&copy; {new Date().getFullYear()}</span>
+        </div>
         <div className="flex gap-6">
           <a
             href="https://happitime-console.vercel.app/login"
@@ -114,5 +112,30 @@ function SiteFooter() {
         </div>
       </div>
     </footer>
+  );
+}
+
+function HappiTimeLogo({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 600 140"
+      className={className}
+      aria-label="HappiTime"
+      role="img"
+    >
+      <circle cx="303" cy="62" r="52" fill="#C8965A" />
+      <text
+        x="48"
+        y="92"
+        fontFamily="'Plus Jakarta Sans', 'Liberation Sans', sans-serif"
+        fontWeight="800"
+        fontSize="72"
+      >
+        <tspan fill="#1A1A1A">Happ</tspan>
+        <tspan fill="#ffffff">iTi</tspan>
+        <tspan fill="#1A1A1A">me</tspan>
+      </text>
+    </svg>
   );
 }

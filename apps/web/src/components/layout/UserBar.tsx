@@ -21,10 +21,27 @@ export default function UserBar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-surface/80 backdrop-blur-md">
       <div className="max-w-[var(--width-content)] mx-auto flex items-center justify-between h-14 px-6">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <span className="text-heading-md font-bold text-foreground tracking-tight">
-            Happi<span className="text-brand">Time</span>
-          </span>
+        <Link href="/dashboard" className="flex items-center">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 600 140"
+            className="h-7"
+            aria-label="HappiTime"
+            role="img"
+          >
+            <circle cx="303" cy="62" r="52" fill="#C8965A" />
+            <text
+              x="48"
+              y="92"
+              fontFamily="var(--font-display), 'Plus Jakarta Sans', 'Liberation Sans', sans-serif"
+              fontWeight="800"
+              fontSize="72"
+            >
+              <tspan fill="#1A1A1A">Happ</tspan>
+              <tspan fill="#ffffff">iTi</tspan>
+              <tspan fill="#1A1A1A">me</tspan>
+            </text>
+          </svg>
         </Link>
 
         <div className="flex items-center gap-4">

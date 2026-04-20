@@ -6,9 +6,12 @@ export default function AuthCodeErrorPage() {
       <div className="w-full max-w-lg">
         <div className="text-center mb-6">
           <Link href="/login" className="inline-block">
-            <span className="text-heading-md font-bold text-foreground tracking-tight">
-              Happi<span className="text-brand">Time</span>
-            </span>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 140" className="h-8" aria-label="HappiTime" role="img">
+              <circle cx="303" cy="62" r="52" fill="#C8965A" />
+              <text x="48" y="92" fontFamily="var(--font-display), 'Plus Jakarta Sans', 'Liberation Sans', sans-serif" fontWeight="800" fontSize="72">
+                <tspan fill="#1A1A1A">Happ</tspan><tspan fill="#ffffff">iTi</tspan><tspan fill="#1A1A1A">me</tspan>
+              </text>
+            </svg>
           </Link>
         </div>
 

@@ -15,10 +15,27 @@ export default async function LoginPage({
     <main className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md flex flex-col gap-6">
         {/* Logo / Brand Header */}
-        <div className="text-center mb-2">
-          <h1 className="text-display-lg font-bold text-foreground tracking-tight">
-            Happi<span className="text-brand">Time</span>
-          </h1>
+        <div className="flex flex-col items-center mb-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 600 140"
+            className="h-12"
+            aria-label="HappiTime"
+            role="img"
+          >
+            <circle cx="303" cy="62" r="52" fill="#C8965A" />
+            <text
+              x="48"
+              y="92"
+              fontFamily="var(--font-display), 'Plus Jakarta Sans', 'Liberation Sans', sans-serif"
+              fontWeight="800"
+              fontSize="72"
+            >
+              <tspan fill="#1A1A1A">Happ</tspan>
+              <tspan fill="#ffffff">iTi</tspan>
+              <tspan fill="#1A1A1A">me</tspan>
+            </text>
+          </svg>
           <p className="text-body-sm text-muted mt-2">
             {isAdminLogin
               ? 'Sign in with your admin account to continue.'
