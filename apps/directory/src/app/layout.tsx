@@ -160,6 +160,12 @@ function SiteFooter() {
           <a href="/terms/" className="hover:text-foreground transition-colors">
             Terms
           </a>
+          <a
+            href="mailto:admin@happitime.biz"
+            className="hover:text-foreground transition-colors"
+          >
+            Contact Us
+          </a>
         </div>
       </div>
     </footer>
