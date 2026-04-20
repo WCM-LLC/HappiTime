@@ -107,6 +107,17 @@ export default async function LoginPage({
           </form>
         </div>
 
+        {/* Contact info */}
+        <p className="text-center text-caption text-muted">
+          Need help getting set up? Reach out to us at{" "}
+          <a
+            href="mailto:admin@happitime.biz"
+            className="text-brand hover:text-brand-dark underline underline-offset-4 transition-colors"
+          >
+            admin@happitime.biz
+          </a>
+        </p>
+
         {/* Admin link / Back link */}
         <div className="text-center">
           {!isAdminLogin ? (

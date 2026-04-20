@@ -74,7 +74,13 @@ function SiteHeader() {
           <a href="/kc/" className="hover:text-foreground transition-colors">
             Kansas City
           </a>
-          <
+          <a
+            href="https://happitime-console.vercel.app/login"
+            className="hover:text-foreground transition-colors"
+          >
+            Venue Login
+          </a>
+          <a
             href="https://apps.apple.com"
             className="rounded-full bg-brand px-4 py-2 text-white font-semibold text-xs hover:bg-brand-dark transition-colors"
           >
@@ -92,6 +98,12 @@ function SiteFooter() {
       <div className="mx-auto max-w-5xl px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted">
         <p>&copy; {new Date().getFullYear()} HappiTime. All rights reserved.</p>
         <div className="flex gap-6">
+          <a
+            href="https://happitime-console.vercel.app/login"
+            className="hover:text-foreground transition-colors"
+          >
+            Manage Your Venue
+          </a>
           <a href="/privacy/" className="hover:text-foreground transition-colors">
             Privacy
           </a>
