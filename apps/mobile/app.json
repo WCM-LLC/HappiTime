@@ -2,10 +2,16 @@
   "expo": {
     "name": "HappiTime",
     "slug": "happyhour-mobile",
-    "version": "0.1.0",
+    "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "happitime",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F5F0EB"
+    },
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -17,13 +23,24 @@
           "googleMapsEnabled": false
         }
       ],
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "HappiTime uses your location to show happy hours near you.",
+          "locationWhenInUsePermission": "HappiTime uses your location to show happy hours near you."
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.jwill7486.happitime.mobile",
+      "buildNumber": "1",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSLocationWhenInUseUsageDescription": "HappiTime uses your location to show happy hours near you.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "HappiTime uses your location to show happy hours near you even when the app is in the background.",
+        "CFBundleAllowMixedLocalizations": true
       },
       "config": {
         "googleMapsApiKey": ""
@@ -31,6 +48,15 @@
     },
     "android": {
       "package": "com.jwill7486.happitime.mobile",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#C8965A"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
       "config": {
         "googleMaps": {
           "apiKey": ""
