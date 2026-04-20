@@ -29,6 +29,12 @@ export default function UserBar() {
 
         <div className="flex items-center gap-4">
           <span className="text-body-sm text-muted hidden sm:inline">{email ?? 'Signed in'}</span>
+          <Link
+            href="/change-password"
+            className="inline-flex items-center justify-center h-8 px-3 rounded-md text-caption font-medium text-muted hover:text-foreground hover:bg-background border border-border transition-colors"
+          >
+            Change password
+          </Link>
           <button
             onClick={signOut}
             className="inline-flex items-center justify-center h-8 px-3 rounded-md text-caption font-medium text-muted hover:text-foreground hover:bg-background border border-border transition-colors cursor-pointer"

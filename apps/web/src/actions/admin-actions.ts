@@ -12,7 +12,7 @@ async function assertAdmin() {
     .split(',')
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
-  if (adminEmails.length > 0 && !adminEmails.includes(email)) {
+  if (adminEmails.length === 0 || !adminEmails.includes(email)) {
     throw new Error('Unauthorized');
   }
 }

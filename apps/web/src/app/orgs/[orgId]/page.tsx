@@ -19,7 +19,7 @@ function isAdminEmail(email: string | undefined): boolean {
     .split(',')
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
-  return adminEmails.length === 0 || adminEmails.includes(email.toLowerCase());
+  return adminEmails.length > 0 && adminEmails.includes(email.toLowerCase());
 }
 
 export default async function OrgPage({

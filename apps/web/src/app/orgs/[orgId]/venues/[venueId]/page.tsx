@@ -117,7 +117,7 @@ function isAdminEmail(email: string | undefined): boolean {
   if (!email) return false;
   const adminEmails = (process.env.ADMIN_EMAILS ?? '')
     .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
-  return adminEmails.length === 0 || adminEmails.includes(email.toLowerCase());
+  return adminEmails.length > 0 && adminEmails.includes(email.toLowerCase());
 }
 
 export default async function VenuePage({

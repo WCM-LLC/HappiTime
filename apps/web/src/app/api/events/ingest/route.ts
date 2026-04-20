@@ -52,8 +52,12 @@ function isValidIsoDate(value: string): boolean {
 }
 
 export async function POST(request: Request) {
+  const expectedKey = process.env.EVENTS_INGEST_API_KEY;
+  if (!expectedKey) {
+    return NextResponse.json({ error: 'endpoint_not_configured' }, { status: 503 });
+  }
   const apiKey = request.headers.get('x-api-key');
-  if (process.env.EVENTS_INGEST_API_KEY && apiKey !== process.env.EVENTS_INGEST_API_KEY) {
+  if (apiKey !== expectedKey) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 

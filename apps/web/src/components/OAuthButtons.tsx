@@ -3,13 +3,11 @@
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
-type Provider = 'google' | 'apple' | 'facebook' | 'twitter';
+type Provider = 'google' | 'apple';
 
 const PROVIDERS: { id: Provider; label: string; icon: string }[] = [
   { id: 'google', label: 'Continue with Google', icon: 'G' },
   { id: 'apple', label: 'Continue with Apple', icon: '' },
-  { id: 'facebook', label: 'Continue with Facebook', icon: 'f' },
-  { id: 'twitter', label: 'Continue with X', icon: '𝕏' },
 ];
 
 export default function OAuthButtons() {
