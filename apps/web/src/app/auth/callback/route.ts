@@ -4,12 +4,18 @@ import { createClient } from '@/utils/supabase/server';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
+  const type = searchParams.get('type'); // e.g. 'recovery', 'signup', 'magiclink'
 
   // if "next" is in param, use it as the redirect URL
   let next = searchParams.get('next') ?? '/';
 
   if (!next.startsWith('/')) {
     next = '/';
+  }
+
+  // Password recovery flows should always land on the reset page
+  if (type === 'recovery') {
+    next = '/reset-password';
   }
 
   if (code) {
