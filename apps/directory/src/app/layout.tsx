@@ -101,10 +101,19 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             />
           </noscript>
         )}
-        <SiteHeader />
-        <main>{children}</main>
-        <SiteFooter />
-        <Analytics />
+        {process.env.NEXT_PUBLIC_COMING_SOON === "true" ? (
+          <>
+            <main>{children}</main>
+            <Analytics />
+          </>
+        ) : (
+          <>
+            <SiteHeader />
+            <main>{children}</main>
+            <SiteFooter />
+            <Analytics />
+          </>
+        )}
       </body>
     </html>
   );
