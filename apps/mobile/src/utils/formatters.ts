@@ -20,7 +20,7 @@ export function formatTimeRange(
 // Assumption: dow uses 0–6 (Sun–Sat). If you're using 1–7, just shift the index.
 const DOW_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export function formatDays(dow: (number | string)[]): string {
+export function formatDays(dow: Array<number | string>): string {
   if (!dow || dow.length === 0) return "No days set";
 
   const allNumbers = dow.every((value) => typeof value === "number");
