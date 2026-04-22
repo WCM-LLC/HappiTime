@@ -180,7 +180,7 @@ function SiteFooter() {
             Terms
           </a>
           <a
-            href="mailto:admin@happitime.biz"
+            href="https://happitime.biz/contactus"
             className="hover:text-foreground transition-colors"
           >
             Contact Us
