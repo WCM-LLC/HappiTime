@@ -21,7 +21,7 @@ const normalizeText = (value?: string | null) => {
   return trimmed ? trimmed : null;
 };
 
-const firstNonEmpty = (...values: Array<string | null | undefined>) =>
+const firstNonEmpty = (...values: (string | null | undefined)[]) =>
   values.find((value) => Boolean(value)) ?? null;
 
 export const getHappyHourDisplayNames = (window?: DisplayWindow | null) => {
