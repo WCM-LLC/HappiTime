@@ -17,6 +17,7 @@ const ACCEPTED_FILE_TYPES = [
 ];
 
 export default function ContactUsPage() {
+  const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -24,6 +25,11 @@ export default function ContactUsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const validationError = useMemo(() => {
+    if (!email.trim()) return "Your email is required.";
+    const normalizedEmail = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return "Please enter a valid email address.";
+    }
     if (!subject.trim()) return "Subject is required.";
     if (!message.trim()) return "Message is required.";
     if (subject.length > MAX_SUBJECT_LENGTH) {
@@ -52,7 +58,7 @@ export default function ContactUsPage() {
     }
 
     return null;
-  }, [subject, message, files]);
+  }, [email, subject, message, files]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -68,6 +74,7 @@ export default function ContactUsPage() {
 
     try {
       const formData = new FormData();
+      formData.append("email", email.trim());
       formData.append("subject", subject.trim());
       formData.append("message", message.trim());
       for (const file of files) {
@@ -88,6 +95,7 @@ export default function ContactUsPage() {
       }
 
       setState("success");
+      setEmail("");
       setSubject("");
       setMessage("");
       setFiles([]);
@@ -111,6 +119,22 @@ export default function ContactUsPage() {
       </p>
 
       <form onSubmit={onSubmit} className="rounded-xl border border-border bg-surface p-6 shadow-sm space-y-5">
+        <div>
+          <label htmlFor="email" className="mb-2 block text-sm font-medium text-foreground">
+            Your email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            className="h-11 w-full rounded-md border border-border bg-surface px-3 text-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            placeholder="you@example.com"
+            required
+          />
+        </div>
+
         <div>
           <label htmlFor="subject" className="mb-2 block text-sm font-medium text-foreground">
             Subject
