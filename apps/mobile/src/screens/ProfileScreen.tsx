@@ -1,6 +1,6 @@
 // src/screens/ProfileScreen.tsx
 import React, { useEffect, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { supabase } from "../api/supabaseClient";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { useCurrentUser } from "../hooks/useCurrentUser";
@@ -40,6 +40,12 @@ export const ProfileScreen: React.FC = () => {
   const [bio, setBio] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+
+  const handleOpenSupport = () => {
+    Linking.openURL("https://happitime.biz/contactus").catch(() => {
+      Alert.alert("Unable to open support", "Please try again in a moment.");
+    });
+  };
 
   const handleSignOut = () => {
     Alert.alert("Sign out", "Are you sure you want to sign out?", [
@@ -270,6 +276,13 @@ export const ProfileScreen: React.FC = () => {
       </View>
 
       <Pressable
+        style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
+        onPress={handleOpenSupport}
+      >
+        <Text style={styles.secondaryButtonText}>Contact support</Text>
+      </Pressable>
+
+      <Pressable
         style={({ pressed }) => [styles.signOutButton, pressed && styles.signOutButtonPressed]}
         onPress={handleSignOut}
       >
@@ -425,6 +438,25 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     textAlign: "center",
   },
+
+  secondaryButton: {
+    marginTop: spacing.lg,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface ?? colors.background,
+  },
+  secondaryButtonPressed: {
+    opacity: 0.75,
+  },
+  secondaryButtonText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
   signOutButton: {
     marginTop: spacing.lg,
     borderRadius: 999,
