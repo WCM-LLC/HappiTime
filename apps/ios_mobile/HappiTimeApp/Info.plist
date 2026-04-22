@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>SUPABASE_URL</key>
+  <string>https://ujflcrjsiyhofnomurco.supabase.co</string>
+
+  <!-- SUPABASE_ANON_KEY removed from source. Provide at build-time via environment/CI secrets -->
+
+  <key>AUTH_REDIRECT_SCHEME</key>
+  <string>happitime</string>
+
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeRole</key>
+      <string>Editor</string>
+      <key>CFBundleURLName</key>
+      <string>auth</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>happitime</string>
+      </array>
+    </dict>
+    <dict>
+      <key>CFBundleTypeRole</key>
+      <string>Editor</string>
+      <key>CFBundleURLName</key>
+      <string>google</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>com.googleusercontent.apps.321101458754-m4crdlanjd4vc7etm5hfgmdnlqtdu0l6</string>
+      </array>
+    </dict>
+  </array>
+
+  <key>GOOGLE_IOS_CLIENT_ID</key>
+  <string>321101458754-m4crdlanjd4vc7etm5hfgmdnlqtdu0l6.apps.googleusercontent.com</string>
+
+  <key>BUNDLE_IDENTIFIER</key>
+  <string>com.jwill7486.happitime.mobile</string>
+</dict>
+</plist>

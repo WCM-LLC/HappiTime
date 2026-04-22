@@ -109,9 +109,9 @@ export function useUserLists() {
       if ("description" in updates) payload.description = updates.description?.trim() || null;
       if (updates.visibility !== undefined) payload.visibility = updates.visibility;
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("user_lists")
-        .update(payload)
+        .update(payload as any)
         .eq("id", listId)
         .eq("user_id", user.id);
 

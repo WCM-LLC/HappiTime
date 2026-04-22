@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
+import LoadingView from "./src/components/LoadingView";
 import { supabase } from "./src/api/supabaseClient";
 import { useConfigPushNotifications } from "./src/hooks/useConfigPushNotifications";
 import { useMagicLinkListener } from "./src/hooks/useMagicLinkListener";
@@ -46,12 +47,7 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
   // ✅ Always show something while booting
   if (booting) {
     console.log("booting:", booting, "session:", !!session);
-
-    return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-        <ActivityIndicator />
-      </View>
-    );
+    return <LoadingView message={"Restoring session…"} />;
   }
 
   // ✅ If no session, ALWAYS show login flow
