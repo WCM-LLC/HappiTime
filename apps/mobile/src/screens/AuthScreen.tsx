@@ -1,9 +1,6 @@
 // src/screens/AuthScreen.tsx
 import * as Linking from "expo-linking";
-import React, { useState, useRef, useEffect } from "react";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "../navigation/types";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -18,34 +15,9 @@ import { spacing } from "../theme/spacing";
 
 export const AuthScreen: React.FC = () => {
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [resendDisabled, setResendDisabled] = useState(false);
-  const [resendSeconds, setResendSeconds] = useState(0);
-  const resendIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [loading, setLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const redirectTo = Linking.createURL("auth/callback");
-
-  const otpInputRef = useRef<TextInput | null>(null);
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-
-  useEffect(() => {
-    if (otpSent) {
-      // Give a tick for UI to render then focus the OTP input
-      const t = setTimeout(() => otpInputRef.current?.focus(), 100);
-      return () => clearTimeout(t);
-    }
-  }, [otpSent]);
-
-  useEffect(() => {
-    return () => {
-      if (resendIntervalRef.current) {
-        clearInterval(resendIntervalRef.current);
-        resendIntervalRef.current = null;
-      }
-    };
-  }, []);
 
 const handleEmailContinue = async () => {
   const trimmed = email.trim();
@@ -59,13 +31,11 @@ const handleEmailContinue = async () => {
     setLoading(true);
     setStatusMessage(null);
 
-    console.log("🔐 Sending OTP sign-in request…", trimmed);
+    console.log("🔐 Starting magic link sign-in…", trimmed);
 
-    // Request an OTP to be sent to the user's email. Server email template
-    // controls whether a magic link or token is sent — this client expects
-    // an OTP token to arrive which the user will paste below.
     const { data, error } = await supabase.auth.signInWithOtp({
       email: trimmed,
+      options: { emailRedirectTo: redirectTo },
     });
 
     console.log("📨 Supabase response:", { data, error });
@@ -76,106 +46,17 @@ const handleEmailContinue = async () => {
       return;
     }
 
-    setOtpSent(true);
-    setStatusMessage("OTP sent. Check your email and enter the code below.");
-    // Start a short cooldown to avoid immediate resends
-    startResendCooldown(30);
+    if (!data) {
+      console.warn("⚠ No data returned from OTP request");
+    }
+
+    setStatusMessage("Magic link sent. Check your email 👍");
+
   } catch (err: any) {
     console.error("🔥 Unexpected auth exception:", err);
     setStatusMessage(err?.message ?? "Unexpected error");
   } finally {
     setLoading(false);
-  }
-};
-
-const startResendCooldown = (seconds: number) => {
-  // clear existing
-  if (resendIntervalRef.current) {
-    clearInterval(resendIntervalRef.current);
-    resendIntervalRef.current = null;
-  }
-  setResendSeconds(seconds);
-  setResendDisabled(true);
-  resendIntervalRef.current = setInterval(() => {
-    setResendSeconds((s) => {
-      if (s <= 1) {
-        if (resendIntervalRef.current) {
-          clearInterval(resendIntervalRef.current);
-          resendIntervalRef.current = null;
-        }
-        setResendDisabled(false);
-        return 0;
-      }
-      return s - 1;
-    });
-  }, 1000);
-};
-
-const handleVerifyCode = async () => {
-  const token = otp.trim();
-  if (!token) {
-    setStatusMessage("Enter the code you received via email.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-    setStatusMessage(null);
-
-    const { data, error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
-
-    console.log("🔁 verifyOtp result:", { data, error });
-
-    if (error) {
-      console.error("❌ verifyOtp error:", error);
-      setStatusMessage(error.message);
-      return;
-    }
-    setStatusMessage("Signed in successfully.");
-
-    // Navigate to the main app. The auth state will also update and
-    // the navigator will show the AppTabs, but navigate immediately
-    // for a snappier UX.
-    try {
-      navigation.navigate("AppTabs");
-    } catch (e) {
-      /* ignore navigation errors */
-    }
-  } catch (err: any) {
-    console.error("🔥 Unexpected verify exception:", err);
-    setStatusMessage(err?.message ?? "Unexpected error");
-  } finally {
-    setLoading(false);
-  }
-};
-
-const handleResendCode = async () => {
-  const trimmed = email.trim();
-  if (!trimmed) {
-    setStatusMessage("Enter an email to continue.");
-    return;
-  }
-
-  try {
-    setStatusMessage(null);
-    const { data, error } = await supabase.auth.signInWithOtp({ email: trimmed });
-    if (error) {
-      // Supabase may return a rate limit error like "email rate exceeded"
-      console.error("❌ resend OTP error:", error);
-      const msg = error.message ?? "Failed to resend code.";
-      setStatusMessage(msg);
-      if (/rate/i.test(msg)) {
-        // apply a longer cooldown when hitting server-side rate limits
-        startResendCooldown(300); // 5 minutes
-      }
-      return;
-    }
-    setStatusMessage("OTP resent. Check your email.");
-    // Short cooldown for user-initiated resend
-    startResendCooldown(30);
-  } catch (err: any) {
-    setStatusMessage(err?.message ?? "Unexpected error");
-    setResendDisabled(false);
   }
 };
 
@@ -230,7 +111,6 @@ const handleResendCode = async () => {
           autoCorrect={false}
           value={email}
           onChangeText={setEmail}
-          editable={!otpSent}
         />
 
         <Pressable
@@ -248,49 +128,6 @@ const handleResendCode = async () => {
             <Text style={styles.primaryButtonText}>Continue</Text>
           )}
         </Pressable>
-
-        {otpSent ? (
-          <>
-            <TextInput
-              ref={otpInputRef}
-              style={styles.input}
-              placeholder="Enter code"
-              placeholderTextColor={colors.inputPlaceholder}
-              keyboardType="number-pad"
-              value={otp}
-              onChangeText={setOtp}
-            />
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.primaryButton,
-                pressed && styles.primaryButtonPressed,
-                loading && styles.primaryButtonDisabled
-              ]}
-              onPress={handleVerifyCode}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator color={colors.pillActiveText} />
-              ) : (
-                <Text style={styles.primaryButtonText}>Verify Code</Text>
-              )}
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                { marginTop: 6 },
-                pressed && { opacity: 0.8 }
-              ]}
-              onPress={handleResendCode}
-              disabled={resendSeconds > 0 || loading}
-            >
-              <Text style={[styles.resendText, resendSeconds > 0 && styles.resendDisabled]}>
-                {resendSeconds > 0 ? `Resend code (${resendSeconds}s)` : "Resend code"}
-              </Text>
-            </Pressable>
-          </>
-        ) : null}
 
         {/* Divider */}
         <View style={styles.dividerRow}>
@@ -477,18 +314,5 @@ const styles = StyleSheet.create({
   linkText: {
     color: colors.primary,
     fontWeight: "500"
-  }
-  ,
-  resendText: {
-    marginTop: 6,
-    color: colors.primary,
-    fontSize: 14,
-    fontWeight: "600",
-    textAlign: "center",
-    width: "100%"
-  },
-  resendDisabled: {
-    color: colors.textMuted,
-    opacity: 0.7
   }
 });
