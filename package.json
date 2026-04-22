@@ -24,6 +24,7 @@
     "supabase:gen-types": "supabase gen types typescript --local > supabase/types/generated.ts"
   },
   "devDependencies": {
+    "expo-module-scripts": "^3.0.5",
     "next": "^16.2.4",
     "react-dom": "19.1.0",
     "supabase": "^2.72.7"
