@@ -25,6 +25,20 @@ Optional (event ingestion):
 Optional (media metadata table override):
 - `NEXT_PUBLIC_MEDIA_METADATA_TABLE` (`venue_media` or legacy `media_assets`)
 
+## Directory (`apps/directory`)
+Contact form email delivery uses SMTP and requires server-side environment variables.
+
+Required:
+- `SMTP_HOST` (SMTP server hostname)
+- `SMTP_PORT` (SMTP server port, e.g. `587` or `465`)
+- `SMTP_USER` (SMTP username)
+- `SMTP_PASS` (SMTP password)
+
+Recommended:
+- `SMTP_FROM` (controlled sender address shown in outbound support emails; defaults to `SMTP_USER`)
+- `SUPPORT_RECIPIENT_EMAIL` (support inbox recipient; defaults to `admin@happitime.biz`)
+- `SMTP_SECURE` (`true`/`false`; defaults to `true` only when port is `465`)
+
 ## Mobile (`apps/mobile`)
 Copy `apps/mobile/.env.example` → `apps/mobile/.env`.
 

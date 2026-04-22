@@ -13,31 +13,45 @@ const ACCEPTED_FILE_TYPES = new Set([
   "text/plain",
 ]);
 
-function getSmtpTransport() {
+function parseBoolean(value: string | undefined, fallback: boolean) {
+  if (!value) return fallback;
+  return value.toLowerCase() === "true";
+}
+
+function getSmtpConfig() {
   const host = process.env.SMTP_HOST;
   const port = Number(process.env.SMTP_PORT ?? "587");
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
+  const from = process.env.SMTP_FROM ?? user;
+  const to = process.env.SUPPORT_RECIPIENT_EMAIL ?? "admin@happitime.biz";
+  const secure = parseBoolean(process.env.SMTP_SECURE, port === 465);
 
-  if (!host || !user || !pass || Number.isNaN(port)) {
+  if (!host || !user || !pass || !from || !to || Number.isNaN(port)) {
     throw new Error("Email service is not configured.");
   }
 
-  return nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  });
+  return { host, port, user, pass, from, to, secure };
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
+    const email = String(formData.get("email") ?? "").trim();
     const subject = String(formData.get("subject") ?? "").trim();
     const message = String(formData.get("message") ?? "").trim();
     const files = formData.getAll("attachments").filter((value): value is File => value instanceof File);
 
+    if (!email) {
+      return NextResponse.json({ error: "Your email is required." }, { status: 400 });
+    }
+    if (!isValidEmail(email)) {
+      return NextResponse.json({ error: "Please enter a valid email address." }, { status: 400 });
+    }
     if (!subject) {
       return NextResponse.json({ error: "Subject is required." }, { status: 400 });
     }
@@ -77,20 +91,28 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const transport = getSmtpTransport();
+    const smtp = getSmtpConfig();
+    const transport = nodemailer.createTransport({
+      host: smtp.host,
+      port: smtp.port,
+      secure: smtp.secure,
+      auth: { user: smtp.user, pass: smtp.pass },
+    });
+
     const now = new Date().toISOString();
     const userAgent = request.headers.get("user-agent") ?? "unknown";
     const referer = request.headers.get("referer") ?? "unknown";
 
     await transport.sendMail({
-      from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
-      to: "admin@happitime.biz",
-      replyTo: process.env.SUPPORT_REPLY_TO ?? process.env.SMTP_USER,
+      from: smtp.from,
+      to: smtp.to,
+      replyTo: email,
       subject: `[HappiTime Support] ${subject}`,
       text: [
+        `From: ${email}`,
         `Subject: ${subject}`,
         `Timestamp: ${now}`,
-        `Source app: directory (happitime.biz/contactus)`,
+        "Source app: directory (happitime.biz/contactus)",
         `Referrer: ${referer}`,
         `User-Agent: ${userAgent}`,
         "",
@@ -102,7 +124,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    console.error("Support request send failed", error);
+    console.error("Support request send failed", {
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+
     return NextResponse.json(
       { error: "We could not send your request right now. Please try again shortly." },
       { status: 500 },
