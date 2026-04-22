@@ -31,6 +31,8 @@ const MAPPING = {
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'checkmark.seal.fill': 'verified',
+  'arrow.up.left.and.arrow.down.right': 'open_with',
   'heart': 'favorite-border',
   'heart.fill': 'favorite',
   'location.fill': 'my-location',
@@ -56,5 +58,5 @@ export function IconSymbol({
   style?: StyleProp<TextStyle>;
   weight?: SymbolWeight;
 }) {
-  return <MaterialIcons color={color} size={size} name={MAPPING[name]} style={style} />;
+  return <MaterialIcons color={color} size={size} name={MAPPING[name] as any} style={style} />;
 }

@@ -69,23 +69,24 @@ export function useUserPreferences() {
       return;
     }
 
+    const d: any = data;
     setState({
       preferences: data
         ? {
-            home_city: data.home_city ?? null,
-            home_state: data.home_state ?? null,
-            home_lat: data.home_lat ?? null,
-            home_lng: data.home_lng ?? null,
-            max_distance_miles: data.max_distance_miles ?? null,
-            price_tier_min: data.price_tier_min ?? null,
-            price_tier_max: data.price_tier_max ?? null,
-            cuisines: Array.isArray(data.cuisines) ? data.cuisines : [],
-            notifications_push: data.notifications_push ?? true,
-            notifications_happy_hours: data.notifications_happy_hours ?? true,
-            notifications_venue_updates: data.notifications_venue_updates ?? true,
-            notifications_friend_activity: data.notifications_friend_activity ?? true,
-            notifications_product: data.notifications_product ?? true,
-            notifications_marketing: data.notifications_marketing ?? false,
+            home_city: d.home_city ?? null,
+            home_state: d.home_state ?? null,
+            home_lat: d.home_lat ?? null,
+            home_lng: d.home_lng ?? null,
+            max_distance_miles: d.max_distance_miles ?? null,
+            price_tier_min: d.price_tier_min ?? null,
+            price_tier_max: d.price_tier_max ?? null,
+            cuisines: Array.isArray(d.cuisines) ? d.cuisines : [],
+            notifications_push: d.notifications_push ?? true,
+            notifications_happy_hours: d.notifications_happy_hours ?? true,
+            notifications_venue_updates: d.notifications_venue_updates ?? true,
+            notifications_friend_activity: d.notifications_friend_activity ?? true,
+            notifications_product: d.notifications_product ?? true,
+            notifications_marketing: d.notifications_marketing ?? false,
           }
         : DEFAULTS,
       loading: false,
@@ -103,9 +104,9 @@ export function useUserPreferences() {
       if (!user?.id) return { error: new Error("Not signed in") };
       setState((prev) => ({ ...prev, saving: true, error: null }));
 
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from("user_preferences")
-        .upsert({ user_id: user.id, ...patch }, { onConflict: "user_id" });
+        .upsert({ user_id: user.id, ...patch } as any, { onConflict: "user_id" });
 
       if (error) {
         setState((prev) => ({ ...prev, saving: false, error: error.message }));

@@ -1,5 +1,8 @@
 import SwiftUI
 
+// Add the import for AppCoordinator if it's in a separate module
+// import YourModuleName
+
 @main
 struct HappiTimeApp: App {
     @StateObject private var container = AppContainer.bootstrap()

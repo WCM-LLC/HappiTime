@@ -1,9 +1,5 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import {
-  DefaultTheme,
-  NavigationContainer,
-  NavigationContainerRef,
-} from "@react-navigation/native";
+import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useRef } from "react";
 import { StyleSheet, View } from "react-native";
@@ -106,7 +102,7 @@ function AppTabs() {
 }
 
 export function AppNavigator() {
-  const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
+  const navigationRef = useRef<any>(null);
   useNotificationNavigation(navigationRef);
 
   return (

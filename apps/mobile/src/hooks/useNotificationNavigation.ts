@@ -1,7 +1,7 @@
 // src/hooks/useNotificationNavigation.ts
 import { useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
-import { useNavigation, NavigationContainerRef } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import type { RootStackParamList } from "../navigation/types";
 
 /**
@@ -14,7 +14,7 @@ import type { RootStackParamList } from "../navigation/types";
  *   - tab?: string        (for friend → Activity, general → Home)
  */
 export function useNotificationNavigation(
-  navigationRef: React.RefObject<NavigationContainerRef<RootStackParamList>>
+  navigationRef: React.RefObject<any>
 ) {
   const lastHandledId = useRef<string | null>(null);
 
