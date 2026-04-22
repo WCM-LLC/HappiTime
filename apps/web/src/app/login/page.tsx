@@ -136,12 +136,14 @@ export default async function LoginPage({
 
         {/* Contact info */}
         <p className="text-center text-caption text-muted">
-          Need help getting set up? Reach out to us at{" "}
+          Need help getting set up? Contact support at{" "}
           <a
-            href="mailto:admin@happitime.biz"
+            href="https://happitime.biz/contactus"
             className="text-brand hover:text-brand-dark underline underline-offset-4 transition-colors"
+            target="_blank"
+            rel="noreferrer"
           >
-            admin@happitime.biz
+            happitime.biz/contactus
           </a>
         </p>
 
