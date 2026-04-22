@@ -209,7 +209,7 @@ export default function ComingSoon() {
       <div className="flex gap-6 text-sm text-muted">
         <a href="/privacy/" className="hover:text-foreground transition-colors">Privacy</a>
         <a href="/terms/" className="hover:text-foreground transition-colors">Terms</a>
-        <a href="/contact/" className="hover:text-foreground transition-colors">Contact Us</a>
+        <a href="/contactus/" className="hover:text-foreground transition-colors">Contact Us</a>
       </div>
       <p className="text-xs text-muted-light mt-4">&copy; {new Date().getFullYear()} HappiTime</p>
     </div>
