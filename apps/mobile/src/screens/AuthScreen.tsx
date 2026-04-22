@@ -19,73 +19,41 @@ export const AuthScreen: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const redirectTo = Linking.createURL("auth/callback");
 
-const handleEmailContinue = async () => {
-  const trimmed = email.trim();
+  const handleEmailContinue = async () => {
+    const trimmed = email.trim();
 
-  if (!trimmed) {
-    setStatusMessage("Enter an email to continue.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-    setStatusMessage(null);
-
-    console.log("🔐 Starting magic link sign-in…", trimmed);
-
-    const { data, error } = await supabase.auth.signInWithOtp({
-      email: trimmed,
-      options: { emailRedirectTo: redirectTo },
-    });
-
-    console.log("📨 Supabase response:", { data, error });
-
-    if (error) {
-      console.error("❌ Supabase OTP error:", error);
-      setStatusMessage(`Auth error: ${error.message}`);
+    if (!trimmed) {
+      setStatusMessage("Enter an email to continue.");
       return;
     }
 
-    if (!data) {
-      console.warn("⚠ No data returned from OTP request");
-    }
-
-    setStatusMessage("Magic link sent. Check your email 👍");
-
-  } catch (err: any) {
-    console.error("🔥 Unexpected auth exception:", err);
-    setStatusMessage(err?.message ?? "Unexpected error");
-  } finally {
-    setLoading(false);
-  }
-};
-
-  const handleOAuth = async (provider: "google" | "apple") => {
     try {
       setLoading(true);
       setStatusMessage(null);
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo,
-        },
+      console.log("🔐 Starting magic link sign-in…", trimmed);
+
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email: trimmed,
+        options: { emailRedirectTo: redirectTo }
       });
 
+      console.log("📨 Supabase response:", { data, error });
+
       if (error) {
-        console.error("[AuthScreen] oauth error", error);
-        setStatusMessage(error.message);
+        console.error("❌ Supabase OTP error:", error);
+        setStatusMessage(`Auth error: ${error.message}`);
         return;
       }
 
-      // On mobile, Supabase opens the browser for OAuth.
-      // We just show a small hint so it doesn't feel broken.
-      if (data?.url) {
-        setStatusMessage("Opening browser to continue sign in…");
+      if (!data) {
+        console.warn("⚠ No data returned from OTP request");
       }
+
+      setStatusMessage("Magic link sent. Check your email 👍");
     } catch (err: any) {
-      console.error("[AuthScreen] oauth unexpected error", err);
-      setStatusMessage(err?.message ?? "Something went wrong.");
+      console.error("🔥 Unexpected auth exception:", err);
+      setStatusMessage(err?.message ?? "Unexpected error");
     } finally {
       setLoading(false);
     }
@@ -138,26 +106,30 @@ const handleEmailContinue = async () => {
 
         {/* Google */}
         <Pressable
-          style={({ pressed }) => [
-            styles.oauthButton,
-            pressed && styles.oauthButtonPressed
-          ]}
-          onPress={() => handleOAuth("google")}
+          style={styles.oauthButtonDisabled}
+          disabled
+          accessibilityState={{ disabled: true }}
+          accessibilityHint="Google sign in is coming soon and currently unavailable"
         >
           <View style={styles.oauthIcon} />
-          <Text style={styles.oauthButtonText}>Continue with Google</Text>
+          <View style={styles.oauthTextContainer}>
+            <Text style={styles.oauthButtonText}>Continue with Google</Text>
+            <Text style={styles.oauthComingSoonText}>Coming Soon</Text>
+          </View>
         </Pressable>
 
         {/* Apple */}
         <Pressable
-          style={({ pressed }) => [
-            styles.oauthButton,
-            pressed && styles.oauthButtonPressed
-          ]}
-          onPress={() => handleOAuth("apple")}
+          style={styles.oauthButtonDisabled}
+          disabled
+          accessibilityState={{ disabled: true }}
+          accessibilityHint="Apple sign in is coming soon and currently unavailable"
         >
           <View style={styles.oauthIcon} />
-          <Text style={styles.oauthButtonText}>Continue with Apple</Text>
+          <View style={styles.oauthTextContainer}>
+            <Text style={styles.oauthButtonText}>Continue with Apple</Text>
+            <Text style={styles.oauthComingSoonText}>Coming Soon</Text>
+          </View>
         </Pressable>
 
         {statusMessage ? (
@@ -168,14 +140,14 @@ const handleEmailContinue = async () => {
           By clicking continue, you agree to our{" "}
           <Text
             style={styles.linkText}
-            onPress={() => Linking.openURL("https://happitime.app/terms")}
+            onPress={() => Linking.openURL("https://happitime.biz/terms")}
           >
             Terms of Service
           </Text>{" "}
           and{" "}
           <Text
             style={styles.linkText}
-            onPress={() => Linking.openURL("https://happitime.app/privacy")}
+            onPress={() => Linking.openURL("https://happitime.biz/privacy")}
           >
             Privacy Policy
           </Text>
@@ -283,6 +255,23 @@ const styles = StyleSheet.create({
   oauthButtonPressed: {
     opacity: 0.9
   },
+  oauthButtonDisabled: {
+    width: "100%",
+    borderRadius: 999,
+    backgroundColor: colors.inputBackground,
+    borderWidth: 1,
+    borderColor: colors.border,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.sm,
+    opacity: 0.55
+  },
+  oauthTextContainer: {
+    alignItems: "center"
+  },
   oauthIcon: {
     width: 18,
     height: 18,
@@ -294,6 +283,12 @@ const styles = StyleSheet.create({
   oauthButtonText: {
     color: colors.text,
     fontSize: 15,
+    fontWeight: "500"
+  },
+  oauthComingSoonText: {
+    marginTop: 2,
+    color: colors.textMuted,
+    fontSize: 12,
     fontWeight: "500"
   },
   statusMessage: {
