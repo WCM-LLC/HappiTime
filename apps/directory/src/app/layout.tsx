@@ -185,6 +185,14 @@ function SiteFooter() {
           >
             Contact Us
           </a>
+          <a
+            href="https://www.instagram.com/findhappitime/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground transition-colors"
+          >
+            Instagram
+          </a>
         </div>
       </div>
     </footer>
