@@ -1,8 +1,8 @@
 /**
- * HappiTime — Premium & Sophisticated palette
- * Matches the web design system (globals.css @theme tokens).
+ * HappiTime — Design System palette
+ * Synced with Claude Design system (colors_and_type.css).
  *
- * Primary: Copper / Amber (#C8965A)
+ * Primary: Golden Hour (#C8965A)
  * Background: Warm white (#FAFAF8)
  * Foreground: Rich dark (#1A1A1A)
  */
@@ -12,31 +12,38 @@ export const colors = {
   background: "#FAFAF8",
   surface: "#FFFFFF",
   card: "#FFFFFF",
+  cream: "#F5F0EB",
 
   /* ── Text ── */
   text: "#1A1A1A",
   textMuted: "#6B6B6B",
-  textMutedLight: "#9B9B9B",
+  textMutedLight: "#9CA3AF",
 
   /* ── Brand / Primary ── */
   primary: "#C8965A",
-  primaryDark: "#B07D42",
+  primaryDark: "#A67842",
   accent: "#C8965A",
 
   /* ── Brand subtle (for avatars, tinted backgrounds) ── */
   brandSubtle: "#F5EDE3",
+  brandLight: "#E8D5BC",
   brandDark: "#8B6535",
 
+  /* ── Extended palette ── */
+  wine: "#8C3A4B",
+  teal: "#2A7B6F",
+  navy: "#2E4A6E",
+
   /* ── Borders ── */
-  border: "#E8E5E0",
-  borderStrong: "#D4D0CA",
+  border: "#E8E8E5",
+  borderStrong: "#D1D1CD",
 
   /* ── Semantic ── */
-  success: "#2D7A4F",
-  successLight: "#E8F5EE",
-  error: "#C53030",
+  success: "#2D8A56",
+  successLight: "#ECFDF5",
+  error: "#C43E3E",
   errorLight: "#FEF2F2",
-  warning: "#B8860B",
+  warning: "#D4A843",
   warningLight: "#FFFBEB",
 
   /* ── Pills / Chips ── */
@@ -47,18 +54,20 @@ export const colors = {
 
   /* ── Inputs ── */
   inputBackground: "#F5F3F0",
-  inputBorder: "#E8E5E0",
-  inputPlaceholder: "#9B9B9B",
+  inputBorder: "#E8E8E5",
+  inputPlaceholder: "#9CA3AF",
 
   /* ── Tab Bar ── */
   tabBarBackground: "#FFFFFF",
-  tabBarBorder: "#E8E5E0",
+  tabBarBorder: "#E8E8E5",
   tabBarActiveTint: "#C8965A",
   tabBarInactiveTint: "#B5B0A8",
 
   /* ── Dark surface (for dark buttons, dark cards) ── */
   dark: "#1A1A1A",
-  darkForeground: "#FAFAF8",
+  darkSurface: "#242424",
+  darkForeground: "#F5F5F3",
+  darkMuted: "#A3A3A3",
 
   /* ── Shadows ── */
   shadowSoft: "rgba(26, 26, 26, 0.06)",

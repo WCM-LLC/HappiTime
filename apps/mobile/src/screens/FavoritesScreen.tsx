@@ -78,7 +78,8 @@ export const FavoritesScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.logoText}>HappiTime</Text>
+      <Text style={styles.pageTitle}>Saved</Text>
+      <Text style={styles.pageSubtitle}>Your go-to spots.</Text>
 
       <SegmentedTabs
         tabs={[
@@ -544,13 +545,18 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xxl + spacing.md,
     paddingHorizontal: spacing.lg
   },
-  logoText: {
-    fontSize: 30,
+  pageTitle: {
+    fontSize: 32,
     fontWeight: "800",
     color: colors.text,
-    letterSpacing: -0.5,
+    letterSpacing: -0.6,
+    lineHeight: 32,
+  },
+  pageSubtitle: {
+    fontSize: 14,
+    color: colors.textMuted,
+    marginTop: spacing.xs,
     marginBottom: spacing.md,
-    alignSelf: "center"
   },
   listContent: {
     paddingTop: spacing.lg,

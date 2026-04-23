@@ -714,10 +714,11 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     color: colors.text,
-    fontSize: 30,
+    fontSize: 32,
     fontWeight: "800",
-    letterSpacing: -0.5,
-    marginBottom: spacing.xs
+    letterSpacing: -0.6,
+    lineHeight: 32,
+    marginBottom: spacing.xs,
   },
   pageSubtitle: {
     color: colors.textMuted,
@@ -808,9 +809,10 @@ const styles = StyleSheet.create({
   },
   filterLabel: {
     color: colors.text,
-    fontSize: 13,
-    fontWeight: "600",
-    marginBottom: spacing.sm
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.4,
+    marginBottom: spacing.sm,
   },
   filterRow: {
     paddingBottom: spacing.sm,
