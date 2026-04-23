@@ -105,10 +105,23 @@ export const ProfileScreen: React.FC = () => {
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>Your Account</Text>
-      <Text style={styles.subtitle}>
-        Sign in, manage preferences, and see your saved happy hours here.
-      </Text>
+      <View style={styles.avatarSection}>
+        <View style={styles.avatarCircle}>
+          <Text style={styles.avatarText}>
+            {(profile?.display_name ?? user?.email ?? "U").charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        <View>
+          <Text style={styles.avatarName}>
+            {profile?.display_name || user?.email?.split("@")[0] || "User"}
+          </Text>
+          <Text style={styles.avatarCity}>
+            {preferences.home_city
+              ? `${preferences.home_city}${preferences.home_state ? `, ${preferences.home_state}` : ""}`
+              : "Set your city"}
+          </Text>
+        </View>
+      </View>
 
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Profile</Text>
@@ -326,16 +339,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: 120,
   },
-  title: {
-    color: colors.text,
-    fontSize: 30,
-    fontWeight: "800",
-    letterSpacing: -0.5,
-    marginBottom: spacing.sm
+  avatarSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginBottom: spacing.lg,
   },
-  subtitle: {
+  avatarCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.brandSubtle,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    color: colors.primary,
+    fontSize: 24,
+    fontWeight: "800",
+  },
+  avatarName: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  avatarCity: {
     color: colors.textMuted,
-    fontSize: 14
+    fontSize: 13,
+    marginTop: 1,
   },
   card: {
     marginTop: spacing.lg,

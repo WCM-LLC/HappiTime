@@ -35,6 +35,11 @@ type Props = NativeStackScreenProps<RootStackParamList, "HappyHourDetail">;
 const formatPriceTier = (tier?: number | null) =>
   typeof tier === "number" && tier > 0 ? "$".repeat(tier) : null;
 
+const getDowValues = (window: { dow?: unknown }) => {
+  if (!Array.isArray(window.dow)) return [];
+  return window.dow.map((v: unknown) => Number(v)).filter((v) => Number.isFinite(v));
+};
+
 export const HappyHourDetailScreen: React.FC<Props> = ({
   route,
   navigation
@@ -243,18 +248,16 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
             <Pressable
               onPress={() => navigation.goBack()}
               style={({ pressed }) => [
-                styles.heroButton,
-                styles.heroButtonLeft,
+                styles.heroButtonBack,
                 pressed && styles.heroButtonPressed
               ]}
             >
-              <Text style={styles.heroButtonText}>Back</Text>
+              <Text style={styles.heroButtonBackText}>{"\u2190"} Back</Text>
             </Pressable>
             <Pressable
               onPress={handleSelect}
               style={({ pressed }) => [
                 styles.heroButton,
-                styles.heroButtonRight,
                 pressed && styles.heroButtonPressed
               ]}
             >
@@ -288,48 +291,55 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
           <View style={styles.metaRow}>
             <View style={styles.metaLeft}>
               {rating != null && (
-                <View style={styles.metaItem}>
-                  <IconSymbol name="star.fill" size={14} color={colors.primary} />
-                  <Text style={styles.metaText}>{rating.toFixed(1)}</Text>
+                <View style={styles.ratingPill}>
+                  <IconSymbol name="star.fill" size={12} color={colors.brandDark} />
+                  <Text style={styles.ratingPillText}>{rating.toFixed(1)}</Text>
+                  {reviewCount != null && (
+                    <Text style={styles.ratingPillCount}>({reviewCount})</Text>
+                  )}
                 </View>
-              )}
-              {reviewCount != null && (
-                <Text style={styles.metaSubtext}>
-                  {rating != null
-                    ? `(${reviewCount} reviews)`
-                    : `${reviewCount} reviews`}
-                </Text>
               )}
               {priceTier && (
                 <Text style={styles.metaSubtext}>{priceTier}</Text>
               )}
+              {distanceText && (
+                <>
+                  <Text style={styles.metaDot}>{"\u00B7"}</Text>
+                  <Text style={styles.metaSubtext}>{distanceText} away</Text>
+                </>
+              )}
             </View>
-            {distanceText && (
-              <View style={styles.metaRight}>
-                <IconSymbol
-                  name="mappin.circle.fill"
-                  size={14}
-                  color={colors.textMuted}
-                />
-                <Text style={styles.metaDistanceText}>{distanceText}</Text>
-              </View>
-            )}
           </View>
           {addressDisplay ? (
             <Text style={styles.address}>{addressDisplay}</Text>
           ) : null}
+
+          {/* Tags */}
+          {venue.tags && venue.tags.length > 0 && (
+            <View style={styles.tagsRow}>
+              {venue.tags.map((tag: string) => (
+                <View key={tag} style={styles.tagPill}>
+                  <Text style={styles.tagPillText}>{tag}</Text>
+                </View>
+              ))}
+              {window.dow && getDowValues(window).includes(new Date().getDay()) && (
+                <View style={styles.tagPillActive}>
+                  <Text style={styles.tagPillActiveText}>Active today</Text>
+                </View>
+              )}
+            </View>
+          )}
         </View>
 
         <View style={styles.detailRow}>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>When</Text>
+          <View style={styles.detailCard}>
+            <Text style={styles.detailLabel}>WHEN</Text>
             <Text style={styles.detailValue}>
-              {formatTimeRange(window.start_time, window.end_time)}{" "}
-              {window.timezone ? `(${window.timezone})` : ""}
+              {formatTimeRange(window.start_time, window.end_time)}
             </Text>
           </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Days</Text>
+          <View style={styles.detailCard}>
+            <Text style={styles.detailLabel}>DAYS</Text>
             <Text style={styles.detailValue}>{formatDays(window.dow)}</Text>
           </View>
         </View>
@@ -440,28 +450,30 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
           >
             <Text style={styles.actionText}>Add to Itinerary</Text>
           </Pressable>
-          {venue.website && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.actionButton,
-                pressed && styles.actionButtonPressed
-              ]}
-              onPress={openWebsite}
-            >
-              <Text style={styles.actionText}>View Website</Text>
-            </Pressable>
-          )}
-          {venue.phone && (
-            <Pressable
-              style={({ pressed }) => [
-                styles.actionButton,
-                pressed && styles.actionButtonPressed
-              ]}
-              onPress={callVenue}
-            >
-              <Text style={styles.actionText}>Call</Text>
-            </Pressable>
-          )}
+          <View style={styles.actionSecondaryRow}>
+            {venue.website && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.actionButtonSecondary,
+                  pressed && styles.actionButtonPressed
+                ]}
+                onPress={openWebsite}
+              >
+                <Text style={styles.actionSecondaryText}>Website</Text>
+              </Pressable>
+            )}
+            {venue.phone && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.actionButtonSecondary,
+                  pressed && styles.actionButtonPressed
+                ]}
+                onPress={callVenue}
+              >
+                <Text style={styles.actionSecondaryText}>Call</Text>
+              </Pressable>
+            )}
+          </View>
         </View>
       </ScrollView>
 
@@ -592,20 +604,29 @@ const styles = StyleSheet.create({
   heroButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: spacing.md
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  heroButtonBack: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  heroButtonBackText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "700",
   },
   heroButton: {
-    flex: 1,
+    flex: 2,
     backgroundColor: colors.primary,
     borderRadius: 999,
     paddingVertical: spacing.md,
-    alignItems: "center"
-  },
-  heroButtonLeft: {
-    marginRight: spacing.sm
-  },
-  heroButtonRight: {
-    marginLeft: spacing.sm
+    alignItems: "center",
   },
   heroButtonPressed: {
     opacity: 0.9,
@@ -651,61 +672,108 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: spacing.sm
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: spacing.sm,
   },
   metaLeft: {
     flexDirection: "row",
-    alignItems: "center"
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 6,
   },
-  metaItem: {
+  ratingPill: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: spacing.sm
+    backgroundColor: colors.brandSubtle,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    gap: 3,
   },
-  metaText: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: "600",
-    marginLeft: 4
+  ratingPillText: {
+    color: colors.brandDark,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  ratingPillCount: {
+    color: colors.brandDark,
+    fontSize: 11,
+    opacity: 0.7,
   },
   metaSubtext: {
     color: colors.textMuted,
     fontSize: 12,
-    marginRight: spacing.sm
   },
-  metaRight: {
-    flexDirection: "row",
-    alignItems: "center"
-  },
-  metaDistanceText: {
+  metaDot: {
     color: colors.textMuted,
     fontSize: 12,
-    marginLeft: 4
   },
   address: {
-    color: colors.textMuted,
-    fontSize: 13
+    color: colors.textMutedLight,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  tagsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 7,
+    marginTop: spacing.sm,
+  },
+  tagPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: colors.brandSubtle,
+  },
+  tagPillText: {
+    color: colors.brandDark,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  tagPillActive: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: colors.successLight,
+  },
+  tagPillActiveText: {
+    color: colors.success,
+    fontSize: 12,
+    fontWeight: "600",
   },
   detailRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
   },
-  detailItem: {
+  detailCard: {
     flex: 1,
-    marginRight: spacing.md
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    shadowColor: colors.shadowSoft,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 3,
+    elevation: 1,
   },
   detailLabel: {
     color: colors.textMuted,
-    fontSize: 12,
-    marginBottom: 2
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.6,
+    marginBottom: 4,
   },
   detailValue: {
     color: colors.text,
-    fontSize: 13,
-    fontWeight: "500"
+    fontSize: 14,
+    fontWeight: "700",
   },
   menuSection: {
     paddingHorizontal: spacing.lg,
@@ -714,7 +782,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.text,
     fontSize: 18,
-    fontWeight: "700",
+    fontWeight: "800",
     letterSpacing: -0.2,
     marginBottom: spacing.md,
   },
@@ -770,8 +838,9 @@ const styles = StyleSheet.create({
     flex: 1
   },
   menuItemText: {
-    color: colors.textMuted,
-    fontSize: 13
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "500",
   },
   menuItemDescription: {
     color: colors.textMuted,
@@ -827,6 +896,25 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.3,
+  },
+  actionSecondaryRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  actionButtonSecondary: {
+    flex: 1,
+    backgroundColor: "transparent",
+    borderRadius: 999,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  actionSecondaryText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "600",
   }
 });
 
