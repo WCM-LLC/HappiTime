@@ -24,6 +24,8 @@ export const metadata: Metadata = {
     "drink specials",
     "food specials",
     "happy hour near me",
+    "happy hour guide",
+    "bar deals",
   ],
   metadataBase: new URL("https://happitime.biz"),
   alternates: {
@@ -43,6 +45,9 @@ export const metadata: Metadata = {
     title: "HappiTime — Kansas City Happy Hour Guide",
     description:
       "Find the best happy hours in Kansas City. Browse deals by neighborhood.",
+  },
+  verification: {
+    google: "pending",
   },
   robots: {
     index: true,
@@ -145,6 +150,9 @@ function SiteHeader() {
           <a href="/kc/" className="hover:text-foreground transition-colors">
             Kansas City
           </a>
+          <a href="/guides/" className="hover:text-foreground transition-colors">
+            Guides
+          </a>
           <ItineraryBadge />
           <a
             href="https://happitime-console.vercel.app/login"
@@ -198,6 +206,22 @@ function SiteFooter() {
             className="hover:text-foreground transition-colors"
           >
             Instagram
+          </a>
+          <a
+            href="https://www.facebook.com/profile.php?id=61570674155925"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground transition-colors"
+          >
+            Facebook
+          </a>
+          <a
+            href="https://www.tiktok.com/@happitime.biz"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground transition-colors"
+          >
+            TikTok
           </a>
         </div>
       </div>

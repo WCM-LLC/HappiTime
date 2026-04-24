@@ -35,12 +35,33 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!venue) return {};
 
   const windowCount = venue.happy_hour_windows.length;
+  const days = [
+    ...new Set(
+      venue.happy_hour_windows.flatMap((w) =>
+        w.dow.map(
+          (d) =>
+            ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][Number(d)]
+        )
+      )
+    ),
+  ];
+  const dayList = days.length > 0 ? days.slice(0, 3).join(", ") : "select days";
+
   return {
-    title: `${venue.name} Happy Hour — Deals, Menu & Times`,
-    description: `${venue.name} at ${venue.address} has ${windowCount} happy hour ${windowCount === 1 ? "special" : "specials"}. See the full menu, times, and deals.`,
+    title: `${venue.name} Happy Hour Specials & Deals — ${venue.city} | HappiTime`,
+    description: `${venue.name} at ${venue.address} has ${windowCount} happy hour ${windowCount === 1 ? "special" : "specials"} on ${dayList}. See today's drink specials, food deals, full menu, and times for 2026.`,
+    keywords: [
+      `${venue.name} happy hour`,
+      `${venue.name} specials`,
+      `${venue.name} deals`,
+      `${venue.city} happy hour`,
+      "happy hour menu",
+      "drink specials",
+      "food deals",
+    ],
     openGraph: {
-      title: `${venue.name} Happy Hour — HappiTime`,
-      description: `Happy hour deals at ${venue.name}, ${venue.city}`,
+      title: `${venue.name} Happy Hour Specials — HappiTime`,
+      description: `Happy hour deals at ${venue.name}, ${venue.city} — ${windowCount} ${windowCount === 1 ? "special" : "specials"} with drink and food deals.`,
     },
   };
 }
