@@ -2,6 +2,7 @@ import OAuthButtons from '@/components/OAuthButtons';
 import { Logo } from '@/components/ui/Logo';
 import { login, signup } from '../../actions/login-actions';
 
+
 export default async function LoginPage({
   searchParams,
 }: {
@@ -19,8 +20,6 @@ export default async function LoginPage({
     <main className="min-h-screen flex bg-background">
       {/* ── Left brand panel ── */}
       <div className="hidden lg:flex w-[380px] shrink-0 bg-dark flex-col justify-between p-12">
-        <Logo height={26} variant="light" />
-
         <div>
           <h2 className="text-[1.75rem] font-extrabold text-white leading-[1.15] tracking-tight mb-4">
             {isAdminLogin
@@ -34,28 +33,16 @@ export default async function LoginPage({
           </p>
         </div>
 
-        {!isAdminLogin && (
-          <div className="flex gap-6">
-            {[
-              { n: '2,400+', l: 'Venues listed' },
-              { n: '18K+', l: 'Monthly users' },
-              { n: 'KC-first', l: 'Local focus' },
-            ].map((s) => (
-              <div key={s.l}>
-                <div className="text-[1.125rem] font-extrabold text-brand leading-none">{s.n}</div>
-                <div className="text-caption text-muted mt-1">{s.l}</div>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Spacer to keep vertical balance */}
+        <div />
       </div>
 
       {/* ── Right form panel ── */}
       <div className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-[360px] flex flex-col gap-6">
-          {/* Mobile-only logo */}
-          <div className="flex justify-center lg:hidden">
-            <Logo height={32} />
+          {/* Logo above heading */}
+          <div className="flex justify-center lg:justify-start">
+            <Logo height={40} />
           </div>
 
           {/* Heading */}
