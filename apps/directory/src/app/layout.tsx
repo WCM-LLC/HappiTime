@@ -153,7 +153,7 @@ function SiteHeader() {
             Venue Login
           </a>
           <a
-            href="https://apps.apple.com"
+            href="/app/"
             className="rounded-full bg-brand px-4 py-2 text-white font-semibold text-xs hover:bg-brand-dark transition-colors"
           >
             Get the App
