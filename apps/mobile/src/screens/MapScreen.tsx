@@ -128,7 +128,16 @@ export const MapScreen: React.FC = () => {
 
   const handleCardPress = () => {
     if (!selectedWindow) return;
-    navigation.navigate("HappyHourDetail", { windowId: selectedWindow.id });
+    const venueId = selectedWindow.venue_id ?? selectedWindow.venue?.id;
+    if (venueId) {
+      navigation.navigate("VenuePreview", { venueId });
+    } else {
+      navigation.navigate("HappyHourDetail", { windowId: selectedWindow.id });
+    }
+  };
+
+  const handleDismissCard = () => {
+    setSelectedWindow(null);
   };
 
   const handleRecenter = () => {
@@ -258,6 +267,7 @@ export const MapScreen: React.FC = () => {
             if (venueId) toggleFollow(venueId);
           }}
           onPress={handleCardPress}
+          onDismiss={handleDismissCard}
           width={width}
         />
       )}
@@ -270,6 +280,7 @@ type VenueCalloutCardProps = {
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onPress: () => void;
+  onDismiss: () => void;
   width: number;
 };
 
@@ -278,6 +289,7 @@ const VenueCalloutCard: React.FC<VenueCalloutCardProps> = ({
   isFavorite,
   onToggleFavorite,
   onPress,
+  onDismiss,
   width,
 }) => {
   const { titleText, subtitleText } = getHappyHourDisplayNames(window);
@@ -290,16 +302,21 @@ const VenueCalloutCard: React.FC<VenueCalloutCardProps> = ({
     (window as any).end_time ?? null
   );
   const address = venue?.address ?? null;
+  const cuisine = (venue as any)?.cuisine_type ?? null;
+  const tags = (venue?.tags ?? []).slice(0, 3);
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.calloutCard,
         { width: width - spacing.lg * 2 },
-        pressed && styles.calloutCardPressed,
       ]}
     >
+      {/* Drag handle / dismiss indicator */}
+      <View style={styles.calloutHandle}>
+        <View style={styles.calloutHandleBar} />
+      </View>
+
       <View style={styles.calloutHeader}>
         <View style={{ flex: 1 }}>
           <Text style={styles.calloutTitle} numberOfLines={1}>
@@ -311,24 +328,56 @@ const VenueCalloutCard: React.FC<VenueCalloutCardProps> = ({
             </Text>
           )}
         </View>
-        <Pressable
-          onPress={(e) => {
-            e.stopPropagation();
-            onToggleFavorite();
-          }}
-          hitSlop={10}
-          style={({ pressed }) => [
-            styles.calloutHeart,
-            pressed && { opacity: 0.6 },
-          ]}
-        >
-          <IconSymbol
-            name={isFavorite ? "heart.fill" : "heart"}
-            size={22}
-            color={isFavorite ? colors.primary : colors.textMutedLight}
-          />
-        </Pressable>
+        <View style={styles.calloutHeaderActions}>
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              onToggleFavorite();
+            }}
+            hitSlop={10}
+            style={({ pressed }) => [
+              styles.calloutHeart,
+              pressed && { opacity: 0.6 },
+            ]}
+          >
+            <IconSymbol
+              name={isFavorite ? "heart.fill" : "heart"}
+              size={22}
+              color={isFavorite ? colors.primary : colors.textMutedLight}
+            />
+          </Pressable>
+          <Pressable
+            onPress={onDismiss}
+            hitSlop={10}
+            style={({ pressed }) => [
+              styles.calloutDismiss,
+              pressed && { opacity: 0.6 },
+            ]}
+          >
+            <IconSymbol name="xmark" size={14} color={colors.textMuted} />
+          </Pressable>
+        </View>
       </View>
+
+      {/* Cuisine + tags */}
+      {(cuisine || tags.length > 0) && (
+        <View style={styles.calloutTags}>
+          {cuisine && (
+            <View style={styles.calloutCuisineBadge}>
+              <Text style={styles.calloutCuisineText}>
+                {cuisine.replace(/[_-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+              </Text>
+            </View>
+          )}
+          {tags.map((tag: string) => (
+            <View key={tag} style={styles.calloutTagBadge}>
+              <Text style={styles.calloutTagText}>
+                {tag.replace(/[_-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       <View style={styles.calloutMeta}>
         {rating != null && (
@@ -352,10 +401,18 @@ const VenueCalloutCard: React.FC<VenueCalloutCardProps> = ({
       )}
 
       <View style={styles.calloutFooter}>
-        <Text style={styles.calloutCta}>View details</Text>
-        <IconSymbol name="chevron.right" size={12} color={colors.primary} />
+        <Pressable
+          onPress={onPress}
+          style={({ pressed }) => [
+            styles.calloutExpandButton,
+            pressed && { opacity: 0.85 },
+          ]}
+        >
+          <Text style={styles.calloutExpandText}>View venue</Text>
+          <IconSymbol name="chevron.right" size={12} color="#FFFFFF" />
+        </Pressable>
       </View>
-    </Pressable>
+    </View>
   );
 };
 
@@ -466,8 +523,9 @@ const styles = StyleSheet.create({
     bottom: spacing.xl + 20,
     alignSelf: "center",
     backgroundColor: colors.surface,
-    borderRadius: 14,
+    borderRadius: 18,
     padding: spacing.lg,
+    paddingTop: spacing.sm,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     shadowColor: colors.shadowMedium,
@@ -476,14 +534,26 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  calloutCardPressed: {
-    opacity: 0.95,
-    transform: [{ scale: 0.99 }],
+  calloutHandle: {
+    alignItems: "center",
+    paddingBottom: spacing.sm,
+  },
+  calloutHandleBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.border,
   },
   calloutHeader: {
     flexDirection: "row",
     alignItems: "flex-start",
     marginBottom: spacing.xs,
+  },
+  calloutHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginLeft: spacing.sm,
   },
   calloutTitle: {
     fontSize: 17,
@@ -499,7 +569,45 @@ const styles = StyleSheet.create({
   },
   calloutHeart: {
     padding: 4,
-    marginLeft: spacing.sm,
+  },
+  calloutDismiss: {
+    padding: 4,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  calloutTags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: spacing.xs,
+  },
+  calloutCuisineBadge: {
+    backgroundColor: colors.brandSubtle,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  calloutCuisineText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.brand,
+  },
+  calloutTagBadge: {
+    backgroundColor: colors.background,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+  },
+  calloutTagText: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: colors.textMuted,
   },
   calloutMeta: {
     flexDirection: "row",
@@ -525,14 +633,24 @@ const styles = StyleSheet.create({
   calloutFooter: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.border,
     paddingTop: spacing.sm,
   },
-  calloutCta: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.primary,
+  calloutExpandButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingVertical: spacing.sm + 2,
+  },
+  calloutExpandText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
 });

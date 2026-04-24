@@ -22,7 +22,7 @@ export function NeighborhoodVenues({
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   // Filter venues: if a day is selected, only show venues with a window on that day
-  const filteredVenues =
+  const dayFiltered =
     selectedDay !== null
       ? venues.filter((v) =>
           v.happy_hour_windows.some((w) =>
@@ -30,6 +30,14 @@ export function NeighborhoodVenues({
           )
         )
       : venues;
+
+  // Sort promoted venues to the top, then by name
+  const filteredVenues = [...dayFiltered].sort((a, b) => {
+    const aPrio = a.promotion_priority ?? 0;
+    const bPrio = b.promotion_priority ?? 0;
+    if (aPrio !== bPrio) return bPrio - aPrio;
+    return a.name.localeCompare(b.name);
+  });
 
   // The active day for highlighting — selected day, or today if nothing selected
   const activeDay = selectedDay ?? todayIndex;

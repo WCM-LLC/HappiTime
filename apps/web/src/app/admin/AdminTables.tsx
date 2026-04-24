@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState, useTransition } from 'react';
-import { adminToggleWindow, adminToggleVenueStatus } from '@/actions/admin-actions';
+import { adminToggleWindow, adminToggleVenueStatus, adminSetPromotionTier, type PromotionTier } from '@/actions/admin-actions';
 
 export type OrgRow = {
   id: string;
@@ -21,6 +21,8 @@ export type VenueRow = {
   city: string | null;
   state: string | null;
   status: string | null;
+  promotion_tier: string | null;
+  promotion_priority: number;
   media_count: number;
   hh_count: number;
   created_at: string;
@@ -81,6 +83,16 @@ const tdCls = 'px-4 py-3 text-body-sm align-middle';
 const linkCls = 'text-brand font-semibold text-caption whitespace-nowrap hover:text-brand-dark transition-colors';
 const badgeGreen = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-success-light text-success';
 const badgeGray = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-background text-muted';
+const badgeFeatured = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-brand-subtle text-brand-text';
+const badgePremium = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-[#EDE9FE] text-[#6D28D9]';
+const badgeBasic = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-[#DBEAFE] text-[#2563EB]';
+
+function getPromoBadge(tier: string | null) {
+  if (tier === 'featured') return { cls: badgeFeatured, label: '★ Featured' };
+  if (tier === 'premium') return { cls: badgePremium, label: 'Premium' };
+  if (tier === 'basic') return { cls: badgeBasic, label: 'Basic' };
+  return { cls: badgeGray, label: 'Free' };
+}
 const tableWrap = 'overflow-x-auto rounded-lg border border-border bg-surface shadow-sm';
 const tableCls = 'w-full border-collapse text-body-sm';
 
@@ -187,12 +199,22 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
   const { sorted, col, dir, toggle } = useSort(venues, 'org_name');
   const [pending, startTransition] = useTransition();
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [promoUpdatingId, setPromoUpdatingId] = useState<string | null>(null);
 
   function handleStatusToggle(v: VenueRow) {
     setTogglingId(v.id);
     startTransition(async () => {
       try { await adminToggleVenueStatus(v.id, v.status); } catch { /* service role not configured */ }
       setTogglingId(null);
+    });
+  }
+
+  function handleTierChange(v: VenueRow, newTier: string) {
+    const tier = newTier === '' ? null : newTier as PromotionTier;
+    setPromoUpdatingId(v.id);
+    startTransition(async () => {
+      try { await adminSetPromotionTier(v.id, tier); } catch { /* service role not configured */ }
+      setPromoUpdatingId(null);
     });
   }
 
@@ -204,7 +226,8 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
             <SortHeader label="Venue" col="org_name" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Location" col="city" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Status" col="status" active={col} dir={dir} onClick={toggle} />
-            <SortHeader label="Media" col="media_count" active={col} dir={dir} onClick={toggle} />
+            <SortHeader label="Tier" col="promotion_tier" active={col} dir={dir} onClick={toggle} />
+            <SortHeader label="Priority" col="promotion_priority" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="HH Windows" col="hh_count" active={col} dir={dir} onClick={toggle} />
             <SortHeader label="Created" col="created_at" active={col} dir={dir} onClick={toggle} />
             <th className={thCls}></th>
@@ -215,6 +238,8 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
             const displayName = v.org_name || v.name;
             const locationLabel = v.org_name && v.org_name !== v.name ? v.name : null;
             const isToggling = togglingId === v.id;
+            const isPromoUpdating = promoUpdatingId === v.id;
+            const promo = getPromoBadge(v.promotion_tier);
             return (
               <tr key={v.id} className="border-b border-border last:border-b-0 hover:bg-background/50 transition-colors">
                 <td className={tdCls}>
@@ -234,7 +259,21 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
                   </button>
                 </td>
                 <td className={tdCls}>
-                  {v.media_count > 0 ? <span className={badgeGreen}>{v.media_count}</span> : <span className="text-muted">0</span>}
+                  <select
+                    value={v.promotion_tier ?? ''}
+                    onChange={(e) => handleTierChange(v, e.target.value)}
+                    disabled={isPromoUpdating || pending}
+                    className={`${promo.cls} cursor-pointer border-none appearance-none pr-5 bg-no-repeat bg-[right_4px_center] bg-[length:12px] transition-opacity ${isPromoUpdating ? 'opacity-50' : ''}`}
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%236B6B6B' stroke-width='1.5'/%3E%3C/svg%3E")` }}
+                  >
+                    <option value="">Free</option>
+                    <option value="basic">Basic</option>
+                    <option value="premium">Premium</option>
+                    <option value="featured">★ Featured</option>
+                  </select>
+                </td>
+                <td className={`${tdCls} tabular-nums text-center`}>
+                  {v.promotion_priority > 0 ? v.promotion_priority : '—'}
                 </td>
                 <td className={tdCls}>
                   {v.hh_count > 0 ? <span className={badgeGreen}>{v.hh_count}</span> : <span className="text-muted">0</span>}
@@ -248,7 +287,7 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
           })}
           {sorted.length === 0 && (
             <tr>
-              <td colSpan={7} className={`${tdCls} text-muted text-center py-8`}>No venues yet</td>
+              <td colSpan={8} className={`${tdCls} text-muted text-center py-8`}>No venues yet</td>
             </tr>
           )}
         </tbody>

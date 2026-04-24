@@ -25,12 +25,40 @@ export function VenueCard({ venue, neighborhoodSlug, todayIndex }: VenueCardProp
     w.dow.map(Number).includes(todayIndex)
   );
   const hasHappyHourToday = todayWindows.length > 0;
+  const promoTier = venue.promotion_tier;
+  const isPromoted = promoTier != null;
+
+  const promoBorderClass =
+    promoTier === "featured" ? "border-brand bg-[#FFF8F0]"
+    : promoTier === "premium" ? "border-[#8B5CF6] bg-[#F5F3FF]"
+    : promoTier === "basic" ? "border-[#60A5FA] bg-[#EFF6FF]"
+    : "border-border bg-surface";
+
+  const promoBadgeClass =
+    promoTier === "featured" ? "bg-brand text-white"
+    : promoTier === "premium" ? "bg-[#7C3AED] text-white"
+    : "bg-[#2563EB] text-white";
+
+  const promoLabel =
+    promoTier === "featured" ? "★ Featured"
+    : promoTier === "premium" ? "Premium"
+    : promoTier === "basic" ? "Promoted"
+    : null;
 
   return (
     <a
       href={`/kc/${neighborhoodSlug}/${venue.slug}/`}
-      className="group block rounded-2xl border border-border bg-surface p-5 hover:border-brand hover:shadow-md transition-all"
+      className={`group block rounded-2xl border ${isPromoted ? promoBorderClass : "border-border bg-surface"} p-5 hover:border-brand hover:shadow-md transition-all ${isPromoted ? "border-[1.5px]" : ""}`}
     >
+      {/* Promotion badge */}
+      {isPromoted && promoLabel && (
+        <div className="mb-2">
+          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${promoBadgeClass}`}>
+            {promoLabel}
+          </span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0">
@@ -51,15 +79,25 @@ export function VenueCard({ venue, neighborhoodSlug, todayIndex }: VenueCardProp
         </div>
       </div>
 
-      {/* Today badge */}
-      {hasHappyHourToday && (
-        <div className="mb-3">
+      {/* Today badge + cuisine */}
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        {hasHappyHourToday && (
           <span className="inline-flex items-center gap-1 rounded-full bg-brand-subtle px-2.5 py-1 text-xs font-semibold text-brand-text">
             <span className="w-1.5 h-1.5 rounded-full bg-brand" />
             Happy hour today
           </span>
-        </div>
-      )}
+        )}
+        {venue.cuisine_type && (
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+            {venue.cuisine_type.replace(/[_-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
+          </span>
+        )}
+        {venue.venue_events.length > 0 && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700">
+            {venue.venue_events.length} event{venue.venue_events.length > 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
 
       {/* Windows */}
       <div className="space-y-2">

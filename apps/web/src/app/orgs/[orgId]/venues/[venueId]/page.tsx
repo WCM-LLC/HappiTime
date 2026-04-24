@@ -22,6 +22,14 @@ import {
   updateItem,
   deleteItem,
 } from '../../../../../actions/venue-actions';
+import {
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  publishEvent,
+  unpublishEvent,
+  updateVenueTags,
+} from '../../../../../actions/event-actions';
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -83,9 +91,57 @@ type EventCount = {
   cnt: number;
 };
 
+type VenueEventRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  event_type: string;
+  status: string;
+  starts_at: string;
+  ends_at: string | null;
+  is_recurring: boolean;
+  recurrence_rule: string | null;
+  timezone: string;
+  price_info: string | null;
+  external_url: string | null;
+  ticket_url: string | null;
+  capacity: number | null;
+  location_override: string | null;
+};
+
+type ApprovedTagRow = {
+  id: string;
+  slug: string;
+  label: string;
+  category: string;
+  sort_order: number;
+};
+
+type VenueTagRow = {
+  tag_id: string;
+};
+
 function timeForInput(t: string) {
   if (!t) return '';
   return t.length >= 5 ? t.slice(0, 5) : t;
+}
+
+/** Parse an iCalendar RRULE BYDAY list back to numeric DOW indices (0=Sun..6=Sat) */
+function parseRruleDow(rule: string | null): number[] {
+  if (!rule) return [];
+  const match = rule.match(/BYDAY=([A-Z,]+)/);
+  if (!match) return [];
+  const dayMap: Record<string, number> = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+  return match[1].split(',').map((d) => dayMap[d]).filter((n) => n !== undefined);
+}
+
+/** Human-readable summary of a recurrence rule */
+function formatRecurrence(rule: string | null): string {
+  if (!rule) return 'Recurring';
+  const days = parseRruleDow(rule);
+  if (days.length === 0) return 'Recurring';
+  const labels = days.map((d) => DOW[d]);
+  return `Every ${labels.join(', ')}`;
 }
 
 function formatDays(days: number[]) {
@@ -203,6 +259,34 @@ export default async function VenuePage({
     .eq('venue_id', venueId)
     .order('cnt', { ascending: false })
     .limit(20);
+
+  // Venue events
+  const { data: venueEvents } = await supabase
+    .from('venue_events')
+    .select('id,title,description,event_type,status,starts_at,ends_at,is_recurring,recurrence_rule,timezone,price_info,external_url,ticket_url,capacity,location_override')
+    .eq('venue_id', venueId)
+    .order('starts_at', { ascending: true });
+
+  // Approved tags
+  const { data: approvedTags } = await supabase
+    .from('approved_tags')
+    .select('id,slug,label,category,sort_order')
+    .eq('is_active', true)
+    .order('category')
+    .order('sort_order');
+
+  // Current venue tags
+  const { data: currentVenueTags } = await supabase
+    .from('venue_tags')
+    .select('tag_id')
+    .eq('venue_id', venueId);
+
+  // Current venue cuisine type
+  const { data: venueExtra } = await supabase
+    .from('venues')
+    .select('cuisine_type')
+    .eq('id', venueId)
+    .single();
 
   const v = venue as (Venue & { org_name?: string | null }) | null;
   const menuList = (menus as Menu[] | null) ?? [];
@@ -797,6 +881,358 @@ export default async function VenuePage({
               <p className="text-body-sm text-muted mt-1">Create your first menu above to start building.</p>
             </div>
           )}
+        </div>
+
+        {/* ══════════════════════════════════════════════
+            SECTION 3B — TAGS & CUISINE
+        ══════════════════════════════════════════════ */}
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+          <div className="mb-5">
+            <h2 className="text-heading-sm font-semibold text-foreground">Tags &amp; Cuisine</h2>
+            <p className="text-body-sm text-muted mt-0.5">Select tags from the approved pool to help people find your venue.</p>
+          </div>
+
+          {canManageVenue ? (
+            <form className="flex flex-col gap-5">
+              {/* Cuisine type */}
+              <div>
+                <label htmlFor="cuisine-type" className="text-body-sm font-medium text-foreground block mb-1.5">Primary cuisine</label>
+                <select id="cuisine-type" name="cuisine_type" defaultValue={(venueExtra as any)?.cuisine_type ?? ''} className={selectCls}>
+                  <option value="">None selected</option>
+                  {(approvedTags as ApprovedTagRow[] | null)
+                    ?.filter((t) => t.category === 'cuisine')
+                    .map((t) => (
+                      <option key={t.id} value={t.slug}>{t.label}</option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Tags by category */}
+              {['cuisine', 'vibe', 'feature', 'drink_type'].map((cat) => {
+                const catTags = (approvedTags as ApprovedTagRow[] | null)?.filter((t) => t.category === cat) ?? [];
+                if (catTags.length === 0) return null;
+                const selectedIds = new Set((currentVenueTags as VenueTagRow[] | null)?.map((vt) => vt.tag_id) ?? []);
+                const catLabel = cat === 'drink_type' ? 'Drink Type' : cat.charAt(0).toUpperCase() + cat.slice(1);
+
+                return (
+                  <div key={cat}>
+                    <p className="text-caption font-medium text-muted mb-2">{catLabel}</p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-2">
+                      {catTags.map((tag) => (
+                        <label key={tag.id} className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name="tag_ids"
+                            value={tag.id}
+                            defaultChecked={selectedIds.has(tag.id)}
+                            className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                          />
+                          {tag.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div>
+                <button formAction={updateVenueTags.bind(null, orgId, venueId)} className={btnPrimary}>
+                  Save tags
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {(currentVenueTags as VenueTagRow[] | null)?.length ? (
+                (approvedTags as ApprovedTagRow[] | null)
+                  ?.filter((t) => (currentVenueTags as VenueTagRow[]).some((vt) => vt.tag_id === t.id))
+                  .map((t) => (
+                    <span key={t.id} className="inline-flex items-center rounded-full bg-brand-subtle px-2.5 py-1 text-caption font-medium text-brand-text">
+                      {t.label}
+                    </span>
+                  ))
+              ) : (
+                <p className="text-caption text-muted">No tags assigned yet.</p>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* ══════════════════════════════════════════════
+            SECTION 3C — EVENTS
+        ══════════════════════════════════════════════ */}
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+          <div className="mb-5">
+            <h2 className="text-heading-sm font-semibold text-foreground">Events</h2>
+            <p className="text-body-sm text-muted mt-0.5">Upcoming events, specials, live music, trivia, and more.</p>
+          </div>
+
+          {(venueEvents as VenueEventRow[] | null)?.length ? (
+            <div className="flex flex-col gap-4">
+              {(venueEvents as VenueEventRow[]).map((ev) => {
+                const isPublished = ev.status === 'published';
+                const statusColor = isPublished
+                  ? 'bg-success-light text-success'
+                  : 'bg-warning-light text-warning';
+                const eventDate = new Date(ev.starts_at);
+                const dateStr = eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+                const timeStr = eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+                return (
+                  <div key={ev.id} className="rounded-lg border border-border bg-background p-5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-md bg-brand-subtle flex items-center justify-center shrink-0">
+                          <span className="text-heading-sm font-bold text-brand-dark">&#127881;</span>
+                        </div>
+                        <div>
+                          <h3 className="text-body-md font-semibold text-foreground">{ev.title}</h3>
+                          <p className="text-body-sm text-muted mt-0.5">
+                            {ev.is_recurring ? formatRecurrence(ev.recurrence_rule) : dateStr} at {timeStr}
+                            {ev.ends_at && ` – ${new Date(ev.ends_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
+                            {ev.event_type !== 'event' && <span className="text-muted-light"> · {ev.event_type.replace('_', ' ')}</span>}
+                          </p>
+                          {ev.price_info && <p className="text-caption text-muted mt-0.5">{ev.price_info}</p>}
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${statusColor}`}>
+                              {isPublished ? 'Published' : 'Draft'}
+                            </span>
+                            {ev.is_recurring && (
+                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-brand-subtle text-brand-dark">
+                                &#x1f501; Recurring
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {canManageVenue ? (
+                        <form>
+                          <input type="hidden" name="event_id" value={ev.id} />
+                          {isPublished ? (
+                            <button className={btnSecondary} formAction={unpublishEvent.bind(null, orgId, venueId)}>
+                              Unpublish
+                            </button>
+                          ) : (
+                            <button className={btnPrimary} formAction={publishEvent.bind(null, orgId, venueId)}>
+                              Publish
+                            </button>
+                          )}
+                        </form>
+                      ) : null}
+                    </div>
+
+                    {canManageVenue ? (
+                      <div className="border-t border-border mt-4 pt-4">
+                        <form className="flex flex-col gap-4">
+                          <input type="hidden" name="event_id" value={ev.id} />
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-caption font-medium text-muted block mb-1">Title</label>
+                              <input name="event_title" defaultValue={ev.title} required className={inputCls} />
+                            </div>
+                            <div>
+                              <label className="text-caption font-medium text-muted block mb-1">Type</label>
+                              <select name="event_type" defaultValue={ev.event_type} className={selectCls}>
+                                <option value="event">Event</option>
+                                <option value="special">Special</option>
+                                <option value="live_music">Live Music</option>
+                                <option value="trivia">Trivia</option>
+                                <option value="sports">Sports</option>
+                                <option value="other">Other</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="text-caption font-medium text-muted block mb-1">Description</label>
+                            <textarea name="event_description" defaultValue={ev.description ?? ''} rows={2} className={inputCls + ' h-auto py-2'} />
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div>
+                              <label className="text-caption font-medium text-muted block mb-1">Starts at</label>
+                              <input name="starts_at" type="datetime-local" defaultValue={ev.starts_at.slice(0, 16)} required className={inputCls} />
+                            </div>
+                            <div>
+                              <label className="text-caption font-medium text-muted block mb-1">Ends at</label>
+                              <input name="ends_at" type="datetime-local" defaultValue={ev.ends_at?.slice(0, 16) ?? ''} className={inputCls} />
+                            </div>
+                            <div>
+                              <label className="text-caption font-medium text-muted block mb-1">Price info</label>
+                              <input name="price_info" defaultValue={ev.price_info ?? ''} placeholder="e.g., Free, $10" className={inputCls} />
+                            </div>
+                            <div>
+                              <label className="text-caption font-medium text-muted block mb-1">Capacity</label>
+                              <input name="capacity" type="number" defaultValue={ev.capacity ?? ''} className={inputCls} />
+                            </div>
+                          </div>
+
+                          {/* ── Recurring schedule ── */}
+                          <div className="rounded-md border border-border bg-surface p-4">
+                            <label className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer mb-3">
+                              <input
+                                type="checkbox"
+                                name="is_recurring"
+                                defaultChecked={ev.is_recurring}
+                                className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                              />
+                              <span className="font-medium">Recurring event</span>
+                              <span className="text-caption text-muted">(repeats on selected days, like happy hours)</span>
+                            </label>
+
+                            <div>
+                              <p className="text-caption font-medium text-muted mb-2">Repeat on</p>
+                              <div className="flex flex-wrap gap-x-4 gap-y-2">
+                                {DOW.map((d, i) => {
+                                  const rruleDow = parseRruleDow(ev.recurrence_rule);
+                                  return (
+                                    <label key={d} className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
+                                      <input
+                                        type="checkbox"
+                                        name="event_dow"
+                                        value={i}
+                                        defaultChecked={rruleDow.includes(i)}
+                                        className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                                      />
+                                      {d}
+                                    </label>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            <div className="mt-3">
+                              <label className="text-caption font-medium text-muted block mb-1">Timezone</label>
+                              <input name="timezone" defaultValue={ev.timezone ?? 'America/Chicago'} className={inputCls + ' max-w-xs'} />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="text-caption font-medium text-muted block mb-1">External URL</label>
+                              <input name="external_url" type="url" defaultValue={ev.external_url ?? ''} placeholder="https://..." className={inputCls} />
+                            </div>
+                            <div>
+                              <label className="text-caption font-medium text-muted block mb-1">Ticket URL</label>
+                              <input name="ticket_url" type="url" defaultValue={ev.ticket_url ?? ''} placeholder="https://..." className={inputCls} />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button className={btnSecondary} formAction={updateEvent.bind(null, orgId, venueId)}>
+                              Save
+                            </button>
+                            <button className={btnDanger} formAction={deleteEvent.bind(null, orgId, venueId)}>
+                              Delete
+                            </button>
+                          </div>
+                        </form>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-border-strong bg-background/50 p-8 text-center">
+              <div className="text-muted-light text-display-md mb-2">&#127881;</div>
+              <p className="text-body-sm font-medium text-foreground">No events yet</p>
+              <p className="text-body-sm text-muted mt-1">Add your first event below to promote specials, live music, trivia, and more.</p>
+            </div>
+          )}
+
+          {/* Create new event */}
+          {canManageVenue ? (
+            <div className="border-t border-border mt-6 pt-6">
+              <p className="text-body-sm font-medium text-foreground mb-3">Add a new event</p>
+              <form className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-caption font-medium text-muted block mb-1">Title</label>
+                    <input name="event_title" placeholder="e.g., Live Jazz Night" required className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium text-muted block mb-1">Type</label>
+                    <select name="event_type" className={selectCls}>
+                      <option value="event">Event</option>
+                      <option value="special">Special</option>
+                      <option value="live_music">Live Music</option>
+                      <option value="trivia">Trivia</option>
+                      <option value="sports">Sports</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-caption font-medium text-muted block mb-1">Description</label>
+                  <textarea name="event_description" placeholder="What's happening?" rows={2} className={inputCls + ' h-auto py-2'} />
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div>
+                    <label className="text-caption font-medium text-muted block mb-1">Starts at</label>
+                    <input name="starts_at" type="datetime-local" required className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium text-muted block mb-1">Ends at</label>
+                    <input name="ends_at" type="datetime-local" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium text-muted block mb-1">Price info</label>
+                    <input name="price_info" placeholder="e.g., Free, $5 cover" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium text-muted block mb-1">Capacity</label>
+                    <input name="capacity" type="number" placeholder="Optional" className={inputCls} />
+                  </div>
+                </div>
+
+                {/* ── Recurring schedule ── */}
+                <div className="rounded-md border border-border bg-surface p-4">
+                  <label className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer mb-3">
+                    <input
+                      type="checkbox"
+                      name="is_recurring"
+                      className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                    />
+                    <span className="font-medium">Recurring event</span>
+                    <span className="text-caption text-muted">(repeats weekly on selected days)</span>
+                  </label>
+
+                  <div>
+                    <p className="text-caption font-medium text-muted mb-2">Repeat on</p>
+                    <div className="flex flex-wrap gap-x-4 gap-y-2">
+                      {DOW.map((d, i) => (
+                        <label key={d} className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
+                          <input
+                            type="checkbox"
+                            name="event_dow"
+                            value={i}
+                            className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                          />
+                          {d}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <label className="text-caption font-medium text-muted block mb-1">Timezone</label>
+                    <input name="timezone" defaultValue={v?.timezone ?? 'America/Chicago'} className={inputCls + ' max-w-xs'} />
+                  </div>
+                </div>
+
+                <div>
+                  <button formAction={createEvent.bind(null, orgId, venueId)} className={btnPrimary}>
+                    Add event (draft)
+                  </button>
+                </div>
+              </form>
+            </div>
+          ) : null}
         </div>
 
         {/* ══════════════════════════════════════════════

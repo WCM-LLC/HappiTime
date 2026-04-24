@@ -69,6 +69,17 @@ export const colors = {
   darkForeground: "#F5F5F3",
   darkMuted: "#A3A3A3",
 
+  /* ── Promotion tiers ── */
+  promoFeaturedBg: "#FFF8F0",
+  promoFeaturedBorder: "#C8965A",
+  promoFeaturedBadge: "#C8965A",
+  promoPremiumBg: "#F5F3FF",
+  promoPremiumBorder: "#8B5CF6",
+  promoPremiumBadge: "#7C3AED",
+  promoBasicBg: "#EFF6FF",
+  promoBasicBorder: "#60A5FA",
+  promoBasicBadge: "#2563EB",
+
   /* ── Shadows ── */
   shadowSoft: "rgba(26, 26, 26, 0.06)",
   shadowMedium: "rgba(26, 26, 26, 0.12)",

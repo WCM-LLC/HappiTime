@@ -14,9 +14,37 @@ export type VenueWithWindows = {
   price_tier: number | null;
   rating: number | null;
   tags: string[];
+  cuisine_type: string | null;
   phone: string | null;
   website: string | null;
+  promotion_tier: string | null;
+  promotion_priority: number;
   happy_hour_windows: HappyHourWindow[];
+  venue_events: VenueEvent[];
+  venue_media: VenueMediaItem[];
+};
+
+export type VenueEvent = {
+  id: string;
+  title: string;
+  description: string | null;
+  event_type: string;
+  starts_at: string;
+  ends_at: string | null;
+  is_recurring: boolean;
+  recurrence_rule: string | null;
+  price_info: string | null;
+  external_url: string | null;
+  ticket_url: string | null;
+  cover_image_path: string | null;
+};
+
+export type VenueMediaItem = {
+  id: string;
+  type: string;
+  title: string | null;
+  storage_path: string;
+  sort_order: number;
 };
 
 export type HappyHourWindow = {
@@ -50,7 +78,8 @@ export type MenuItem = {
 
 const VENUE_FIELDS = `
   id, name, slug, address, city, state, neighborhood,
-  lat, lng, price_tier, rating, tags, phone, website
+  lat, lng, price_tier, rating, tags, cuisine_type, phone, website,
+  promotion_tier, promotion_priority
 `;
 
 const WINDOW_FIELDS = `id, label, dow, start_time, end_time, status`;
@@ -68,6 +97,29 @@ function shapeVenue(raw: any): VenueWithWindows {
     menu_items: [] as MenuItem[],
   }));
 
+  const events = (raw.venue_events ?? []).map((e: any) => ({
+    id: e.id,
+    title: e.title,
+    description: e.description ?? null,
+    event_type: e.event_type,
+    starts_at: e.starts_at,
+    ends_at: e.ends_at ?? null,
+    is_recurring: e.is_recurring ?? false,
+    recurrence_rule: e.recurrence_rule ?? null,
+    price_info: e.price_info ?? null,
+    external_url: e.external_url ?? null,
+    ticket_url: e.ticket_url ?? null,
+    cover_image_path: e.cover_image_path ?? null,
+  }));
+
+  const media = (raw.venue_media ?? []).map((m: any) => ({
+    id: m.id,
+    type: m.type,
+    title: m.title ?? null,
+    storage_path: m.storage_path,
+    sort_order: m.sort_order,
+  }));
+
   return {
     id: raw.id,
     name: raw.name,
@@ -81,9 +133,14 @@ function shapeVenue(raw: any): VenueWithWindows {
     price_tier: raw.price_tier ?? null,
     rating: raw.rating != null ? Number(raw.rating) : null,
     tags: raw.tags ?? [],
+    cuisine_type: raw.cuisine_type ?? null,
     phone: raw.phone ?? null,
     website: raw.website ?? null,
+    promotion_tier: raw.promotion_tier ?? null,
+    promotion_priority: raw.promotion_priority ?? 0,
     happy_hour_windows: windows,
+    venue_events: events,
+    venue_media: media,
   };
 }
 
@@ -147,12 +204,14 @@ export async function getVenuesByNeighborhood(
 
   const { data, error } = await supabase
     .from("venues")
-    .select(`${VENUE_FIELDS}, happy_hour_windows!inner(${WINDOW_FIELDS})`)
+    .select(`${VENUE_FIELDS}, happy_hour_windows!inner(${WINDOW_FIELDS}), venue_events(id, title, event_type, starts_at), venue_media(id, type, title, storage_path, sort_order)`)
     .gte("lat", neighborhood.lat - latDelta)
     .lte("lat", neighborhood.lat + latDelta)
     .gte("lng", neighborhood.lng - lngDelta)
     .lte("lng", neighborhood.lng + lngDelta)
-    .eq("happy_hour_windows.status", "published");
+    .eq("happy_hour_windows.status", "published")
+    .eq("venue_events.status", "published")
+    .eq("venue_media.status", "published");
 
   if (error) {
     console.error("[directory] venue query failed:", error.message);
@@ -171,8 +230,15 @@ export async function getVenueBySlug(
 ): Promise<VenueWithWindows | null> {
   const { data, error } = await supabase
     .from("venues")
-    .select(`${VENUE_FIELDS}, happy_hour_windows(${WINDOW_FIELDS})`)
+    .select(`
+      ${VENUE_FIELDS},
+      happy_hour_windows(${WINDOW_FIELDS}),
+      venue_events(id, title, description, event_type, starts_at, ends_at, is_recurring, recurrence_rule, price_info, external_url, ticket_url, cover_image_path),
+      venue_media(id, type, title, storage_path, sort_order)
+    `)
     .eq("slug", slug)
+    .eq("venue_events.status", "published")
+    .eq("venue_media.status", "published")
     .maybeSingle();
 
   if (error || !data) return null;
@@ -203,9 +269,11 @@ export async function getVenueBySlug(
 export async function getAllKCVenues(): Promise<VenueWithWindows[]> {
   const { data, error } = await supabase
     .from("venues")
-    .select(`${VENUE_FIELDS}, happy_hour_windows!inner(${WINDOW_FIELDS})`)
+    .select(`${VENUE_FIELDS}, happy_hour_windows!inner(${WINDOW_FIELDS}), venue_events(id, title, event_type, starts_at), venue_media(id, type, title, storage_path, sort_order)`)
     .ilike("city", "%kansas city%")
-    .eq("happy_hour_windows.status", "published");
+    .eq("happy_hour_windows.status", "published")
+    .eq("venue_events.status", "published")
+    .eq("venue_media.status", "published");
 
   if (error) {
     console.error("[directory] all KC venues query failed:", error.message);
