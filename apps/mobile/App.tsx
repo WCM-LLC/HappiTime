@@ -1,23 +1,81 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import LoadingView from "./src/components/LoadingView";
+import { VisitRatingModal } from "./src/components/VisitRatingModal";
 import { supabase } from "./src/api/supabaseClient";
 import { useConfigPushNotifications } from "./src/hooks/useConfigPushNotifications";
+import { useHappyHours } from "./src/hooks/useHappyHours";
 import { useMagicLinkListener } from "./src/hooks/useMagicLinkListener";
+import { useVisitRating } from "./src/hooks/useVisitRating";
+import { useVisitTracker, type VenuePoint } from "./src/hooks/useVisitTracker";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { AuthScreen } from "./src/screens/AuthScreen";
+
+function AuthenticatedApp({ session }: { session: any }) {
+  useConfigPushNotifications(session);
+
+  const { data: happyHours } = useHappyHours();
+  const { pendingVisit, submitRating, dismissRating, submitting, triggerRating } =
+    useVisitRating();
+
+  // Build venue points from happy hour data
+  const venues: VenuePoint[] = useMemo(() => {
+    const seen = new Set<string>();
+    const result: VenuePoint[] = [];
+    for (const window of happyHours) {
+      const venue = window.venue;
+      if (!venue?.id || !venue.lat || !venue.lng) continue;
+      if (seen.has(venue.id)) continue;
+      seen.add(venue.id);
+      result.push({
+        id: venue.id,
+        name: venue.name ?? window.venue_name ?? "Venue",
+        lat: venue.lat,
+        lng: venue.lng,
+      });
+    }
+    return result;
+  }, [happyHours]);
+
+  const { startTracking, setOnVisitDetected } = useVisitTracker(venues);
+
+  // Start tracking when we have venues
+  useEffect(() => {
+    if (venues.length > 0) {
+      void startTracking();
+    }
+  }, [venues.length, startTracking]);
+
+  // Wire visit detection to rating flow
+  useEffect(() => {
+    setOnVisitDetected((venueId: string, venueName: string) => {
+      triggerRating(venueId, venueName);
+    });
+  }, [setOnVisitDetected, triggerRating]);
+
+  return (
+    <>
+      <AppNavigator />
+      <VisitRatingModal
+        pendingVisit={pendingVisit}
+        submitting={submitting}
+        onSubmit={submitRating}
+        onDismiss={dismissRating}
+      />
+    </>
+  );
+}
 
 export default function App() {
 
   useEffect(() => {
-  console.log("✅ App mounted");
-  return () => console.log("❌ App unmounted");
+  console.log("App mounted");
+  return () => console.log("App unmounted");
 }, []);
 
   const [booting, setBooting] = useState(true);
   const [session, setSession] = useState<any>(null);
   useMagicLinkListener();
-  useConfigPushNotifications(session);
   console.log("App render");
 
   useEffect(() => {
@@ -30,11 +88,10 @@ export default function App() {
     });
 
 const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
-  if (!isMounted) return;                 // ✅ add this
+  if (!isMounted) return;
   console.log("Auth change:", event, "session?", !!newSession);
   setSession(newSession ?? null);
 
-  // ✅ Only end booting once we know INITIAL_SESSION ran
   if (event === "INITIAL_SESSION") setBooting(false);
 });
 
@@ -44,15 +101,12 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
     };
   }, []);
 
-  // ✅ Always show something while booting
   if (booting) {
     console.log("booting:", booting, "session:", !!session);
-    return <LoadingView message={"Restoring session…"} />;
+    return <LoadingView message={"Restoring session..."} />;
   }
 
-  // ✅ If no session, ALWAYS show login flow
   if (!session) return <AuthScreen />;
 
-  // ✅ Otherwise show app
-  return <AppNavigator />;
+  return <AuthenticatedApp session={session} />;
 }

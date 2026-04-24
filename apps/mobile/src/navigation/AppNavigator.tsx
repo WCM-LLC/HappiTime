@@ -6,7 +6,6 @@ import { StyleSheet, View } from "react-native";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { useNotificationNavigation } from "../hooks/useNotificationNavigation";
 import { ActivityScreen } from "../screens/ActivityScreen";
-import { AddScreen } from "../screens/AddScreen";
 import { FavoritesScreen } from "../screens/FavoritesScreen";
 import { HappyHourDetailScreen } from "../screens/HappyHourDetailScreen";
 import { HomeScreen } from "../screens/HomeScreen";
@@ -62,18 +61,13 @@ function AppTabs() {
             | "house.fill"
             | "star.fill"
             | "map.fill"
-            | "plus.circle.fill"
             | "bell.fill"
             | "person.crop.circle.fill" = "house.fill";
-          let size = 22;
+          const size = 22;
 
           if (route.name === "Home") name = "house.fill";
           if (route.name === "Map") name = "map.fill";
           if (route.name === "Favorites") name = "star.fill";
-          if (route.name === "Add") {
-            name = "plus.circle.fill";
-            size = 28;
-          }
           if (route.name === "Activity") name = "bell.fill";
           if (route.name === "Profile") name = "person.crop.circle.fill";
 
@@ -91,7 +85,6 @@ function AppTabs() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Map" component={MapScreen} />
       <Tab.Screen name="Favorites" component={FavoritesScreen} />
-      <Tab.Screen name="Add" component={AddScreen} />
       <Tab.Screen
         name="Activity"
         component={ActivityScreen}

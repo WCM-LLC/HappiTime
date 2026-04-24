@@ -1,8 +1,10 @@
 // src/screens/AuthScreen.tsx
+import * as AppleAuthentication from "expo-apple-authentication";
 import * as Linking from "expo-linking";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -59,6 +61,39 @@ export const AuthScreen: React.FC = () => {
     }
   };
 
+  const handleAppleSignIn = async () => {
+    try {
+      const credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL
+        ]
+      });
+
+      if (!credential.identityToken) {
+        setStatusMessage("Apple sign-in failed: no identity token received.");
+        return;
+      }
+
+      const { error } = await supabase.auth.signInWithIdToken({
+        provider: "apple",
+        token: credential.identityToken
+      });
+
+      if (error) {
+        console.error("Supabase Apple auth error:", error);
+        setStatusMessage(`Auth error: ${error.message}`);
+      }
+    } catch (err: any) {
+      if (err.code === "ERR_REQUEST_CANCELED") {
+        // User cancelled — not an error
+        return;
+      }
+      console.error("Apple sign-in error:", err);
+      setStatusMessage(err?.message ?? "Unexpected error during Apple sign-in");
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Top safe area spacer is handled by paddingTop */}
@@ -69,6 +104,24 @@ export const AuthScreen: React.FC = () => {
         <Text style={styles.subtitle}>
           Enter your email to sign up for this app
         </Text>
+
+        {/* Apple Sign In — iOS only */}
+        {Platform.OS === "ios" && (
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+            cornerRadius={999}
+            style={styles.appleButton}
+            onPress={handleAppleSignIn}
+          />
+        )}
+
+        {/* Divider */}
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>or</Text>
+          <View style={styles.dividerLine} />
+        </View>
 
         <TextInput
           style={styles.input}
@@ -95,41 +148,6 @@ export const AuthScreen: React.FC = () => {
           ) : (
             <Text style={styles.primaryButtonText}>Continue</Text>
           )}
-        </Pressable>
-
-        {/* Divider */}
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        {/* Google */}
-        <Pressable
-          style={styles.oauthButtonDisabled}
-          disabled
-          accessibilityState={{ disabled: true }}
-          accessibilityHint="Google sign in is coming soon and currently unavailable"
-        >
-          <View style={styles.oauthIcon} />
-          <View style={styles.oauthTextContainer}>
-            <Text style={styles.oauthButtonText}>Continue with Google</Text>
-            <Text style={styles.oauthComingSoonText}>Coming Soon</Text>
-          </View>
-        </Pressable>
-
-        {/* Apple */}
-        <Pressable
-          style={styles.oauthButtonDisabled}
-          disabled
-          accessibilityState={{ disabled: true }}
-          accessibilityHint="Apple sign in is coming soon and currently unavailable"
-        >
-          <View style={styles.oauthIcon} />
-          <View style={styles.oauthTextContainer}>
-            <Text style={styles.oauthButtonText}>Continue with Apple</Text>
-            <Text style={styles.oauthComingSoonText}>Coming Soon</Text>
-          </View>
         </Pressable>
 
         {statusMessage ? (
@@ -223,6 +241,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600"
   },
+  appleButton: {
+    width: "100%",
+    height: 50,
+    marginBottom: spacing.lg
+  },
   dividerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -238,58 +261,6 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.sm,
     color: colors.textMuted,
     fontSize: 13
-  },
-  oauthButton: {
-    width: "100%",
-    borderRadius: 999,
-    backgroundColor: colors.inputBackground,
-    borderWidth: 1,
-    borderColor: colors.border,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    marginBottom: spacing.sm
-  },
-  oauthButtonPressed: {
-    opacity: 0.9
-  },
-  oauthButtonDisabled: {
-    width: "100%",
-    borderRadius: 999,
-    backgroundColor: colors.inputBackground,
-    borderWidth: 1,
-    borderColor: colors.border,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    marginBottom: spacing.sm,
-    opacity: 0.55
-  },
-  oauthTextContainer: {
-    alignItems: "center"
-  },
-  oauthIcon: {
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border
-  },
-  oauthButtonText: {
-    color: colors.text,
-    fontSize: 15,
-    fontWeight: "500"
-  },
-  oauthComingSoonText: {
-    marginTop: 2,
-    color: colors.textMuted,
-    fontSize: 12,
-    fontWeight: "500"
   },
   statusMessage: {
     marginTop: spacing.sm,

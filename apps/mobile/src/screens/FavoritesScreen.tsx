@@ -8,6 +8,7 @@ import { SegmentedTabs } from "../components/SegmentedTabs";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { HappyHourCard } from "../components/HappyHourCard";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useUserHistory, type HistoryEntry } from "../hooks/useUserHistory";
 import { useUserLists, type UserList } from "../hooks/useUserLists";
@@ -28,9 +29,10 @@ export const FavoritesScreen: React.FC = () => {
   const { venueIds: followedVenueIds, loading: followedLoading } =
     useUserFollowedVenues();
   const { entries: historyEntries, loading: historyLoading } = useUserHistory();
-  const { lists, loading: listsLoading, updateList, deleteList, shareWithFriend } = useUserLists();
+  const { lists, loading: listsLoading, createList, updateList, deleteList, shareWithFriend } = useUserLists();
   const { followers } = useUserFollowers();
   const [editingList, setEditingList] = useState<UserList | null>(null);
+  const [showNewListForm, setShowNewListForm] = useState(false);
 
   const favoriteWindows = data;
   const favoritesWithDistance = useMemo(() => {
@@ -141,25 +143,44 @@ export const FavoritesScreen: React.FC = () => {
       )}
 
       {tab === "lists" && (
-        listsLoading ? (
-          <LoadingSpinner />
-        ) : lists.length > 0 ? (
-          <FlatList
-            data={lists}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            ItemSeparatorComponent={() => <View style={styles.separator} />}
-            renderItem={({ item }) => (
-              <ListRow list={item} onEdit={() => setEditingList(item)} />
-            )}
-          />
-        ) : (
-          <EmptyState
-            title="No itineraries yet"
-            message="Tap the + tab to create your first itinerary."
-          />
-        )
+        <>
+          <View style={styles.itineraryHeader}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.newListButton,
+                pressed && { opacity: 0.75, transform: [{ scale: 0.95 }] },
+              ]}
+              onPress={() => setShowNewListForm(true)}
+            >
+              <Text style={styles.newListButtonText}>+</Text>
+            </Pressable>
+          </View>
+          {listsLoading ? (
+            <LoadingSpinner />
+          ) : lists.length > 0 ? (
+            <FlatList
+              data={lists}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              ItemSeparatorComponent={() => <View style={styles.separator} />}
+              renderItem={({ item }) => (
+                <ListRow list={item} onEdit={() => setEditingList(item)} />
+              )}
+            />
+          ) : (
+            <EmptyState
+              title="No itineraries yet"
+              message="Tap the + button above to create your first itinerary."
+            />
+          )}
+        </>
       )}
+
+      <NewListModal
+        visible={showNewListForm}
+        onClose={() => setShowNewListForm(false)}
+        onCreate={createList}
+      />
 
       <EditListModal
         list={editingList}
@@ -282,6 +303,118 @@ const ListRow: React.FC<ListRowProps> = ({ list, onEdit }) => (
   </Pressable>
 );
 
+// ── New List Modal ──────────────────────────────────────────────────────────
+
+type NewListModalProps = {
+  visible: boolean;
+  onClose: () => void;
+  onCreate: (name: string, description?: string) => Promise<{ error: any }>;
+};
+
+const NewListModal: React.FC<NewListModalProps> = ({ visible, onClose, onCreate }) => {
+  const { user, loading: authLoading } = useCurrentUser();
+  const [listName, setListName] = useState("");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const isValid = listName.trim().length > 0;
+  const canSubmit = isValid && !saving && !authLoading && !!user;
+
+  const handleCreate = async () => {
+    if (!isValid) return;
+    if (!user) {
+      Alert.alert("Sign in required", "Please sign in to create lists.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await onCreate(listName.trim(), description.trim() || undefined);
+      if (error) {
+        Alert.alert("Something went wrong", error.message);
+        return;
+      }
+      Alert.alert("Itinerary created!", `"${listName.trim()}" is ready.`, [
+        {
+          text: "Done",
+          onPress: () => {
+            setListName("");
+            setDescription("");
+            onClose();
+          },
+        },
+      ]);
+    } catch (e: any) {
+      Alert.alert("Something went wrong", e?.message ?? "Unknown error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleClose = () => {
+    setListName("");
+    setDescription("");
+    onClose();
+  };
+
+  if (!visible) return null;
+
+  return (
+    <Modal visible animationType="slide" transparent onRequestClose={handleClose}>
+      <Pressable style={editStyles.backdrop} onPress={handleClose} />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={editStyles.sheetWrap}
+      >
+        <View style={editStyles.sheet}>
+          <View style={editStyles.handle} />
+          <Text style={editStyles.title}>New Itinerary</Text>
+          <Text style={newListStyles.subtitle}>
+            Give your itinerary a name to get started.
+          </Text>
+
+          <Text style={editStyles.label}>Itinerary name *</Text>
+          <TextInput
+            style={editStyles.input}
+            placeholder="e.g. Sunday Brunch Crawl"
+            placeholderTextColor={colors.textMuted}
+            value={listName}
+            onChangeText={setListName}
+            returnKeyType="next"
+            autoFocus
+          />
+
+          <Text style={editStyles.label}>Description (optional)</Text>
+          <TextInput
+            style={[editStyles.input, editStyles.multilineInput]}
+            placeholder="What's this list about?"
+            placeholderTextColor={colors.textMuted}
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            returnKeyType="done"
+          />
+
+          <Pressable
+            style={({ pressed }) => [
+              editStyles.saveButton,
+              !canSubmit && editStyles.saveButtonDisabled,
+              pressed && canSubmit && { opacity: 0.85 },
+            ]}
+            onPress={handleCreate}
+            disabled={!canSubmit}
+          >
+            <Text style={editStyles.saveButtonText}>
+              {saving ? "Creating..." : "Create itinerary"}
+            </Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+};
+
+// ── Edit List Modal ─────────────────────────────────────────────────────────
+
 type EditListModalProps = {
   list: UserList | null;
   followers: import("../hooks/useUserFollowers").Follower[];
@@ -373,7 +506,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
                 style={({ pressed }) => [editStyles.shareToggle, pressed && { opacity: 0.7 }]}
               >
                 <Text style={editStyles.shareToggleText}>
-                  {showShare ? "← Edit" : "Share"}
+                  {showShare ? "\u2190 Edit" : "Share"}
                 </Text>
               </Pressable>
             </View>
@@ -429,7 +562,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
                   disabled={!isValid || saving}
                 >
                   <Text style={editStyles.saveButtonText}>
-                    {saving ? "Saving…" : "Save changes"}
+                    {saving ? "Saving..." : "Save changes"}
                   </Text>
                 </Pressable>
 
@@ -474,7 +607,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
                             editStyles.friendShareBtnText,
                             alreadyShared && editStyles.friendShareBtnTextSent,
                           ]}>
-                            {isSending ? "…" : alreadyShared ? "Sent" : "Share"}
+                            {isSending ? "..." : alreadyShared ? "Sent" : "Share"}
                           </Text>
                         </Pressable>
                       </View>
@@ -666,7 +799,39 @@ const styles = StyleSheet.create({
   listIcon: {
     backgroundColor: colors.pillActiveBg ?? colors.surface,
     borderColor: "transparent",
-  }
+  },
+  itineraryHeader: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingTop: spacing.sm,
+  },
+  newListButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  newListButtonText: {
+    color: "#FFFFFF",
+    fontSize: 22,
+    fontWeight: "600",
+    lineHeight: 24,
+  },
+});
+
+const newListStyles = StyleSheet.create({
+  subtitle: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginBottom: spacing.lg,
+  },
 });
 
 const editStyles = StyleSheet.create({

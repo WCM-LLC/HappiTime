@@ -1,158 +1,210 @@
 // src/screens/ActivityScreen.tsx
-import React, { useMemo, useState } from "react";
-import { View, Text, StyleSheet, FlatList, Image, Pressable } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Image,
+  Pressable,
+  ActivityIndicator,
+} from "react-native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
-import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
+import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity";
+import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendSuggestions";
 import { useUserFollowers } from "../hooks/useUserFollowers";
-import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
-import type { RootStackParamList } from "../navigation/types";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
-type ActivityItem = {
+/* ── Helpers ── */
+
+const timeAgo = (iso: string) => {
+  const diffMs = Date.now() - Date.parse(iso);
+  if (diffMs < 0) return "just now";
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 60) return `${Math.max(1, mins)}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
+
+const RatingStars: React.FC<{ rating: number }> = ({ rating }) => {
+  const stars = [];
+  for (let i = 1; i <= 5; i++) {
+    stars.push(
+      <Text key={i} style={i <= rating ? styles.starFilled : styles.starEmpty}>
+        {"\u2605"}
+      </Text>
+    );
+  }
+  return <View style={styles.starsRow}>{stars}</View>;
+};
+
+/* ── Pending Request Card ── */
+
+const PendingRequestCard: React.FC<{
   id: string;
-  type: "follow" | "like" | "visit" | "save";
-  actor: string;
-  avatarUrl?: string;
-  when: string; // e.g. "1d"
-  message: string;
-  thumbnailUrl?: string;
-  unread?: boolean;
-  windowId?: string;
+  name: string;
+  avatarUrl: string | null;
+  onApprove: (id: string) => void;
+  onReject: (id: string) => void;
+}> = ({ id, name, avatarUrl, onApprove, onReject }) => (
+  <View style={styles.pendingCard}>
+    <View style={styles.avatarWrap}>
+      {avatarUrl ? (
+        <Image source={{ uri: avatarUrl }} style={styles.avatar} />
+      ) : (
+        <View style={styles.avatarPlaceholder}>
+          <Text style={styles.avatarInitial}>
+            {name.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+      )}
+    </View>
+    <View style={styles.pendingTextWrap}>
+      <Text style={styles.actor}>{name}</Text>
+      <Text style={styles.message}>wants to follow you</Text>
+    </View>
+    <View style={styles.pendingActions}>
+      <Pressable
+        onPress={() => onApprove(id)}
+        style={({ pressed }) => [styles.acceptButton, pressed && styles.buttonPressed]}
+      >
+        <Text style={styles.acceptText}>Accept</Text>
+      </Pressable>
+      <Pressable
+        onPress={() => onReject(id)}
+        style={({ pressed }) => [styles.rejectButton, pressed && styles.buttonPressed]}
+      >
+        <Text style={styles.rejectText}>Reject</Text>
+      </Pressable>
+    </View>
+  </View>
+);
+
+/* ── Activity Card ── */
+
+const ActivityCard: React.FC<{ item: ActivityItem }> = ({ item }) => (
+  <View style={styles.row}>
+    <View style={styles.avatarWrap}>
+      {item.userAvatar ? (
+        <Image source={{ uri: item.userAvatar }} style={styles.avatar} />
+      ) : (
+        <View style={styles.avatarPlaceholder}>
+          <Text style={styles.avatarInitial}>
+            {item.userName.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+      )}
+    </View>
+    <View style={styles.textContainer}>
+      <View style={styles.nameRow}>
+        <Text style={styles.actor}>{item.userName}</Text>
+        <Text style={styles.when}>{timeAgo(item.visitedAt)}</Text>
+      </View>
+      <Text style={styles.message}>
+        visited <Text style={styles.venueName}>{item.venueName}</Text>
+      </Text>
+      {item.rating != null && <RatingStars rating={item.rating} />}
+      {item.comment ? (
+        <Text style={styles.comment} numberOfLines={2}>
+          {item.comment}
+        </Text>
+      ) : null}
+    </View>
+  </View>
+);
+
+/* ── Suggestion Card ── */
+
+const SuggestionCard: React.FC<{
+  suggestion: FriendSuggestion;
+  onFollow: (userId: string) => void;
+  following: boolean;
+}> = ({ suggestion, onFollow, following }) => {
+  const name =
+    suggestion.display_name ?? suggestion.handle ?? suggestion.user_id.slice(0, 8);
+
+  return (
+    <View style={styles.row}>
+      <View style={styles.avatarWrap}>
+        {suggestion.avatar_url ? (
+          <Image source={{ uri: suggestion.avatar_url }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarInitial}>
+              {name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.textContainer}>
+        <Text style={styles.actor}>{name}</Text>
+        {suggestion.handle ? (
+          <Text style={styles.handle}>@{suggestion.handle}</Text>
+        ) : null}
+        <Text style={styles.message}>
+          You both visited{" "}
+          <Text style={styles.venueName}>{suggestion.shared_venue_name}</Text>
+        </Text>
+      </View>
+      <View style={styles.trailing}>
+        <Pressable
+          onPress={() => onFollow(suggestion.user_id)}
+          disabled={following}
+          style={({ pressed }) => [
+            styles.followButton,
+            following && styles.followButtonActive,
+            pressed && styles.followButtonPressed,
+          ]}
+        >
+          <Text
+            style={[styles.followText, following && styles.followTextActive]}
+          >
+            {following ? "Requested" : "Follow"}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
 };
 
-const MOCK_FRIENDS: ActivityItem[] = [
-  {
-    id: "1",
-    type: "follow",
-    actor: "starryskies23",
-    when: "1d",
-    message: "Started following you",
-    unread: true
-  },
-  {
-    id: "2",
-    type: "like",
-    actor: "nebulanomad",
-    when: "1d",
-    message: "Liked one of your favorites...",
-    unread: true
-  },
-  {
-    id: "3",
-    type: "visit",
-    actor: "emberEcho",
-    when: "4d",
-    message: "Commented on your post",
-    unread: false
-  }
-];
-
-const MOCK_VENUES: ActivityItem[] = [
-  {
-    id: "11",
-    type: "visit",
-    actor: "Crossroads Hotel",
-    when: "2d",
-    message: "Trending in your favorites this week"
-  },
-  {
-    id: "12",
-    type: "save",
-    actor: "The Peanut",
-    when: "3d",
-    message: "Added to 14 other lists near you"
-  }
-];
-
-const formatWhen = (iso?: string | null) => {
-  if (!iso) return "1d";
-  const ts = Date.parse(iso);
-  if (Number.isNaN(ts)) return "1d";
-  const diffMs = Date.now() - ts;
-  if (diffMs <= 0) return "1d";
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  return `${Math.max(1, diffDays)}d`;
-};
-
-const getWindowName = (window: HappyHourWindow) =>
-  window.venue?.name ?? window.venue_name ?? "Venue";
+/* ── Main Screen ── */
 
 export const ActivityScreen: React.FC = () => {
-  const [tab, setTab] = useState<"friends" | "venues">("friends");
-  const { data: windows } = useHappyHours();
-  const { followers, loading: followersLoading, toggleFollow } = useUserFollowers();
-  const { venueIds: followedVenueIds } = useUserFollowedVenues();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const [followingBack, setFollowingBack] = useState<Record<string, boolean>>({});
+  const [tab, setTab] = useState<"friends" | "discover">("friends");
+  const {
+    pendingRequests,
+    loading: followersLoading,
+    approveFollowRequest,
+    rejectFollowRequest,
+    sendFollowRequest,
+  } = useUserFollowers();
+  const { activities, loading: activityLoading, refresh: refreshActivity } = useFriendActivity();
+  const {
+    suggestions,
+    loading: suggestionsLoading,
+    refresh: refreshSuggestions,
+  } = useFriendSuggestions();
 
-  const friendsData = useMemo<ActivityItem[]>(() => {
-    return followers.map((f) => {
-      const name =
-        f.profile?.display_name ??
-        f.profile?.handle ??
-        f.follower_id.slice(0, 8);
-      return {
-        id: f.follower_id,
-        type: "follow",
-        actor: name,
-        avatarUrl: f.profile?.avatar_url ?? undefined,
-        when: formatWhen(f.created_at),
-        message: "Follows you",
-        unread: false,
-      };
-    });
-  }, [followers]);
+  const [requestedUsers, setRequestedUsers] = useState<Record<string, boolean>>({});
 
-  const venuesData = useMemo<ActivityItem[]>(() => {
-    if (!windows.length) return followedVenueIds.length ? [] : MOCK_VENUES;
+  const handleFollow = (userId: string) => {
+    setRequestedUsers((prev) => ({ ...prev, [userId]: true }));
+    void sendFollowRequest(userId);
+  };
 
-    const getWindowTs = (window: HappyHourWindow) => {
-      const raw =
-        window.last_confirmed_at ??
-        window.updated_at ??
-        window.created_at ??
-        window.venue?.updated_at ??
-        window.venue?.created_at ??
-        null;
-      const ts = raw ? Date.parse(raw) : Number.NaN;
-      return Number.isNaN(ts) ? 0 : ts;
-    };
+  const handleApprove = (followId: string) => {
+    void approveFollowRequest(followId);
+  };
 
-    // Only show windows for venues the user has saved (if any saved)
-    const relevant = followedVenueIds.length
-      ? windows.filter((w) => w.venue_id && followedVenueIds.includes(w.venue_id))
-      : windows;
+  const handleReject = (followId: string) => {
+    void rejectFollowRequest(followId);
+  };
 
-    const sorted = [...relevant].sort(
-      (a, b) => getWindowTs(b) - getWindowTs(a)
-    );
-
-    return sorted.map((window) => {
-      const venueName = getWindowName(window);
-      const message = window.label ? `${window.label} happy hour` : "Happy hour updated";
-      const shortMessage =
-        message.length > 72 ? `${message.slice(0, 72)}...` : message;
-
-      return {
-        id: `window-${window.id}`,
-        type: "visit",
-        actor: venueName,
-        when: formatWhen(
-          window.last_confirmed_at ?? window.updated_at ?? window.created_at
-        ),
-        message: shortMessage,
-        windowId: window.id
-      };
-    });
-  }, [windows, followedVenueIds]);
-
-
-  let data: ActivityItem[] = [];
-  if (tab === "friends") data = friendsData;
-  if (tab === "venues") data = venuesData;
+  const isLoading =
+    tab === "friends" ? followersLoading || activityLoading : suggestionsLoading;
 
   return (
     <View style={styles.container}>
@@ -160,155 +212,125 @@ export const ActivityScreen: React.FC = () => {
       <SegmentedTabs
         tabs={[
           { key: "friends", label: "Friends" },
-          { key: "venues", label: "Venues" }
+          { key: "discover", label: "Discover" },
         ]}
         activeKey={tab}
-        onChange={(key) => setTab(key as any)}
+        onChange={(key) => setTab(key as "friends" | "discover")}
       />
 
-      <FlatList
-        data={tab === "friends" && followersLoading ? [] : data}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListEmptyComponent={
-          tab === "friends" && !followersLoading ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No followers yet</Text>
-              <Text style={styles.emptyText}>
-                When someone follows you, they'll appear here.
-              </Text>
-            </View>
-          ) : tab === "venues" && followedVenueIds.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No saved venues</Text>
-              <Text style={styles.emptyText}>
-                Save a venue to see updates here.
-              </Text>
-            </View>
-          ) : null
-        }
-        renderItem={({ item }) => {
-          const onPress = item.windowId
-            ? () =>
-                navigation.navigate("HappyHourDetail", {
-                  windowId: item.windowId as string
-                })
-            : undefined;
-          const isUnread = item.unread === true;
-          const isFollowItem = item.type === "follow";
-          const isFollowing = followingBack[item.id] ?? false;
-
-          const handleFollowToggle = () => {
-            setFollowingBack((prev) => ({ ...prev, [item.id]: !isFollowing }));
-            void toggleFollow(item.id, isFollowing);
-          };
-
-          return (
-            <Pressable
-              onPress={onPress}
-              disabled={!onPress}
-              style={({ pressed }) => [
-                styles.row,
-                onPress && pressed && styles.rowPressed
-              ]}
-            >
-              <View style={styles.avatarWrap}>
-                {item.avatarUrl ? (
-                  <Image source={{ uri: item.avatarUrl }} style={styles.avatar} />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarInitial}>
-                      {item.actor.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                )}
-                <View
-                  style={[
-                    styles.statusDot,
-                    !isUnread && styles.statusDotRead
-                  ]}
-                />
-              </View>
-
-              <View style={styles.textContainer}>
-                <View style={styles.nameRow}>
-                  <Text style={styles.actor}>{item.actor}</Text>
-                  <Text style={styles.when}>{item.when}</Text>
-                </View>
-                <Text style={styles.message}>{item.message}</Text>
-              </View>
-
-              {(isFollowItem || item.thumbnailUrl) && (
-                <View style={styles.trailing}>
-                  {isFollowItem ? (
-                    <Pressable
-                      onPress={handleFollowToggle}
-                      style={({ pressed }) => [
-                        styles.followButton,
-                        isFollowing && styles.followButtonActive,
-                        pressed && styles.followButtonPressed
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.followText,
-                          isFollowing && styles.followTextActive
-                        ]}
-                      >
-                        {isFollowing ? "Following" : "Follow"}
-                      </Text>
-                    </Pressable>
-                  ) : (
-                    <Image
-                      source={{ uri: item.thumbnailUrl }}
-                      style={styles.thumbnail}
+      {isLoading ? (
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator color={colors.primary} size="small" />
+        </View>
+      ) : tab === "friends" ? (
+        <FlatList
+          data={activities}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          onRefresh={refreshActivity}
+          refreshing={activityLoading}
+          ListHeaderComponent={
+            pendingRequests.length > 0 ? (
+              <View style={styles.pendingSection}>
+                <Text style={styles.sectionTitle}>Follow Requests</Text>
+                {pendingRequests.map((req) => {
+                  const name =
+                    req.profile?.display_name ??
+                    req.profile?.handle ??
+                    req.follower_id.slice(0, 8);
+                  return (
+                    <PendingRequestCard
+                      key={req.id}
+                      id={req.id}
+                      name={name}
+                      avatarUrl={req.profile?.avatar_url ?? null}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
                     />
-                  )}
-                </View>
-              )}
-            </Pressable>
-          );
-        }}
-      />
+                  );
+                })}
+                <View style={styles.sectionDivider} />
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No friend activity yet</Text>
+              <Text style={styles.emptyText}>
+                Follow friends to see where they're going!
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => <ActivityCard item={item} />}
+        />
+      ) : (
+        <FlatList
+          data={suggestions}
+          keyExtractor={(item) => item.user_id}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          onRefresh={refreshSuggestions}
+          refreshing={suggestionsLoading}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No suggestions yet</Text>
+              <Text style={styles.emptyText}>
+                Visit more venues to discover people with similar taste!
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <SuggestionCard
+              suggestion={item}
+              onFollow={handleFollow}
+              following={requestedUsers[item.user_id] ?? false}
+            />
+          )}
+        />
+      )}
     </View>
   );
 };
+
+/* ── Styles ── */
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
     paddingTop: spacing.xxl + spacing.md,
-    paddingHorizontal: spacing.lg
+    paddingHorizontal: spacing.lg,
   },
   title: {
     color: colors.text,
     fontSize: 30,
     fontWeight: "800",
     letterSpacing: -0.5,
-    marginBottom: spacing.md
+    marginBottom: spacing.md,
+  },
+  loadingWrap: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   listContent: {
     paddingBottom: spacing.xl,
-    paddingTop: spacing.sm
+    paddingTop: spacing.sm,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: spacing.md
-  },
-  rowPressed: {
-    opacity: 0.85
+    paddingVertical: spacing.md,
   },
   avatarWrap: {
     position: "relative",
-    marginRight: spacing.md
+    marginRight: spacing.md,
   },
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22
+    borderRadius: 22,
   },
   avatarPlaceholder: {
     width: 44,
@@ -318,53 +340,66 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
   },
   avatarInitial: {
     color: colors.brandDark,
     fontWeight: "700",
-    fontSize: 16
-  },
-  statusDot: {
-    position: "absolute",
-    left: -3,
-    top: 18,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.primary,
-    borderWidth: 1.5,
-    borderColor: colors.background
-  },
-  statusDotRead: {
-    backgroundColor: "transparent",
-    borderColor: "transparent",
-    opacity: 0
+    fontSize: 16,
   },
   textContainer: {
-    flex: 1
+    flex: 1,
   },
   nameRow: {
     flexDirection: "row",
     alignItems: "baseline",
-    marginBottom: 2
+    marginBottom: 2,
   },
   actor: {
     color: colors.text,
     fontSize: 15,
     fontWeight: "600",
-    marginRight: spacing.sm
+    marginRight: spacing.sm,
+  },
+  handle: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginBottom: 2,
   },
   when: {
     color: colors.textMuted,
-    fontSize: 13
+    fontSize: 13,
   },
   message: {
     color: colors.textMuted,
-    fontSize: 14
+    fontSize: 14,
+  },
+  venueName: {
+    color: colors.primary,
+    fontWeight: "600",
+  },
+  comment: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontStyle: "italic",
+    marginTop: 4,
+  },
+  starsRow: {
+    flexDirection: "row",
+    marginTop: 2,
+  },
+  starFilled: {
+    color: colors.primary,
+    fontSize: 14,
+    marginRight: 1,
+  },
+  starEmpty: {
+    color: colors.border,
+    fontSize: 14,
+    marginRight: 1,
   },
   trailing: {
-    marginLeft: spacing.md
+    marginLeft: spacing.md,
   },
   followButton: {
     backgroundColor: colors.primary,
@@ -372,49 +407,100 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderRadius: 999,
     minWidth: 72,
-    alignItems: "center"
+    alignItems: "center",
   },
   followButtonActive: {
     backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: colors.border
+    borderColor: colors.border,
   },
   followButtonPressed: {
-    opacity: 0.85
+    opacity: 0.85,
   },
   followText: {
     color: "#FFFFFF",
     fontSize: 13,
-    fontWeight: "700"
+    fontWeight: "700",
   },
   followTextActive: {
-    color: colors.text
-  },
-  thumbnail: {
-    width: 44,
-    height: 44,
-    borderRadius: 10
+    color: colors.text,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,
-    marginLeft: 56
+    marginLeft: 56,
   },
+
+  /* ── Pending requests section ── */
+  pendingSection: {
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: spacing.sm,
+  },
+  pendingCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+  },
+  pendingTextWrap: {
+    flex: 1,
+  },
+  pendingActions: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginLeft: spacing.sm,
+  },
+  acceptButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+  },
+  acceptText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  rejectButton: {
+    backgroundColor: colors.background,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  rejectText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  buttonPressed: {
+    opacity: 0.85,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginTop: spacing.md,
+  },
+
+  /* ── Empty states ── */
   emptyState: {
     paddingTop: spacing.xl,
-    alignItems: "center"
+    alignItems: "center",
   },
   emptyTitle: {
     color: colors.text,
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: spacing.xs
+    marginBottom: spacing.xs,
   },
   emptyText: {
     color: colors.textMuted,
     fontSize: 13,
-    textAlign: "center"
-  }
+    textAlign: "center",
+  },
 });
-
-
