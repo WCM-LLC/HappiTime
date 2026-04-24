@@ -18,12 +18,14 @@ export default async function AdminPage() {
     { count: memberCount },
     { count: hhCount },
     { count: mediaCount },
+    { count: suggestionCount },
   ] = await Promise.all([
     supabase.from('organizations').select('id', { count: 'exact', head: true }),
     supabase.from('venues').select('id', { count: 'exact', head: true }),
     supabase.from('org_members').select('id', { count: 'exact', head: true }),
     supabase.from('happy_hour_windows').select('id', { count: 'exact', head: true }),
     supabase.from('venue_media').select('id', { count: 'exact', head: true }),
+    supabase.from('user_events').select('id', { count: 'exact', head: true }).eq('event_type', 'venue_suggestion'),
   ]);
 
   // ─── Organizations ────────────────────────────────────────────────────
@@ -136,12 +138,13 @@ export default async function AdminPage() {
     }));
   }
 
-  const stats = [
-    { label: 'Organizations', value: orgCount ?? 0, icon: '&#9881;' },
-    { label: 'Venues', value: venueCount ?? 0, icon: '&#127866;' },
-    { label: 'Members', value: memberCount ?? 0, icon: '&#128101;' },
-    { label: 'Happy Hours', value: hhCount ?? 0, icon: '&#9200;' },
-    { label: 'Media Files', value: mediaCount ?? 0, icon: '&#128247;' },
+  const stats: { label: string; value: number; icon: string; href?: string }[] = [
+    { label: 'Organizations', value: orgCount ?? 0, icon: '⚙️' },
+    { label: 'Venues', value: venueCount ?? 0, icon: '🍺' },
+    { label: 'Members', value: memberCount ?? 0, icon: '👥' },
+    { label: 'Happy Hours', value: hhCount ?? 0, icon: '⏰' },
+    { label: 'Media Files', value: mediaCount ?? 0, icon: '📷' },
+    { label: 'Suggestions', value: suggestionCount ?? 0, icon: '📍', href: '/admin/suggestions' },
   ];
 
   return (
@@ -183,18 +186,23 @@ export default async function AdminPage() {
         ) : null}
 
         {/* ── Stats Grid ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-10">
-          {stats.map((s) => (
-            <div key={s.label} className="rounded-lg border border-border bg-surface p-5 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-caption font-semibold text-muted uppercase tracking-wider">{s.label}</span>
-                <span className="text-body-sm" dangerouslySetInnerHTML={{ __html: s.icon }} />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-10">
+          {stats.map((s) => {
+            const inner = (
+              <div className={`rounded-lg border border-border bg-surface p-5 shadow-sm${s.href ? ' hover:border-brand hover:shadow-md transition-all' : ''}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-caption font-semibold text-muted uppercase tracking-wider">{s.label}</span>
+                  <span className="text-body-sm">{s.icon}</span>
+                </div>
+                <div className="text-display-md font-bold text-foreground tracking-tight leading-none">
+                  {s.value.toLocaleString()}
+                </div>
               </div>
-              <div className="text-display-md font-bold text-foreground tracking-tight leading-none">
-                {s.value.toLocaleString()}
-              </div>
-            </div>
-          ))}
+            );
+            return s.href
+              ? <Link key={s.label} href={s.href}>{inner}</Link>
+              : <div key={s.label}>{inner}</div>;
+          })}
         </div>
 
         {/* ── Organizations ── */}
@@ -249,6 +257,28 @@ export default async function AdminPage() {
             </div>
           </section>
         ) : null}
+
+        {/* ── Incoming Suggestions ── */}
+        <section className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-heading-sm font-semibold text-foreground">
+                Incoming Suggestions{' '}
+                {(suggestionCount ?? 0) > 0 && (
+                  <span className="inline-flex items-center rounded-full bg-brand-subtle px-2 py-0.5 text-caption font-semibold text-brand-dark-alt ml-2">
+                    {suggestionCount} pending
+                  </span>
+                )}
+              </h2>
+              <p className="text-body-sm text-muted mt-0.5">Venue suggestions submitted by users from the mobile app.</p>
+            </div>
+            <Link href="/admin/suggestions">
+              <span className="inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-muted hover:text-foreground hover:bg-background transition-colors cursor-pointer">
+                View all &rarr;
+              </span>
+            </Link>
+          </div>
+        </section>
       </main>
     </div>
   );

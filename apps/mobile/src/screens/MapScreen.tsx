@@ -354,7 +354,7 @@ const VenueCalloutCard: React.FC<VenueCalloutCardProps> = ({
               pressed && { opacity: 0.6 },
             ]}
           >
-            <IconSymbol name="xmark" size={14} color={colors.textMuted} />
+            <IconSymbol name="xmark.circle.fill" size={14} color={colors.textMuted} />
           </Pressable>
         </View>
       </View>
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
   calloutCuisineText: {
     fontSize: 11,
     fontWeight: "700",
-    color: colors.brand,
+    color: colors.primary,
   },
   calloutTagBadge: {
     backgroundColor: colors.background,

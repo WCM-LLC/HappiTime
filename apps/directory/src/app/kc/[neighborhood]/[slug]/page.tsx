@@ -4,6 +4,7 @@ import { getNeighborhood } from "@/lib/neighborhoods";
 import { getVenueBySlug } from "@/lib/queries";
 import { venueJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 import { PageTracker } from "@/components/PageTracker";
+import { ItineraryButton } from "@/components/ItineraryButton";
 
 export const revalidate = 900;
 
@@ -109,9 +110,18 @@ export default async function VenueDetailPage({ params }: Props) {
 
       {/* Venue header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">
-          {venue.name}
-        </h1>
+        <div className="flex items-start justify-between gap-4 mb-2">
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
+            {venue.name}
+          </h1>
+          <ItineraryButton
+            venueId={venue.id}
+            venueName={venue.name}
+            venueSlug={slug}
+            neighborhoodSlug={neighborhoodSlug}
+            size="md"
+          />
+        </div>
         <p className="text-muted">{venue.address}</p>
         <div className="flex items-center gap-4 mt-3 text-sm">
           {venue.rating != null && (
