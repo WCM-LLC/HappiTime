@@ -1,0 +1,53 @@
+{
+  "name": "mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "web": "expo start --web",
+    "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "eas-build-post-install": "cd ../.. && npm run build:shared"
+  },
+  "dependencies": {
+    "@happitime/shared-api": "0.0.1",
+    "@happitime/shared-types": "0.0.1",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-navigation/bottom-tabs": "^7.9.0",
+    "@react-navigation/native": "^7.0.0",
+    "@react-navigation/native-stack": "^7.0.0",
+    "@supabase/supabase-js": "^2.48.0",
+    "@types/react": "~19.1.10",
+    "babel-preset-expo": "~55.0.8",
+    "eas": "^0.1.0",
+    "eslint-config-expo": "~10.0.0",
+    "expo": "^55.0.17",
+    "expo-constants": "^55.0.15",
+    "expo-dev-client": "^55.0.28",
+    "expo-device": "~55.0.15",
+    "expo-linking": "^55.0.14",
+    "expo-location": "~55.1.8",
+    "expo-notifications": "^55.0.20",
+    "expo-status-bar": "~55.0.5",
+    "expo-updates": "^55.0.21",
+    "npm": "^11.12.1",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-native": "0.83.6",
+    "react-native-maps": "^1.27.2",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.23.0",
+    "react-native-url-polyfill": "^3.0.0",
+    "react-native-web": "^0.21.0",
+    "typescript": "~5.9.2"
+  },
+  "devDependencies": {
+    "@types/react": "~19.1.10",
+    "eslint": "^9.39.2",
+    "eslint-config-expo": "~10.0.0",
+    "typescript": "~5.9.2"
+  }
+}
