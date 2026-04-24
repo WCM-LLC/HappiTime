@@ -96,7 +96,9 @@ export function useHappyHours() {
             updated_at,
             last_confirmed_at,
             lat,
-            lng
+            lng,
+            promotion_tier,
+            promotion_priority
           `
           )
           .in("id", missingVenueIds);

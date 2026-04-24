@@ -65,7 +65,7 @@ export default async function AdminPage() {
   // ─── Venues ──────────────────────────────────────────────────────────
   const { data: venuesRaw } = await supabase
     .from('venues')
-    .select('id, org_id, name, org_name, city, state, status, created_at')
+    .select('id, org_id, name, org_name, city, state, status, promotion_tier, promotion_priority, created_at')
     .order('created_at', { ascending: false })
     .limit(100);
 
@@ -97,6 +97,8 @@ export default async function AdminPage() {
     city: v.city,
     state: v.state,
     status: v.status,
+    promotion_tier: v.promotion_tier ?? null,
+    promotion_priority: v.promotion_priority ?? 0,
     media_count: medByVenue[v.id] ?? 0,
     hh_count: hhByVenue[v.id] ?? 0,
     created_at: v.created_at,

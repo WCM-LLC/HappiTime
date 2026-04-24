@@ -124,14 +124,19 @@ export default async function VenueDetailPage({ params }: Props) {
               {"$".repeat(venue.price_tier)}
             </span>
           )}
+          {venue.cuisine_type && (
+            <span className="font-medium text-foreground">
+              {venue.cuisine_type.replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+            </span>
+          )}
           {venue.tags.length > 0 && (
-            <div className="flex gap-1.5">
-              {venue.tags.slice(0, 4).map((tag) => (
+            <div className="flex gap-1.5 flex-wrap">
+              {venue.tags.slice(0, 6).map((tag) => (
                 <span
                   key={tag}
                   className="rounded-full bg-brand-subtle px-2.5 py-0.5 text-xs font-medium text-brand-text"
                 >
-                  {tag.replace(/[_-]/g, " ")}
+                  {tag.replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                 </span>
               ))}
             </div>
@@ -248,6 +253,118 @@ export default async function VenueDetailPage({ params }: Props) {
           </div>
         )}
       </section>
+
+      {/* Upcoming events */}
+      {venue.venue_events.length > 0 && (
+        <section className="mb-12">
+          <h2 className="text-xl font-bold text-foreground mb-5">
+            Upcoming Events
+          </h2>
+          <div className="space-y-4">
+            {venue.venue_events.map((ev) => {
+              const eventDate = new Date(ev.starts_at);
+              const dateStr = eventDate.toLocaleDateString("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+              });
+              const timeStr = eventDate.toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit",
+              });
+              const eventTypeLabel =
+                ev.event_type === "live_music"
+                  ? "Live Music"
+                  : ev.event_type.charAt(0).toUpperCase() +
+                    ev.event_type.slice(1);
+
+              return (
+                <div
+                  key={ev.id}
+                  className="rounded-2xl border border-border bg-surface p-5"
+                >
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div>
+                      <h3 className="font-bold text-foreground">{ev.title}</h3>
+                      <p className="text-sm text-muted">
+                        {ev.is_recurring ? (() => {
+                          const dayMap: Record<string, string> = { SU: 'Sun', MO: 'Mon', TU: 'Tue', WE: 'Wed', TH: 'Thu', FR: 'Fri', SA: 'Sat' };
+                          const match = (ev.recurrence_rule ?? '').match(/BYDAY=([A-Z,]+)/);
+                          const days = match ? match[1].split(',').map((d: string) => dayMap[d] ?? d).join(', ') : '';
+                          return days ? `Every ${days}` : 'Recurring';
+                        })() : dateStr} at {timeStr}
+                        {ev.ends_at && ` – ${new Date(ev.ends_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}
+                      </p>
+                    </div>
+                    <div className="shrink-0 flex items-center gap-2">
+                      <span className="rounded-full bg-brand-subtle px-2.5 py-0.5 text-xs font-medium text-brand-text">
+                        {eventTypeLabel}
+                      </span>
+                      {ev.price_info && (
+                        <span className="text-xs font-semibold text-brand">
+                          {ev.price_info}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {ev.description && (
+                    <p className="text-sm text-muted mb-3">{ev.description}</p>
+                  )}
+                  {(ev.external_url || ev.ticket_url) && (
+                    <div className="flex gap-3">
+                      {ev.external_url && (
+                        <a
+                          href={ev.external_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-semibold text-brand hover:underline"
+                        >
+                          More info →
+                        </a>
+                      )}
+                      {ev.ticket_url && (
+                        <a
+                          href={ev.ticket_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs font-semibold text-brand hover:underline"
+                        >
+                          Get tickets →
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* Venue photos */}
+      {venue.venue_media.filter((m) => m.type === "image").length > 0 && (
+        <section className="mb-12">
+          <h2 className="text-xl font-bold text-foreground mb-5">Photos</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {venue.venue_media
+              .filter((m) => m.type === "image")
+              .sort((a, b) => a.sort_order - b.sort_order)
+              .map((m) => (
+                <div
+                  key={m.id}
+                  className="aspect-[4/3] rounded-xl overflow-hidden border border-border"
+                >
+                  <img
+                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/venue-media/${m.storage_path}`}
+                    alt={m.title ?? `${venue.name} photo`}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              ))}
+          </div>
+        </section>
+      )}
 
       {/* Map embed placeholder */}
       {venue.lat && venue.lng && (

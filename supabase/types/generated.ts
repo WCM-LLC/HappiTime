@@ -938,11 +938,17 @@ export type Database = {
           places_next_sync_at: string | null
           places_status: string
           price_tier: number | null
+          promotion_ends_at: string | null
+          promotion_priority: number
+          promotion_starts_at: string | null
+          promotion_tier: string | null
           published_at: string | null
           rating: number | null
           review_count: number | null
           state: string
           status: string
+          cuisine_type: string | null
+          slug: string | null
           tags: string[]
           timezone: string | null
           updated_at: string
@@ -954,6 +960,7 @@ export type Database = {
           app_name_preference?: string
           city: string
           created_at?: string
+          cuisine_type?: string | null
           geocode_attempts?: number
           geocode_last_attempt_at?: string | null
           geocode_last_error?: string | null
@@ -977,9 +984,14 @@ export type Database = {
           places_next_sync_at?: string | null
           places_status?: string
           price_tier?: number | null
+          promotion_ends_at?: string | null
+          promotion_priority?: number
+          promotion_starts_at?: string | null
+          promotion_tier?: string | null
           published_at?: string | null
           rating?: number | null
           review_count?: number | null
+          slug?: string | null
           state: string
           status?: string
           tags?: string[]
@@ -993,6 +1005,7 @@ export type Database = {
           app_name_preference?: string
           city?: string
           created_at?: string
+          cuisine_type?: string | null
           geocode_attempts?: number
           geocode_last_attempt_at?: string | null
           geocode_last_error?: string | null
@@ -1016,9 +1029,14 @@ export type Database = {
           places_next_sync_at?: string | null
           places_status?: string
           price_tier?: number | null
+          promotion_ends_at?: string | null
+          promotion_priority?: number
+          promotion_starts_at?: string | null
+          promotion_tier?: string | null
           published_at?: string | null
           rating?: number | null
           review_count?: number | null
+          slug?: string | null
           state?: string
           status?: string
           tags?: string[]
@@ -1033,6 +1051,251 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venue_subscriptions: {
+        Row: {
+          id: string
+          venue_id: string
+          org_id: string
+          plan: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          stripe_price_id: string | null
+          stripe_current_period_start: string | null
+          stripe_current_period_end: string | null
+          billing_email: string | null
+          billing_name: string | null
+          manual_override: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          venue_id: string
+          org_id: string
+          plan?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_price_id?: string | null
+          stripe_current_period_start?: string | null
+          stripe_current_period_end?: string | null
+          billing_email?: string | null
+          billing_name?: string | null
+          manual_override?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          venue_id?: string
+          org_id?: string
+          plan?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          stripe_price_id?: string | null
+          stripe_current_period_start?: string | null
+          stripe_current_period_end?: string | null
+          billing_email?: string | null
+          billing_name?: string | null
+          manual_override?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_subscriptions_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: true
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venue_subscriptions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      approved_tags: {
+        Row: {
+          id: string
+          slug: string
+          label: string
+          category: string
+          sort_order: number
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          slug: string
+          label: string
+          category: string
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          slug?: string
+          label?: string
+          category?: string
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      venue_tags: {
+        Row: {
+          venue_id: string
+          tag_id: string
+          created_at: string
+        }
+        Insert: {
+          venue_id: string
+          tag_id: string
+          created_at?: string
+        }
+        Update: {
+          venue_id?: string
+          tag_id?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_tags_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venue_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "approved_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venue_events: {
+        Row: {
+          id: string
+          venue_id: string
+          title: string
+          description: string | null
+          event_type: string
+          status: string
+          starts_at: string
+          ends_at: string | null
+          is_recurring: boolean
+          recurrence_rule: string | null
+          timezone: string
+          location_override: string | null
+          cover_image_path: string | null
+          external_url: string | null
+          ticket_url: string | null
+          price_info: string | null
+          capacity: number | null
+          tags: string[]
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          venue_id: string
+          title: string
+          description?: string | null
+          event_type?: string
+          status?: string
+          starts_at: string
+          ends_at?: string | null
+          is_recurring?: boolean
+          recurrence_rule?: string | null
+          timezone?: string
+          location_override?: string | null
+          cover_image_path?: string | null
+          external_url?: string | null
+          ticket_url?: string | null
+          price_info?: string | null
+          capacity?: number | null
+          tags?: string[]
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          venue_id?: string
+          title?: string
+          description?: string | null
+          event_type?: string
+          status?: string
+          starts_at?: string
+          ends_at?: string | null
+          is_recurring?: boolean
+          recurrence_rule?: string | null
+          timezone?: string
+          location_override?: string | null
+          cover_image_path?: string | null
+          external_url?: string | null
+          ticket_url?: string | null
+          price_info?: string | null
+          capacity?: number | null
+          tags?: string[]
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_events_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_media: {
+        Row: {
+          event_id: string
+          media_id: string
+          sort_order: number
+        }
+        Insert: {
+          event_id: string
+          media_id: string
+          sort_order?: number
+        }
+        Update: {
+          event_id?: string
+          media_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_media_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "venue_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_media_media_id_fkey"
+            columns: ["media_id"]
+            isOneToOne: false
+            referencedRelation: "venue_media"
             referencedColumns: ["id"]
           },
         ]

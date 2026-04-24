@@ -99,6 +99,24 @@ const getPriceTier = (window: HappyHourWindow) => {
   return typeof tier === "number" && tier > 0 ? tier : null;
 };
 
+type PromoTier = "featured" | "premium" | "basic" | null;
+
+const getPromoTier = (window: HappyHourWindow): PromoTier => {
+  const tier = (window.venue as any)?.promotion_tier;
+  if (tier === "featured" || tier === "premium" || tier === "basic") return tier;
+  return null;
+};
+
+const getPromoPriority = (window: HappyHourWindow): number => {
+  return (window.venue as any)?.promotion_priority ?? 0;
+};
+
+const promoLabel: Record<string, string> = {
+  featured: "Featured",
+  premium: "Premium",
+  basic: "Promoted",
+};
+
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { data, loading, error, refreshing, refresh } = useHappyHours();
@@ -161,6 +179,11 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         };
       })
       .sort((a, b) => {
+        // Promoted venues sort first, by priority descending
+        const aPrio = getPromoPriority(a);
+        const bPrio = getPromoPriority(b);
+        if (aPrio !== bPrio) return bPrio - aPrio;
+        // Then by distance
         if (a.distance == null && b.distance == null) return 0;
         if (a.distance == null) return 1;
         if (b.distance == null) return -1;
@@ -214,11 +237,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         ).toLowerCase();
         const neighborhood = (place.venue?.neighborhood ?? "").toLowerCase();
         const address = (place.venue?.address ?? "").toLowerCase();
+        const tags = (place.venue?.tags ?? []).join(" ").toLowerCase();
+        const cuisine = ((place.venue as any)?.cuisine_type ?? "").toLowerCase();
         return (
           name.includes(q) ||
           orgName.includes(q) ||
           neighborhood.includes(q) ||
-          address.includes(q)
+          address.includes(q) ||
+          tags.includes(q) ||
+          cuisine.includes(q)
         );
       });
     }
@@ -603,6 +630,8 @@ const VenueCard: React.FC<VenueCardProps> = ({
   const name = getVenueName(place);
   const locationLabel = getVenueSubtitle(place);
   const priceTier = formatPriceTier(getPriceTier(place));
+  const promoTier = getPromoTier(place);
+  const isPromoted = promoTier != null;
 
   const ratingRaw = place.venue?.rating ?? null;
   const reviewCountRaw = place.venue?.review_count ?? null;
@@ -629,6 +658,11 @@ const VenueCard: React.FC<VenueCardProps> = ({
       style={({ pressed }) => [
         styles.card,
         { width },
+        isPromoted && (
+          promoTier === "featured" ? styles.cardPromoFeatured
+          : promoTier === "premium" ? styles.cardPromoPremium
+          : styles.cardPromoBasic
+        ),
         pressed && styles.cardPressed
       ]}
     >
@@ -640,6 +674,16 @@ const VenueCard: React.FC<VenueCardProps> = ({
             resizeMode="cover"
           />
         ) : null}
+        {isPromoted && (
+          <View style={[
+            styles.cardPromoBadge,
+            promoTier === "featured" ? styles.cardPromoBadgeFeatured
+            : promoTier === "premium" ? styles.cardPromoBadgePremium
+            : styles.cardPromoBadgeBasic
+          ]}>
+            <Text style={styles.cardPromoBadgeText}>{promoLabel[promoTier]}</Text>
+          </View>
+        )}
         {priceTier && (
           <View style={styles.cardPriceBadge}>
             <Text style={styles.cardPriceBadgeText}>{priceTier}</Text>
@@ -951,6 +995,45 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 8,
     elevation: 3,
+  },
+  cardPromoFeatured: {
+    borderColor: colors.promoFeaturedBorder,
+    borderWidth: 1.5,
+    backgroundColor: colors.promoFeaturedBg,
+  },
+  cardPromoPremium: {
+    borderColor: colors.promoPremiumBorder,
+    borderWidth: 1.5,
+    backgroundColor: colors.promoPremiumBg,
+  },
+  cardPromoBasic: {
+    borderColor: colors.promoBasicBorder,
+    borderWidth: 1.5,
+    backgroundColor: colors.promoBasicBg,
+  },
+  cardPromoBadge: {
+    position: "absolute",
+    top: spacing.sm,
+    left: spacing.sm,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: 3,
+  },
+  cardPromoBadgeFeatured: {
+    backgroundColor: colors.promoFeaturedBadge,
+  },
+  cardPromoBadgePremium: {
+    backgroundColor: colors.promoPremiumBadge,
+  },
+  cardPromoBadgeBasic: {
+    backgroundColor: colors.promoBasicBadge,
+  },
+  cardPromoBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
   },
   cardPressed: {
     opacity: 0.92,
