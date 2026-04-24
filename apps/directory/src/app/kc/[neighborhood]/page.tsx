@@ -23,11 +23,23 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!n) return {};
 
   return {
-    title: `Happy Hours in ${n.name}, Kansas City`,
-    description: `${n.description} Find today's happy hour deals, menus, and times in ${n.name}.`,
+    title: `${n.name} Happy Hour Deals & Specials — Kansas City | HappiTime`,
+    description: `Discover today's best happy hour deals in ${n.name}, Kansas City — daily updated drink specials, food specials, and bar discounts for 2026. ${n.description}`,
+    keywords: [
+      `${n.name} happy hour`,
+      `${n.name} happy hour deals`,
+      `${n.name} drink specials`,
+      `${n.name} food specials`,
+      `${n.name} Kansas City bars`,
+      `happy hour ${n.name} KC`,
+      `best happy hour ${n.name}`,
+    ],
+    alternates: {
+      canonical: `/kc/${slug}/`,
+    },
     openGraph: {
-      title: `Happy Hours in ${n.name} — HappiTime`,
-      description: n.description,
+      title: `${n.name} Happy Hour Deals & Specials — HappiTime`,
+      description: `Today's happy hour deals in ${n.name}, Kansas City — drink specials, food deals, and more.`,
     },
   };
 }
@@ -55,6 +67,23 @@ export default async function NeighborhoodPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ItemList",
+            name: `Happy Hour Venues in ${neighborhood.name}`,
+            numberOfItems: venues.length,
+            itemListElement: venues.map((v, i) => ({
+              "@type": "ListItem",
+              position: i + 1,
+              name: v.name,
+              url: `https://happitime.biz/kc/${neighborhood.slug}/${v.slug}/`,
+            })),
+          }),
+        }}
       />
 
       {/* Breadcrumb nav */}
@@ -87,6 +116,31 @@ export default async function NeighborhoodPage({ params }: Props) {
         neighborhoodName={neighborhood.name}
         todayIndex={todayIndex}
       />
+
+      {/* Nearby Neighborhoods */}
+      <section className="mt-16 mb-10">
+        <h2 className="text-xl font-bold text-foreground mb-4">
+          Nearby Neighborhoods
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {KC_NEIGHBORHOODS.filter((n) => n.slug !== neighborhood.slug)
+            .slice(0, 4)
+            .map((n) => (
+              <a
+                key={n.slug}
+                href={`/kc/${n.slug}/`}
+                className="block rounded-xl border border-border bg-surface p-4 hover:border-brand hover:shadow-sm transition-all"
+              >
+                <p className="font-semibold text-foreground text-sm group-hover:text-brand">
+                  {n.name}
+                </p>
+                <p className="text-xs text-muted mt-1 line-clamp-2">
+                  {n.description}
+                </p>
+              </a>
+            ))}
+        </div>
+      </section>
 
       {/* CTA */}
       <section className="mt-16 rounded-2xl bg-brand-subtle p-8 sm:p-10 text-center">

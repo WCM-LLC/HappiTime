@@ -8,9 +8,24 @@ import { FilterableVenueGrid } from "@/components/FilterableVenueGrid";
 export const revalidate = 900;
 
 export const metadata: Metadata = {
-  title: "Happy Hours in Kansas City",
+  title: "Happy Hours in Kansas City — Best Deals by Neighborhood (2026)",
   description:
-    "Browse happy hour deals across every Kansas City neighborhood — Westport, Power & Light, Crossroads, 18th & Vine, Plaza, and more. Updated daily.",
+    "Daily updated happy hours in Kansas City — find the best drink specials, food deals, and bar discounts across Westport, Power & Light, Crossroads, Plaza, 18th & Vine, Brookside, and more KC neighborhoods.",
+  keywords: [
+    "Kansas City happy hour",
+    "KC happy hour deals",
+    "best happy hours Kansas City",
+    "Kansas City drink specials",
+    "Kansas City food deals",
+    "Westport happy hour",
+    "Power and Light happy hour",
+    "Crossroads happy hour",
+    "Plaza happy hour",
+    "KC bar deals 2026",
+  ],
+  alternates: {
+    canonical: "/kc/",
+  },
 };
 
 /**
@@ -60,8 +75,55 @@ export default async function KCPage() {
     bestNeighborhoodSlugMap[v.id] = bestNeighborhoodSlug(v);
   }
 
+  const itemListJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Kansas City Happy Hour Neighborhoods",
+    description:
+      "Browse happy hour deals across Kansas City neighborhoods — daily updated drink specials and food deals.",
+    numberOfItems: KC_NEIGHBORHOODS.length,
+    itemListElement: KC_NEIGHBORHOODS.map((n, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: n.name,
+      url: `https://happitime.biz/kc/${n.slug}/`,
+    })),
+  };
+
+  const webPageJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "Happy Hours in Kansas City — Best Deals by Neighborhood (2026)",
+    url: "https://happitime.biz/kc/",
+    breadcrumb: {
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: "HappiTime",
+          item: "https://happitime.biz/",
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Kansas City",
+          item: "https://happitime.biz/kc/",
+        },
+      ],
+    },
+  };
+
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageJsonLd) }}
+      />
       <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-3">
         Happy Hours in <span className="text-brand">Kansas City</span>
       </h1>
