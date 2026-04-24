@@ -1,5 +1,5 @@
 // src/screens/MapScreen.tsx
-import React, { useMemo, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -7,8 +7,10 @@ import {
   TextInput,
   Pressable,
   ScrollView,
+  Image,
   useWindowDimensions,
   Platform,
+  FlatList,
 } from "react-native";
 import MapView, { Marker, Callout, Region } from "react-native-maps";
 import { useNavigation } from "@react-navigation/native";
@@ -18,6 +20,7 @@ import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
+import { useVenueCovers } from "../hooks/useVenueCovers";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
@@ -26,6 +29,22 @@ import { formatTimeRange } from "../utils/formatters";
 
 const formatPriceTier = (tier?: number | null) =>
   typeof tier === "number" && tier > 0 ? "$".repeat(tier) : null;
+
+const getPriceTier = (w: HappyHourWindow) => {
+  const tier = w.venue?.price_tier;
+  return typeof tier === "number" && tier > 0 ? tier : null;
+};
+
+const normalizeCuisine = (value: string) =>
+  value.replace(/[_-]+/g, " ").trim().toLowerCase();
+
+const formatTagLabel = (tag: string) =>
+  tag
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 
 const DEFAULT_REGION: Region = {
   latitude: 39.0997,
@@ -46,9 +65,11 @@ export const MapScreen: React.FC = () => {
 
   const [query, setQuery] = useState("");
   const [selectedCuisine, setSelectedCuisine] = useState("all");
+  const [selectedPrice, setSelectedPrice] = useState<number | "all">("all");
   const [selectedWindow, setSelectedWindow] = useState<HappyHourWindow | null>(
     null
   );
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   const todayIndex = new Date().getDay();
 
@@ -85,19 +106,31 @@ export const MapScreen: React.FC = () => {
     });
   }, [data]);
 
-  // Cuisines for filter chips
+  // Cuisines for filter chips (dynamically from venue data)
   const cuisineOptions = useMemo(() => {
     const set = new Set<string>();
     for (const w of mappableWindows) {
       for (const tag of w.venue?.tags ?? []) {
-        set.add(tag.replace(/[_-]+/g, " ").trim().toLowerCase());
+        set.add(normalizeCuisine(tag));
       }
     }
     const sorted = Array.from(set).sort();
     return sorted.length > 0 ? ["all", ...sorted.slice(0, 8)] : ["all"];
   }, [mappableWindows]);
 
-  // Apply search + cuisine filter
+  // Price filter options (dynamically from venue data)
+  const priceOptions = useMemo(() => {
+    const tiers = new Set<number>();
+    for (const w of mappableWindows) {
+      const tier = getPriceTier(w);
+      if (typeof tier === "number" && tier > 0) {
+        tiers.add(tier);
+      }
+    }
+    return ["all" as const, ...Array.from(tiers).sort((a, b) => a - b)];
+  }, [mappableWindows]);
+
+  // Apply search + cuisine + price filter
   const filtered = useMemo(() => {
     let list = mappableWindows;
 
@@ -107,20 +140,78 @@ export const MapScreen: React.FC = () => {
         const name = (w.venue?.name ?? "").toLowerCase();
         const address = (w.venue?.address ?? "").toLowerCase();
         const neighborhood = (w.venue?.neighborhood ?? "").toLowerCase();
-        return name.includes(q) || address.includes(q) || neighborhood.includes(q);
+        const tags = (w.venue?.tags ?? []).join(" ").toLowerCase();
+        return name.includes(q) || address.includes(q) || neighborhood.includes(q) || tags.includes(q);
       });
     }
 
     if (selectedCuisine !== "all") {
       list = list.filter((w) =>
         (w.venue?.tags ?? [])
-          .map((t: string) => t.replace(/[_-]+/g, " ").trim().toLowerCase())
+          .map((t: string) => normalizeCuisine(t))
           .includes(selectedCuisine)
       );
     }
 
+    if (selectedPrice !== "all") {
+      list = list.filter((w) => getPriceTier(w) === selectedPrice);
+    }
+
     return list;
-  }, [mappableWindows, query, selectedCuisine]);
+  }, [mappableWindows, query, selectedCuisine, selectedPrice]);
+
+  // Venue IDs for cover images
+  const filteredVenueIds = useMemo(
+    () => filtered.map((w) => w.venue?.id).filter((id): id is string => !!id),
+    [filtered]
+  );
+  const coverUrls = useVenueCovers(filteredVenueIds);
+
+  // Suggestive search: top 5 matching venue names
+  const suggestions = useMemo(() => {
+    if (!query.trim() || query.trim().length < 2) return [];
+    const q = query.trim().toLowerCase();
+    const seen = new Set<string>();
+    const results: { window: HappyHourWindow; name: string }[] = [];
+    for (const w of mappableWindows) {
+      const name = w.venue?.name ?? "";
+      const key = name.toLowerCase();
+      if (!key.includes(q)) continue;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      results.push({ window: w, name });
+      if (results.length >= 5) break;
+    }
+    return results;
+  }, [query, mappableWindows]);
+
+  const handleSuggestionPress = useCallback(
+    (suggestion: { window: HappyHourWindow; name: string }) => {
+      const w = suggestion.window;
+      setQuery(suggestion.name);
+      setShowSuggestions(false);
+      setSelectedWindow(w);
+      const lat = w.venue?.lat;
+      const lng = w.venue?.lng;
+      if (lat != null && lng != null && mapRef.current) {
+        mapRef.current.animateToRegion(
+          {
+            latitude: lat,
+            longitude: lng,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          },
+          400
+        );
+      }
+    },
+    []
+  );
+
+  const handleQueryChange = useCallback((text: string) => {
+    setQuery(text);
+    setShowSuggestions(true);
+  }, []);
 
   const handleMarkerPress = (window: HappyHourWindow) => {
     setSelectedWindow(window);
@@ -167,7 +258,10 @@ export const MapScreen: React.FC = () => {
         initialRegion={initialRegion}
         showsUserLocation
         showsMyLocationButton={false}
-        onPress={() => setSelectedWindow(null)}
+        onPress={() => {
+          setSelectedWindow(null);
+          setShowSuggestions(false);
+        }}
       >
         {filtered.map((window) => {
           const lat = window.venue?.lat!;
@@ -193,19 +287,72 @@ export const MapScreen: React.FC = () => {
           <IconSymbol name="magnifyingglass" size={16} color={colors.textMuted} />
           <TextInput
             value={query}
-            onChangeText={setQuery}
+            onChangeText={handleQueryChange}
+            onFocus={() => setShowSuggestions(true)}
             placeholder="Search venues"
             placeholderTextColor={colors.textMuted}
             style={styles.searchInput}
             autoCapitalize="none"
           />
           {query.length > 0 && (
-            <Pressable onPress={() => setQuery("")} hitSlop={8}>
+            <Pressable
+              onPress={() => {
+                setQuery("");
+                setShowSuggestions(false);
+              }}
+              hitSlop={8}
+            >
               <IconSymbol name="xmark.circle.fill" size={18} color={colors.textMuted} />
             </Pressable>
           )}
         </View>
 
+        {/* Suggestive search dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <View style={styles.suggestionsContainer}>
+            {suggestions.map((item, index) => (
+              <Pressable
+                key={`${item.window.id}-${index}`}
+                onPress={() => handleSuggestionPress(item)}
+                style={({ pressed }) => [
+                  styles.suggestionRow,
+                  pressed && { backgroundColor: colors.cream },
+                  index < suggestions.length - 1 && styles.suggestionBorder,
+                ]}
+              >
+                <IconSymbol name="magnifyingglass" size={12} color={colors.textMutedLight} />
+                <Text style={styles.suggestionText} numberOfLines={1}>
+                  {item.name}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+
+        {/* Price filter chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.chipRow}
+        >
+          {priceOptions.map((option) => {
+            const selected = selectedPrice === option;
+            const label = option === "all" ? "All" : formatPriceTier(option as number) ?? "All";
+            return (
+              <Pressable
+                key={`price-${option}`}
+                onPress={() => setSelectedPrice(option as number | "all")}
+                style={[styles.chip, selected && styles.chipSelected]}
+              >
+                <Text style={selected ? styles.chipTextSelected : styles.chipText}>
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+
+        {/* Cuisine filter chips */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -213,16 +360,10 @@ export const MapScreen: React.FC = () => {
         >
           {cuisineOptions.map((option) => {
             const selected = selectedCuisine === option;
-            const label =
-              option === "all"
-                ? "All"
-                : option
-                    .split(/\s+/)
-                    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-                    .join(" ");
+            const label = option === "all" ? "All" : formatTagLabel(option);
             return (
               <Pressable
-                key={option}
+                key={`cuisine-${option}`}
                 onPress={() => setSelectedCuisine(option)}
                 style={[styles.chip, selected && styles.chipSelected]}
               >
@@ -254,45 +395,38 @@ export const MapScreen: React.FC = () => {
         </Pressable>
       )}
 
-      {/* Selected venue card */}
+      {/* Selected venue — MiniVenueCard */}
       {selectedWindow && (
-        <VenueCalloutCard
+        <MiniVenueCard
           window={selectedWindow}
-          isFavorite={isFollowing(
-            selectedWindow.venue_id ?? selectedWindow.venue?.id ?? null
-          )}
-          onToggleFavorite={() => {
-            const venueId =
-              selectedWindow.venue_id ?? selectedWindow.venue?.id ?? null;
-            if (venueId) toggleFollow(venueId);
-          }}
+          coverUrl={selectedWindow.venue?.id ? coverUrls[selectedWindow.venue.id] ?? null : null}
+          todayIndex={todayIndex}
           onPress={handleCardPress}
           onDismiss={handleDismissCard}
-          width={width}
         />
       )}
     </View>
   );
 };
 
-type VenueCalloutCardProps = {
+/* ─────────────────────────── MiniVenueCard ─────────────────────────── */
+
+type MiniVenueCardProps = {
   window: HappyHourWindow;
-  isFavorite: boolean;
-  onToggleFavorite: () => void;
+  coverUrl: string | null;
+  todayIndex: number;
   onPress: () => void;
   onDismiss: () => void;
-  width: number;
 };
 
-const VenueCalloutCard: React.FC<VenueCalloutCardProps> = ({
+const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
   window,
-  isFavorite,
-  onToggleFavorite,
+  coverUrl,
+  todayIndex,
   onPress,
   onDismiss,
-  width,
 }) => {
-  const { titleText, subtitleText } = getHappyHourDisplayNames(window);
+  const { titleText } = getHappyHourDisplayNames(window);
   const venue = window.venue;
   const priceTier = formatPriceTier(venue?.price_tier);
   const ratingRaw = venue?.rating ?? null;
@@ -301,118 +435,90 @@ const VenueCalloutCard: React.FC<VenueCalloutCardProps> = ({
     (window as any).start_time ?? null,
     (window as any).end_time ?? null
   );
-  const address = venue?.address ?? null;
   const cuisine = (venue as any)?.cuisine_type ?? null;
-  const tags = (venue?.tags ?? []).slice(0, 3);
+  const activeToday = Array.isArray(window.dow) && window.dow.map(Number).includes(todayIndex);
 
   return (
-    <View
-      style={[
-        styles.calloutCard,
-        { width: width - spacing.lg * 2 },
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.miniCard,
+        pressed && { opacity: 0.95, transform: [{ scale: 0.99 }] },
       ]}
     >
-      {/* Drag handle / dismiss indicator */}
-      <View style={styles.calloutHandle}>
-        <View style={styles.calloutHandleBar} />
-      </View>
+      <View style={styles.miniCardContent}>
+        {/* Cover image */}
+        <View style={styles.miniCardImage}>
+          {coverUrl ? (
+            <Image
+              source={{ uri: coverUrl }}
+              style={styles.miniCardImageInner}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={styles.miniCardImagePlaceholder}>
+              <IconSymbol name="mappin.circle.fill" size={28} color={colors.brandLight} />
+            </View>
+          )}
+        </View>
 
-      <View style={styles.calloutHeader}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.calloutTitle} numberOfLines={1}>
-            {titleText}
-          </Text>
-          {subtitleText && (
-            <Text style={styles.calloutSubtitle} numberOfLines={1}>
-              {subtitleText}
+        {/* Info */}
+        <View style={styles.miniCardInfo}>
+          <View style={styles.miniCardTopRow}>
+            <Text style={styles.miniCardName} numberOfLines={1}>
+              {titleText}
+            </Text>
+            {activeToday && (
+              <View style={styles.miniCardTodayBadge}>
+                <Text style={styles.miniCardTodayText}>Today</Text>
+              </View>
+            )}
+          </View>
+
+          {cuisine && (
+            <Text style={styles.miniCardCuisine} numberOfLines={1}>
+              {cuisine.replace(/[_-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
             </Text>
           )}
-        </View>
-        <View style={styles.calloutHeaderActions}>
-          <Pressable
-            onPress={(e) => {
-              e.stopPropagation();
-              onToggleFavorite();
-            }}
-            hitSlop={10}
-            style={({ pressed }) => [
-              styles.calloutHeart,
-              pressed && { opacity: 0.6 },
-            ]}
-          >
-            <IconSymbol
-              name={isFavorite ? "heart.fill" : "heart"}
-              size={22}
-              color={isFavorite ? colors.primary : colors.textMutedLight}
-            />
-          </Pressable>
-          <Pressable
-            onPress={onDismiss}
-            hitSlop={10}
-            style={({ pressed }) => [
-              styles.calloutDismiss,
-              pressed && { opacity: 0.6 },
-            ]}
-          >
-            <IconSymbol name="xmark.circle.fill" size={14} color={colors.textMuted} />
-          </Pressable>
-        </View>
-      </View>
 
-      {/* Cuisine + tags */}
-      {(cuisine || tags.length > 0) && (
-        <View style={styles.calloutTags}>
-          {cuisine && (
-            <View style={styles.calloutCuisineBadge}>
-              <Text style={styles.calloutCuisineText}>
-                {cuisine.replace(/[_-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
-              </Text>
-            </View>
-          )}
-          {tags.map((tag: string) => (
-            <View key={tag} style={styles.calloutTagBadge}>
-              <Text style={styles.calloutTagText}>
-                {tag.replace(/[_-]/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())}
-              </Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      <View style={styles.calloutMeta}>
-        {rating != null && (
-          <View style={styles.calloutMetaItem}>
-            <IconSymbol name="star.fill" size={12} color={colors.primary} />
-            <Text style={styles.calloutMetaText}>{rating.toFixed(1)}</Text>
+          <View style={styles.miniCardMetaRow}>
+            {rating != null && (
+              <View style={styles.miniCardRating}>
+                <IconSymbol name="star.fill" size={11} color={colors.primary} />
+                <Text style={styles.miniCardRatingText}>{rating.toFixed(1)}</Text>
+              </View>
+            )}
+            {priceTier && (
+              <Text style={styles.miniCardPriceText}>{priceTier}</Text>
+            )}
           </View>
-        )}
-        {priceTier && (
-          <Text style={styles.calloutMetaText}>{priceTier}</Text>
-        )}
-        {timeText && (
-          <Text style={styles.calloutMetaText}>{timeText}</Text>
-        )}
+
+          {timeText ? (
+            <Text style={styles.miniCardTimeText}>{timeText}</Text>
+          ) : null}
+        </View>
+
+        {/* Right arrow */}
+        <View style={styles.miniCardArrow}>
+          <IconSymbol name="chevron.right" size={14} color={colors.textMutedLight} />
+        </View>
       </View>
 
-      {address && (
-        <Text style={styles.calloutAddress} numberOfLines={1}>
-          {address}
-        </Text>
-      )}
-
-      <View style={styles.calloutFooter}>
-        <Pressable
-          onPress={onPress}
-          style={({ pressed }) => [
-            styles.calloutExpandButton,
-            pressed && { opacity: 0.85 },
-          ]}
-        >
-          <Text style={styles.calloutExpandText}>View venue</Text>
-          <IconSymbol name="chevron.right" size={12} color="#FFFFFF" />
-        </Pressable>
-      </View>
-    </View>
+      {/* Dismiss X */}
+      <Pressable
+        onPress={(e) => {
+          e.stopPropagation();
+          onDismiss();
+        }}
+        hitSlop={10}
+        style={({ pressed }) => [
+          styles.miniCardDismiss,
+          pressed && { opacity: 0.6 },
+        ]}
+      >
+        <IconSymbol name="xmark.circle.fill" size={18} color={colors.textMuted} />
+      </Pressable>
+    </Pressable>
   );
 };
 
@@ -454,14 +560,47 @@ const styles = StyleSheet.create({
     color: colors.text,
     paddingVertical: 0,
   },
+
+  // Suggestions dropdown
+  suggestionsContainer: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    marginTop: spacing.xs,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 5,
+    overflow: "hidden",
+  },
+  suggestionRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm + 2,
+    gap: spacing.sm,
+  },
+  suggestionBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  suggestionText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: "500",
+  },
+
   chipRow: {
-    paddingTop: spacing.sm,
-    paddingBottom: spacing.xs,
+    paddingTop: spacing.xs,
+    paddingBottom: 2,
     gap: spacing.xs,
   },
   chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs + 1,
     borderRadius: 999,
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
@@ -477,12 +616,12 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
   },
   chipText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "500",
     color: colors.text,
   },
   chipTextSelected: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
     color: "#FFFFFF",
   },
@@ -517,15 +656,15 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.95 }],
   },
 
-  // Callout card
-  calloutCard: {
+  // MiniVenueCard
+  miniCard: {
     position: "absolute",
-    bottom: spacing.xl + 20,
-    alignSelf: "center",
+    bottom: 100,
+    left: spacing.lg,
+    right: spacing.lg,
     backgroundColor: colors.surface,
-    borderRadius: 18,
-    padding: spacing.lg,
-    paddingTop: spacing.sm,
+    borderRadius: 16,
+    padding: spacing.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     shadowColor: colors.shadowMedium,
@@ -534,123 +673,108 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 6,
   },
-  calloutHandle: {
-    alignItems: "center",
-    paddingBottom: spacing.sm,
-  },
-  calloutHandleBar: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-  },
-  calloutHeader: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: spacing.xs,
-  },
-  calloutHeaderActions: {
+  miniCardContent: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    marginLeft: spacing.sm,
   },
-  calloutTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: colors.text,
-    letterSpacing: -0.2,
-  },
-  calloutSubtitle: {
-    fontSize: 13,
-    fontWeight: "500",
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  calloutHeart: {
-    padding: 4,
-  },
-  calloutDismiss: {
-    padding: 4,
-    backgroundColor: colors.background,
+  miniCardImage: {
+    width: 80,
+    height: 80,
     borderRadius: 12,
-    width: 24,
-    height: 24,
+    overflow: "hidden",
+    backgroundColor: colors.brandSubtle,
+    marginRight: spacing.md,
+    flexShrink: 0,
+  },
+  miniCardImageInner: {
+    width: 80,
+    height: 80,
+  },
+  miniCardImagePlaceholder: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-  calloutTags: {
+  miniCardInfo: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  miniCardTopRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 6,
-    marginBottom: spacing.xs,
+    alignItems: "center",
+    gap: spacing.xs,
+    marginBottom: 2,
   },
-  calloutCuisineBadge: {
-    backgroundColor: colors.brandSubtle,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  calloutCuisineText: {
-    fontSize: 11,
+  miniCardName: {
+    fontSize: 15,
     fontWeight: "700",
-    color: colors.primary,
+    color: colors.text,
+    flex: 1,
+    letterSpacing: -0.2,
   },
-  calloutTagBadge: {
-    backgroundColor: colors.background,
+  miniCardTodayBadge: {
+    backgroundColor: colors.success,
     borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    paddingHorizontal: spacing.xs + 2,
+    paddingVertical: 2,
   },
-  calloutTagText: {
-    fontSize: 11,
-    fontWeight: "500",
+  miniCardTodayText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  miniCardCuisine: {
+    fontSize: 12,
     color: colors.textMuted,
+    fontWeight: "500",
+    marginBottom: 2,
   },
-  calloutMeta: {
+  miniCardMetaRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    marginBottom: spacing.xs,
+    marginBottom: 2,
   },
-  calloutMetaItem: {
+  miniCardRating: {
     flexDirection: "row",
     alignItems: "center",
     gap: 3,
   },
-  calloutMetaText: {
+  miniCardRatingText: {
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "700",
+    color: colors.brandDark,
+  },
+  miniCardPriceText: {
+    fontSize: 12,
+    fontWeight: "600",
     color: colors.textMuted,
   },
-  calloutAddress: {
+  miniCardTimeText: {
     fontSize: 12,
-    color: colors.textMutedLight,
-    marginBottom: spacing.sm,
+    fontWeight: "500",
+    color: colors.primary,
   },
-  calloutFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-    paddingTop: spacing.sm,
+  miniCardArrow: {
+    marginLeft: spacing.sm,
+    flexShrink: 0,
   },
-  calloutExpandButton: {
-    flex: 1,
-    flexDirection: "row",
+  miniCardDismiss: {
+    position: "absolute",
+    top: -spacing.xs,
+    right: -spacing.xs,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    paddingVertical: spacing.sm + 2,
-  },
-  calloutExpandText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    shadowColor: colors.shadowSoft,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 2,
+    elevation: 2,
   },
 });

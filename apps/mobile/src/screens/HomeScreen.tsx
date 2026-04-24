@@ -462,13 +462,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               }}
               showsUserLocation
               showsMyLocationButton={false}
-              scrollEnabled={false}
-              zoomEnabled={false}
+              scrollEnabled={true}
+              zoomEnabled={true}
               pitchEnabled={false}
               rotateEnabled={false}
-              onPress={() =>
-                navigation.navigate("AppTabs" as any, { screen: "Map" } as any)
-              }
             >
               {filtered.slice(0, 10).map((place) => {
                 const lat = place.venue?.lat;
@@ -485,15 +482,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 );
               })}
             </MapView>
-            <Pressable
-              style={styles.mapExpandButton}
-              onPress={() =>
-                navigation.navigate("AppTabs" as any, { screen: "Map" } as any)
-              }
-            >
-              <IconSymbol name="arrow.up.left.and.arrow.down.right" size={14} color={colors.primary} />
-              <Text style={styles.mapExpandText}>Explore map</Text>
-            </Pressable>
           </View>
         </View>
 
@@ -925,7 +913,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md
   },
   mapContainer: {
-    height: 150,
+    height: 200,
     borderRadius: 14,
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
@@ -938,30 +926,6 @@ const styles = StyleSheet.create({
   },
   mapView: {
     flex: 1,
-  },
-  mapExpandButton: {
-    position: "absolute",
-    bottom: spacing.sm,
-    right: spacing.sm,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-    borderRadius: 999,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    shadowColor: colors.shadowMedium,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  mapExpandText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: colors.primary,
   },
   resultsHeader: {
     paddingHorizontal: spacing.lg,

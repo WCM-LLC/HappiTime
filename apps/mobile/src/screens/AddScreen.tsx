@@ -1,3 +1,8 @@
+// src/screens/AddScreen.tsx
+// Retained as a standalone venue suggestion form.
+// The "New Itinerary" flow has been moved into FavoritesScreen.
+// The "Suggest a Venue" link is now available from ProfileScreen.
+
 import React, { useState } from "react";
 import {
   View,
@@ -12,155 +17,14 @@ import {
 } from "react-native";
 import { supabase } from "../api/supabaseClient";
 import { useCurrentUser } from "../hooks/useCurrentUser";
-import { useUserLists } from "../hooks/useUserLists";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
-type Mode = "home" | "venue" | "list";
-
-export const AddScreen: React.FC = () => {
-  const [mode, setMode] = useState<Mode>("home");
-
-  if (mode === "venue") {
-    return <VenueSuggestionForm onBack={() => setMode("home")} />;
-  }
-
-  if (mode === "list") {
-    return <NewListForm onBack={() => setMode("home")} />;
-  }
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Create</Text>
-      <Text style={styles.subtitle}>
-        Start a new list or save a venue you love.
-      </Text>
-
-      <Pressable
-        style={({ pressed }) => [styles.optionCard, pressed && styles.optionCardPressed]}
-        onPress={() => setMode("venue")}
-      >
-        <Text style={styles.optionTitle}>Suggest a Venue</Text>
-        <Text style={styles.optionText}>
-          Know a great happy hour spot? Let us know and we'll look into adding it.
-        </Text>
-      </Pressable>
-
-      <Pressable
-        style={({ pressed }) => [styles.optionCard, pressed && styles.optionCardPressed]}
-        onPress={() => setMode("list")}
-      >
-        <Text style={styles.optionTitle}>New Itinerary</Text>
-        <Text style={styles.optionText}>
-          Collect your favorite happy hours into a shareable itinerary.
-        </Text>
-      </Pressable>
-    </View>
-  );
-};
-
-type NewListFormProps = {
-  onBack: () => void;
-};
-
-const NewListForm: React.FC<NewListFormProps> = ({ onBack }) => {
-  const { createList } = useUserLists();
-  const { user, loading: authLoading } = useCurrentUser();
-  const [listName, setListName] = useState("");
-  const [description, setDescription] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const isValid = listName.trim().length > 0;
-  const canSubmit = isValid && !saving && !authLoading && !!user;
-
-  const handleCreate = async () => {
-    if (!isValid) return;
-    if (!user) {
-      Alert.alert("Sign in required", "Please sign in to create lists.");
-      return;
-    }
-    setSaving(true);
-    try {
-      const { error } = await createList(listName.trim(), description.trim() || undefined);
-      if (error) {
-        Alert.alert("Something went wrong", error.message);
-        return;
-      }
-      Alert.alert("Itinerary created!", `"${listName.trim()}" is ready. Find it in your Favorites.`, [
-        { text: "Done", onPress: onBack },
-      ]);
-    } catch (e: any) {
-      Alert.alert("Something went wrong", e?.message ?? "Unknown error");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <Pressable onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
-        </Pressable>
-
-        <Text style={styles.title}>New Itinerary</Text>
-        <Text style={styles.subtitle}>
-          Give your itinerary a name to get started.
-        </Text>
-
-        <View style={styles.formCard}>
-          <Text style={styles.label}>Itinerary name *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Sunday Brunch Crawl"
-            placeholderTextColor={colors.textMuted}
-            value={listName}
-            onChangeText={setListName}
-            returnKeyType="next"
-            autoFocus
-          />
-
-          <Text style={styles.label}>Description (optional)</Text>
-          <TextInput
-            style={[styles.input, styles.notesInput]}
-            placeholder="What's this list about?"
-            placeholderTextColor={colors.textMuted}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            returnKeyType="done"
-          />
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.submitButton,
-              !isValid && styles.submitButtonDisabled,
-              pressed && isValid && styles.submitButtonPressed,
-            ]}
-            onPress={handleCreate}
-            disabled={!isValid || saving}
-          >
-            <Text style={styles.submitButtonText}>
-              {saving ? "Creating…" : "Create itinerary"}
-            </Text>
-          </Pressable>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
-  );
-};
-
 type VenueSuggestionFormProps = {
-  onBack: () => void;
+  onBack?: () => void;
 };
 
-const VenueSuggestionForm: React.FC<VenueSuggestionFormProps> = ({ onBack }) => {
+export const VenueSuggestionForm: React.FC<VenueSuggestionFormProps> = ({ onBack }) => {
   const { user } = useCurrentUser();
   const [venueName, setVenueName] = useState("");
   const [address, setAddress] = useState("");
@@ -197,7 +61,14 @@ const VenueSuggestionForm: React.FC<VenueSuggestionFormProps> = ({ onBack }) => 
     Alert.alert(
       "Thanks!",
       "We've received your suggestion and will look into adding this venue.",
-      [{ text: "Done", onPress: onBack }]
+      [{ text: "Done", onPress: () => {
+        setVenueName("");
+        setAddress("");
+        setCity("");
+        setState("");
+        setNotes("");
+        onBack?.();
+      }}]
     );
   };
 
@@ -210,9 +81,11 @@ const VenueSuggestionForm: React.FC<VenueSuggestionFormProps> = ({ onBack }) => 
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Pressable onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>← Back</Text>
-        </Pressable>
+        {onBack && (
+          <Pressable onPress={onBack} style={styles.backButton}>
+            <Text style={styles.backText}>{"\u2190"} Back</Text>
+          </Pressable>
+        )}
 
         <Text style={styles.title}>Suggest a Venue</Text>
         <Text style={styles.subtitle}>
@@ -265,7 +138,7 @@ const VenueSuggestionForm: React.FC<VenueSuggestionFormProps> = ({ onBack }) => 
           <Text style={styles.label}>Notes (optional)</Text>
           <TextInput
             style={[styles.input, styles.notesInput]}
-            placeholder="Anything else we should know — hours, specials, website…"
+            placeholder="Anything else we should know -- hours, specials, website..."
             placeholderTextColor={colors.textMuted}
             value={notes}
             onChangeText={setNotes}
@@ -283,7 +156,7 @@ const VenueSuggestionForm: React.FC<VenueSuggestionFormProps> = ({ onBack }) => 
             disabled={!isValid || saving}
           >
             <Text style={styles.submitButtonText}>
-              {saving ? "Submitting…" : "Submit suggestion"}
+              {saving ? "Submitting..." : "Submit suggestion"}
             </Text>
           </Pressable>
         </View>
@@ -291,6 +164,9 @@ const VenueSuggestionForm: React.FC<VenueSuggestionFormProps> = ({ onBack }) => 
     </KeyboardAvoidingView>
   );
 };
+
+// Legacy default export for backward compat
+export const AddScreen = VenueSuggestionForm;
 
 const styles = StyleSheet.create({
   container: {
@@ -310,42 +186,6 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 14,
     marginBottom: spacing.lg,
-  },
-  optionCard: {
-    backgroundColor: colors.surface ?? colors.background,
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    shadowColor: colors.shadowMedium,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  optionCardPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.98 }],
-  },
-  optionCardDisabled: {
-    opacity: 0.5,
-  },
-  optionTitle: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: spacing.xs,
-  },
-  optionText: {
-    color: colors.textMuted,
-    fontSize: 13,
-  },
-  comingSoon: {
-    marginTop: spacing.xs,
-    color: colors.textMuted,
-    fontSize: 11,
-    fontStyle: "italic",
   },
   backButton: {
     marginBottom: spacing.md,

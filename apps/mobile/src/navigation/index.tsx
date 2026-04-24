@@ -13,7 +13,6 @@ import { HomeScreen } from "../screens/HomeScreen";
 import { HappyHourDetailScreen } from "../screens/HappyHourDetailScreen";
 import { ActivityScreen } from "../screens/ActivityScreen";
 import { FavoritesScreen } from "../screens/FavoritesScreen";
-import { AddScreen } from "../screens/AddScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { colors } from "../theme/colors";
 import { StyleSheet, View } from "react-native";
@@ -66,17 +65,12 @@ function AppTabs() {
           let name:
             | "house.fill"
             | "magnifyingglass"
-            | "plus.circle.fill"
             | "bell.fill"
             | "person.crop.circle.fill" = "house.fill";
-          let size = 24;
+          const size = 24;
 
           if (route.name === "Home") name = "house.fill";
           if (route.name === "Favorites") name = "magnifyingglass";
-          if (route.name === "Add") {
-            name = "plus.circle.fill";
-            size = 30;
-          }
           if (route.name === "Activity") name = "bell.fill";
           if (route.name === "Profile") name = "person.crop.circle.fill";
 
@@ -93,7 +87,6 @@ function AppTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Favorites" component={FavoritesScreen} />
-      <Tab.Screen name="Add" component={AddScreen} />
       <Tab.Screen
         name="Activity"
         component={ActivityScreen}

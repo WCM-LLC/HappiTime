@@ -1,8 +1,9 @@
 // src/screens/ProfileScreen.tsx
 import React, { useEffect, useState } from "react";
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { supabase } from "../api/supabaseClient";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { VenueSuggestionForm } from "./AddScreen";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useUserFollowCounts } from "../hooks/useUserFollowCounts";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
@@ -12,6 +13,7 @@ import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
 export const ProfileScreen: React.FC = () => {
+  const [showSuggestVenue, setShowSuggestVenue] = useState(false);
   const { user, loading: userLoading } = useCurrentUser();
   const {
     profile,
@@ -290,10 +292,26 @@ export const ProfileScreen: React.FC = () => {
 
       <Pressable
         style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
+        onPress={() => setShowSuggestVenue(true)}
+      >
+        <Text style={styles.secondaryButtonText}>Suggest a Venue</Text>
+      </Pressable>
+
+      <Pressable
+        style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
         onPress={handleOpenSupport}
       >
         <Text style={styles.secondaryButtonText}>Contact support</Text>
       </Pressable>
+
+      <Modal
+        visible={showSuggestVenue}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowSuggestVenue(false)}
+      >
+        <VenueSuggestionForm onBack={() => setShowSuggestVenue(false)} />
+      </Modal>
 
       <Pressable
         style={({ pressed }) => [styles.signOutButton, pressed && styles.signOutButtonPressed]}
