@@ -1,20 +1,22 @@
 #!/usr/bin/env node
 /**
- * Fetch venue photos: Google Places first, Unsplash fallback.
+ * Fetch venue photos: Website first, Google Places second, Unsplash last.
  *
  * For each venue without media:
- *   1. Try Google Places — search by name + address, download up to 6 photos
- *   2. If Google fails (no match, no photos, API error) — fall back to Unsplash
- *      using cuisine/tag-based search terms, download 1 cover image
+ *   1. Try venue website — scrape og:image, twitter:image, and large <img> tags
+ *   2. Try Google Places — search by name + address, download up to 6 photos
+ *   3. Fall back to Unsplash — cuisine/tag-based search, 1 cover image
  *
  * Run from project root:
  *   node scripts/fetch-venue-photos.mjs
  *   node scripts/fetch-venue-photos.mjs --dry-run
- *   node scripts/fetch-venue-photos.mjs --unsplash-only   (skip Google entirely)
+ *   node scripts/fetch-venue-photos.mjs --skip-website      (skip website scraping)
+ *   node scripts/fetch-venue-photos.mjs --skip-google        (skip Google Places)
+ *   node scripts/fetch-venue-photos.mjs --unsplash-only      (skip website + Google)
  *
  * Env vars (in .env or environment):
  *   SUPABASE_SERVICE_ROLE_KEY  — required
- *   GOOGLE_PLACES_API_KEY      — required (unless --unsplash-only)
+ *   GOOGLE_PLACES_API_KEY      — required (unless --skip-google / --unsplash-only)
  *   UNSPLASH_ACCESS_KEY        — required for fallback
  *   SUPABASE_URL / NEXT_PUBLIC_SUPABASE_URL / EXPO_PUBLIC_SUPABASE_URL — optional override
  */
@@ -62,14 +64,16 @@ const PLACES_KEY = process.env.GOOGLE_PLACES_API_KEY;
 const UNSPLASH_KEY = process.env.UNSPLASH_ACCESS_KEY;
 
 const DRY_RUN = process.argv.includes("--dry-run");
+const SKIP_WEBSITE = process.argv.includes("--skip-website");
+const SKIP_GOOGLE = process.argv.includes("--skip-google");
 const UNSPLASH_ONLY = process.argv.includes("--unsplash-only");
 
 if (!SUPABASE_KEY) {
   console.error("Missing SUPABASE_SERVICE_ROLE_KEY.");
   process.exit(1);
 }
-if (!UNSPLASH_ONLY && !PLACES_KEY) {
-  console.error("Missing GOOGLE_PLACES_API_KEY. Use --unsplash-only to skip Google.");
+if (!UNSPLASH_ONLY && !SKIP_GOOGLE && !PLACES_KEY) {
+  console.error("Missing GOOGLE_PLACES_API_KEY. Use --skip-google or --unsplash-only to skip.");
   process.exit(1);
 }
 if (!UNSPLASH_KEY) {
@@ -81,6 +85,212 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+// ─── Website scraping ──────────────────────────────────────────────────────
+
+/**
+ * Fetch a venue's website and extract image URLs from:
+ *   - og:image meta tag
+ *   - twitter:image meta tag
+ *   - Large <img> tags (skip icons, logos, tiny images)
+ */
+async function scrapeWebsiteImages(websiteUrl) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+
+    const res = await fetch(websiteUrl, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "HappiTime-PhotoBot/1.0 (venue photo import)",
+        Accept: "text/html",
+      },
+      redirect: "follow",
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return [];
+
+    const html = await res.text();
+    const images = [];
+
+    // 1. og:image — highest priority
+    const ogMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    if (ogMatch?.[1]) {
+      images.push({ url: resolveUrl(ogMatch[1], websiteUrl), source: "og:image" });
+    }
+
+    // 2. twitter:image
+    const twMatch = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+    if (twMatch?.[1] && twMatch[1] !== ogMatch?.[1]) {
+      images.push({ url: resolveUrl(twMatch[1], websiteUrl), source: "twitter:image" });
+    }
+
+    // 3. Hero / large images from <img> tags — skip tiny ones, icons, logos
+    const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+    let match;
+    const seenUrls = new Set(images.map((i) => i.url));
+    while ((match = imgRegex.exec(html)) !== null) {
+      if (images.length >= 6) break;
+
+      const src = match[1];
+      const fullTag = match[0].toLowerCase();
+
+      // Skip tiny images, icons, logos, tracking pixels, svgs
+      if (
+        src.includes("logo") ||
+        src.includes("icon") ||
+        src.includes("favicon") ||
+        src.includes("pixel") ||
+        src.includes("tracking") ||
+        src.includes("badge") ||
+        src.includes("avatar") ||
+        src.includes(".svg") ||
+        src.includes("data:image") ||
+        src.includes("1x1") ||
+        src.includes("spacer")
+      ) continue;
+
+      // Skip if width/height attrs indicate a tiny image
+      const widthMatch = fullTag.match(/width=["']?(\d+)/);
+      const heightMatch = fullTag.match(/height=["']?(\d+)/);
+      if (widthMatch && parseInt(widthMatch[1]) < 200) continue;
+      if (heightMatch && parseInt(heightMatch[1]) < 150) continue;
+
+      const resolved = resolveUrl(src, websiteUrl);
+      if (resolved && !seenUrls.has(resolved) && isImageUrl(resolved)) {
+        seenUrls.add(resolved);
+        images.push({ url: resolved, source: "img tag" });
+      }
+    }
+
+    return images;
+  } catch (err) {
+    // Timeout, network error, etc.
+    return [];
+  }
+}
+
+function resolveUrl(src, base) {
+  try {
+    return new URL(src, base).href;
+  } catch {
+    return null;
+  }
+}
+
+function isImageUrl(url) {
+  if (!url) return false;
+  const lower = url.toLowerCase();
+  return (
+    lower.includes(".jpg") ||
+    lower.includes(".jpeg") ||
+    lower.includes(".png") ||
+    lower.includes(".webp") ||
+    // Many CMS image URLs don't have extensions
+    lower.includes("/image") ||
+    lower.includes("/photo") ||
+    lower.includes("/media") ||
+    lower.includes("/uploads") ||
+    lower.includes("/wp-content")
+  );
+}
+
+/**
+ * Download an image from a URL. Returns null on failure.
+ */
+async function downloadImage(url) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+
+    const res = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "HappiTime-PhotoBot/1.0",
+        Accept: "image/*",
+      },
+      redirect: "follow",
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) return null;
+
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.startsWith("image/")) return null;
+
+    const buffer = new Uint8Array(await res.arrayBuffer());
+    // Skip tiny images (< 5KB likely icons/placeholders)
+    if (buffer.byteLength < 5_000) return null;
+
+    return { data: buffer, contentType };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Try scraping the venue's website for photos.
+ * Returns number of photos uploaded, or 0 on failure.
+ */
+async function tryWebsite(venue) {
+  if (!venue.website) return 0;
+
+  let url = venue.website.trim();
+  if (!url.startsWith("http")) url = `https://${url}`;
+
+  const images = await scrapeWebsiteImages(url);
+  if (images.length === 0) return 0;
+
+  if (DRY_RUN) {
+    console.log(`\n      Website: found ${images.length} images`);
+    for (const img of images) console.log(`        ${img.source}: ${img.url.substring(0, 80)}...`);
+    return images.length;
+  }
+
+  let uploaded = 0;
+  for (let i = 0; i < Math.min(images.length, 6); i++) {
+    const img = images[i];
+    const result = await downloadImage(img.url);
+    if (!result) continue;
+
+    const ext = result.contentType.includes("png") ? "png"
+      : result.contentType.includes("webp") ? "webp"
+      : "jpg";
+    const storagePath = `website/${venue.id}/${i}.${ext}`;
+
+    const { error: upErr } = await supabase.storage
+      .from("venue-media")
+      .upload(storagePath, result.data, { contentType: result.contentType, upsert: true });
+
+    if (upErr) {
+      console.error(`\n      upload err: ${upErr.message}`);
+      continue;
+    }
+
+    const { error: dbErr } = await supabase.from("venue_media").insert({
+      venue_id: venue.id,
+      type: "image",
+      title: `From ${new URL(url).hostname}`,
+      storage_bucket: "venue-media",
+      storage_path: storagePath,
+      sort_order: uploaded,
+      status: "published",
+    });
+
+    if (dbErr) {
+      console.error(`\n      db err: ${dbErr.message}`);
+      continue;
+    }
+
+    uploaded++;
+    await sleep(100);
+  }
+
+  return uploaded;
 }
 
 // ─── Google Places ──────────────────────────────────────────────────────────
@@ -295,9 +505,19 @@ async function tryUnsplash(venue) {
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
+  const strategy = UNSPLASH_ONLY
+    ? "Unsplash only"
+    : [
+        !SKIP_WEBSITE ? "Website" : null,
+        !SKIP_GOOGLE ? "Google Places" : null,
+        "Unsplash",
+      ]
+        .filter(Boolean)
+        .join(" → ");
+
   console.log("============================================");
   console.log("  HappiTime — Venue Photo Fetcher");
-  console.log(`  Strategy  : ${UNSPLASH_ONLY ? "Unsplash only" : "Google Places → Unsplash fallback"}`);
+  console.log(`  Strategy  : ${strategy}`);
   console.log(`  Supabase  : ${SUPABASE_URL}`);
   if (DRY_RUN) console.log("  MODE      : DRY RUN (no changes)");
   console.log("============================================\n");
@@ -305,7 +525,7 @@ async function main() {
   // 1. Get all published venues
   const { data: venues, error: venueErr } = await supabase
     .from("venues")
-    .select("id, name, address, city, cuisine_type, tags")
+    .select("id, name, address, city, website, cuisine_type, tags")
     .eq("status", "published")
     .order("name");
 
@@ -329,7 +549,8 @@ async function main() {
   }
 
   // 3. Process each venue
-  let google = 0,
+  let website = 0,
+    google = 0,
     unsplash = 0,
     failed = 0;
 
@@ -339,8 +560,20 @@ async function main() {
     process.stdout.write(`  ${label}...`);
 
     try {
-      // Step 1: Try Google Places (unless --unsplash-only)
-      if (!UNSPLASH_ONLY) {
+      // Step 1: Try venue website (unless --skip-website or --unsplash-only)
+      if (!SKIP_WEBSITE && !UNSPLASH_ONLY && venue.website) {
+        const websiteCount = await tryWebsite(venue);
+        if (websiteCount > 0) {
+          console.log(` Website: ${websiteCount} photos`);
+          website++;
+          await sleep(500); // polite delay between website scrapes
+          continue;
+        }
+        process.stdout.write(" Website: miss →");
+      }
+
+      // Step 2: Try Google Places (unless --skip-google or --unsplash-only)
+      if (!SKIP_GOOGLE && !UNSPLASH_ONLY) {
         const googleCount = await tryGooglePlaces(venue);
         if (googleCount > 0) {
           console.log(` Google: ${googleCount} photos`);
@@ -351,7 +584,7 @@ async function main() {
         process.stdout.write(" Google: miss →");
       }
 
-      // Step 2: Unsplash fallback
+      // Step 3: Unsplash fallback
       const unsplashOk = await tryUnsplash(venue);
       if (unsplashOk) {
         console.log(" Unsplash: 1 cover");
@@ -371,6 +604,7 @@ async function main() {
   // 4. Summary
   console.log("\n============================================");
   console.log("  Results");
+  console.log(`  Website       : ${website} venues`);
   console.log(`  Google Places : ${google} venues`);
   console.log(`  Unsplash      : ${unsplash} venues`);
   console.log(`  No photos     : ${failed} venues`);
