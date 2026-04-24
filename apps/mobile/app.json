@@ -16,6 +16,7 @@
       "**/*"
     ],
     "plugins": [
+      ["expo-apple-authentication"],
       [
         "react-native-maps",
         {
@@ -33,6 +34,7 @@
       ]
     ],
     "ios": {
+      "usesAppleSignIn": true,
       "supportsTablet": true,
       "bundleIdentifier": "com.jwill7486.happitime.mobile",
       "buildNumber": "1",
