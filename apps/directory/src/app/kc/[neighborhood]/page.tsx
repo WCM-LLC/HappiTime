@@ -117,6 +117,19 @@ export default async function NeighborhoodPage({ params }: Props) {
         todayIndex={todayIndex}
       />
 
+      {/* Did we miss one? */}
+      <div className="mt-12 text-center">
+        <a
+          href="/contactus"
+          className="inline-flex items-center gap-2 text-sm font-medium text-brand hover:underline"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Did we miss one? Suggest a venue
+        </a>
+      </div>
+
       {/* Nearby Neighborhoods */}
       <section className="mt-16 mb-10">
         <h2 className="text-xl font-bold text-foreground mb-4">
