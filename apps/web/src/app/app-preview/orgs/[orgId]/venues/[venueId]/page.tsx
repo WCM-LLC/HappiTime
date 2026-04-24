@@ -4,12 +4,7 @@ import type { HappyHourWindow } from '@happitime/shared-types';
 import { createClient } from '@/utils/supabase/server';
 import styles from './preview.module.css';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-function publicMediaUrl(storagePath: string) {
-  return `${SUPABASE_URL}/storage/v1/object/public/venue-media/${storagePath}`;
-}
 
 function formatTimeRange(start: string, end: string): string {
   if (!start || !end) return '';
@@ -94,15 +89,19 @@ export default async function AppPreviewVenuePage({
   // Fetch cover photo
   const { data: mediaRows } = await supabase
     .from('venue_media')
-    .select('storage_path, sort_order')
+    .select('storage_bucket, storage_path, sort_order')
     .eq('venue_id', venueId)
     .eq('status', 'published')
     .eq('type', 'image')
     .order('sort_order', { ascending: true })
     .limit(1);
 
-  const coverPath = mediaRows?.[0]?.storage_path ?? null;
-  const coverUrl = coverPath ? publicMediaUrl(coverPath) : null;
+  const coverRow = mediaRows?.[0] ?? null;
+  const coverUrl = coverRow
+    ? supabase.storage
+        .from(coverRow.storage_bucket || 'venue-media')
+        .getPublicUrl(coverRow.storage_path).data?.publicUrl ?? null
+    : null;
 
   // Fetch happy hour offers for all windows
   const windowIds = (windows ?? []).map((w) => w.id);

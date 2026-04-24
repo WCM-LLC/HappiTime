@@ -11,16 +11,15 @@ import {
   type MediaType,
 } from '@/services/media-store';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-
-function publicUrl(storagePath: string) {
-  return `${SUPABASE_URL}/storage/v1/object/public/venue-media/${storagePath}`;
-}
-
 export default function VenueMediaUploader(props: { orgId: string; venueId: string }) {
   const { orgId, venueId } = props;
   const supabaseRef = useRef(createClient());
   const supabase = supabaseRef.current;
+
+  function publicUrl(storagePath: string) {
+    const { data } = supabase.storage.from('venue-media').getPublicUrl(storagePath);
+    return data?.publicUrl ?? '';
+  }
 
   const [rows, setRows] = useState<MediaRow[]>([]);
   const [busy, setBusy] = useState(false);
