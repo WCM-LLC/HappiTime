@@ -26,13 +26,14 @@
   "devDependencies": {
     "next": "^16.2.4",
     "react-dom": "19.1.0",
-    "supabase": "^2.72.7"
+    "supabase": "^2.92.0"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
     "brace-expansion": "^5.0.5",
     "nodemailer": "^8.0.5",
     "picomatch": "^4.0.4",
-    "react": "19.1.0"
+    "react": "19.1.0",
+    "react-refresh": "^0.18.0"
   }
 }
