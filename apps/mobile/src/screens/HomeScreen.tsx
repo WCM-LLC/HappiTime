@@ -273,7 +273,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     if (priceLabel) parts.push(priceLabel);
     if (cuisineLabel) parts.push(cuisineLabel);
     if (query.trim()) parts.push(`"${query.trim()}"`);
-    return parts.join(" | ");
+    return parts.join(" · ");
   }, [selectedPrice, selectedCuisine, cuisineMeta.mode, query]);
 
 
@@ -363,11 +363,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </Pressable>
 
           <View style={styles.queryRow}>
+            <IconSymbol name="magnifyingglass" size={14} color={colors.textMutedLight} style={styles.searchInputIcon} />
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="Search bars and restaurants"
-              placeholderTextColor={colors.textMuted}
+              placeholder="Search bars &amp; restaurants"
+              placeholderTextColor={colors.textMutedLight}
               style={styles.searchInput}
               autoCapitalize="none"
             />
@@ -473,6 +474,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <Text style={styles.resultsTitle}>
             {filtered.length} result{filtered.length === 1 ? "" : "s"}
           </Text>
+          <Text style={styles.resultsSortLabel}>Sorted by distance</Text>
         </View>
 
         {filtered.length === 0 ? (
@@ -638,6 +640,11 @@ const VenueCard: React.FC<VenueCardProps> = ({
             resizeMode="cover"
           />
         ) : null}
+        {priceTier && (
+          <View style={styles.cardPriceBadge}>
+            <Text style={styles.cardPriceBadgeText}>{priceTier}</Text>
+          </View>
+        )}
         <View style={styles.cardHeroDots}>
           <View style={[styles.cardHeroDot, styles.cardHeroDotActive]} />
           <View style={styles.cardHeroDot} />
@@ -654,16 +661,29 @@ const VenueCard: React.FC<VenueCardProps> = ({
           </Text>
         ) : null}
         <View style={styles.cardMetaRow}>
-          <Text style={styles.cardMetaText}>
-            {rating != null ? rating.toFixed(1) : "--"}{" "}
-            {reviewCount != null ? `(${reviewCount} reviews)` : ""}
-          </Text>
+          {rating != null && (
+            <View style={styles.cardRatingPill}>
+              <IconSymbol name="star.fill" size={11} color={colors.brandDark} />
+              <Text style={styles.cardRatingText}>{rating.toFixed(1)}</Text>
+              {reviewCount != null && (
+                <Text style={styles.cardRatingCount}>({reviewCount})</Text>
+              )}
+            </View>
+          )}
           {distanceText && (
             <Text style={styles.cardMetaText}>{distanceText}</Text>
           )}
         </View>
+        {place.venue?.tags && place.venue.tags.length > 0 && (
+          <View style={styles.cardTagsRow}>
+            {place.venue.tags.slice(0, 3).map((tag) => (
+              <View key={tag} style={styles.cardTag}>
+                <Text style={styles.cardTagText}>{formatTagLabel(tag)}</Text>
+              </View>
+            ))}
+          </View>
+        )}
         <View style={styles.cardFooterRow}>
-          <Text style={styles.cardPrice}>{priceTier ?? "$$"}</Text>
           <Pressable
             onPress={(e) => {
               e.stopPropagation();
@@ -795,14 +815,21 @@ const styles = StyleSheet.create({
   queryRow: {
     marginTop: spacing.md,
     marginBottom: spacing.md,
-    borderRadius: 16,
-    borderWidth: 1,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.border,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.surface
+    backgroundColor: colors.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm
+  },
+  searchInputIcon: {
+    flexShrink: 0
   },
   searchInput: {
+    flex: 1,
     color: colors.text,
     fontSize: 14,
     paddingVertical: 0
@@ -854,7 +881,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md
   },
   mapContainer: {
-    height: 200,
+    height: 150,
     borderRadius: 14,
     overflow: "hidden",
     borderWidth: StyleSheet.hairlineWidth,
@@ -894,12 +921,19 @@ const styles = StyleSheet.create({
   },
   resultsHeader: {
     paddingHorizontal: spacing.lg,
-    marginTop: spacing.lg
+    marginTop: spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between"
   },
   resultsTitle: {
     color: colors.text,
     fontSize: 15,
-    fontWeight: "600"
+    fontWeight: "700"
+  },
+  resultsSortLabel: {
+    color: colors.textMuted,
+    fontSize: 12
   },
   carouselContent: {
     paddingHorizontal: spacing.lg,
@@ -927,7 +961,22 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandSubtle,
     justifyContent: "flex-end",
     alignItems: "center",
-    paddingBottom: spacing.sm
+    paddingBottom: spacing.sm,
+    position: "relative"
+  },
+  cardPriceBadge: {
+    position: "absolute",
+    top: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3
+  },
+  cardPriceBadgeText: {
+    color: colors.text,
+    fontSize: 11,
+    fontWeight: "700"
   },
   cardHeroDots: {
     flexDirection: "row"
@@ -963,22 +1012,54 @@ const styles = StyleSheet.create({
   },
   cardMetaRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
+    gap: spacing.sm,
     marginBottom: spacing.sm
+  },
+  cardRatingPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    backgroundColor: colors.brandSubtle,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3
+  },
+  cardRatingText: {
+    color: colors.brandDark,
+    fontSize: 12,
+    fontWeight: "700"
+  },
+  cardRatingCount: {
+    color: colors.brandDark,
+    fontSize: 11,
+    opacity: 0.7
   },
   cardMetaText: {
     color: colors.textMuted,
     fontSize: 12
   },
+  cardTagsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+    marginBottom: spacing.sm
+  },
+  cardTag: {
+    backgroundColor: colors.brandSubtle,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2
+  },
+  cardTagText: {
+    color: colors.brandDark,
+    fontSize: 11,
+    fontWeight: "600"
+  },
   cardFooterRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between"
-  },
-  cardPrice: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: "600"
+    justifyContent: "flex-end"
   },
   heartButton: {
     padding: 4,

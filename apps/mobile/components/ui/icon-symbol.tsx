@@ -32,7 +32,7 @@ const MAPPING = {
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
   'checkmark.seal.fill': 'verified',
-  'arrow.up.left.and.arrow.down.right': 'open_with',
+  'arrow.up.left.and.arrow.down.right': 'fullscreen',
   'heart': 'favorite-border',
   'heart.fill': 'favorite',
   'location.fill': 'my-location',
