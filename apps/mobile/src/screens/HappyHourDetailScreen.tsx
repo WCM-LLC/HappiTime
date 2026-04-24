@@ -12,6 +12,7 @@ import {
   Alert,
   Modal,
   FlatList,
+  TextInput,
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
@@ -54,10 +55,15 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
     savingVenueId,
     toggleFollow
   } = useUserFollowedVenues();
-  const { lists, addVenue } = useUserLists();
+  const { lists, addVenue, createList } = useUserLists();
   const [showItineraryPicker, setShowItineraryPicker] = useState(false);
   const [addedToIds, setAddedToIds] = useState<Set<string>>(new Set());
   const [addingToId, setAddingToId] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newListName, setNewListName] = useState("");
+  const [newListDesc, setNewListDesc] = useState("");
+  const [newListVisibility, setNewListVisibility] = useState<"private" | "friends" | "public">("private");
+  const [creatingList, setCreatingList] = useState(false);
 
   const window = useMemo(
     () => data.find((w) => w.id === windowId),
@@ -490,55 +496,131 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
         <View style={pickerStyles.sheet}>
           <View style={pickerStyles.handle} />
           <Text style={pickerStyles.title}>Add to Itinerary</Text>
-          {lists.length === 0 ? (
-            <Text style={pickerStyles.empty}>
-              No itineraries yet. Tap + to create one.
-            </Text>
-          ) : (
-            <FlatList
-              data={lists}
-              keyExtractor={(item) => item.id}
-              ItemSeparatorComponent={() => <View style={pickerStyles.sep} />}
-              renderItem={({ item }) => {
-                const added = addedToIds.has(item.id);
-                const adding = addingToId === item.id;
-                return (
+
+          {/* Create-list form — shown when no lists OR user taps "+ New" */}
+          {(lists.length === 0 || showCreateForm) ? (
+            <View style={pickerStyles.createForm}>
+              <Text style={pickerStyles.createLabel}>Create a new itinerary</Text>
+              <TextInput
+                style={pickerStyles.input}
+                placeholder="Name (e.g. Friday Night Crawl)"
+                placeholderTextColor={colors.textTertiary}
+                value={newListName}
+                onChangeText={setNewListName}
+                autoFocus
+              />
+              <TextInput
+                style={[pickerStyles.input, { height: 60 }]}
+                placeholder="Description (optional)"
+                placeholderTextColor={colors.textTertiary}
+                value={newListDesc}
+                onChangeText={setNewListDesc}
+                multiline
+              />
+              <View style={pickerStyles.visRow}>
+                {(["private", "friends", "public"] as const).map((v) => (
                   <Pressable
-                    style={({ pressed }) => [
-                      pickerStyles.row,
-                      pressed && { opacity: 0.75 },
+                    key={v}
+                    style={[
+                      pickerStyles.visChip,
+                      newListVisibility === v && pickerStyles.visChipActive,
                     ]}
-                    disabled={added || adding}
-                    onPress={async () => {
-                      if (!venueId) return;
-                      setAddingToId(item.id);
-                      const { error } = await addVenue(item.id, venueId);
-                      setAddingToId(null);
-                      if (error) {
-                        Alert.alert("Couldn't add", error.message);
-                      } else {
-                        setAddedToIds((prev) => new Set(prev).add(item.id));
-                      }
-                    }}
+                    onPress={() => setNewListVisibility(v)}
                   >
-                    <View style={pickerStyles.rowText}>
-                      <Text style={pickerStyles.rowName}>{item.name}</Text>
-                      {item.description ? (
-                        <Text style={pickerStyles.rowDesc} numberOfLines={1}>
-                          {item.description}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <Text style={[
-                      pickerStyles.rowAction,
-                      added && pickerStyles.rowActionDone,
-                    ]}>
-                      {adding ? "…" : added ? "Added ✓" : "Add"}
+                    <Text
+                      style={[
+                        pickerStyles.visChipText,
+                        newListVisibility === v && pickerStyles.visChipTextActive,
+                      ]}
+                    >
+                      {v === "private" ? "Private" : v === "friends" ? "Friends" : "Public"}
                     </Text>
                   </Pressable>
-                );
-              }}
-            />
+                ))}
+              </View>
+              <Pressable
+                style={[
+                  pickerStyles.createBtn,
+                  (!newListName.trim() || creatingList) && { opacity: 0.5 },
+                ]}
+                disabled={!newListName.trim() || creatingList}
+                onPress={async () => {
+                  setCreatingList(true);
+                  const { error } = await createList(newListName, newListDesc || undefined);
+                  setCreatingList(false);
+                  if (error) {
+                    Alert.alert("Error", error.message);
+                  } else {
+                    setNewListName("");
+                    setNewListDesc("");
+                    setNewListVisibility("private");
+                    setShowCreateForm(false);
+                  }
+                }}
+              >
+                <Text style={pickerStyles.createBtnText}>
+                  {creatingList ? "Creating…" : "Create Itinerary"}
+                </Text>
+              </Pressable>
+              {lists.length > 0 && (
+                <Pressable onPress={() => setShowCreateForm(false)}>
+                  <Text style={pickerStyles.cancelText}>Cancel</Text>
+                </Pressable>
+              )}
+            </View>
+          ) : (
+            <>
+              <FlatList
+                data={lists}
+                keyExtractor={(item) => item.id}
+                ItemSeparatorComponent={() => <View style={pickerStyles.sep} />}
+                renderItem={({ item }) => {
+                  const added = addedToIds.has(item.id);
+                  const adding = addingToId === item.id;
+                  return (
+                    <Pressable
+                      style={({ pressed }) => [
+                        pickerStyles.row,
+                        pressed && { opacity: 0.75 },
+                      ]}
+                      disabled={added || adding}
+                      onPress={async () => {
+                        if (!venueId) return;
+                        setAddingToId(item.id);
+                        const { error } = await addVenue(item.id, venueId);
+                        setAddingToId(null);
+                        if (error) {
+                          Alert.alert("Couldn't add", error.message);
+                        } else {
+                          setAddedToIds((prev) => new Set(prev).add(item.id));
+                        }
+                      }}
+                    >
+                      <View style={pickerStyles.rowText}>
+                        <Text style={pickerStyles.rowName}>{item.name}</Text>
+                        {item.description ? (
+                          <Text style={pickerStyles.rowDesc} numberOfLines={1}>
+                            {item.description}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <Text style={[
+                        pickerStyles.rowAction,
+                        added && pickerStyles.rowActionDone,
+                      ]}>
+                        {adding ? "…" : added ? "Added ✓" : "Add"}
+                      </Text>
+                    </Pressable>
+                  );
+                }}
+              />
+              <Pressable
+                style={pickerStyles.newListBtn}
+                onPress={() => setShowCreateForm(true)}
+              >
+                <Text style={pickerStyles.newListBtnText}>+ New Itinerary</Text>
+              </Pressable>
+            </>
           )}
         </View>
       </Modal>
@@ -991,5 +1073,81 @@ const pickerStyles = StyleSheet.create({
   rowActionDone: {
     backgroundColor: colors.surface,
     color: colors.textMuted,
+  },
+  createForm: {
+    paddingVertical: spacing.sm,
+  },
+  createLabel: {
+    color: colors.textMuted,
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: spacing.md,
+  },
+  input: {
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.text,
+    fontSize: 15,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  visRow: {
+    flexDirection: "row" as const,
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+    marginTop: spacing.xs,
+  },
+  visChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  visChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  visChipText: {
+    fontSize: 13,
+    fontWeight: "600" as const,
+    color: colors.textMuted,
+  },
+  visChipTextActive: {
+    color: "#FFFFFF",
+  },
+  createBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingVertical: spacing.sm + 2,
+    alignItems: "center" as const,
+    marginTop: spacing.xs,
+  },
+  createBtnText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700" as const,
+  },
+  cancelText: {
+    color: colors.textMuted,
+    fontSize: 14,
+    textAlign: "center" as const,
+    marginTop: spacing.md,
+  },
+  newListBtn: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    paddingVertical: spacing.md,
+    alignItems: "center" as const,
+    marginTop: spacing.xs,
+  },
+  newListBtnText: {
+    color: colors.primary,
+    fontSize: 15,
+    fontWeight: "600" as const,
   },
 });

@@ -129,7 +129,7 @@ export function useUserLists() {
 
       const { error } = await (supabase as any)
         .from("user_list_items")
-        .upsert({ list_id: listId, venue_id: venueId, added_by: user.id }, { onConflict: "list_id,venue_id" });
+        .upsert({ list_id: listId, venue_id: venueId }, { onConflict: "list_id,venue_id" });
 
       if (error) return { error: new Error(error.message) };
 
