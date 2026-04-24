@@ -92,7 +92,7 @@ export default function HomePage() {
           happy hour starts, and see what your friends are checking out.
         </p>
         <a
-          href="https://apps.apple.com"
+          href="/app/"
           className="inline-block rounded-full bg-brand px-8 py-3 text-white font-semibold hover:bg-brand-dark transition-colors"
         >
           Download the App

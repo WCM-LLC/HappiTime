@@ -97,7 +97,7 @@ export default async function NeighborhoodPage({ params }: Props) {
           Get reminders when your favorite spots start their specials.
         </p>
         <a
-          href="https://apps.apple.com"
+          href="/app/"
           className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors"
         >
           Get the App

@@ -394,6 +394,25 @@ export default async function VenueDetailPage({ params }: Props) {
         </section>
       )}
 
+      {/* Claim CTA */}
+      <section className="rounded-2xl border border-border bg-surface p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div>
+          <h2 className="font-bold text-foreground">
+            Is this your place?
+          </h2>
+          <p className="text-sm text-muted mt-1">
+            Claim your venue to manage hours, menus, and deals &mdash; 50% off
+            for your first 3 months.
+          </p>
+        </div>
+        <a
+          href="/claim/"
+          className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors shrink-0"
+        >
+          Claim This Venue
+        </a>
+      </section>
+
       {/* App CTA */}
       <section className="rounded-2xl bg-brand-subtle p-8 text-center">
         <h2 className="text-lg font-bold text-foreground mb-2">
@@ -404,7 +423,7 @@ export default async function VenueDetailPage({ params }: Props) {
           out nearby.
         </p>
         <a
-          href="https://apps.apple.com"
+          href="/app/"
           className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors"
         >
           Open in App

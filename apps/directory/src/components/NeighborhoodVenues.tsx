@@ -109,7 +109,7 @@ export function NeighborhoodVenues({
               <>
                 Know a spot?{" "}
                 <a
-                  href="https://apps.apple.com"
+                  href="/app/"
                   className="text-brand font-medium"
                 >
                   Add it in the app
