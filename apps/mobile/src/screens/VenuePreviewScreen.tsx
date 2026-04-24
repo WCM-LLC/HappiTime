@@ -246,10 +246,10 @@ const styles = StyleSheet.create({
     width: 140,
     height: 105,
     borderRadius: 12,
-    backgroundColor: colors.surfaceElevated
+    backgroundColor: colors.surface
   },
   eventCard: {
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: colors.surface,
     borderRadius: 14,
     padding: spacing.md,
     marginBottom: spacing.sm,
@@ -269,12 +269,12 @@ const styles = StyleSheet.create({
     paddingVertical: 3
   },
   eventTypeBadgeText: {
-    color: colors.brand,
+    color: colors.primary,
     fontSize: 11,
     fontWeight: "700"
   },
   eventPrice: {
-    color: colors.brand,
+    color: colors.primary,
     fontSize: 12,
     fontWeight: "700"
   },
@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs
   },
   eventLink: {
-    color: colors.brand,
+    color: colors.primary,
     fontSize: 13,
     fontWeight: "600"
   },
@@ -314,7 +314,7 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   recurringBadgeText: {
-    color: colors.brand,
+    color: colors.primary,
     fontSize: 10,
     fontWeight: "700"
   }

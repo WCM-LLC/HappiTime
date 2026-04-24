@@ -41,7 +41,7 @@ export function useVenueEvents(venueId: string | null) {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("venue_events")
         .select(
           "id, venue_id, title, description, event_type, status, starts_at, ends_at, is_recurring, recurrence_rule, price_info, external_url, ticket_url, cover_image_path"

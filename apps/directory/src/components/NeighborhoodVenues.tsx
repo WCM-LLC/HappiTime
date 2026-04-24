@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { VenueWithWindows } from "@/lib/queries";
-import { VenueCard } from "./VenueCard";
+import { VenueCardClient } from "./VenueCardClient";
 
 const DOW_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -121,7 +121,7 @@ export function NeighborhoodVenues({
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           {filteredVenues.map((venue) => (
-            <VenueCard
+            <VenueCardClient
               key={venue.id}
               venue={venue}
               neighborhoodSlug={neighborhoodSlug}

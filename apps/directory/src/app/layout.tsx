@@ -58,6 +58,9 @@ export const metadata: Metadata = {
   category: "food & drink",
 };
 
+import { ItineraryProvider } from "@/components/ItineraryContext";
+import { ItineraryBadge } from "@/components/ItineraryBadge";
+
 export default function RootLayout({
   children,
 }: {
@@ -111,19 +114,21 @@ gtag('config', 'G-8MZMX2GH4E');`,
             />
           </noscript>
         )}
-        {process.env.NEXT_PUBLIC_COMING_SOON === "true" ? (
-          <>
-            <main>{children}</main>
-            <Analytics />
-          </>
-        ) : (
-          <>
-            <SiteHeader />
-            <main>{children}</main>
-            <SiteFooter />
-            <Analytics />
-          </>
-        )}
+        <ItineraryProvider>
+          {process.env.NEXT_PUBLIC_COMING_SOON === "true" ? (
+            <>
+              <main>{children}</main>
+              <Analytics />
+            </>
+          ) : (
+            <>
+              <SiteHeader />
+              <main>{children}</main>
+              <SiteFooter />
+              <Analytics />
+            </>
+          )}
+        </ItineraryProvider>
       </body>
     </html>
   );
@@ -136,10 +141,11 @@ function SiteHeader() {
         <a href="/" className="flex items-center">
           <HappiTimeLogo className="h-8" />
         </a>
-        <nav className="flex items-center gap-6 text-sm font-medium text-muted">
+        <nav className="flex items-center gap-4 text-sm font-medium text-muted">
           <a href="/kc/" className="hover:text-foreground transition-colors">
             Kansas City
           </a>
+          <ItineraryBadge />
           <a
             href="https://happitime-console.vercel.app/login"
             className="hover:text-foreground transition-colors"
