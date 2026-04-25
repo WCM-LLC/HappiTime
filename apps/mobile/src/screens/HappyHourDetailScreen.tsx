@@ -21,6 +21,7 @@ import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useUserLists } from "../hooks/useUserLists";
 import { useVenueMenus } from "../hooks/useVenueMenus";
 import { useVenueCovers } from "../hooks/useVenueCovers";
+import { useVenueMedia } from "../hooks/useVenueMedia";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
