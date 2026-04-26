@@ -6,6 +6,7 @@ import { createClient } from '@/utils/supabase/server';
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
+  const authDebug = process.env.AUTH_DEBUG === '1' || process.env.NEXT_PUBLIC_AUTH_DEBUG === '1';
 
   const email = String(formData.get('email') ?? '');
   const password = String(formData.get('password') ?? '');
@@ -13,9 +14,19 @@ export async function login(formData: FormData) {
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
+  if (authDebug) {
+    console.log('[auth][login] signInWithPassword result', {
+      emailDomain: email.includes('@') ? email.split('@')[1] : null,
+      hasError: !!error,
+      errorMessage: error?.message,
+      next: next || null,
+    });
+  }
+
   if (error) {
     const base = next ? `/login?next=${encodeURIComponent(next)}` : '/login';
-    redirect(`${base}&error=bad_credentials`);
+    const joiner = base.includes('?') ? '&' : '?';
+    redirect(`${base}${joiner}error=bad_credentials`);
   }
 
   revalidatePath('/', 'layout');

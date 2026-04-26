@@ -17,18 +17,20 @@ function normalizeEnvValue(value: string | undefined): string | null {
 export function getPublicSupabaseEnv(
   input?: PublicSupabaseEnvInput
 ): PublicSupabaseEnv {
+  // Prefer framework-local public vars first to avoid cross-app collisions
+  // in monorepo/dev shells where both EXPO_* and NEXT_PUBLIC_* may be present.
   const url =
     normalizeEnvValue(input?.supabaseUrl) ??
-    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_URL) ??
     normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL) ??
+    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_URL) ??
     normalizeEnvValue(process.env.SUPABASE_URL);
 
   const anonKey =
     normalizeEnvValue(input?.supabaseKey) ??
-    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) ??
-    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ??
     normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ??
     normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ??
+    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) ??
+    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ??
     normalizeEnvValue(process.env.SUPABASE_ANON_KEY);
 
   if (!url || !anonKey) {
@@ -75,4 +77,3 @@ export function getPublicMapsEnv(): PublicMapsEnv | null {
     ...(provider === "mapbox" && styleId ? { styleId } : {}),
   };
 }
-
