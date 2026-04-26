@@ -27,6 +27,38 @@ Mobile (in a separate terminal):
 npm run dev:mobile
 ```
 
+## Mobile Dev Build (iOS)
+
+The mobile app uses `react-native-maps` and `expo-notifications`, which are not supported in Expo Go and require a custom dev client build.
+
+### First-time setup — build and install the dev client
+
+```bash
+eas build --profile development --platform ios
+```
+
+This runs a cloud build (~10–15 min) and produces an installable `.ipa`. Register your device when prompted, then install via the link sent to your browser.
+
+### Starting the dev server
+
+Once the dev client app is installed on your device:
+
+```bash
+npm run dev:mobile
+```
+
+Open the **HappiTime Development Build** app (not Expo Go). It will auto-discover the server if your phone and Mac are on the same Wi-Fi.
+
+If it shows "No development servers found", tap **Enter URL manually** and enter the `exp://` URL shown in your terminal.
+
+### Tunnel mode (different networks or mDNS issues)
+
+```bash
+npx expo start --tunnel
+```
+
+This creates a public URL that works across any network connection.
+
 ## Commands
 - Web dev: `npm run dev:web`
 - Mobile dev: `npm run dev:mobile`
