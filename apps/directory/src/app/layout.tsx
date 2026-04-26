@@ -200,7 +200,7 @@ function SiteFooter() {
             Contact Us
           </a>
           <a
-            href="https://www.instagram.com/findhappitime/"
+            href="https://www.instagram.com/happitime.biz/"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-foreground transition-colors"
