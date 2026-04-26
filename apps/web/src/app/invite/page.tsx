@@ -116,7 +116,7 @@ export default async function InvitePage({
               </text>
             </svg>
           </Link>
-          <h1 className="text-display-sm font-bold text-foreground tracking-tight mt-3">You're invited</h1>
+          <h1 className="text-display-sm font-bold text-foreground tracking-tight mt-3">You&apos;re invited</h1>
           <p className="text-body-sm text-muted mt-1">Join your team on HappiTime.</p>
         </div>
 
@@ -182,7 +182,7 @@ export default async function InvitePage({
               <div className="rounded-md border border-warning bg-warning-light px-4 py-3">
                 <p className="text-body-sm text-warning font-medium">Email mismatch</p>
                 <p className="text-body-sm text-warning/80 mt-0.5">
-                  You're signed in as <strong>{user?.email}</strong>. Please log in as <strong>{invite.email}</strong> to accept.
+                  You&apos;re signed in as <strong>{user?.email}</strong>. Please log in as <strong>{invite.email}</strong> to accept.
                 </p>
               </div>
             ) : user ? (
