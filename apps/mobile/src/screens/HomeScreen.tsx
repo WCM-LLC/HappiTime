@@ -448,6 +448,15 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               zoomEnabled={true}
               pitchEnabled={false}
               rotateEnabled={false}
+              onMarkerPress={(e) => {
+                const markerId = e.nativeEvent?.id;
+                if (markerId) {
+                  const place = filtered.find((p) => p.id === markerId);
+                  if (place) {
+                    navigation.navigate("HappyHourDetail", { windowId: place.id });
+                  }
+                }
+              }}
             >
               {filtered.map((place) => {
                 const lat = place.venue?.lat;
@@ -456,6 +465,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 return (
                   <Marker
                     key={place.id}
+                    identifier={place.id}
                     coordinate={{ latitude: lat, longitude: lng }}
                     pinColor={colors.primary}
                   />
