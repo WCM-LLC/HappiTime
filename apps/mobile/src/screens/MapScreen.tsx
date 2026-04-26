@@ -253,9 +253,19 @@ export const MapScreen: React.FC = () => {
         initialRegion={initialRegion}
         showsUserLocation
         showsMyLocationButton={false}
-        onPress={() => {
-          setSelectedWindow(null);
-          setShowSuggestions(false);
+        onPress={(e) => {
+          // Only dismiss when tapping empty map, not markers
+          if (e.nativeEvent.action !== "marker-press") {
+            setSelectedWindow(null);
+            setShowSuggestions(false);
+          }
+        }}
+        onMarkerPress={(e) => {
+          const markerId = e.nativeEvent?.id;
+          if (markerId) {
+            const window = filtered.find((w) => w.id === markerId);
+            if (window) handleMarkerPress(window);
+          }
         }}
       >
         {filtered.map((window) => {
@@ -266,9 +276,9 @@ export const MapScreen: React.FC = () => {
           return (
             <Marker
               key={window.id}
+              identifier={window.id}
               coordinate={{ latitude: lat, longitude: lng }}
               pinColor={active ? colors.primary : colors.textMutedLight}
-              onPress={() => handleMarkerPress(window)}
             />
           );
         })}
