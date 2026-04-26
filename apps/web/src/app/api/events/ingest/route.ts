@@ -1,3 +1,12 @@
+/**
+ * POST /api/events/ingest
+ * Server-side analytics event ingestion endpoint.
+ * Validates API key, applies optional per-IP rate limiting, then bulk-inserts events
+ * into the 'events' table via service-role client.
+ *
+ * Required env vars: EVENTS_INGEST_API_KEY, NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+ * Optional env vars: EVENTS_INGEST_RATE_LIMIT_PER_MIN, EVENTS_INGEST_MAX_BATCH
+ */
 import { NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 
@@ -18,20 +27,34 @@ type RateBucket = {
 };
 
 const rateBuckets = new Map<string, RateBucket>();
+const RATE_WINDOW_MS = 60_000;
 
+// Purge stale buckets at most once every 5 minutes to prevent unbounded map growth.
+let lastPurge = 0;
+function purgeStaleRateBuckets() {
+  const now = Date.now();
+  if (now - lastPurge < 5 * 60_000) return;
+  lastPurge = now;
+  for (const [key, bucket] of rateBuckets.entries()) {
+    if (now > bucket.resetAt) rateBuckets.delete(key);
+  }
+}
+
+/** Extracts a stable client identifier from request headers for rate limiting. */
 function getClientId(request: Request): string {
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) return forwarded.split(',')[0]?.trim() ?? 'unknown';
   return request.headers.get('x-real-ip') ?? 'unknown';
 }
 
+/** Returns true if the client has exceeded the per-minute request limit. */
 function isRateLimited(clientId: string, limit: number): boolean {
+  purgeStaleRateBuckets();
   const now = Date.now();
-  const windowMs = 60_000;
   const bucket = rateBuckets.get(clientId);
 
   if (!bucket || now > bucket.resetAt) {
-    rateBuckets.set(clientId, { count: 1, resetAt: now + windowMs });
+    rateBuckets.set(clientId, { count: 1, resetAt: now + RATE_WINDOW_MS });
     return false;
   }
 
@@ -39,14 +62,17 @@ function isRateLimited(clientId: string, limit: number): boolean {
   return bucket.count > limit;
 }
 
+/** Coerces an unknown value to a trimmed string; returns empty string for non-strings. */
 function toStringValue(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+/** Returns true if value is a plain (non-array) object. */
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
+/** Returns true if the string parses as a valid ISO date. */
 function isValidIsoDate(value: string): boolean {
   return !Number.isNaN(Date.parse(value));
 }
@@ -93,9 +119,7 @@ export async function POST(request: Request) {
     const venue_id = toStringValue((event as any)?.venue_id);
     const event_type = toStringValue((event as any)?.event_type);
 
-    if (!org_id || !venue_id || !event_type) {
-      return null;
-    }
+    if (!org_id || !venue_id || !event_type) return null;
 
     const userRaw = toStringValue((event as any)?.user_id ?? '');
     const occurredAtRaw = toStringValue((event as any)?.occurred_at ?? '');

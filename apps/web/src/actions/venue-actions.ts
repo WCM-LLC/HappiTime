@@ -3,49 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
+import { toStr, toNullableStr, toNumberOrNull, redirectWithError, requireField } from '@/utils/form';
 
-// DB check constraint uses different strings, change these:
 const HH_STATUS_DRAFT = 'draft';
 const HH_STATUS_PUBLISHED = 'published';
 
-function toStr(v: FormDataEntryValue | null | undefined) {
-  return String(v ?? '').trim();
-}
-
-function toNullableStr(v: FormDataEntryValue | null | undefined) {
-  const s = toStr(v);
-  return s.length ? s : null;
-}
-
-function toTimeStr(v: FormDataEntryValue | null | undefined) {
-  // input[type=time] usually returns "HH:MM"
-  // Postgres time can be "HH:MM:SS"
-  // We store "HH:MM" or "HH:MM:SS" fine; but keep it clean:
-  const s = toStr(v);
-  return s;
-}
-
-function toNumberOrNull(v: FormDataEntryValue | null | undefined) {
-  const s = toStr(v);
-  if (!s) return null;
-  const n = Number(s);
-  return Number.isFinite(n) ? n : null;
-}
-
-function redirectWithError(orgId: string, venueId: string, error: string): never {
-  redirect(`/orgs/${orgId}/venues/${venueId}?error=${error}`);
-}
-
-function requireField(formData: FormData, key: string, orgId: string, venueId: string, error: string) {
-  const value = toStr(formData.get(key));
-  if (!value) redirectWithError(orgId, venueId, error);
-  return value;
-}
-
+/** Parses the 'dow' field from FormData. Supports both multi-checkbox and single-select inputs. */
 function parseDowArray(formData: FormData): number[] {
-  // Supports:
-  // - multiple checkboxes: formData.getAll('dow')
-  // - single select: formData.get('dow')
   const all = formData.getAll('dow');
   const raw = all.length
     ? all
@@ -57,10 +21,10 @@ function parseDowArray(formData: FormData): number[] {
     .map((n) => Math.trunc(n))
     .filter((n) => n >= 0 && n <= 6);
 
-  // unique + stable
   return Array.from(new Set(days)).sort((a, b) => a - b);
 }
 
+/** Asserts session is authenticated; redirects to /login otherwise. */
 async function requireAuth() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -68,6 +32,10 @@ async function requireAuth() {
   return { supabase, userId: auth.user.id };
 }
 
+/**
+ * Asserts the current user is a member of the org and that the venue belongs to it.
+ * Redirects with 'not_authorized' if either check fails.
+ */
 async function requireVenueAccess(orgId: string, venueId: string) {
   const { supabase, userId } = await requireAuth();
 
@@ -92,10 +60,15 @@ async function requireVenueAccess(orgId: string, venueId: string) {
   return { supabase, userId };
 }
 
+/** Invalidates the Next.js cache for the venue management page. */
 function revalidateVenue(orgId: string, venueId: string) {
   revalidatePath(`/orgs/${orgId}/venues/${venueId}`);
 }
 
+/**
+ * Returns the next sort_order value for a given table and parent filter.
+ * Uses max(sort_order) + 1; new rows get appended to the end.
+ */
 async function nextSortOrder(
   supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
   table: 'menu_sections' | 'menu_items',
@@ -112,6 +85,7 @@ async function nextSortOrder(
   return (maxRow?.[0]?.sort_order ?? 0) + 1;
 }
 
+/** Updates core venue fields (name, address, timezone, app_name_preference). */
 export async function updateVenue(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
 
@@ -154,10 +128,10 @@ export async function updateVenue(orgId: string, venueId: string, formData: Form
   revalidateVenue(orgId, venueId);
 }
 
+/** Creates a new happy hour window in 'draft' status for the given venue. */
 export async function addHappyHour(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
 
-  // Pull venue timezone (happy_hour_windows.timezone is NOT NULL in your schema)
   const { data: venue, error: vErr } = await supabase
     .from('venues')
     .select('id,org_id,timezone')
@@ -171,8 +145,8 @@ export async function addHappyHour(orgId: string, venueId: string, formData: For
   }
 
   const dow = parseDowArray(formData);
-  const start_time = toTimeStr(formData.get('start_time'));
-  const end_time = toTimeStr(formData.get('end_time'));
+  const start_time = toStr(formData.get('start_time'));
+  const end_time = toStr(formData.get('end_time'));
   const label = toNullableStr(formData.get('label'));
   const timezone = toStr(formData.get('timezone')) || venue.timezone || 'America/Chicago';
 
@@ -181,12 +155,12 @@ export async function addHappyHour(orgId: string, venueId: string, formData: For
 
   const { error } = await supabase.from('happy_hour_windows').insert({
     venue_id: venueId,
-    dow,                // ✅ ARRAY column (supports multi-day)
+    dow,
     start_time,
     end_time,
     timezone,
-    status: HH_STATUS_DRAFT, // ✅ starts unpublished
-    label,              // ✅ optional
+    status: HH_STATUS_DRAFT,
+    label,
   });
 
   if (error) {
@@ -197,14 +171,14 @@ export async function addHappyHour(orgId: string, venueId: string, formData: For
   revalidateVenue(orgId, venueId);
 }
 
+/** Updates schedule fields (dow, start_time, end_time, label) for an existing happy hour window. */
 export async function updateHappyHour(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
 
   const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
-
   const dow = parseDowArray(formData);
-  const start_time = toTimeStr(formData.get('start_time'));
-  const end_time = toTimeStr(formData.get('end_time'));
+  const start_time = toStr(formData.get('start_time'));
+  const end_time = toStr(formData.get('end_time'));
   const label = toNullableStr(formData.get('label'));
 
   if (!dow.length) redirectWithError(orgId, venueId, 'missing_dow');
@@ -224,9 +198,9 @@ export async function updateHappyHour(orgId: string, venueId: string, formData: 
   revalidateVenue(orgId, venueId);
 }
 
+/** Deletes a happy hour window and its associated records. */
 export async function deleteHappyHour(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
-
   const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
 
   const { error } = await supabase
@@ -243,6 +217,7 @@ export async function deleteHappyHour(orgId: string, venueId: string, formData: 
   revalidateVenue(orgId, venueId);
 }
 
+/** Sets a happy hour window status to 'published', making it visible in the directory and mobile app. */
 export async function publishHappyHour(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
   const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
@@ -261,9 +236,9 @@ export async function publishHappyHour(orgId: string, venueId: string, formData:
   revalidateVenue(orgId, venueId);
 }
 
+/** Sets a happy hour window status back to 'draft', hiding it from public views. */
 export async function unpublishHappyHour(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
-
   const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
 
   const { error } = await supabase
@@ -280,15 +255,15 @@ export async function unpublishHappyHour(orgId: string, venueId: string, formDat
   revalidateVenue(orgId, venueId);
 }
 
+/**
+ * Replaces the menu associations for a happy hour window.
+ * Validates that submitted menu IDs belong to the venue before linking.
+ */
 export async function updateHappyHourMenus(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
-
   const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
 
-  const menuIds = formData
-    .getAll('menu_ids')
-    .map((value) => toStr(value))
-    .filter(Boolean);
+  const menuIds = formData.getAll('menu_ids').map((value) => toStr(value)).filter(Boolean);
   const uniqueMenuIds = Array.from(new Set(menuIds));
 
   const { data: window, error: windowErr } = await supabase
@@ -328,13 +303,8 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
     const validMenuIds = (menus ?? []).map((menu: any) => menu.id).filter(Boolean);
 
     if (validMenuIds.length) {
-      const payload = validMenuIds.map((menu_id) => ({
-        happy_hour_window_id: hh_id,
-        menu_id,
-      }));
-
+      const payload = validMenuIds.map((menu_id) => ({ happy_hour_window_id: hh_id, menu_id }));
       const { error: insertErr } = await supabase.from('happy_hour_window_menus').insert(payload);
-
       if (insertErr) {
         console.error(insertErr);
         redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
@@ -345,19 +315,15 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
   revalidateVenue(orgId, venueId);
 }
 
-/* ---------------------------
-   MENUS / SECTIONS / ITEMS
-   --------------------------- */
-
+/** Creates a new menu in 'draft' status for a venue. */
 export async function createMenu(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
-
   const name = requireField(formData, 'menu_name', orgId, venueId, 'missing_menu_name');
 
   const { error } = await supabase.from('menus').insert({
     venue_id: venueId,
     name,
-    status: HH_STATUS_DRAFT, // reuse "draft" concept; OK if menus.status is free-text
+    status: HH_STATUS_DRAFT,
     is_active: true,
   });
 
@@ -369,9 +335,9 @@ export async function createMenu(orgId: string, venueId: string, formData: FormD
   revalidateVenue(orgId, venueId);
 }
 
+/** Updates a menu's name and active state. */
 export async function updateMenu(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
-
   const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
   const name = toStr(formData.get('menu_name'));
   const is_active = formData.get('menu_is_active') === 'on';
@@ -392,9 +358,9 @@ export async function updateMenu(orgId: string, venueId: string, formData: FormD
   revalidateVenue(orgId, venueId);
 }
 
+/** Sets a menu's status to 'published'. */
 export async function publishMenu(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
-
   const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
 
   const { error } = await supabase
@@ -411,9 +377,9 @@ export async function publishMenu(orgId: string, venueId: string, formData: Form
   revalidateVenue(orgId, venueId);
 }
 
+/** Sets a menu's status back to 'draft'. */
 export async function unpublishMenu(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
-
   const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
 
   const { error } = await supabase
@@ -430,19 +396,20 @@ export async function unpublishMenu(orgId: string, venueId: string, formData: Fo
   revalidateVenue(orgId, venueId);
 }
 
+/**
+ * Deletes a menu and all its sections and items.
+ * Manually cascades the delete in case FK cascade is not configured.
+ */
 export async function deleteMenu(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
-
   const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
 
-  // robust delete even if cascade isn't configured
   const { data: sections } = await supabase
     .from('menu_sections')
     .select('id')
     .eq('menu_id', menu_id);
 
   const sectionIds = (sections ?? []).map((s: any) => s.id).filter(Boolean);
-
   if (sectionIds.length) {
     await supabase.from('menu_items').delete().in('section_id', sectionIds);
   }
@@ -462,19 +429,14 @@ export async function deleteMenu(orgId: string, venueId: string, formData: FormD
   revalidateVenue(orgId, venueId);
 }
 
+/** Creates a new menu section appended to the end of the menu. */
 export async function createSection(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
-
   const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_section_fields');
   const name = requireField(formData, 'section_name', orgId, venueId, 'missing_section_fields');
   const nextSort = await nextSortOrder(supabase, 'menu_sections', 'menu_id', menu_id);
 
-  const { error } = await supabase.from('menu_sections').insert({
-    menu_id,
-    name,
-    sort_order: nextSort,
-  });
-
+  const { error } = await supabase.from('menu_sections').insert({ menu_id, name, sort_order: nextSort });
   if (error) {
     console.error(error);
     redirectWithError(orgId, venueId, 'section_create_failed');
@@ -483,13 +445,15 @@ export async function createSection(orgId: string, venueId: string, formData: Fo
   revalidateVenue(orgId, venueId);
 }
 
+/**
+ * Updates a menu section's name.
+ * Verifies the section belongs to a menu owned by this venue before updating.
+ */
 export async function updateSection(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireVenueAccess(orgId, venueId);
-
   const section_id = requireField(formData, 'section_id', orgId, venueId, 'missing_section_fields');
   const name = requireField(formData, 'section_name', orgId, venueId, 'missing_section_fields');
 
-  // Verify section belongs to a menu owned by this venue
   const { data: section } = await supabase
     .from('menu_sections')
     .select('id, menus!inner(venue_id)')
@@ -499,11 +463,7 @@ export async function updateSection(orgId: string, venueId: string, formData: Fo
 
   if (!section) redirectWithError(orgId, venueId, 'not_authorized');
 
-  const { error } = await supabase
-    .from('menu_sections')
-    .update({ name })
-    .eq('id', section_id);
-
+  const { error } = await supabase.from('menu_sections').update({ name }).eq('id', section_id);
   if (error) {
     console.error(error);
     redirectWithError(orgId, venueId, 'section_update_failed');
@@ -512,12 +472,14 @@ export async function updateSection(orgId: string, venueId: string, formData: Fo
   revalidateVenue(orgId, venueId);
 }
 
+/**
+ * Deletes a menu section and all its items.
+ * Verifies the section belongs to a menu owned by this venue before deleting.
+ */
 export async function deleteSection(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireVenueAccess(orgId, venueId);
-
   const section_id = requireField(formData, 'section_id', orgId, venueId, 'missing_section_id');
 
-  // Verify section belongs to a menu owned by this venue
   const { data: section } = await supabase
     .from('menu_sections')
     .select('id, menus!inner(venue_id)')
@@ -530,7 +492,6 @@ export async function deleteSection(orgId: string, venueId: string, formData: Fo
   await supabase.from('menu_items').delete().eq('section_id', section_id);
 
   const { error } = await supabase.from('menu_sections').delete().eq('id', section_id);
-
   if (error) {
     console.error(error);
     redirectWithError(orgId, venueId, 'section_delete_failed');
@@ -539,9 +500,9 @@ export async function deleteSection(orgId: string, venueId: string, formData: Fo
   revalidateVenue(orgId, venueId);
 }
 
+/** Creates a menu item appended to the end of a section. */
 export async function createItem(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
-
   const section_id = requireField(formData, 'section_id', orgId, venueId, 'missing_item_fields');
   const name = toStr(formData.get('item_name'));
   const description = toNullableStr(formData.get('item_description'));
@@ -551,14 +512,8 @@ export async function createItem(orgId: string, venueId: string, formData: FormD
   if (!name) redirectWithError(orgId, venueId, 'missing_item_fields');
 
   const nextSort = await nextSortOrder(supabase, 'menu_items', 'section_id', section_id);
-
   const { error } = await supabase.from('menu_items').insert({
-    section_id,
-    name,
-    description,
-    price,
-    is_happy_hour,
-    sort_order: nextSort,
+    section_id, name, description, price, is_happy_hour, sort_order: nextSort,
   });
 
   if (error) {
@@ -569,9 +524,12 @@ export async function createItem(orgId: string, venueId: string, formData: FormD
   revalidateVenue(orgId, venueId);
 }
 
+/**
+ * Updates a menu item's fields.
+ * Verifies the item traces back to this venue via section → menu before updating.
+ */
 export async function updateItem(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireVenueAccess(orgId, venueId);
-
   const item_id = requireField(formData, 'item_id', orgId, venueId, 'missing_item_fields');
   const name = toStr(formData.get('item_name'));
   const description = toNullableStr(formData.get('item_description'));
@@ -580,7 +538,6 @@ export async function updateItem(orgId: string, venueId: string, formData: FormD
 
   if (!name) redirectWithError(orgId, venueId, 'missing_item_fields');
 
-  // Verify item traces back to this venue via section → menu
   const { data: item } = await supabase
     .from('menu_items')
     .select('id, menu_sections!inner(menu_id, menus!inner(venue_id))')
@@ -603,12 +560,14 @@ export async function updateItem(orgId: string, venueId: string, formData: FormD
   revalidateVenue(orgId, venueId);
 }
 
+/**
+ * Deletes a menu item.
+ * Verifies the item traces back to this venue via section → menu before deleting.
+ */
 export async function deleteItem(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireVenueAccess(orgId, venueId);
-
   const item_id = requireField(formData, 'item_id', orgId, venueId, 'missing_item_id');
 
-  // Verify item traces back to this venue via section → menu
   const { data: item } = await supabase
     .from('menu_items')
     .select('id, menu_sections!inner(menu_id, menus!inner(venue_id))')
@@ -619,7 +578,6 @@ export async function deleteItem(orgId: string, venueId: string, formData: FormD
   if (!item) redirectWithError(orgId, venueId, 'not_authorized');
 
   const { error } = await supabase.from('menu_items').delete().eq('id', item_id);
-
   if (error) {
     console.error(error);
     redirectWithError(orgId, venueId, 'item_delete_failed');

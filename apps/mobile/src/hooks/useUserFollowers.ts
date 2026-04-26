@@ -16,7 +16,6 @@ export type Follower = {
 };
 
 export type PendingRequest = {
-  id: string;
   follower_id: string;
   created_at: string;
   profile: {
@@ -64,7 +63,7 @@ export function useUserFollowers() {
     let pendingRequests: PendingRequest[] = [];
     const { data: pendingData, error: pendingError } = await supabase
       .from("user_follows")
-      .select("id, follower_id, created_at, profile:user_profiles!user_follows_follower_id_profile_fkey(handle, display_name, avatar_url)")
+      .select("follower_id, created_at, profile:user_profiles!user_follows_follower_id_profile_fkey(handle, display_name, avatar_url)")
       .eq("following_user_id", user.id)
       .eq("status", "pending")
       .order("created_at", { ascending: false });
@@ -130,14 +129,16 @@ export function useUserFollowers() {
 
   /**
    * Approve an incoming follow request by setting status to 'accepted'.
+   * Uses follower_id since user_follows has no surrogate id column.
    */
   const approveFollowRequest = useCallback(
-    async (followId: string) => {
+    async (followerId: string) => {
       if (!user?.id) return;
       await supabase
         .from("user_follows")
         .update({ status: "accepted" })
-        .eq("id", followId);
+        .eq("follower_id", followerId)
+        .eq("following_user_id", user.id);
       await load();
     },
     [user?.id, load]
@@ -145,14 +146,16 @@ export function useUserFollowers() {
 
   /**
    * Reject an incoming follow request by deleting the record.
+   * Uses follower_id since user_follows has no surrogate id column.
    */
   const rejectFollowRequest = useCallback(
-    async (followId: string) => {
+    async (followerId: string) => {
       if (!user?.id) return;
       await supabase
         .from("user_follows")
         .delete()
-        .eq("id", followId);
+        .eq("follower_id", followerId)
+        .eq("following_user_id", user.id);
       await load();
     },
     [user?.id, load]
@@ -165,7 +168,7 @@ export function useUserFollowers() {
     if (!user?.id) return [];
     const { data, error } = await supabase
       .from("user_follows")
-      .select("id, follower_id, created_at, profile:user_profiles!user_follows_follower_id_profile_fkey(handle, display_name, avatar_url)")
+      .select("follower_id, created_at, profile:user_profiles!user_follows_follower_id_profile_fkey(handle, display_name, avatar_url)")
       .eq("following_user_id", user.id)
       .eq("status", "pending")
       .order("created_at", { ascending: false });

@@ -33,9 +33,13 @@ const navTheme: typeof DefaultTheme = {
   }
 };
 
+/**
+ * Bottom tab navigator. Badge on Activity tab is wired but unreadCount is
+ * not yet populated — see BACKLOG.md: "Activity tab unread badge".
+ */
 function AppTabs() {
+  // Placeholder until notification/activity unread count is implemented.
   const unreadCount: number | null = null;
-  // TODO: wire unreadCount to activity/notification state.
   const badgeCount =
     typeof unreadCount === "number" && unreadCount > 0
       ? unreadCount
@@ -100,6 +104,10 @@ function AppTabs() {
   );
 }
 
+/**
+ * Root navigation tree. Shows AuthScreen when unauthenticated; AppTabs + HappyHourDetail when authenticated.
+ * Depends on: useAuth session state, React Navigation theme mapped from design system colors.
+ */
 export const AppNavigation: React.FC = () => {
   const { session, loading } = useAuth();
 

@@ -56,6 +56,7 @@ export const colors = {
   inputBackground: "#F5F3F0",
   inputBorder: "#E8E8E5",
   inputPlaceholder: "#9CA3AF",
+  textTertiary: "#9CA3AF",
 
   /* ── Tab Bar ── */
   tabBarBackground: "#FFFFFF",

@@ -8,18 +8,15 @@ import {
   Pressable,
   ScrollView,
   Image,
-  useWindowDimensions,
   Platform,
-  FlatList,
 } from "react-native";
-import MapView, { Marker, Callout, Region } from "react-native-maps";
+import MapView, { Marker, Region } from "react-native-maps";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useUserPreferences } from "../hooks/useUserPreferences";
-import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useVenueCovers } from "../hooks/useVenueCovers";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { colors } from "../theme/colors";
@@ -56,12 +53,10 @@ const DEFAULT_REGION: Region = {
 export const MapScreen: React.FC = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { data, loading } = useHappyHours();
+  const { data } = useHappyHours();
   const { coords } = useUserLocation();
   const { preferences } = useUserPreferences();
-  const { isFollowing, toggleFollow } = useUserFollowedVenues();
   const mapRef = useRef<MapView>(null);
-  const { width } = useWindowDimensions();
 
   const [query, setQuery] = useState("");
   const [selectedCuisine, setSelectedCuisine] = useState("all");
