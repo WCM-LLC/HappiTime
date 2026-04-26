@@ -4,6 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 
+/**
+ * Authenticates a user with email and password.
+ * Redirects to ?next param if present, /admin for admin emails, or /dashboard.
+ * Depends on: Supabase auth, ADMIN_EMAILS env var.
+ */
 export async function login(formData: FormData) {
   const supabase = await createClient();
 
@@ -37,6 +42,7 @@ export async function login(formData: FormData) {
   redirect('/dashboard');
 }
 
+/** Registers a new user with email and password, then redirects to /dashboard or ?next. */
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 

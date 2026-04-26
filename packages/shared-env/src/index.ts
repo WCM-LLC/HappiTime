@@ -8,12 +8,18 @@ export type PublicSupabaseEnvInput = {
   supabaseKey?: string;
 };
 
+/** Returns the value trimmed, or null if undefined/blank. */
 function normalizeEnvValue(value: string | undefined): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length ? trimmed : null;
 }
 
+/**
+ * Resolves Supabase URL and anon key from the environment.
+ * Supports EXPO_PUBLIC_*, NEXT_PUBLIC_*, and plain SUPABASE_* key names.
+ * Throws with a descriptive message if either value is missing.
+ */
 export function getPublicSupabaseEnv(
   input?: PublicSupabaseEnvInput
 ): PublicSupabaseEnv {
@@ -55,6 +61,10 @@ export type PublicMapsEnv = {
   styleId?: string;
 };
 
+/**
+ * Resolves the maps provider config from the environment. Returns null if maps are not configured.
+ * Supports 'google' (default) and 'mapbox'. Mapbox also accepts an optional MAPS_STYLE_ID.
+ */
 export function getPublicMapsEnv(): PublicMapsEnv | null {
   const providerRaw =
     normalizeEnvValue(process.env.EXPO_PUBLIC_MAPS_PROVIDER) ??

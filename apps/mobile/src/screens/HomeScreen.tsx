@@ -15,10 +15,9 @@ import {
   Platform,
   KeyboardAvoidingView
 } from "react-native";
-import MapView, { Marker, Region } from "react-native-maps";
+import MapView, { Marker } from "react-native-maps";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
-import Constants from "expo-constants";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useUserPreferences } from "../hooks/useUserPreferences";
@@ -35,24 +34,6 @@ import { distanceMiles } from "../utils/location";
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
 type CuisineMode = "tags" | "offers";
-
-const manifestExtra = (
-  Constants.manifest as { extra?: Record<string, unknown> } | undefined
-)?.extra;
-const manifest2Extra = (
-  Constants as { manifest2?: { extra?: Record<string, unknown> } }
-)?.manifest2?.extra;
-const expoExtra =
-  (Constants.expoConfig?.extra as Record<string, unknown> | undefined) ??
-  manifestExtra ??
-  manifest2Extra;
-
-const normalizeEnvValue = (value?: string | null) => {
-  if (!value) return "";
-  const trimmed = value.trim();
-  return trimmed.replace(/^['"]|['"]$/g, "");
-};
-
 
 const formatTagLabel = (tag: string) =>
   tag

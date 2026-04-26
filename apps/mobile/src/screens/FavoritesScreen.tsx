@@ -451,7 +451,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
       setShowShare(false);
       setSharedIds(new Set());
     }
-  }, [list?.id]);
+  }, [list]);
 
   if (!list) return null;
 

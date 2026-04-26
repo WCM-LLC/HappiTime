@@ -36,7 +36,7 @@ async function registerVisit(userId: string, venueId: string, venueName: string)
     .insert({
       user_id: userId,
       venue_id: venueId,
-      visited_at: new Date().toISOString(),
+      entered_at: new Date().toISOString(),
     })
     .select("id")
     .single();
@@ -106,9 +106,9 @@ function handleLocationUpdate(locations: Location.LocationObject[]) {
 }
 
 // Register the background task
-TaskManager.defineTask(BACKGROUND_LOCATION_TASK, ({ data, error }) => {
+TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }: TaskManager.TaskManagerTaskBody<unknown>) => {
   if (error) {
-    console.warn("[visit-tracker] background task error:", error.message);
+    console.warn("[visit-tracker] background task error:", (error as unknown as Error).message);
     return;
   }
   const { locations } = data as { locations: Location.LocationObject[] };

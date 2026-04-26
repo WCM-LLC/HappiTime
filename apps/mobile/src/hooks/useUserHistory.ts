@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
 import { useCurrentUser } from "./useCurrentUser";
-import type { HappyHourWindow } from "./useHappyHours";
 
 export type HistoryEntry = {
   id: string;
