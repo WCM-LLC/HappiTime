@@ -1,5 +1,5 @@
 // src/screens/HomeScreen.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -128,21 +128,21 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
   }, [preferences.price_tier_min]);
 
-  const todayIndex = new Date().getDay();
+  const mapRef = useRef<MapView>(null);
 
-  const getDowValues = (window: HappyHourWindow) => {
-    if (!Array.isArray(window.dow)) return [];
-    return window.dow
-      .map((value) => Number(value))
-      .filter((value) => Number.isFinite(value));
-  };
-
-  const todaysPlaces = useMemo(() => {
-    return data.filter((window) => getDowValues(window).includes(todayIndex));
-  }, [data, todayIndex]);
+  // Deduplicate windows by venue — keep one window per venue for the listing
+  const dedupedByVenue = useMemo(() => {
+    const seen = new Set<string>();
+    return data.filter((window) => {
+      const venueId = window.venue?.id ?? window.venue_id;
+      if (!venueId || seen.has(venueId)) return false;
+      seen.add(venueId);
+      return true;
+    });
+  }, [data]);
 
   const withDistance = useMemo(() => {
-    return todaysPlaces
+    return dedupedByVenue
       .map((window) => {
         if (typeof window.distance === "number") return window;
         const venueLat = window.venue?.lat ?? null;
@@ -170,12 +170,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         if (b.distance == null) return -1;
         return a.distance - b.distance;
       });
-  }, [todaysPlaces, effectiveCoords]);
+  }, [dedupedByVenue, effectiveCoords]);
 
   const cuisineMeta = useMemo(() => {
     const cuisineSet = new Set<string>();
 
-    for (const place of todaysPlaces) {
+    for (const place of dedupedByVenue) {
       for (const cuisine of getPlaceCuisines(place)) {
         cuisineSet.add(cuisine);
       }
@@ -186,18 +186,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       mode: "tags" as CuisineMode,
       options: cuisines.length > 0 ? ["all", ...cuisines.slice(0, 8)] : ["all"]
     };
-  }, [todaysPlaces]);
+  }, [dedupedByVenue]);
 
   const priceOptions = useMemo(() => {
     const tiers = new Set<number>();
-    for (const place of todaysPlaces) {
+    for (const place of dedupedByVenue) {
       const tier = getPriceTier(place);
       if (typeof tier === "number" && tier > 0) {
         tiers.add(tier);
       }
     }
     return ["all", ...Array.from(tiers).sort((a, b) => a - b)];
-  }, [todaysPlaces]);
+  }, [dedupedByVenue]);
 
   const filtered = useMemo(() => {
     let list = withDistance;
@@ -253,12 +253,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const venueCovers = useVenueCovers(filteredVenueIds);
 
   const cityForMap = useMemo(() => {
-    const cityPlace = todaysPlaces.find((place) => place.venue?.city);
+    const cityPlace = dedupedByVenue.find((place) => place.venue?.city);
     const city = cityPlace?.venue?.city;
     const state = cityPlace?.venue?.state;
     if (city) return `${city}${state ? `, ${state}` : ""}`;
     return null;
-  }, [todaysPlaces]);
+  }, [dedupedByVenue]);
 
   const cityLabel = useMemo(() => {
     if (cityForMap) return cityForMap;
@@ -271,7 +271,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   }, [cityForMap, coords, preferences.home_city, preferences.home_state]);
 
   const summaryText = useMemo(() => {
-    const parts: string[] = ["Today"];
+    const parts: string[] = ["All Venues"];
     const priceLabel =
       selectedPrice === "all" ? null : formatPriceTier(selectedPrice);
     const cuisineLabel =
@@ -348,7 +348,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.header}>
           <Text style={styles.pageTitle}>Discover</Text>
           <Text style={styles.pageSubtitle}>
-            Find happy hours happening today.
+            Find happy hours near you.
           </Text>
 
           <Pressable
@@ -434,6 +434,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         <View style={styles.mapSection}>
           <View style={styles.mapContainer}>
             <MapView
+              ref={mapRef}
               style={styles.mapView}
               initialRegion={{
                 latitude: effectiveCoords?.lat ?? 39.0997,
@@ -448,21 +449,52 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               pitchEnabled={false}
               rotateEnabled={false}
             >
-              {filtered.slice(0, 10).map((place) => {
+              {filtered.map((place) => {
                 const lat = place.venue?.lat;
                 const lng = place.venue?.lng;
                 if (lat == null || lng == null) return null;
-                const { titleText } = getHappyHourDisplayNames(place);
                 return (
                   <Marker
                     key={place.id}
                     coordinate={{ latitude: lat, longitude: lng }}
                     pinColor={colors.primary}
-                    title={titleText}
                   />
                 );
               })}
             </MapView>
+            {/* Locate / recenter button */}
+            {coords && (
+              <Pressable
+                onPress={() => {
+                  if (!coords || !mapRef.current) return;
+                  mapRef.current.animateToRegion(
+                    {
+                      latitude: coords.lat,
+                      longitude: coords.lng,
+                      latitudeDelta: 0.06,
+                      longitudeDelta: 0.06,
+                    },
+                    400
+                  );
+                }}
+                style={({ pressed }) => [
+                  styles.mapLocateButton,
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <IconSymbol name="location.fill" size={16} color={colors.primary} />
+              </Pressable>
+            )}
+            {/* Maximize / expand map button */}
+            <Pressable
+              onPress={() => navigation.navigate("Map" as any)}
+              style={({ pressed }) => [
+                styles.mapExpandButton,
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <IconSymbol name="arrow.up.left.and.arrow.down.right" size={14} color={colors.primary} />
+            </Pressable>
           </View>
         </View>
 
@@ -907,6 +939,42 @@ const styles = StyleSheet.create({
   },
   mapView: {
     flex: 1,
+  },
+  mapLocateButton: {
+    position: "absolute",
+    bottom: spacing.sm,
+    right: spacing.sm,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  mapExpandButton: {
+    position: "absolute",
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   resultsHeader: {
     paddingHorizontal: spacing.lg,
