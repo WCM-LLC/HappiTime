@@ -261,7 +261,6 @@ export const MapScreen: React.FC = () => {
         {filtered.map((window) => {
           const lat = window.venue?.lat!;
           const lng = window.venue?.lng!;
-          const { titleText } = getHappyHourDisplayNames(window);
           const active = isToday(window);
 
           return (
@@ -269,7 +268,6 @@ export const MapScreen: React.FC = () => {
               key={window.id}
               coordinate={{ latitude: lat, longitude: lng }}
               pinColor={active ? colors.primary : colors.textMutedLight}
-              title={titleText}
               onPress={() => handleMarkerPress(window)}
             />
           );
