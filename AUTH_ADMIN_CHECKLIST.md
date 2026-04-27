@@ -10,7 +10,6 @@ Use this checklist after any auth, middleware, admin-route, or environment wirin
 - `ADMIN_EMAILS` is optional.  
   - If omitted, code falls back to `admin@happitime.biz`.
   - If set, include all intended admin emails (comma-separated, case-insensitive).
-  - For production, prefer setting `ADMIN_EMAILS` explicitly.
 
 ## Authentication smoke checks
 
@@ -23,8 +22,6 @@ Use this checklist after any auth, middleware, admin-route, or environment wirin
 1. `admin@happitime.biz` can log in and reach `/admin`.
 2. A non-admin authenticated user is redirected from `/admin` to `/login?next=/admin&error=not_admin`.
 3. Admin actions that require service role (e.g. publish toggles) succeed when `SUPABASE_SERVICE_ROLE_KEY` is configured.
-4. From `/admin`, opening an org with `?from=admin` works for admin (service-role read path), even without org membership row.
-5. Non-admin users cannot use `?from=admin` links to bypass org/venue authorization.
 
 ## Session and guard checks
 
@@ -38,4 +35,3 @@ Use this checklist after any auth, middleware, admin-route, or environment wirin
 2. Confirm login is hitting the same Supabase project as middleware/server client.
 3. Confirm `ADMIN_EMAILS` value (if set) includes expected admin email.
 4. Confirm no stale deployment envs are overriding expected values.
-5. Confirm admin email normalization assumptions (trim/lowercase) still match login and guard code.
