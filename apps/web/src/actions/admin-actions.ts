@@ -1,28 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createClient } from '@/utils/supabase/server';
-import { createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
-
-async function assertAdmin() {
-  const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  const email = auth.user?.email?.toLowerCase() ?? '';
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  if (adminEmails.length === 0 || !adminEmails.includes(email)) {
-    throw new Error('Unauthorized');
-  }
-}
-
-function getAdminClient() {
-  if (getServiceRoleKeyError()) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
-  }
-  return createServiceClient();
-}
+import { assertAdmin, getAdminClient } from '@/utils/admin';
 
 export async function adminToggleWindow(windowId: string, currentStatus: string) {
   await assertAdmin();
