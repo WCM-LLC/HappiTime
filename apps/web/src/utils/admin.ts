@@ -1,3 +1,12 @@
+// Service-role surface — admin helpers.
+// getAdminClient() callers: actions/admin-actions.ts, actions/admin-plans-actions.ts
+// isAdmin() / assertAdmin() callers: app/admin/layout.tsx, all admin server actions
+// Direct createServiceClient() callers outside this file:
+//   app/admin/page.tsx, app/admin/plans/page.tsx, app/admin/suggestions/page.tsx
+//   app/orgs/[orgId]/page.tsx, app/orgs/[orgId]/venues/[venueId]/page.tsx (admin bypass)
+//   app/invite/page.tsx, actions/access-actions.ts (invite / org membership)
+//   app/api/events/ingest/route.ts (raw env var, not via createServiceClient)
+//   supabase/functions: notify-venue-updates, notify-upcoming-happy-hours, notify-friend-activity
 import { createClient, createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
 
 let _adminEmailsLogged = false;

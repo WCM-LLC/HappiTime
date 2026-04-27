@@ -1,3 +1,6 @@
+// Supabase client factory — server-side only.
+// createClient() (anon-role, cookie-scoped): used everywhere a request-scoped client is needed.
+// createServiceClient() (service-role, bypasses RLS): only for admin/invite flows — see utils/admin.ts for full caller list.
 // src/lib/supabase/server.ts
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
