@@ -2,6 +2,7 @@ import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import VenueMediaUploader from '@/components/VenueMediaUploader';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
+import { isAdminEmail } from '@/utils/admin-emails';
 import {
   updateVenue,
   addHappyHour,
@@ -167,13 +168,6 @@ function distanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): 
         Math.sin(toRad(lat1)) * Math.sin(toRad(lat2))
     )
   );
-}
-
-function isAdminEmail(email: string | undefined): boolean {
-  if (!email) return false;
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
-  return adminEmails.length > 0 && adminEmails.includes(email.toLowerCase());
 }
 
 export default async function VenuePage({
