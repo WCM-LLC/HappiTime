@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { getPublicSupabaseEnv } from "@happitime/shared-env";
 
 const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password", "/reset-password"];
 
@@ -11,9 +12,14 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request: { headers: request.headers },
   });
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) {
+  let supabaseUrl = "";
+  let supabaseKey = "";
+
+  try {
+    const env = getPublicSupabaseEnv();
+    supabaseUrl = env.url;
+    supabaseKey = env.anonKey;
+  } catch {
     return response;
   }
 
@@ -23,6 +29,14 @@ export async function middleware(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet: { name: any; value: any; options: any }[]) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          request.cookies.set(name, value);
+        });
+
+        response = NextResponse.next({
+          request: { headers: request.headers },
+        });
+
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
         });
