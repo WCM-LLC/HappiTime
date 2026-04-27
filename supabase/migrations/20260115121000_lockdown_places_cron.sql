@@ -1,0 +1,2 @@
+-- Applied directly to prod without CLI tracking.
+-- Stub for migration history alignment only.

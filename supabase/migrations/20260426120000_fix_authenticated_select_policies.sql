@@ -4,6 +4,7 @@
 -- so regular logged-in app users saw no venues, offers, or images.
 
 -- Allow authenticated users to read published venue_media
+DROP POLICY IF EXISTS "venue_media_select_authenticated_public" ON venue_media;
 CREATE POLICY "venue_media_select_authenticated_public"
 ON venue_media
 FOR SELECT
@@ -18,6 +19,7 @@ USING (
 );
 
 -- Allow authenticated users to read published venues
+DROP POLICY IF EXISTS "venues_select_authenticated_public" ON venues;
 CREATE POLICY "venues_select_authenticated_public"
 ON venues
 FOR SELECT
@@ -25,6 +27,7 @@ TO authenticated
 USING (status = 'published');
 
 -- Allow authenticated users to read offers for published venues
+DROP POLICY IF EXISTS "happy_hour_offers_select_authenticated_public" ON happy_hour_offers;
 CREATE POLICY "happy_hour_offers_select_authenticated_public"
 ON happy_hour_offers
 FOR SELECT
