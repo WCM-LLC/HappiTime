@@ -2,13 +2,7 @@ import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import { createClient } from '@/utils/supabase/server';
 import { createVenue } from '../../actions/organization-actions';
-
-type VenueRow = {
-  id: string;
-  name: string;
-  city: string | null;
-  state: string | null;
-};
+import { fetchVenuesByOrg, type VenueSummary as VenueRow } from '@happitime/shared-api';
 
 export default async function OrgPage({
   params,
@@ -28,11 +22,7 @@ export default async function OrgPage({
     .eq('id', orgId)
     .single();
 
-  const { data: venues, error: venuesErr } = await supabase
-    .from('venues')
-    .select('id,name,city,state')
-    .eq('org_id', orgId)
-    .order('created_at', { ascending: false });
+  const { data: venues, error: venuesErr } = await fetchVenuesByOrg(supabase as any, orgId);
 
   return (
     <main className="container">
