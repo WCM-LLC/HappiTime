@@ -19,8 +19,10 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    const base = next ? `/login?next=${encodeURIComponent(next)}` : '/login';
-    redirect(`${base}&error=bad_credentials`);
+    const params = new URLSearchParams();
+    if (next) params.set('next', next);
+    params.set('error', 'bad_credentials');
+    redirect(`/login?${params.toString()}`);
   }
 
   revalidatePath('/', 'layout');

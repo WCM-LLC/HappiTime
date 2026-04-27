@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "npm run build --workspace @happitime/shared-env && npm run build --workspace @happitime/shared-types && npm run build --workspace @happitime/shared-api",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
