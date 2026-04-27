@@ -14,8 +14,6 @@ export function getAdminEmails(): string[] {
     return configured;
   }
 
-  // Reliability fallback for local/dev and bootstrap environments.
-  // Production should still set ADMIN_EMAILS explicitly to avoid ambiguity.
   return [DEFAULT_ADMIN_EMAIL];
 }
 
