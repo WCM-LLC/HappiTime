@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import * as Linking from "expo-linking";
 import { supabase } from "../api/supabaseClient";
 
-function extractTokens(url: string) {
-  // magic links come as: happitime://auth/callback#access_token=...&refresh_token=...&...
+function extractTokenSession(url: string) {
+  // Legacy flow: happitime://auth/callback#access_token=...&refresh_token=...&...
   const hashIndex = url.indexOf("#");
   if (hashIndex === -1) return null;
 
@@ -21,18 +21,35 @@ function extractTokens(url: string) {
   return { access_token, refresh_token };
 }
 
+function extractAuthCode(url: string) {
+  // PKCE flow: happitime://auth/callback?code=...
+  const parsed = Linking.parse(url);
+  const maybeCode = parsed.queryParams?.code;
+  return typeof maybeCode === "string" && maybeCode.length > 0 ? maybeCode : null;
+}
+
 export function useMagicLinkListener() {
   useEffect(() => {
     const handleUrl = async (url: string) => {
       console.log("🔥 Deep link received:", url);
 
-      const tokens = extractTokens(url);
-      if (!tokens) {
-        console.log("❌ No tokens found in deep link.");
+      const authCode = extractAuthCode(url);
+      if (authCode) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(authCode);
+        console.log("✅ exchangeCodeForSession result:", {
+          hasSession: !!data?.session,
+          error: error?.message,
+        });
         return;
       }
 
-      const { access_token, refresh_token } = tokens;
+      const tokenSession = extractTokenSession(url);
+      if (!tokenSession) {
+        console.log("❌ No auth code or tokens found in deep link.");
+        return;
+      }
+
+      const { access_token, refresh_token } = tokenSession;
 
       const { data, error } = await supabase.auth.setSession({
         access_token,
