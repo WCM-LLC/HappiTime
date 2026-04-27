@@ -2,6 +2,7 @@ import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import { createClient } from '@/utils/supabase/server';
 import { createServiceClient } from '@/utils/supabase/server';
+import { isAdminEmail } from '@/utils/admin-emails';
 import { createVenue, deleteVenue } from '../../../actions/organization-actions';
 
 type VenueRow = {
@@ -12,15 +13,6 @@ type VenueRow = {
   state: string | null;
   status: string | null;
 };
-
-function isAdminEmail(email: string | undefined): boolean {
-  if (!email) return false;
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  return adminEmails.length > 0 && adminEmails.includes(email.toLowerCase());
-}
 
 export default async function OrgPage({
   params,

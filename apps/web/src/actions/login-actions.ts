@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
+import { isAdminEmail } from '@/utils/admin-emails';
 
 /**
  * Authenticates a user with email and password.
@@ -19,8 +20,10 @@ export async function login(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    const base = next ? `/login?next=${encodeURIComponent(next)}` : '/login';
-    redirect(`${base}&error=bad_credentials`);
+    const params = new URLSearchParams();
+    if (next) params.set('next', next);
+    params.set('error', 'bad_credentials');
+    redirect(`/login?${params.toString()}`);
   }
 
   revalidatePath('/', 'layout');
@@ -30,12 +33,7 @@ export async function login(formData: FormData) {
     redirect(next);
   }
 
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-
-  if (adminEmails.includes(email.toLowerCase())) {
+  if (isAdminEmail(email)) {
     redirect('/admin');
   }
 
