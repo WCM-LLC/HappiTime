@@ -1,3 +1,5 @@
+import { featureFlags } from '@/lib/featureFlags';
+
 export type NotificationPermissionState =
   | 'granted'
   | 'denied'
@@ -49,7 +51,8 @@ export async function cancelLocalNotification(_id: string): Promise<void> {
 }
 
 export async function registerPushToken(): Promise<string | null> {
-  // TODO: integrate Expo Notifications or Firebase Cloud Messaging.
+  if (!featureFlags.webPush) return null;
+  // TODO: integrate FCM / VAPID once NEXT_PUBLIC_WEB_PUSH_ENABLED=true.
   if (shouldDebug() && typeof console !== 'undefined') {
     console.log('[notifications] registerPushToken called');
   }

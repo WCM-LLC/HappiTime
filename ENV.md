@@ -31,6 +31,9 @@ Optional (search / recommendations — stubs; no backend wired yet):
 - `NEXT_PUBLIC_SEARCH_API_URL`
 - `NEXT_PUBLIC_RECOMMENDATIONS_API_URL`
 
+Optional (push notifications — stub; set to `true` once FCM/VAPID is wired):
+- `NEXT_PUBLIC_WEB_PUSH_ENABLED`
+
 Optional (media):
 - `NEXT_PUBLIC_MEDIA_METADATA_TABLE` (`venue_media` or legacy `media_assets`)
 - `NEXT_PUBLIC_MEDIA_CDN_BASE_URL`
