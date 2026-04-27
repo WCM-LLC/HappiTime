@@ -15,6 +15,8 @@ function normalizeEnvValue(value: string | undefined): string | null {
   return trimmed.length ? trimmed : null;
 }
 
+let hasWarnedSupabaseEnvMismatch = false;
+
 /**
  * Resolves Supabase URL and anon key from the environment.
  * Supports EXPO_PUBLIC_*, NEXT_PUBLIC_*, and plain SUPABASE_* key names.
@@ -23,19 +25,41 @@ function normalizeEnvValue(value: string | undefined): string | null {
 export function getPublicSupabaseEnv(
   input?: PublicSupabaseEnvInput
 ): PublicSupabaseEnv {
+  const nextUrl = normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const expoUrl = normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_URL);
+  const plainUrl = normalizeEnvValue(process.env.SUPABASE_URL);
+
+  const nextKey =
+    normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ??
+    normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+  const expoKey =
+    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) ??
+    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
+  const plainKey = normalizeEnvValue(process.env.SUPABASE_ANON_KEY);
+
+  if (
+    !hasWarnedSupabaseEnvMismatch &&
+    nextUrl &&
+    expoUrl &&
+    nextUrl !== expoUrl
+  ) {
+    hasWarnedSupabaseEnvMismatch = true;
+    console.warn(
+      "[shared-env] NEXT_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_URL differ. Web apps should use NEXT_PUBLIC_* values."
+    );
+  }
+
   const url =
     normalizeEnvValue(input?.supabaseUrl) ??
-    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_URL) ??
-    normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL) ??
-    normalizeEnvValue(process.env.SUPABASE_URL);
+    nextUrl ??
+    expoUrl ??
+    plainUrl;
 
   const anonKey =
     normalizeEnvValue(input?.supabaseKey) ??
-    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) ??
-    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ??
-    normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ??
-    normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ??
-    normalizeEnvValue(process.env.SUPABASE_ANON_KEY);
+    nextKey ??
+    expoKey ??
+    plainKey;
 
   if (!url || !anonKey) {
     throw new Error(
@@ -85,4 +109,3 @@ export function getPublicMapsEnv(): PublicMapsEnv | null {
     ...(provider === "mapbox" && styleId ? { styleId } : {}),
   };
 }
-

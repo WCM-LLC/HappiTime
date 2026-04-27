@@ -51,3 +51,32 @@ test("getPublicSupabaseEnv throws when missing url/key", () => {
   }
 });
 
+test("getPublicSupabaseEnv prefers NEXT_PUBLIC_* over EXPO_PUBLIC_* when both are set", () => {
+  const originalEnv = {
+    NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
+    EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+  };
+
+  try {
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://next.supabase.co";
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "next_key";
+    process.env.EXPO_PUBLIC_SUPABASE_URL = "https://expo.supabase.co";
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = "expo_key";
+
+    const env = getPublicSupabaseEnv();
+    assert.deepEqual(env, {
+      url: "https://next.supabase.co",
+      anonKey: "next_key",
+    });
+  } finally {
+    Object.entries(originalEnv).forEach(([key, value]) => {
+      if (typeof value === "undefined") {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    });
+  }
+});
