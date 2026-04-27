@@ -12,6 +12,15 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@happitime/shared-api": [
+        "../../packages/shared-api/src/index.ts"
+      ],
+      "@happitime/shared-env": [
+        "../../packages/shared-env/src/index.ts"
+      ],
+      "@happitime/shared-types": [
+        "../../packages/shared-types/index.ts"
       ]
     },
     "strict": true,

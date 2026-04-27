@@ -1,6 +1,13 @@
 import Link from 'next/link';
 
-export default function AuthCodeErrorPage() {
+export default async function AuthCodeErrorPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ message?: string }>;
+}) {
+  const sp = await searchParams;
+  const detail = sp?.message?.trim();
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
       <div className="w-full max-w-lg">
@@ -21,6 +28,11 @@ export default function AuthCodeErrorPage() {
             <p className="text-body-sm text-error/80 mt-0.5">
               This usually means your OAuth redirect URL is not allow-listed in Supabase Auth settings.
             </p>
+            {detail ? (
+              <p className="text-caption text-error/80 mt-2 break-words">
+                Details: {detail}
+              </p>
+            ) : null}
           </div>
 
           <div className="rounded-md border border-border bg-background p-4">
