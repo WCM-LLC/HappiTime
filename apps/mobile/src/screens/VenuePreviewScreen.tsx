@@ -15,7 +15,7 @@ import { useHappyHours } from "../hooks/useHappyHours";
 import { HappyHourCard } from "../components/HappyHourCard";
 import { useVenueCovers } from "../hooks/useVenueCovers";
 import { useVenueEvents } from "../hooks/useVenueEvents";
-import { useVenueMedia, getMediaPublicUrl } from "../hooks/useVenueMedia";
+import { useVenueMedia } from "../hooks/useVenueMedia";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
 import { colors } from "../theme/colors";
@@ -55,7 +55,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const { venueId } = route.params;
   const { data, loading, error, refreshing, refresh } = useHappyHours();
   const { data: events } = useVenueEvents(venueId ?? null);
-  const { data: media } = useVenueMedia(venueId ?? null);
+  const { media } = useVenueMedia(venueId ?? null);
 
   const windowsForVenue = useMemo(
     () => data.filter((w) => w.venue_id === venueId),
@@ -67,7 +67,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const coverUrl = venueId ? venueCovers[venueId] ?? null : null;
 
   const images = useMemo(
-    () => media.filter((m) => m.type === "image").sort((a, b) => a.sort_order - b.sort_order),
+    () => [...media].sort((a, b) => a.sort_order - b.sort_order),
     [media]
   );
 
@@ -98,7 +98,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           {images.map((img) => (
             <Image
               key={img.id}
-              source={{ uri: getMediaPublicUrl(img.storage_path) }}
+              source={{ uri: img.url }}
               style={styles.photoThumb}
               resizeMode="cover"
             />

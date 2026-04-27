@@ -505,7 +505,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
               <TextInput
                 style={pickerStyles.input}
                 placeholder="Name (e.g. Friday Night Crawl)"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textMutedLight}
                 value={newListName}
                 onChangeText={setNewListName}
                 autoFocus
@@ -513,7 +513,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
               <TextInput
                 style={[pickerStyles.input, { height: 60 }]}
                 placeholder="Description (optional)"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textMutedLight}
                 value={newListDesc}
                 onChangeText={setNewListDesc}
                 multiline
