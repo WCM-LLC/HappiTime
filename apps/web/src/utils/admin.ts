@@ -1,4 +1,5 @@
 import { createClient, createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
+import { isAdminEmail } from '@/utils/admin-emails';
 
 /**
  * Asserts the current session belongs to an email listed in ADMIN_EMAILS env var.
@@ -8,12 +9,7 @@ import { createClient, createServiceClient, getServiceRoleKeyError } from '@/uti
 export async function assertAdmin() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
-  const email = auth.user?.email?.toLowerCase() ?? '';
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  if (adminEmails.length === 0 || !adminEmails.includes(email)) {
+  if (!isAdminEmail(auth.user?.email)) {
     throw new Error('Unauthorized');
   }
 }

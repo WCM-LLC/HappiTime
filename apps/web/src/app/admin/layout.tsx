@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
+import { isAdminEmail } from '@/utils/admin-emails';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -10,13 +11,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/login?next=/admin');
   }
 
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-
-  const userEmail = user.email?.toLowerCase() ?? '';
-  const isAdmin = adminEmails.length > 0 && adminEmails.includes(userEmail);
+  const isAdmin = isAdminEmail(user.email);
 
   if (!isAdmin) {
     redirect('/login?next=/admin&error=not_admin');
