@@ -15,6 +15,7 @@
     "lint": "npm run lint --workspace web && npm run lint --workspace mobile",
     "typecheck": "npm run build:shared && npm run typecheck --workspace web && npm run typecheck --workspace mobile",
     "test": "npm run build:shared && node --test test/*.test.mjs",
+    "mvp:check": "npm run build:shared && npm run typecheck --workspace web && node --test test/smoke-*.test.mjs && node scripts/validate-env.mjs apps/web",
     "build:web": "npm run build:shared && npm run build --workspace web",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
