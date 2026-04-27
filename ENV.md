@@ -26,7 +26,6 @@ Optional (event ingestion):
 - `EVENTS_INGEST_RATE_LIMIT_PER_MIN`
 - `EVENTS_INGEST_MAX_BATCH`
 - `NEXT_PUBLIC_EVENTS_INGEST_URL`
-- `NEXT_PUBLIC_EVENTS_INGEST_API_KEY` — **security note:** exposes key to browser; prefer server-only `EVENTS_INGEST_API_KEY` when calling the internal `/api/events/ingest` route
 
 Optional (search / recommendations — stubs; no backend wired yet):
 - `NEXT_PUBLIC_SEARCH_API_URL`

@@ -36,9 +36,7 @@ export async function ingestEvents(
     return { ok: false, error: 'offline' };
   }
 
-  const apiKey =
-    process.env.NEXT_PUBLIC_EVENTS_INGEST_API_KEY ??
-    process.env.EVENTS_INGEST_API_KEY;
+  const apiKey = process.env.EVENTS_INGEST_API_KEY;
 
   const payload = events.map((event) => ({
     org_id: event.orgId,
