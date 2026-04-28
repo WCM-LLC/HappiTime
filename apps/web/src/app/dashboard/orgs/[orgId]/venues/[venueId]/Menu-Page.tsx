@@ -2,6 +2,7 @@ import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import VenueMediaUploader from '@/components/VenueMediaUploader';
 import { createClient } from '@/utils/supabase/server';
+import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
 import {
   updateVenue,
   addHappyHour,
@@ -29,16 +30,7 @@ const HH_STATUS_PUBLISHED = 'published'; // UI check (must match actions.ts + DB
 // replaced invalid reference to `venue` (not defined yet) with a safe helper
 const venueDeepLink = (id?: string) => (id ? `happitime://venue/${id}` : '');
 
-type Venue = {
-  id: string;
-  org_id: string;
-  name: string;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  zip: string | null;
-  timezone: string | null;
-};
+type Venue = VenueDetail;
 
 type HappyHourWindow = {
   id: string;
@@ -123,12 +115,7 @@ export default async function VenuePage({
 
   const supabase = await createClient();
 
-  const { data: venue, error: venueErr } = await supabase
-    .from('venues')
-    .select('id,org_id,name,address,city,state,zip,timezone')
-    .eq('id', venueId)
-    .eq('org_id', orgId)
-    .single();
+  const { data: venue, error: venueErr } = await fetchVenueById(supabase as any, venueId, { orgId });
 
   // ✅ happy_hour_windows has venue_id but may not have org_id
   const { data: happyHours, error: hhErr } = await supabase

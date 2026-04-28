@@ -15,6 +15,7 @@
     "lint": "npm run lint --workspace web && npm run lint --workspace mobile",
     "typecheck": "npm run build:shared && npm run typecheck --workspace web && npm run typecheck --workspace mobile",
     "test": "npm run build:shared && node --test test/*.test.mjs",
+    "mvp:check": "npm run build:shared && npm run typecheck --workspace web && node --test test/smoke-*.test.mjs && node scripts/validate-env.mjs apps/web",
     "build:web": "npm run build:shared && npm run build --workspace web",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
@@ -31,7 +32,6 @@
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
     "brace-expansion": "^5.0.5",
-    "github": "^14.0.0",
     "nodemailer": "^8.0.5",
     "picomatch": "^4.0.4",
     "react": "19.1.0",

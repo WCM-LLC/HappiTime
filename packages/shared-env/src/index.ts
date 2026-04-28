@@ -8,58 +8,30 @@ export type PublicSupabaseEnvInput = {
   supabaseKey?: string;
 };
 
-/** Returns the value trimmed, or null if undefined/blank. */
 function normalizeEnvValue(value: string | undefined): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length ? trimmed : null;
 }
 
-let hasWarnedSupabaseEnvMismatch = false;
-
-/**
- * Resolves Supabase URL and anon key from the environment.
- * Supports EXPO_PUBLIC_*, NEXT_PUBLIC_*, and plain SUPABASE_* key names.
- * Throws with a descriptive message if either value is missing.
- */
 export function getPublicSupabaseEnv(
   input?: PublicSupabaseEnvInput
 ): PublicSupabaseEnv {
-  const nextUrl = normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const expoUrl = normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_URL);
-  const plainUrl = normalizeEnvValue(process.env.SUPABASE_URL);
-
-  const nextKey =
-    normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ??
-    normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
-  const expoKey =
-    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) ??
-    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
-  const plainKey = normalizeEnvValue(process.env.SUPABASE_ANON_KEY);
-
-  if (
-    !hasWarnedSupabaseEnvMismatch &&
-    nextUrl &&
-    expoUrl &&
-    nextUrl !== expoUrl
-  ) {
-    hasWarnedSupabaseEnvMismatch = true;
-    console.warn(
-      "[shared-env] NEXT_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_URL differ. Web apps should use NEXT_PUBLIC_* values."
-    );
-  }
-
+  // Prefer framework-local public vars first to avoid cross-app collisions
+  // in monorepo/dev shells where both EXPO_* and NEXT_PUBLIC_* may be present.
   const url =
     normalizeEnvValue(input?.supabaseUrl) ??
-    nextUrl ??
-    expoUrl ??
-    plainUrl;
+    normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_URL) ??
+    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_URL) ??
+    normalizeEnvValue(process.env.SUPABASE_URL);
 
   const anonKey =
     normalizeEnvValue(input?.supabaseKey) ??
-    nextKey ??
-    expoKey ??
-    plainKey;
+    normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ??
+    normalizeEnvValue(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ??
+    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY) ??
+    normalizeEnvValue(process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ??
+    normalizeEnvValue(process.env.SUPABASE_ANON_KEY);
 
   if (!url || !anonKey) {
     throw new Error(
@@ -85,10 +57,6 @@ export type PublicMapsEnv = {
   styleId?: string;
 };
 
-/**
- * Resolves the maps provider config from the environment. Returns null if maps are not configured.
- * Supports 'google' (default) and 'mapbox'. Mapbox also accepts an optional MAPS_STYLE_ID.
- */
 export function getPublicMapsEnv(): PublicMapsEnv | null {
   const providerRaw =
     normalizeEnvValue(process.env.EXPO_PUBLIC_MAPS_PROVIDER) ??

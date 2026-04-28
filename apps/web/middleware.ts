@@ -9,34 +9,34 @@ function isPublicPath(pathname: string) {
 }
 
 export async function middleware(request: NextRequest) {
+  const authDebug = process.env.AUTH_DEBUG === "1" || process.env.NEXT_PUBLIC_AUTH_DEBUG === "1";
   let response = NextResponse.next({
     request: { headers: request.headers },
   });
-  let supabaseUrl = "";
-  let supabaseKey = "";
 
+  let env: { url: string; anonKey: string };
   try {
-    const env = getPublicSupabaseEnv();
-    supabaseUrl = env.url;
-    supabaseKey = env.anonKey;
-  } catch {
+    env = getPublicSupabaseEnv();
+  } catch (error) {
+    if (authDebug) {
+      console.warn("[auth][middleware] missing Supabase public env", {
+        pathname: request.nextUrl.pathname,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
     return response;
   }
 
-  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+  const supabase = createServerClient(env.url, env.anonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet: { name: any; value: any; options: any }[]) {
-        cookiesToSet.forEach(({ name, value, options }) => {
-          request.cookies.set(name, value);
-        });
-
-        response = NextResponse.next({
-          request: { headers: request.headers },
-        });
-
+        // Mirror refreshed tokens onto the request so downstream Server Components
+        // on this same request see the updated session, not the already-consumed tokens.
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
         });
@@ -47,6 +47,14 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+
+  if (authDebug) {
+    console.log("[auth][middleware] auth check", {
+      pathname,
+      isPublic: isPublicPath(pathname),
+      hasUser: !!user,
+    });
+  }
 
   if (!user && !isPublicPath(pathname)) {
     const loginUrl = request.nextUrl.clone();

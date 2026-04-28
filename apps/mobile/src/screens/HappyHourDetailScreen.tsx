@@ -21,6 +21,7 @@ import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useUserLists } from "../hooks/useUserLists";
 import { useVenueMenus } from "../hooks/useVenueMenus";
 import { useVenueCovers } from "../hooks/useVenueCovers";
+import { useVenueMedia } from "../hooks/useVenueMedia";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
@@ -504,7 +505,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
               <TextInput
                 style={pickerStyles.input}
                 placeholder="Name (e.g. Friday Night Crawl)"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textMutedLight}
                 value={newListName}
                 onChangeText={setNewListName}
                 autoFocus
@@ -512,7 +513,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
               <TextInput
                 style={[pickerStyles.input, { height: 60 }]}
                 placeholder="Description (optional)"
-                placeholderTextColor={colors.textTertiary}
+                placeholderTextColor={colors.textMutedLight}
                 value={newListDesc}
                 onChangeText={setNewListDesc}
                 multiline

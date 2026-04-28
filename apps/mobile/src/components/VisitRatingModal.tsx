@@ -32,13 +32,13 @@ export const VisitRatingModal: React.FC<Props> = ({
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
 
-  // Reset form state whenever a new visit prompt arrives.
+  // Reset state when a new visit appears
   React.useEffect(() => {
     if (pendingVisit) {
       setRating(0);
       setComment("");
     }
-  }, [pendingVisit]);
+  }, [pendingVisit?.venueId]);
 
   if (!pendingVisit) return null;
 

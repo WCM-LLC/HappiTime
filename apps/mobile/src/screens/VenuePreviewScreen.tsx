@@ -67,7 +67,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const coverUrl = venueId ? venueCovers[venueId] ?? null : null;
 
   const images = useMemo(
-    () => media.filter((m: { type: string }) => m.type === "image").sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order),
+    () => [...media].sort((a, b) => a.sort_order - b.sort_order),
     [media]
   );
 

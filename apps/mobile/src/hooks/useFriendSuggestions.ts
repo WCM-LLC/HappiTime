@@ -44,9 +44,9 @@ export function useFriendSuggestions() {
       // 1. Get the current user's venue visits
       const { data: myVisits, error: visitsError } = await supabase
         .from("venue_visits")
-        .select("venue_id, entered_at")
+        .select("venue_id, visited_at")
         .eq("user_id", user.id)
-        .order("entered_at", { ascending: false })
+        .order("visited_at", { ascending: false })
         .limit(100);
 
       if (visitsError) {
@@ -76,17 +76,17 @@ export function useFriendSuggestions() {
       >();
 
       for (const visit of myVisits) {
-        const visitTime = new Date(visit.entered_at).getTime();
+        const visitTime = new Date(visit.visited_at).getTime();
         const windowStart = new Date(visitTime - 60 * 60 * 1000).toISOString();
         const windowEnd = new Date(visitTime + 60 * 60 * 1000).toISOString();
 
         const { data: overlapping } = await supabase
           .from("venue_visits")
-          .select("user_id, entered_at, venue:venues(name)")
+          .select("user_id, visited_at, venue:venues(name)")
           .eq("venue_id", visit.venue_id)
           .neq("user_id", user.id)
-          .gte("entered_at", windowStart)
-          .lte("entered_at", windowEnd)
+          .gte("visited_at", windowStart)
+          .lte("visited_at", windowEnd)
           .limit(20);
 
         if (overlapping) {
@@ -98,7 +98,7 @@ export function useFriendSuggestions() {
               candidateMap.set(uid, {
                 venue_id: visit.venue_id,
                 venue_name: venue?.name ?? "a venue",
-                visit_date: row.entered_at as string,
+                visit_date: row.visited_at as string,
               });
             }
           }

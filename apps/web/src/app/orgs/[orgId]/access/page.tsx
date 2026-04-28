@@ -8,11 +8,7 @@ import {
   removeMember,
   updateMemberAccess,
 } from '@/actions/access-actions';
-
-type VenueRow = {
-  id: string;
-  name: string;
-};
+import { fetchVenuesByOrg, type VenueSummary as VenueRow } from '@happitime/shared-api';
 
 type MemberRow = {
   user_id: string;
@@ -127,11 +123,7 @@ export default async function OrgAccessPage({
     .eq('id', orgId)
     .maybeSingle();
 
-  const { data: venues } = await supabase
-    .from('venues')
-    .select('id,name')
-    .eq('org_id', orgId)
-    .order('name', { ascending: true });
+  const { data: venues } = await fetchVenuesByOrg(supabase as any, orgId, { order: { column: 'name', ascending: true } });
 
   const { data: members } = await supabase
     .from('org_members')

@@ -60,12 +60,9 @@ export function useVisitRating() {
           }
         } else {
           // Fallback: insert a new record if we don't have a visitId
-          const { data: { user: authUser } } = await supabase.auth.getUser();
-          if (!authUser) return;
           const { error } = await supabase.from("venue_visits").insert({
-            user_id: authUser.id,
             venue_id: pendingVisit.venueId,
-            entered_at: pendingVisit.visitedAt,
+            visited_at: pendingVisit.visitedAt,
             rating,
             comment: comment?.trim() || null,
           });

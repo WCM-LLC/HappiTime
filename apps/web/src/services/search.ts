@@ -1,3 +1,5 @@
+import { featureFlags } from '@/lib/featureFlags';
+
 export type SearchVenueResult = {
   id: string;
   name: string;
@@ -42,13 +44,9 @@ export async function searchVenues(
   const trimmed = query.trim();
   if (!trimmed) return [];
 
+  if (!featureFlags.search) return [];
   const endpoint = process.env.NEXT_PUBLIC_SEARCH_API_URL;
-  if (!endpoint || typeof fetch !== 'function') {
-    if (shouldDebug() && typeof console !== 'undefined') {
-      console.log('[search] missing NEXT_PUBLIC_SEARCH_API_URL');
-    }
-    return [];
-  }
+  if (!endpoint || typeof fetch !== 'function') return [];
 
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     return [];
@@ -75,13 +73,9 @@ export async function getRecommendedVenues(
 ): Promise<SearchVenueResult[]> {
   if (!seedVenueId) return [];
 
+  if (!featureFlags.recommendations) return [];
   const endpoint = process.env.NEXT_PUBLIC_RECOMMENDATIONS_API_URL;
-  if (!endpoint || typeof fetch !== 'function') {
-    if (shouldDebug() && typeof console !== 'undefined') {
-      console.log('[search] missing NEXT_PUBLIC_RECOMMENDATIONS_API_URL');
-    }
-    return [];
-  }
+  if (!endpoint || typeof fetch !== 'function') return [];
 
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     return [];

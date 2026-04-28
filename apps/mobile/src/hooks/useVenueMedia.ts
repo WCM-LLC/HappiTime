@@ -4,7 +4,6 @@ import { supabase } from "../api/supabaseClient";
 export type VenueMediaItem = {
   id: string;
   url: string;
-  type: string;
   title: string | null;
   sort_order: number;
 };
@@ -25,7 +24,7 @@ export function useVenueMedia(venueId: string | null) {
     setLoading(true);
     supabase
       .from("venue_media")
-      .select("id, type, storage_bucket, storage_path, title, sort_order")
+      .select("id, storage_bucket, storage_path, title, sort_order")
       .eq("venue_id", venueId)
       .eq("status", "published")
       .order("sort_order", { ascending: true })
@@ -42,7 +41,6 @@ export function useVenueMedia(venueId: string | null) {
           return {
             id: row.id,
             url: urlData?.publicUrl || "",
-            type: row.type as string,
             title: row.title,
             sort_order: row.sort_order,
           };

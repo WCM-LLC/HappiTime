@@ -8,7 +8,9 @@ import {
   Pressable,
   ScrollView,
   Image,
+  useWindowDimensions,
   Platform,
+  FlatList,
 } from "react-native";
 import MapView, { Marker, Region } from "react-native-maps";
 import { useNavigation } from "@react-navigation/native";
@@ -17,6 +19,7 @@ import type { RootStackParamList } from "../navigation/types";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useUserPreferences } from "../hooks/useUserPreferences";
+import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useVenueCovers } from "../hooks/useVenueCovers";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { colors } from "../theme/colors";
@@ -254,7 +257,6 @@ export const MapScreen: React.FC = () => {
         showsUserLocation
         showsMyLocationButton={false}
         onPress={(e) => {
-          // Only dismiss when tapping empty map, not markers
           if (e.nativeEvent.action !== "marker-press") {
             setSelectedWindow(null);
             setShowSuggestions(false);

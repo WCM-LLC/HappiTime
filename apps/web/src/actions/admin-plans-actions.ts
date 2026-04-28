@@ -3,10 +3,6 @@
 import { revalidatePath } from 'next/cache';
 import { assertAdmin, getAdminClient } from '@/utils/admin';
 
-/**
- * Creates or updates a venue subscription record. Requires admin.
- * Expects FormData with venue_id, plan, and status fields.
- */
 export async function adminUpsertVenueSubscription(formData: FormData) {
   await assertAdmin();
   const venueId = formData.get('venue_id') as string | null;
@@ -14,7 +10,6 @@ export async function adminUpsertVenueSubscription(formData: FormData) {
   const status  = formData.get('status')   as string | null;
   if (!venueId || !plan || !status) throw new Error('venue_id, plan, and status are required');
   const supabase = getAdminClient();
-  // venue_subscriptions is not yet in the generated types; cast required until schema is re-generated.
   const { error } = await (supabase as any)
     .from('venue_subscriptions')
     .upsert({ venue_id: venueId, plan, status }, { onConflict: 'venue_id' });
@@ -22,10 +17,6 @@ export async function adminUpsertVenueSubscription(formData: FormData) {
   revalidatePath('/admin/plans');
 }
 
-/**
- * Creates or updates a user plan record. Requires admin.
- * Expects FormData with user_id, plan, and status fields.
- */
 export async function adminUpsertUserPlan(formData: FormData) {
   await assertAdmin();
   const userId = formData.get('user_id') as string | null;
@@ -33,7 +24,6 @@ export async function adminUpsertUserPlan(formData: FormData) {
   const status = formData.get('status')  as string | null;
   if (!userId || !plan || !status) throw new Error('user_id, plan, and status are required');
   const supabase = getAdminClient();
-  // user_plans is not yet in the generated types; cast required until schema is re-generated.
   const { error } = await (supabase as any)
     .from('user_plans')
     .upsert({ user_id: userId, plan, status }, { onConflict: 'user_id' });
@@ -41,24 +31,28 @@ export async function adminUpsertUserPlan(formData: FormData) {
   revalidatePath('/admin/plans');
 }
 
-/** Deletes a venue's subscription record. Requires admin. */
 export async function adminDeleteVenueSubscription(formData: FormData) {
   await assertAdmin();
   const venueId = formData.get('venue_id') as string | null;
   if (!venueId) throw new Error('venue_id is required');
   const supabase = getAdminClient();
-  const { error } = await (supabase as any).from('venue_subscriptions').delete().eq('venue_id', venueId);
+  const { error } = await (supabase as any)
+    .from('venue_subscriptions')
+    .delete()
+    .eq('venue_id', venueId);
   if (error) throw new Error(error.message);
   revalidatePath('/admin/plans');
 }
 
-/** Deletes a user's plan record. Requires admin. */
 export async function adminDeleteUserPlan(formData: FormData) {
   await assertAdmin();
   const userId = formData.get('user_id') as string | null;
   if (!userId) throw new Error('user_id is required');
   const supabase = getAdminClient();
-  const { error } = await (supabase as any).from('user_plans').delete().eq('user_id', userId);
+  const { error } = await (supabase as any)
+    .from('user_plans')
+    .delete()
+    .eq('user_id', userId);
   if (error) throw new Error(error.message);
   revalidatePath('/admin/plans');
 }

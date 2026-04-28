@@ -4,15 +4,7 @@ import { createClient } from '@/utils/supabase/server';
 import { createServiceClient } from '@/utils/supabase/server';
 import { isAdminEmail } from '@/utils/admin-emails';
 import { createVenue, deleteVenue } from '../../../actions/organization-actions';
-
-type VenueRow = {
-  id: string;
-  name: string;
-  org_name: string | null;
-  city: string | null;
-  state: string | null;
-  status: string | null;
-};
+import { fetchVenuesByOrg, type VenueSummary as VenueRow } from '@happitime/shared-api';
 
 export default async function OrgPage({
   params,
@@ -57,11 +49,7 @@ export default async function OrgPage({
     .eq('id', orgId)
     .single();
 
-  const { data: venues, error: venuesErr } = await supabase
-    .from('venues')
-    .select('id,name,org_name,city,state,status')
-    .eq('org_id', orgId)
-    .order('created_at', { ascending: false });
+  const { data: venues, error: venuesErr } = await fetchVenuesByOrg(supabase as any, orgId);
 
   return (
     <div className="min-h-screen bg-background">

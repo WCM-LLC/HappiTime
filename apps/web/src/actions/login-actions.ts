@@ -3,15 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
-import { isAdminEmail } from '@/utils/admin-emails';
 
-/**
- * Authenticates a user with email and password.
- * Redirects to ?next param if present, /admin for admin emails, or /dashboard.
- * Depends on: Supabase auth, ADMIN_EMAILS env var.
- */
 export async function login(formData: FormData) {
   const supabase = await createClient();
+  const authDebug = process.env.AUTH_DEBUG === '1' || process.env.NEXT_PUBLIC_AUTH_DEBUG === '1';
 
   const email = String(formData.get('email') ?? '');
   const password = String(formData.get('password') ?? '');
@@ -19,11 +14,19 @@ export async function login(formData: FormData) {
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
+  if (authDebug) {
+    console.log('[auth][login] signInWithPassword result', {
+      emailDomain: email.includes('@') ? email.split('@')[1] : null,
+      hasError: !!error,
+      errorMessage: error?.message,
+      next: next || null,
+    });
+  }
+
   if (error) {
-    const params = new URLSearchParams();
-    if (next) params.set('next', next);
-    params.set('error', 'bad_credentials');
-    redirect(`/login?${params.toString()}`);
+    const base = next ? `/login?next=${encodeURIComponent(next)}` : '/login';
+    const joiner = base.includes('?') ? '&' : '?';
+    redirect(`${base}${joiner}error=bad_credentials`);
   }
 
   revalidatePath('/', 'layout');
@@ -33,14 +36,18 @@ export async function login(formData: FormData) {
     redirect(next);
   }
 
-  if (isAdminEmail(email)) {
+  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
+    .split(',')
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (adminEmails.includes(email.toLowerCase())) {
     redirect('/admin');
   }
 
   redirect('/dashboard');
 }
 
-/** Registers a new user with email and password, then redirects to /dashboard or ?next. */
 export async function signup(formData: FormData) {
   const supabase = await createClient();
 

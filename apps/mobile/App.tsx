@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 import LoadingView from "./src/components/LoadingView";
 import { VisitRatingModal } from "./src/components/VisitRatingModal";
 import { supabase } from "./src/api/supabaseClient";
@@ -80,8 +81,13 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error }) => {
       if (!isMounted) return;
+      if (error) {
+        // Stale / revoked refresh token — clear it from AsyncStorage so the
+        // "Invalid Refresh Token" error doesn't repeat on the next cold start.
+        void supabase.auth.signOut({ scope: "local" });
+      }
       setSession(data.session ?? null);
       setBooting(false);
     });
