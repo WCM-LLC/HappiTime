@@ -120,3 +120,76 @@ test("/admin (admin session) is accessible", async (t) => {
   const finalPath = new URL(res.url).pathname;
   assert.match(finalPath, /^\/admin/, `Expected to stay on /admin, got: ${res.url}`);
 });
+
+
+async function getCreateVenueAction(orgId, cookies) {
+  const res = await tryFetch(`${BASE_URL}/orgs/${orgId}`, {
+    headers: { cookie: cookies.join('; ') },
+  });
+  if (!res) return null;
+  const html = await res.text();
+  const match = html.match(/formAction="([^"]+)"/i) || html.match(/formaction="([^"]+)"/i);
+  if (!match) return null;
+  return match[1].replace(/&amp;/g, '&');
+}
+
+async function submitCreateVenue(orgId, cookies, venueName) {
+  const actionPath = await getCreateVenueAction(orgId, cookies);
+  if (!actionPath) return null;
+  const body = new URLSearchParams({
+    name: venueName,
+    address: '123 Test St',
+    city: 'Testville',
+    state: 'TX',
+    zip: '73301',
+    timezone: 'America/Chicago',
+  });
+  return tryFetch(`${BASE_URL}${actionPath}`, {
+    method: 'POST',
+    headers: {
+      cookie: cookies.join('; '),
+      'content-type': 'application/x-www-form-urlencoded',
+    },
+    body,
+    redirect: 'manual',
+  });
+}
+
+test('owner can create venue', async (t) => {
+  const orgId = process.env.SMOKE_ORG_ID;
+  const email = process.env.SMOKE_OWNER_EMAIL;
+  const password = process.env.SMOKE_OWNER_PASSWORD;
+  if (!orgId || !email || !password) return t.skip('SMOKE_ORG_ID / SMOKE_OWNER_EMAIL / SMOKE_OWNER_PASSWORD not set');
+  const cookies = await loginAndGetCookies(email, password);
+  const res = await submitCreateVenue(orgId, cookies, `Smoke Owner ${Date.now()}`);
+  if (!res) return t.skip('could not submit create venue');
+  const location = res.headers.get('location') ?? '';
+  assert.equal(res.status, 303);
+  assert.match(location, new RegExp(`/orgs/${orgId}/venues/`));
+});
+
+test('platform admin can create venue', async (t) => {
+  const orgId = process.env.SMOKE_ORG_ID;
+  const email = process.env.SMOKE_ADMIN_EMAIL;
+  const password = process.env.SMOKE_ADMIN_PASSWORD;
+  if (!orgId || !email || !password) return t.skip('SMOKE_ORG_ID / SMOKE_ADMIN_EMAIL / SMOKE_ADMIN_PASSWORD not set');
+  const cookies = await loginAndGetCookies(email, password);
+  const res = await submitCreateVenue(orgId, cookies, `Smoke Admin ${Date.now()}`);
+  if (!res) return t.skip('could not submit create venue');
+  const location = res.headers.get('location') ?? '';
+  assert.equal(res.status, 303);
+  assert.match(location, new RegExp(`/orgs/${orgId}/venues/`));
+});
+
+test('non-owner non-admin cannot create venue', async (t) => {
+  const orgId = process.env.SMOKE_ORG_ID;
+  const email = process.env.SMOKE_NONADMIN_EMAIL;
+  const password = process.env.SMOKE_NONADMIN_PASSWORD;
+  if (!orgId || !email || !password) return t.skip('SMOKE_ORG_ID / SMOKE_NONADMIN_EMAIL / SMOKE_NONADMIN_PASSWORD not set');
+  const cookies = await loginAndGetCookies(email, password);
+  const res = await submitCreateVenue(orgId, cookies, `Smoke Denied ${Date.now()}`);
+  if (!res) return t.skip('could not submit create venue');
+  const location = res.headers.get('location') ?? '';
+  assert.equal(res.status, 303);
+  assert.match(location, new RegExp(`/orgs/${orgId}\?error=(org_manage_forbidden|admin_setup_misconfigured)`));
+});

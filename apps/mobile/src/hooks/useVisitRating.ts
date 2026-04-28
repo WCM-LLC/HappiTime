@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import * as Notifications from "expo-notifications";
 import { supabase } from "../api/supabaseClient";
+import { useCurrentUser } from "./useCurrentUser";
 
 export type PendingVisit = {
   visitId?: string;
@@ -11,6 +12,7 @@ export type PendingVisit = {
 };
 
 export function useVisitRating() {
+  const { user } = useCurrentUser();
   const [pendingVisit, setPendingVisit] = useState<PendingVisit | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -79,7 +81,7 @@ export function useVisitRating() {
         setPendingVisit(null);
       }
     },
-    [pendingVisit]
+    [pendingVisit, user?.id]
   );
 
   const dismissRating = useCallback(() => {
