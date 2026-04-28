@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { randomUUID } from 'crypto';
 import { createClient, createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
 
-const INVITE_ROLE_VALUES = new Set(['manager', 'host']);
+const INVITE_ROLE_VALUES = new Set(['owner', 'manager', 'host']);
 const INVITE_PASSWORD_MIN_LENGTH = 8;
 
 function toStr(value: FormDataEntryValue | null | undefined) {
@@ -90,6 +90,8 @@ export async function createOrgInvite(orgId: string, formData: FormData) {
 
   const email = normalizeEmail(toStr(formData.get('email')));
   const role = toStr(formData.get('role'));
+  const firstName = toStr(formData.get('first_name'));
+  const lastName = toStr(formData.get('last_name'));
   const venueIds = formData
     .getAll('venue_ids')
     .map((id) => String(id))
@@ -101,6 +103,10 @@ export async function createOrgInvite(orgId: string, formData: FormData) {
 
   if (!INVITE_ROLE_VALUES.has(role)) {
     redirect(`/orgs/${orgId}/access?error=invalid_role`);
+  }
+
+  if (!firstName && !lastName) {
+    redirect(`/orgs/${orgId}/access?error=invite_name_required`);
   }
 
   const uniqueVenueIds = Array.from(new Set(venueIds));
@@ -152,6 +158,8 @@ export async function createOrgInvite(orgId: string, formData: FormData) {
     venue_ids: uniqueVenueIds,
     token,
     invited_by: user.id,
+    first_name: firstName || null,
+    last_name: lastName || null,
     expires_at: expiresAt,
   });
 
@@ -232,7 +240,7 @@ export async function setInvitePassword(formData: FormData) {
   const admin = createServiceClient();
   const { data: invite, error } = await admin
     .from('org_invites')
-    .select('id, org_id, email, role, venue_ids, expires_at, accepted_at, invited_by')
+    .select('id, org_id, email, role, venue_ids, expires_at, accepted_at, invited_by, first_name, last_name')
     .eq('token', token)
     .maybeSingle();
 
@@ -268,6 +276,7 @@ export async function setInvitePassword(formData: FormData) {
       email,
       password,
       email_confirm: true,
+      user_metadata: { first_name: invite.first_name ?? null, last_name: invite.last_name ?? null },
     });
     if (createError || !created?.user) {
       console.error('Invite user create failed', {
@@ -283,6 +292,7 @@ export async function setInvitePassword(formData: FormData) {
     const { error: updateError } = await admin.auth.admin.updateUserById(userId, {
       password,
       email_confirm: true,
+      user_metadata: { first_name: invite.first_name ?? null, last_name: invite.last_name ?? null },
     });
     if (updateError) {
       console.error('Invite password update failed', {
@@ -303,6 +313,8 @@ export async function setInvitePassword(formData: FormData) {
         user_id: userId,
         role: invite.role,
         email,
+        first_name: invite.first_name ?? null,
+        last_name: invite.last_name ?? null,
       },
       { onConflict: 'org_id,user_id' }
     );
@@ -531,7 +543,7 @@ export async function acceptOrgInvite(formData: FormData) {
   const admin = createServiceClient();
   const { data: invite, error } = await admin
     .from('org_invites')
-    .select('id, org_id, email, role, venue_ids, expires_at, accepted_at, invited_by')
+    .select('id, org_id, email, role, venue_ids, expires_at, accepted_at, invited_by, first_name, last_name')
     .eq('token', token)
     .maybeSingle();
 
@@ -560,6 +572,8 @@ export async function acceptOrgInvite(formData: FormData) {
         user_id: user.id,
         role: invite.role,
         email,
+        first_name: invite.first_name ?? null,
+        last_name: invite.last_name ?? null,
       },
       { onConflict: 'org_id,user_id' }
     );
