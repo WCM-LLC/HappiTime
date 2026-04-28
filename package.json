@@ -27,7 +27,7 @@
   "devDependencies": {
     "next": "^16.2.4",
     "react-dom": "19.1.0",
-    "supabase": "^2.92.0"
+    "supabase": "^2.95.6"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
