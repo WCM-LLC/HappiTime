@@ -33,6 +33,10 @@ export async function middleware(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet: { name: any; value: any; options: any }[]) {
+        // Mirror refreshed tokens onto the request so downstream Server Components
+        // on this same request see the updated session, not the already-consumed tokens.
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
         });
