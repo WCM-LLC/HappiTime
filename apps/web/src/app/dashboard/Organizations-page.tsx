@@ -4,6 +4,15 @@ import { createClient } from '@/utils/supabase/server';
 import { createVenue } from '../../actions/organization-actions';
 import { fetchVenuesByOrg, type VenueSummary as VenueRow } from '@happitime/shared-api';
 
+const ERROR_MESSAGES: Record<string, string> = {
+  missing_venue_name: 'Venue name is required.',
+  missing_venue_id: 'Venue id is required.',
+  org_manage_forbidden: 'You must be an organization owner or platform admin to manage venues.',
+  admin_setup_misconfigured: 'Platform admin access is not configured. Ask an admin to set ADMIN_EMAILS.',
+  venue_create_failed: 'Unable to create venue. Please try again.',
+  venue_delete_failed: 'Unable to delete venue. Please try again.',
+};
+
 export default async function OrgPage({
   params,
   searchParams,

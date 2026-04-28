@@ -18,6 +18,10 @@ function getAdminEmails(): string[] {
     .filter(Boolean);
 }
 
+export function hasAdminEmailsConfigured(): boolean {
+  return getAdminEmails().length > 0;
+}
+
 /**
  * Returns true if the current session belongs to an email in ADMIN_EMAILS.
  * Use in layouts/pages that redirect rather than throw.
