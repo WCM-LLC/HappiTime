@@ -2,15 +2,17 @@
 import { useCallback, useEffect, useState } from "react";
 import * as Notifications from "expo-notifications";
 import { supabase } from "../api/supabaseClient";
+import { useCurrentUser } from "./useCurrentUser";
 
 export type PendingVisit = {
   visitId?: string;
   venueId: string;
   venueName: string;
-  visitedAt: string;
+  enteredAt: string;
 };
 
 export function useVisitRating() {
+  const { user } = useCurrentUser();
   const [pendingVisit, setPendingVisit] = useState<PendingVisit | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -24,7 +26,7 @@ export function useVisitRating() {
             visitId: data.visitId as string | undefined,
             venueId: data.venueId as string,
             venueName: data.venueName as string,
-            visitedAt: new Date().toISOString(),
+            enteredAt: new Date().toISOString(),
           });
         }
       }
@@ -38,7 +40,7 @@ export function useVisitRating() {
       visitId,
       venueId,
       venueName,
-      visitedAt: new Date().toISOString(),
+      enteredAt: new Date().toISOString(),
     });
   }, []);
 
@@ -60,9 +62,14 @@ export function useVisitRating() {
           }
         } else {
           // Fallback: insert a new record if we don't have a visitId
+          if (!user?.id) {
+            console.warn("[visit-rating] missing user for insert");
+            return;
+          }
           const { error } = await supabase.from("venue_visits").insert({
+            user_id: user.id,
             venue_id: pendingVisit.venueId,
-            visited_at: pendingVisit.visitedAt,
+            entered_at: pendingVisit.enteredAt,
             rating,
             comment: comment?.trim() || null,
           });
@@ -76,7 +83,7 @@ export function useVisitRating() {
         setPendingVisit(null);
       }
     },
-    [pendingVisit]
+    [pendingVisit, user?.id]
   );
 
   const dismissRating = useCallback(() => {

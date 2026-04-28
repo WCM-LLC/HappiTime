@@ -241,8 +241,8 @@ export const ActivityScreen: React.FC = () => {
                     req.follower_id.slice(0, 8);
                   return (
                     <PendingRequestCard
-                      key={req.id}
-                      id={req.id}
+                      key={req.follower_id}
+                      id={req.follower_id}
                       name={name}
                       avatarUrl={req.profile?.avatar_url ?? null}
                       onApprove={handleApprove}

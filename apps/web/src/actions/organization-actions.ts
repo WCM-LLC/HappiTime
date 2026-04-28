@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
+import { hasAdminEmailsConfigured, isAdmin } from '@/utils/admin';
 
 export async function createVenue(orgId: string, formData: FormData) {
   const name = String(formData.get('name') ?? '').trim();
@@ -18,8 +19,14 @@ export async function createVenue(orgId: string, formData: FormData) {
     .eq('user_id', auth.user.id)
     .maybeSingle();
 
-  if (membershipErr || !membership || String(membership.role) !== 'owner') {
-    redirect(`/orgs/${orgId}?error=not_org_owner`);
+  const isOwner = !membershipErr && !!membership && String(membership.role) === 'owner';
+  if (!isOwner) {
+    if (!hasAdminEmailsConfigured()) {
+      redirect(`/orgs/${orgId}?error=admin_setup_misconfigured`);
+    }
+    if (!(await isAdmin())) {
+      redirect(`/orgs/${orgId}?error=org_manage_forbidden`);
+    }
   }
 
   const payload = {
@@ -61,8 +68,14 @@ export async function deleteVenue(orgId: string, formData: FormData) {
     .eq('user_id', auth.user.id)
     .maybeSingle();
 
-  if (membershipErr || !membership || String(membership.role) !== 'owner') {
-    redirect(`/orgs/${orgId}?error=not_org_owner`);
+  const isOwner = !membershipErr && !!membership && String(membership.role) === 'owner';
+  if (!isOwner) {
+    if (!hasAdminEmailsConfigured()) {
+      redirect(`/orgs/${orgId}?error=admin_setup_misconfigured`);
+    }
+    if (!(await isAdmin())) {
+      redirect(`/orgs/${orgId}?error=org_manage_forbidden`);
+    }
   }
 
   const { error } = await supabase
