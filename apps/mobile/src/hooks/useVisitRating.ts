@@ -7,7 +7,7 @@ export type PendingVisit = {
   visitId?: string;
   venueId: string;
   venueName: string;
-  visitedAt: string;
+  enteredAt: string;
 };
 
 export function useVisitRating() {
@@ -24,7 +24,7 @@ export function useVisitRating() {
             visitId: data.visitId as string | undefined,
             venueId: data.venueId as string,
             venueName: data.venueName as string,
-            visitedAt: new Date().toISOString(),
+            enteredAt: new Date().toISOString(),
           });
         }
       }
@@ -38,7 +38,7 @@ export function useVisitRating() {
       visitId,
       venueId,
       venueName,
-      visitedAt: new Date().toISOString(),
+      enteredAt: new Date().toISOString(),
     });
   }, []);
 
@@ -60,9 +60,12 @@ export function useVisitRating() {
           }
         } else {
           // Fallback: insert a new record if we don't have a visitId
+          const { data: auth } = await supabase.auth.getUser();
+          if (!auth.user) return;
           const { error } = await supabase.from("venue_visits").insert({
+            user_id: auth.user.id,
             venue_id: pendingVisit.venueId,
-            visited_at: pendingVisit.visitedAt,
+            entered_at: pendingVisit.enteredAt,
             rating,
             comment: comment?.trim() || null,
           });

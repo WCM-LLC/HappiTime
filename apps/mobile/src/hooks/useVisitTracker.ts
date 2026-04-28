@@ -36,7 +36,7 @@ async function registerVisit(userId: string, venueId: string, venueName: string)
     .insert({
       user_id: userId,
       venue_id: venueId,
-      visited_at: new Date().toISOString(),
+      entered_at: new Date().toISOString(),
     })
     .select("id")
     .single();

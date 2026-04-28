@@ -14,6 +14,8 @@ type MemberRow = {
   user_id: string;
   role: string;
   email: string | null;
+  first_name: string | null;
+  last_name: string | null;
 };
 
 type InviteRow = {
@@ -24,6 +26,8 @@ type InviteRow = {
   created_at: string;
   expires_at: string | null;
   accepted_at: string | null;
+  first_name: string | null;
+  last_name: string | null;
 };
 
 type AssignmentRow = {
@@ -33,6 +37,7 @@ type AssignmentRow = {
 
 const ERROR_MESSAGES: Record<string, string> = {
   invalid_email: 'Please enter a valid email address.',
+  invite_name_required: 'Please provide at least a first or last name.',
   invalid_role: 'Please select a valid role.',
   invite_exists: 'An active invite already exists for that email.',
   invite_create_failed: 'Unable to create invite.',
@@ -98,16 +103,16 @@ export default async function OrgAccessPage({
     .eq('user_id', user.id)
     .maybeSingle();
 
-  const isOwner = String(membership?.role ?? '') === 'owner';
+  const canManageAccess = ['owner', 'admin'].includes(String(membership?.role ?? ''));
 
-  if (!isOwner) {
+  if (!canManageAccess) {
     return (
       <div className="min-h-screen bg-background">
         <UserBar />
         <main className="max-w-[var(--width-content)] mx-auto px-6 py-8">
           <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-6">
             <p className="text-body-sm font-medium text-error">Not authorized</p>
-            <p className="text-body-sm text-error/80 mt-0.5">Only organization owners can manage access.</p>
+            <p className="text-body-sm text-error/80 mt-0.5">Only organization owners and admins can manage access.</p>
           </div>
           <Link href={`/orgs/${orgId}`}>
             <span className={btnSecondary}>&larr; Back to organization</span>
@@ -127,7 +132,7 @@ export default async function OrgAccessPage({
 
   const { data: members } = await supabase
     .from('org_members')
-    .select('user_id,role,email')
+    .select('user_id,role,email,first_name,last_name')
     .eq('org_id', orgId)
     .order('created_at', { ascending: true });
 
@@ -138,7 +143,7 @@ export default async function OrgAccessPage({
 
   const { data: invites } = await supabase
     .from('org_invites')
-    .select('id,email,role,venue_ids,created_at,expires_at,accepted_at')
+    .select('id,email,role,venue_ids,created_at,expires_at,accepted_at,first_name,last_name')
     .eq('org_id', orgId)
     .order('created_at', { ascending: false });
 
@@ -204,6 +209,21 @@ export default async function OrgAccessPage({
           <form className="flex flex-col gap-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
+                <label htmlFor="inv-first-name" className="text-body-sm font-medium text-foreground block mb-1.5">
+                  First name
+                </label>
+                <input id="inv-first-name" name="first_name" type="text" placeholder="Jane" className={inputCls} />
+              </div>
+              <div>
+                <label htmlFor="inv-last-name" className="text-body-sm font-medium text-foreground block mb-1.5">
+                  Last name
+                </label>
+                <input id="inv-last-name" name="last_name" type="text" placeholder="Doe" className={inputCls} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
                 <label htmlFor="inv-email" className="text-body-sm font-medium text-foreground block mb-1.5">
                   Email
                 </label>
@@ -223,6 +243,7 @@ export default async function OrgAccessPage({
                 <select id="inv-role" name="role" defaultValue="manager" className={selectCls}>
                   <option value="manager">Manager</option>
                   <option value="host">Host</option>
+                  {String(membership?.role ?? '') === 'owner' ? <option value="owner">Owner</option> : null}
                 </select>
               </div>
             </div>
@@ -280,7 +301,8 @@ export default async function OrgAccessPage({
                         </span>
                       </div>
                       <div>
-                        <p className="text-body-sm font-semibold text-foreground">{invite.email}</p>
+                        <p className="text-body-sm font-semibold text-foreground">{[invite.first_name, invite.last_name].filter(Boolean).join(' ') || invite.email}</p>
+                        <p className="text-caption text-muted">{invite.email}</p>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-background text-muted border border-border">
                             {invite.role}
@@ -326,7 +348,7 @@ export default async function OrgAccessPage({
           {memberRows.length ? (
             <div className="flex flex-col gap-4">
               {memberRows.map((member) => {
-                const label = member.email ?? member.user_id;
+                const label = [member.first_name, member.last_name].filter(Boolean).join(' ') || member.email || member.user_id;
                 const assignedVenueIds = assignmentsByUser.get(member.user_id) ?? [];
                 const isMemberOwner = member.role === 'owner';
                 const normalizedRole =

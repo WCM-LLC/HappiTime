@@ -472,9 +472,11 @@ export type Database = {
           accepted_by: string | null
           created_at: string
           email: string
+          first_name: string | null
           expires_at: string | null
           id: string
           invited_by: string
+          last_name: string | null
           org_id: string
           role: string
           token: string
@@ -486,9 +488,11 @@ export type Database = {
           accepted_by?: string | null
           created_at?: string
           email: string
+          first_name?: string | null
           expires_at?: string | null
           id?: string
           invited_by: string
+          last_name?: string | null
           org_id: string
           role: string
           token: string
@@ -500,9 +504,11 @@ export type Database = {
           accepted_by?: string | null
           created_at?: string
           email?: string
+          first_name?: string | null
           expires_at?: string | null
           id?: string
           invited_by?: string
+          last_name?: string | null
           org_id?: string
           role?: string
           token?: string
@@ -523,6 +529,8 @@ export type Database = {
         Row: {
           created_at: string
           email: string | null
+          first_name: string | null
+          last_name: string | null
           org_id: string
           role: string
           updated_at: string
@@ -531,6 +539,8 @@ export type Database = {
         Insert: {
           created_at?: string
           email?: string | null
+          first_name?: string | null
+          last_name?: string | null
           org_id: string
           role: string
           updated_at?: string
@@ -539,6 +549,8 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string | null
+          first_name?: string | null
+          last_name?: string | null
           org_id?: string
           role?: string
           updated_at?: string
