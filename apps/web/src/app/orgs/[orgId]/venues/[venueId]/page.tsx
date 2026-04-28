@@ -2,6 +2,7 @@ import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import VenueMediaUploader from '@/components/VenueMediaUploader';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
+import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
 import {
   updateVenue,
   addHappyHour,
@@ -35,17 +36,7 @@ const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const HH_STATUS_PUBLISHED = 'published';
 
-type Venue = {
-  id: string;
-  org_id: string;
-  name: string;
-  app_name_preference?: 'org' | 'venue' | null;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  zip: string | null;
-  timezone: string | null;
-};
+type Venue = VenueDetail;
 
 type HappyHourWindow = {
   id: string;
@@ -217,12 +208,7 @@ export default async function VenuePage({
   const canManageVenue = isOwner || isManager || (fromAdmin && userIsAdmin);
   const canEditMenuItems = canManageVenue || isHost;
 
-  const { data: venue, error: venueErr } = await supabase
-    .from('venues')
-    .select('id,org_id,name,org_name,address,city,state,zip,timezone,app_name_preference')
-    .eq('id', venueId)
-    .eq('org_id', orgId)
-    .single();
+  const { data: venue, error: venueErr } = await fetchVenueById(supabase as any, venueId, { orgId });
 
   const { data: happyHours, error: hhErr } = await supabase
     .from('happy_hour_windows')
@@ -281,14 +267,8 @@ export default async function VenuePage({
     .select('tag_id')
     .eq('venue_id', venueId);
 
-  // Current venue cuisine type
-  const { data: venueExtra } = await supabase
-    .from('venues')
-    .select('cuisine_type')
-    .eq('id', venueId)
-    .single();
 
-  const v = venue as (Venue & { org_name?: string | null }) | null;
+  const v = venue;
   const menuList = (menus as Menu[] | null) ?? [];
   const menuSelections = new Map<string, Set<string>>();
 
@@ -897,7 +877,7 @@ export default async function VenuePage({
               {/* Cuisine type */}
               <div>
                 <label htmlFor="cuisine-type" className="text-body-sm font-medium text-foreground block mb-1.5">Primary cuisine</label>
-                <select id="cuisine-type" name="cuisine_type" defaultValue={(venueExtra as any)?.cuisine_type ?? ''} className={selectCls}>
+                <select id="cuisine-type" name="cuisine_type" defaultValue={v?.cuisine_type ?? ''} className={selectCls}>
                   <option value="">None selected</option>
                   {(approvedTags as ApprovedTagRow[] | null)
                     ?.filter((t) => t.category === 'cuisine')

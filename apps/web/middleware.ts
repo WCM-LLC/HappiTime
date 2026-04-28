@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { getPublicSupabaseEnv } from "@happitime/shared-env";
 
 const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password", "/reset-password"];
 
@@ -8,21 +9,34 @@ function isPublicPath(pathname: string) {
 }
 
 export async function middleware(request: NextRequest) {
+  const authDebug = process.env.AUTH_DEBUG === "1" || process.env.NEXT_PUBLIC_AUTH_DEBUG === "1";
   let response = NextResponse.next({
     request: { headers: request.headers },
   });
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!supabaseUrl || !supabaseKey) {
+
+  let env: { url: string; anonKey: string };
+  try {
+    env = getPublicSupabaseEnv();
+  } catch (error) {
+    if (authDebug) {
+      console.warn("[auth][middleware] missing Supabase public env", {
+        pathname: request.nextUrl.pathname,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
     return response;
   }
 
-  const supabase = createServerClient(supabaseUrl, supabaseKey, {
+  const supabase = createServerClient(env.url, env.anonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet: { name: any; value: any; options: any }[]) {
+        // Mirror refreshed tokens onto the request so downstream Server Components
+        // on this same request see the updated session, not the already-consumed tokens.
+        cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
+        response = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
         });
@@ -33,6 +47,14 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+
+  if (authDebug) {
+    console.log("[auth][middleware] auth check", {
+      pathname,
+      isPublic: isPublicPath(pathname),
+      hasUser: !!user,
+    });
+  }
 
   if (!user && !isPublicPath(pathname)) {
     const loginUrl = request.nextUrl.clone();

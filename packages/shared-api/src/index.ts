@@ -4,3 +4,4 @@ export * from "./happyhour.js";
 export * from "./menus.js";
 export * from "./events.js";
 export * from "./plans.js";
+export * from "./venues.js";

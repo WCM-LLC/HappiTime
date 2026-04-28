@@ -31,6 +31,11 @@ supabase/.cache/
 .env.*
 apps/web/.env*
 apps/mobile/.env*
+# Always track example files
+!.env.example
+!apps/web/.env.example
+!apps/mobile/.env.example
+!apps/directory/.env.example
 
 # Ignore Gradle project-specific cache directory
 .gradle

@@ -187,10 +187,12 @@ alter table public.approved_tags enable row level security;
 alter table public.venue_tags enable row level security;
 
 -- Public read access for published events and tags
+drop policy if exists "Public can view published events" on public.venue_events;
 create policy "Public can view published events"
   on public.venue_events for select
   using (status = 'published');
 
+drop policy if exists "Org members can manage events" on public.venue_events;
 create policy "Org members can manage events"
   on public.venue_events for all
   using (
@@ -202,18 +204,22 @@ create policy "Org members can manage events"
     )
   );
 
+drop policy if exists "Public can view event media" on public.event_media;
 create policy "Public can view event media"
   on public.event_media for select
   using (true);
 
+drop policy if exists "Public can view approved tags" on public.approved_tags;
 create policy "Public can view approved tags"
   on public.approved_tags for select
   using (is_active = true);
 
+drop policy if exists "Public can view venue tags" on public.venue_tags;
 create policy "Public can view venue tags"
   on public.venue_tags for select
   using (true);
 
+drop policy if exists "Org members can manage venue tags" on public.venue_tags;
 create policy "Org members can manage venue tags"
   on public.venue_tags for all
   using (

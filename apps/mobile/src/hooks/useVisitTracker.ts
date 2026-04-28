@@ -106,7 +106,7 @@ function handleLocationUpdate(locations: Location.LocationObject[]) {
 }
 
 // Register the background task
-TaskManager.defineTask(BACKGROUND_LOCATION_TASK, ({ data, error }) => {
+TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
   if (error) {
     console.warn("[visit-tracker] background task error:", error.message);
     return;
