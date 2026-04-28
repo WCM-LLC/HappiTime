@@ -1,7 +1,25 @@
 'use server';
 
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
+
+async function getOrigin() {
+  const env = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (env) return env.replace(/\/+$/, '');
+
+  const hdrs = await headers();
+  const origin = hdrs.get('origin');
+  if (origin) return origin.replace(/\/+$/, '');
+
+  const host = hdrs.get('x-forwarded-host') ?? hdrs.get('host');
+  if (host) {
+    const proto = hdrs.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https');
+    return `${proto}://${host}`.replace(/\/+$/, '');
+  }
+
+  return 'http://localhost:3000';
+}
 
 export async function requestPasswordReset(formData: FormData) {
   const supabase = await createClient();
@@ -11,10 +29,7 @@ export async function requestPasswordReset(formData: FormData) {
     redirect('/forgot-password?error=missing_email');
   }
 
-  const origin =
-    process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000';
+  const origin = await getOrigin();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${origin}/auth/callback?type=recovery`,

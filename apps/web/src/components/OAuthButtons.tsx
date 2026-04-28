@@ -10,21 +10,34 @@ export default function OAuthButtons() {
 
   async function signIn(provider: Provider) {
     setBusy(provider);
-    const supabase = await createClient();
-    const origin =
-      process.env.NEXT_PUBLIC_SITE_URL ||
-      (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    try {
+      const supabase = await createClient();
+      const origin = window.location.origin.replace(/\/+$/, '');
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: `${origin}/auth/callback`,
+          skipBrowserRedirect: true,
+        },
+      });
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${origin}/auth/callback`,
-      },
-    });
+      if (error) {
+        console.error(error);
+        alert(error.message);
+        setBusy(null);
+        return;
+      }
 
-    if (error) {
+      if (!data?.url) {
+        alert('Unable to start Google login. Please try again.');
+        setBusy(null);
+        return;
+      }
+
+      window.location.assign(data.url);
+    } catch (error: any) {
       console.error(error);
-      alert(error.message);
+      alert(error?.message ?? 'Unable to start Google login.');
       setBusy(null);
     }
   }
