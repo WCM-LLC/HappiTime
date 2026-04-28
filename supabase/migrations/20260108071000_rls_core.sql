@@ -27,6 +27,7 @@ as $$
     where m.org_id = p_org_id
       and m.user_id = auth.uid()
       and m.role = 'owner'
+      or m.role = 'admin'
   );
 $$;
 
@@ -57,6 +58,7 @@ as $$
     where m.org_id = p_org_id
       and m.user_id = auth.uid()
       and m.role = 'host'
+      or m.role = 'admin'
   );
 $$;
 
