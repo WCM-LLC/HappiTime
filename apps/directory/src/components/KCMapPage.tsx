@@ -239,6 +239,7 @@ function MapView({ filteredVenues, allVenues, selectedId, todayDow, onSelectPin,
             title: 'Your location',
             zIndex: 50,
           });
+          mapRef.current.panTo(position);
         },
         () => {} // permission denied or unavailable — no marker, no error
       );
@@ -698,9 +699,10 @@ type VenueRowProps = {
   venueHref: string;
   onSelect: (venue: VenueWithWindows) => void;
   onHover?: (id: string | null) => void;
+  isMobile: boolean;
 };
 
-function VenueRow({ venue, selected, todayDow, neighborhoodName, venueHref, onSelect, onHover }: VenueRowProps) {
+function VenueRow({ venue, selected, todayDow, neighborhoodName, venueHref, onSelect, onHover, isMobile }: VenueRowProps) {
   const active = isActiveToday(venue, todayDow);
   const win = getActiveWindow(venue, todayDow);
   const firstItem = win?.menu_items[0];
@@ -712,68 +714,80 @@ function VenueRow({ venue, selected, todayDow, neighborhoodName, venueHref, onSe
     Object.values(DRINK_TO_TAGS).flat().includes(t)
   );
 
+  const rowStyle = {
+    background: selected ? "#F5EDE3" : "#FFFFFF",
+    borderLeft: `3px solid ${selected ? "#C8965A" : "transparent"}`,
+    borderBottom: "1px solid #E8E5E0",
+    padding: "11px 14px 11px 13px",
+    fontFamily: "Inter, sans-serif",
+    transition: "background 150ms",
+  };
+
+  const rowContent = (
+    <div className="flex items-start justify-between gap-2">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <span
+            className="text-[13px] font-bold overflow-hidden text-ellipsis whitespace-nowrap"
+            style={{ color: selected ? "#8B6535" : "#1A1A1A" }}
+          >
+            {venue.name}
+          </span>
+          {active && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#2D7A4F" }} />}
+        </div>
+
+        <div className="text-[11px] text-muted mb-0.5">
+          {neighborhoodName}
+          {venue.price_tier != null && ` · ${"$".repeat(venue.price_tier)}`}
+          {venue.rating != null && ` · ★ ${venue.rating.toFixed(1)}`}
+        </div>
+
+        {win ? (
+          <div className="text-[11px] text-muted">
+            {fmtTime(win.start_time)}–{fmtTime(win.end_time)}
+            {firstItem && (
+              <> · <span style={{ color: "#8B6535", fontWeight: 500 }}>{firstItem.name}{firstItem.price != null ? ` $${firstItem.price}` : ""}</span></>
+            )}
+          </div>
+        ) : (
+          <div className="text-[11px] text-muted-light">No special today</div>
+        )}
+
+        {(amenityTags.length > 0 || drinkTags.length > 0) && (
+          <div className="flex gap-1 mt-1.5 flex-wrap">
+            {amenityTags.slice(0, 2).map((t) => (
+              <span key={t} className="text-[10px] text-muted rounded bg-[#EFECE8] px-1" style={{ padding: "1px 5px" }}>
+                {t.replace(/_/g, " ")}
+              </span>
+            ))}
+            {drinkTags.slice(0, 1).map((t) => (
+              <span key={t} className="text-[10px] rounded" style={{ color: "#8B6535", background: "#F5EDE3", padding: "1px 5px" }}>
+                {t.replace(/_/g, " ")}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <a href={venueHref} className="block" style={rowStyle}>
+        {rowContent}
+      </a>
+    );
+  }
+
   return (
     <button
       onClick={() => onSelect(venue)}
       onMouseEnter={() => onHover?.(venue.id)}
       onMouseLeave={() => onHover?.(null)}
       className="w-full text-left cursor-pointer block"
-      style={{
-        background: selected ? "#F5EDE3" : "#FFFFFF",
-        borderLeft: `3px solid ${selected ? "#C8965A" : "transparent"}`,
-        borderRight: "none",
-        borderTop: "none",
-        borderBottom: "1px solid #E8E5E0",
-        padding: "11px 14px 11px 13px",
-        fontFamily: "Inter, sans-serif",
-        transition: "background 150ms",
-      }}
+      style={{ ...rowStyle, borderRight: "none", borderTop: "none" }}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5">
-            <span
-              className="text-[13px] font-bold overflow-hidden text-ellipsis whitespace-nowrap"
-              style={{ color: selected ? "#8B6535" : "#1A1A1A" }}
-            >
-              {venue.name}
-            </span>
-            {active && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "#2D7A4F" }} />}
-          </div>
-
-          <div className="text-[11px] text-muted mb-0.5">
-            {neighborhoodName}
-            {venue.price_tier != null && ` · ${"$".repeat(venue.price_tier)}`}
-            {venue.rating != null && ` · ★ ${venue.rating.toFixed(1)}`}
-          </div>
-
-          {win ? (
-            <div className="text-[11px] text-muted">
-              {fmtTime(win.start_time)}–{fmtTime(win.end_time)}
-              {firstItem && (
-                <> · <span style={{ color: "#8B6535", fontWeight: 500 }}>{firstItem.name}{firstItem.price != null ? ` $${firstItem.price}` : ""}</span></>
-              )}
-            </div>
-          ) : (
-            <div className="text-[11px] text-muted-light">No special today</div>
-          )}
-
-          {(amenityTags.length > 0 || drinkTags.length > 0) && (
-            <div className="flex gap-1 mt-1.5 flex-wrap">
-              {amenityTags.slice(0, 2).map((t) => (
-                <span key={t} className="text-[10px] text-muted rounded bg-[#EFECE8] px-1" style={{ padding: "1px 5px" }}>
-                  {t.replace(/_/g, " ")}
-                </span>
-              ))}
-              {drinkTags.slice(0, 1).map((t) => (
-                <span key={t} className="text-[10px] rounded" style={{ color: "#8B6535", background: "#F5EDE3", padding: "1px 5px" }}>
-                  {t.replace(/_/g, " ")}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      {rowContent}
     </button>
   );
 }
@@ -916,6 +930,7 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
             venueHref={getVenueHref(v)}
             onSelect={handlePin}
             onHover={isMobile ? undefined : (id) => { /* hover highlight handled by selectedId */ }}
+            isMobile={isMobile}
           />
         ))
       )}
