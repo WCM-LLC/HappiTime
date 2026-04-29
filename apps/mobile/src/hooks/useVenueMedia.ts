@@ -6,6 +6,7 @@ export type VenueMediaItem = {
   url: string;
   title: string | null;
   sort_order: number;
+  source: string;
 };
 
 /**
@@ -21,30 +22,45 @@ export function useVenueMedia(venueId: string | null) {
       return;
     }
 
+    const SOURCE_PRIORITY: Record<string, number> = {
+      upload: 0,
+      website: 1,
+      google_places: 2,
+      unsplash: 3,
+      unknown: 4,
+    };
+
     setLoading(true);
     supabase
       .from("venue_media")
-      .select("id, storage_bucket, storage_path, title, sort_order")
+      .select("id, storage_bucket, storage_path, title, sort_order, source")
       .eq("venue_id", venueId)
       .eq("status", "published")
-      .order("sort_order", { ascending: true })
       .then(({ data }) => {
         if (!data?.length) {
           setMedia([]);
           setLoading(false);
           return;
         }
-        const items: VenueMediaItem[] = data.map((row: any) => {
-          const { data: urlData } = supabase.storage
-            .from(row.storage_bucket || "venue-media")
-            .getPublicUrl(row.storage_path);
-          return {
-            id: row.id,
-            url: urlData?.publicUrl || "",
-            title: row.title,
-            sort_order: row.sort_order,
-          };
-        });
+        const items: VenueMediaItem[] = data
+          .sort((a: any, b: any) => {
+            const pa = SOURCE_PRIORITY[a.source ?? "unknown"] ?? 4;
+            const pb = SOURCE_PRIORITY[b.source ?? "unknown"] ?? 4;
+            if (pa !== pb) return pa - pb;
+            return a.sort_order - b.sort_order;
+          })
+          .map((row: any) => {
+            const { data: urlData } = supabase.storage
+              .from(row.storage_bucket || "venue-media")
+              .getPublicUrl(row.storage_path);
+            return {
+              id: row.id,
+              url: urlData?.publicUrl || "",
+              title: row.title,
+              sort_order: row.sort_order,
+              source: row.source ?? "unknown",
+            };
+          });
         setMedia(items);
         setLoading(false);
       });

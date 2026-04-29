@@ -8,6 +8,7 @@ export type MediaRow = {
   title: string | null;
   storage_path: string;
   sort_order: number;
+  source: string;
   status: string;
   created_at: string;
 };
@@ -90,7 +91,7 @@ export async function listVenueMedia(
 
   let query = supabase
     .from(table)
-    .select('id,type,title,storage_path,sort_order,status,created_at')
+    .select('id,type,title,storage_path,sort_order,source,status,created_at')
     .eq('venue_id', venueId)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
@@ -127,6 +128,7 @@ export async function insertVenueMedia(
           title: payload.title,
           storage_path: payload.storage_path,
           sort_order: payload.sort_order ?? 999,
+          source: 'upload',
           status: 'published',
           storage_bucket: 'venue-media',
         };

@@ -278,6 +278,7 @@ async function tryWebsite(venue) {
       storage_bucket: "venue-media",
       storage_path: storagePath,
       sort_order: uploaded,
+      source: "website",
       status: "published",
     });
 
@@ -357,6 +358,7 @@ async function tryGooglePlaces(venue) {
       storage_bucket: "venue-media",
       storage_path: path,
       sort_order: i,
+      source: "google_places",
       status: "published",
     });
 
@@ -491,6 +493,7 @@ async function tryUnsplash(venue) {
     storage_bucket: "venue-media",
     storage_path: storagePath,
     sort_order: 0,
+    source: "unsplash",
     status: "published",
   });
 

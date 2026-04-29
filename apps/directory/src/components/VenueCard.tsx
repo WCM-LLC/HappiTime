@@ -3,9 +3,7 @@ import type { VenueWithWindows } from "@/lib/queries";
 const STORAGE_BASE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/venue-media`;
 
 function coverUrl(venue: VenueWithWindows): string | null {
-  const img = venue.venue_media
-    .filter((m) => m.type === "image")
-    .sort((a, b) => a.sort_order - b.sort_order)[0];
+  const img = venue.venue_media.find((m) => m.type === "image");
   return img ? `${STORAGE_BASE}/${img.storage_path}` : null;
 }
 

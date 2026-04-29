@@ -1012,6 +1012,7 @@ export type Database = {
           created_by: string | null
           id: string
           sort_order: number
+          source: string
           status: string
           storage_bucket: string
           storage_path: string
@@ -1026,6 +1027,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           sort_order?: number
+          source?: string
           status?: string
           storage_bucket: string
           storage_path: string
@@ -1040,6 +1042,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           sort_order?: number
+          source?: string
           status?: string
           storage_bucket?: string
           storage_path?: string

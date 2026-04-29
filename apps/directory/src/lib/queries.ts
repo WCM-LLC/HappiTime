@@ -45,6 +45,7 @@ export type VenueMediaItem = {
   title: string | null;
   storage_path: string;
   sort_order: number;
+  source: string;
 };
 
 export type HappyHourWindow = {
@@ -112,13 +113,29 @@ function shapeVenue(raw: any): VenueWithWindows {
     cover_image_path: e.cover_image_path ?? null,
   }));
 
-  const media = (raw.venue_media ?? []).map((m: any) => ({
-    id: m.id,
-    type: m.type,
-    title: m.title ?? null,
-    storage_path: m.storage_path,
-    sort_order: m.sort_order,
-  }));
+  const SOURCE_PRIORITY: Record<string, number> = {
+    upload: 0,
+    website: 1,
+    google_places: 2,
+    unsplash: 3,
+    unknown: 4,
+  };
+
+  const media = (raw.venue_media ?? [])
+    .map((m: any) => ({
+      id: m.id,
+      type: m.type,
+      title: m.title ?? null,
+      storage_path: m.storage_path,
+      sort_order: m.sort_order,
+      source: m.source ?? 'unknown',
+    }))
+    .sort((a: VenueMediaItem, b: VenueMediaItem) => {
+      const pa = SOURCE_PRIORITY[a.source] ?? 4;
+      const pb = SOURCE_PRIORITY[b.source] ?? 4;
+      if (pa !== pb) return pa - pb;
+      return a.sort_order - b.sort_order;
+    });
 
   return {
     id: raw.id,
@@ -204,7 +221,7 @@ export async function getVenuesByNeighborhood(
 
   const { data, error } = await supabase
     .from("venues")
-    .select(`${VENUE_FIELDS}, happy_hour_windows!inner(${WINDOW_FIELDS}), venue_events(id, title, event_type, starts_at), venue_media(id, type, title, storage_path, sort_order)`)
+    .select(`${VENUE_FIELDS}, happy_hour_windows!inner(${WINDOW_FIELDS}), venue_events(id, title, event_type, starts_at), venue_media(id, type, title, storage_path, sort_order, source)`)
     .gte("lat", neighborhood.lat - latDelta)
     .lte("lat", neighborhood.lat + latDelta)
     .gte("lng", neighborhood.lng - lngDelta)
@@ -234,7 +251,7 @@ export async function getVenueBySlug(
       ${VENUE_FIELDS},
       happy_hour_windows(${WINDOW_FIELDS}),
       venue_events(id, title, description, event_type, starts_at, ends_at, is_recurring, recurrence_rule, price_info, external_url, ticket_url, cover_image_path),
-      venue_media(id, type, title, storage_path, sort_order)
+      venue_media(id, type, title, storage_path, sort_order, source)
     `)
     .eq("slug", slug)
     .eq("venue_events.status", "published")
@@ -269,7 +286,7 @@ export async function getVenueBySlug(
 export async function getAllKCVenues(): Promise<VenueWithWindows[]> {
   const { data, error } = await supabase
     .from("venues")
-    .select(`${VENUE_FIELDS}, happy_hour_windows!inner(${WINDOW_FIELDS}), venue_events(id, title, event_type, starts_at), venue_media(id, type, title, storage_path, sort_order)`)
+    .select(`${VENUE_FIELDS}, happy_hour_windows!inner(${WINDOW_FIELDS}), venue_events(id, title, event_type, starts_at), venue_media(id, type, title, storage_path, sort_order, source)`)
     .ilike("city", "%kansas city%")
     .eq("happy_hour_windows.status", "published")
     .eq("venue_events.status", "published")
