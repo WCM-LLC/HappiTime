@@ -21,4 +21,23 @@ config.resolver.nodeModulesPaths = [
 // packages/* from node_modules/@happitime/*.
 config.resolver.unstable_enableSymlinks = true;
 
+// tsconfig.json paths point to TypeScript source files (e.g. packages/shared-api/src/index.ts),
+// and those files use NodeNext .js extensions in their imports ("./client.js" → client.ts).
+// Metro doesn't substitute .js → .ts by default, so we do it here: try the import as-is
+// first (handles pre-built dist/*.js files), then fall back to .ts.
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName.endsWith(".js")) {
+    try {
+      return context.resolveRequest(context, moduleName, platform);
+    } catch {
+      return context.resolveRequest(
+        context,
+        moduleName.replace(/\.js$/, ".ts"),
+        platform
+      );
+    }
+  }
+  return context.resolveRequest(context, moduleName, platform);
+};
+
 module.exports = config;
