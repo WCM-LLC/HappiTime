@@ -235,10 +235,20 @@ type MapPopupProps = {
   onClose: () => void;
 };
 
+const STORAGE_BASE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/venue-media`;
+
+function getVenueCover(venue: VenueWithWindows): string | null {
+  const img = venue.venue_media
+    .filter((m) => m.type === "image")
+    .sort((a, b) => a.sort_order - b.sort_order)[0];
+  return img ? `${STORAGE_BASE}/${img.storage_path}` : null;
+}
+
 function MapPopup({ venue, todayDow, venueHref, isMobile, onClose }: MapPopupProps) {
   const active = isActiveToday(venue, todayDow);
   const win = getActiveWindow(venue, todayDow);
   const firstItem = win?.menu_items[0];
+  const cover = getVenueCover(venue);
 
   const containerStyle: React.CSSProperties = isMobile
     ? {
@@ -267,6 +277,13 @@ function MapPopup({ venue, todayDow, venueHref, isMobile, onClose }: MapPopupPro
       {/* Desktop-only hero strip */}
       {!isMobile && (
         <div style={{ height: 90, background: "#F5EDE3", position: "relative", overflow: "hidden" }}>
+          {cover && (
+            <img
+              src={cover}
+              alt={venue.name}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            />
+          )}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 60%)" }} />
           <button
             onClick={onClose}

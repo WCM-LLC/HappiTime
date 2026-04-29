@@ -1,5 +1,14 @@
 import type { VenueWithWindows } from "@/lib/queries";
 
+const STORAGE_BASE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/venue-media`;
+
+function coverUrl(venue: VenueWithWindows): string | null {
+  const img = venue.venue_media
+    .filter((m) => m.type === "image")
+    .sort((a, b) => a.sort_order - b.sort_order)[0];
+  return img ? `${STORAGE_BASE}/${img.storage_path}` : null;
+}
+
 const DOW_SHORT = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 function formatTime(time: string): string {
@@ -45,19 +54,40 @@ export function VenueCard({ venue, neighborhoodSlug, todayIndex }: VenueCardProp
     : promoTier === "basic" ? "Promoted"
     : null;
 
+  const cover = coverUrl(venue);
+
   return (
     <a
       href={`/kc/${neighborhoodSlug}/${venue.slug}/`}
-      className={`group block rounded-2xl border ${isPromoted ? promoBorderClass : "border-border bg-surface"} p-5 hover:border-brand hover:shadow-md transition-all ${isPromoted ? "border-[1.5px]" : ""}`}
+      className={`group block rounded-2xl border overflow-hidden ${isPromoted ? promoBorderClass : "border-border bg-surface"} hover:border-brand hover:shadow-md transition-all ${isPromoted ? "border-[1.5px]" : ""}`}
     >
-      {/* Promotion badge */}
-      {isPromoted && promoLabel && (
-        <div className="mb-2">
-          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${promoBadgeClass}`}>
-            {promoLabel}
-          </span>
-        </div>
-      )}
+      {/* Hero image */}
+      <div className="h-40 bg-brand-subtle overflow-hidden relative">
+        {cover ? (
+          <img
+            src={cover}
+            alt={venue.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <span className="text-2xl font-extrabold text-brand/20 select-none" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              {venue.name.charAt(0)}
+            </span>
+          </div>
+        )}
+        {/* Promotion badge overlaid on image */}
+        {isPromoted && promoLabel && (
+          <div className="absolute top-3 left-3">
+            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm ${promoBadgeClass}`}>
+              {promoLabel}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="p-5">
 
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -147,6 +177,7 @@ export function VenueCard({ venue, neighborhoodSlug, todayIndex }: VenueCardProp
       <span className="inline-flex items-center mt-3 text-xs font-semibold text-brand">
         View details →
       </span>
+      </div>
     </a>
   );
 }
