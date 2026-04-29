@@ -207,7 +207,7 @@ export default function ComingSoon() {
 
       {/* Social links */}
       <a
-        href="https://www.instagram.com/findhappitime/"
+        href="https://www.instagram.com/happitime.biz/"
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center gap-2 text-sm text-muted hover:text-brand transition-colors mb-8"
