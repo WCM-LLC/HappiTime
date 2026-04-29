@@ -95,7 +95,7 @@ export default async function OrgPage({
         ) : null}
 
         {/* Add Venue Form */}
-        {isOwner && !fromAdmin ? (
+        {isOwner ? (
           <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
             <div className="mb-4">
               <h2 className="text-heading-sm font-semibold text-foreground">Add a venue</h2>
@@ -252,7 +252,7 @@ export default async function OrgPage({
                             Manage
                           </span>
                         </Link>
-                        {isOwner && !fromAdmin ? (
+                        {isOwner ? (
                           <form>
                             <input type="hidden" name="venue_id" value={v.id} />
                             <button

@@ -31,6 +31,10 @@ import {
   unpublishEvent,
   updateVenueTags,
 } from '../../../../../actions/event-actions';
+import {
+  adminAddStaffMember,
+  adminRemoveStaffMember,
+} from '../../../../../actions/admin-staff-actions';
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -267,6 +271,26 @@ export default async function VenuePage({
     .select('tag_id')
     .eq('venue_id', venueId);
 
+  // Staff members for this venue (admin only)
+  type StaffMember = { user_id: string; role: string; email: string | null; first_name: string | null; last_name: string | null };
+  type VenueMemberRow = { user_id: string };
+  let staffMembers: StaffMember[] = [];
+  let venueStaffIds: Set<string> = new Set();
+  if (fromAdmin && userIsAdmin) {
+    const adminDb = createServiceClient();
+    const { data: orgStaff } = await adminDb
+      .from('org_members')
+      .select('user_id,role,email,first_name,last_name')
+      .eq('org_id', orgId)
+      .order('created_at', { ascending: true });
+    staffMembers = (orgStaff as StaffMember[] | null) ?? [];
+
+    const { data: venueAssignments } = await adminDb
+      .from('venue_members')
+      .select('user_id')
+      .eq('venue_id', venueId);
+    venueStaffIds = new Set((venueAssignments as VenueMemberRow[] | null)?.map((a) => a.user_id) ?? []);
+  }
 
   const v = venue;
   const menuList = (menus as Menu[] | null) ?? [];
@@ -1225,6 +1249,144 @@ export default async function VenuePage({
               <p className="text-body-sm text-muted mt-0.5">Upload images, videos, or menu PDFs for this venue.</p>
             </div>
             <VenueMediaUploader orgId={orgId} venueId={venueId} />
+          </div>
+        ) : null}
+
+        {/* ══════════════════════════════════════════════
+            SECTION 4B — STAFF MANAGEMENT (Admin only)
+        ══════════════════════════════════════════════ */}
+        {fromAdmin && userIsAdmin ? (
+          <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+            <div className="mb-5">
+              <h2 className="text-heading-sm font-semibold text-foreground">Staff</h2>
+              <p className="text-body-sm text-muted mt-0.5">
+                Manage owners, managers, and hosts for this venue. Adding someone here creates their login and grants access immediately.
+              </p>
+            </div>
+
+            {/* Current staff */}
+            {staffMembers.length ? (
+              <div className="flex flex-col gap-3 mb-6">
+                {staffMembers.map((member) => {
+                  const label = [member.first_name, member.last_name].filter(Boolean).join(' ') || member.email || member.user_id;
+                  const isAssigned = venueStaffIds.has(member.user_id);
+                  const roleBadgeColor =
+                    member.role === 'owner'
+                      ? 'bg-brand-subtle text-brand-dark'
+                      : member.role === 'manager' || member.role === 'admin' || member.role === 'editor'
+                        ? 'bg-success-light text-success'
+                        : 'bg-background text-muted';
+                  return (
+                    <div key={member.user_id} className="rounded-lg border border-border bg-background p-4 flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-brand-subtle flex items-center justify-center shrink-0">
+                          <span className="text-body-sm font-bold text-brand-dark">
+                            {label.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="text-body-sm font-semibold text-foreground">{label}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${roleBadgeColor}`}>
+                              {member.role}
+                            </span>
+                            {member.email ? <span className="text-caption text-muted">{member.email}</span> : null}
+                            {isAssigned ? (
+                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-success-light text-success">
+                                Assigned to this venue
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-background text-muted-light border border-border">
+                                Org member only
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      {member.role !== 'owner' ? (
+                        <form>
+                          <input type="hidden" name="user_id" value={member.user_id} />
+                          <input type="hidden" name="return_path" value={`/orgs/${orgId}/venues/${venueId}?from=admin`} />
+                          <button
+                            formAction={adminRemoveStaffMember.bind(null, orgId)}
+                            className={btnDanger}
+                          >
+                            Remove
+                          </button>
+                        </form>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-border-strong bg-background/50 p-8 text-center mb-6">
+                <div className="text-muted-light text-display-md mb-2">&#128101;</div>
+                <p className="text-body-sm font-medium text-foreground">No staff members yet</p>
+                <p className="text-body-sm text-muted mt-1">Add owners, managers, or hosts below.</p>
+              </div>
+            )}
+
+            {/* Add staff form */}
+            <div className="border-t border-border pt-6">
+              <p className="text-body-sm font-medium text-foreground mb-3">Add a staff member</p>
+              <form className="flex flex-col gap-4">
+                <input type="hidden" name="return_path" value={`/orgs/${orgId}/venues/${venueId}?from=admin`} />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-caption font-medium text-muted block mb-1">First name</label>
+                    <input name="first_name" placeholder="Jane" required className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium text-muted block mb-1">Last name</label>
+                    <input name="last_name" placeholder="Doe" required className={inputCls} />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-caption font-medium text-muted block mb-1">Email</label>
+                    <input name="email" type="email" placeholder="user@example.com" required className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium text-muted block mb-1">Password</label>
+                    <input name="password" type="text" placeholder="Min 8 characters" required minLength={8} className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="text-caption font-medium text-muted block mb-1">Role</label>
+                    <select name="role" defaultValue="manager" className={selectCls}>
+                      <option value="owner">Owner</option>
+                      <option value="manager">Manager</option>
+                      <option value="host">Host</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-caption font-medium text-muted mb-2">Assign to venues</p>
+                  <label className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="venue_ids"
+                      value={venueId}
+                      defaultChecked
+                      className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                    />
+                    This venue ({displayName})
+                  </label>
+                </div>
+
+                <div>
+                  <button
+                    formAction={adminAddStaffMember.bind(null, orgId)}
+                    className={btnPrimary}
+                  >
+                    Add staff member
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         ) : null}
 

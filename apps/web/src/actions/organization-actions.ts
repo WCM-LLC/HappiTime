@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
-import { hasAdminEmailsConfigured, isAdmin } from '@/utils/admin';
+import { hasAdminEmailsConfigured, isAdmin, getAdminClient } from '@/utils/admin';
 
 export async function createVenue(orgId: string, formData: FormData) {
   const name = String(formData.get('name') ?? '').trim();
@@ -20,6 +20,7 @@ export async function createVenue(orgId: string, formData: FormData) {
     .maybeSingle();
 
   const isOwner = !membershipErr && !!membership && String(membership.role) === 'owner';
+  let useAdmin = false;
   if (!isOwner) {
     if (!hasAdminEmailsConfigured()) {
       redirect(`/orgs/${orgId}?error=admin_setup_misconfigured`);
@@ -27,7 +28,11 @@ export async function createVenue(orgId: string, formData: FormData) {
     if (!(await isAdmin())) {
       redirect(`/orgs/${orgId}?error=org_manage_forbidden`);
     }
+    useAdmin = true;
   }
+
+  // Admin users bypass RLS via service role client
+  const dbClient = useAdmin ? getAdminClient() : supabase;
 
   const payload = {
     org_id: orgId,
@@ -39,7 +44,7 @@ export async function createVenue(orgId: string, formData: FormData) {
     timezone: String(formData.get('timezone') ?? '').trim() || 'America/Chicago',
   };
 
-  const { data: venue, error } = await supabase
+  const { data: venue, error } = await dbClient
     .from('venues')
     .insert(payload)
     .select('id')
@@ -69,6 +74,7 @@ export async function deleteVenue(orgId: string, formData: FormData) {
     .maybeSingle();
 
   const isOwner = !membershipErr && !!membership && String(membership.role) === 'owner';
+  let useAdmin = false;
   if (!isOwner) {
     if (!hasAdminEmailsConfigured()) {
       redirect(`/orgs/${orgId}?error=admin_setup_misconfigured`);
@@ -76,9 +82,12 @@ export async function deleteVenue(orgId: string, formData: FormData) {
     if (!(await isAdmin())) {
       redirect(`/orgs/${orgId}?error=org_manage_forbidden`);
     }
+    useAdmin = true;
   }
 
-  const { error } = await supabase
+  const dbClient = useAdmin ? getAdminClient() : supabase;
+
+  const { error } = await dbClient
     .from('venues')
     .delete()
     .eq('id', venueId)
