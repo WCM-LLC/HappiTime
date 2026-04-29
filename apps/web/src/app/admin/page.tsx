@@ -10,10 +10,16 @@ import { addAdminUser, removeAdminUser } from '@/actions/admin-manage-actions';
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; notice?: string }>;
 }) {
   const sp = await searchParams;
   const pageError = sp?.error;
+  const pageNotice = sp?.notice;
+  const noticeText = pageNotice === 'password_reset_sent'
+    ? 'Password-reset email sent.'
+    : pageNotice === 'user_updated'
+      ? 'User info updated.'
+      : null;
   const keyError = getServiceRoleKeyError();
   const supabase = keyError ? await createClient() : createServiceClient();
   const authClient = await createClient();
@@ -136,16 +142,79 @@ export default async function AdminPage({
     created_at: w.created_at,
   }));
 
-  // ─── Users (requires service role) ───────────────────────────────────
+  // ─── Users (only owners, managers, hosts) ────────────────────────────
   let users: UserRow[] = [];
   if (!keyError) {
-    const { data: usersRaw } = await (supabase as any).auth.admin.listUsers({ perPage: 50 });
-    users = (usersRaw?.users ?? []).map((u: any) => ({
-      id: u.id,
-      email: u.email ?? null,
-      created_at: u.created_at,
-      last_sign_in_at: u.last_sign_in_at ?? null,
-    }));
+    // 1. Pull qualifying memberships only
+    const { data: memberRows } = await supabase
+      .from('org_members')
+      .select('user_id, role, org_id, email, first_name, last_name')
+      .in('role', ['owner', 'manager', 'host']);
+
+    const members = memberRows ?? [];
+
+    if (members.length > 0) {
+      // 2. Org name lookup
+      const memberOrgIds = Array.from(new Set(members.map((m: any) => m.org_id))).filter(Boolean);
+      const { data: orgsForUsers } = memberOrgIds.length > 0
+        ? await supabase.from('organizations').select('id, name').in('id', memberOrgIds)
+        : { data: [] as any[] };
+      const orgNameById: Record<string, string> = {};
+      for (const o of orgsForUsers ?? []) orgNameById[(o as any).id] = (o as any).name;
+
+      // 3. Group memberships by user
+      type MembershipSummary = { org_id: string; org_name: string; role: string };
+      const byUser = new Map<string, {
+        id: string;
+        email: string | null;
+        first_name: string | null;
+        last_name: string | null;
+        memberships: MembershipSummary[];
+      }>();
+      for (const m of members as any[]) {
+        const entry = byUser.get(m.user_id) ?? {
+          id: m.user_id,
+          email: m.email ?? null,
+          first_name: m.first_name ?? null,
+          last_name: m.last_name ?? null,
+          memberships: [] as MembershipSummary[],
+        };
+        entry.first_name = entry.first_name ?? m.first_name ?? null;
+        entry.last_name = entry.last_name ?? m.last_name ?? null;
+        entry.email = entry.email ?? m.email ?? null;
+        entry.memberships.push({
+          org_id: m.org_id,
+          org_name: orgNameById[m.org_id] ?? '—',
+          role: m.role,
+        });
+        byUser.set(m.user_id, entry);
+      }
+
+      // 4. Enrich with auth user data (paginated to handle larger user pools)
+      const authIndex = new Map<string, any>();
+      let page = 1;
+      while (true) {
+        const { data, error } = await (supabase as any).auth.admin.listUsers({ page, perPage: 200 });
+        if (error) break;
+        for (const u of data?.users ?? []) authIndex.set(u.id, u);
+        if (!data?.nextPage) break;
+        page = data.nextPage;
+      }
+
+      // 5. Final shape
+      users = Array.from(byUser.values()).map((u) => {
+        const auth = authIndex.get(u.id);
+        return {
+          id: u.id,
+          email: auth?.email ?? u.email ?? null,
+          first_name: u.first_name ?? auth?.user_metadata?.first_name ?? null,
+          last_name: u.last_name ?? auth?.user_metadata?.last_name ?? null,
+          created_at: auth?.created_at ?? new Date().toISOString(),
+          last_sign_in_at: auth?.last_sign_in_at ?? null,
+          memberships: u.memberships,
+        } as UserRow;
+      });
+    }
   }
 
   // ─── Admin users (super-admin only) ──────────────────────────────────
@@ -198,6 +267,13 @@ export default async function AdminPage({
           <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-6">
             <p className="text-body-sm font-medium text-error">Action failed</p>
             <p className="text-body-sm text-error/80 mt-0.5">{pageError}</p>
+          </div>
+        ) : null}
+
+        {/* ── Success Notice ── */}
+        {noticeText ? (
+          <div className="rounded-md border border-success bg-success-light px-4 py-3 mb-6">
+            <p className="text-body-sm font-medium text-success">{noticeText}</p>
           </div>
         ) : null}
 
@@ -263,13 +339,16 @@ export default async function AdminPage({
           <WindowsTable windows={windows} venues={venues} />
         </section>
 
-        {/* ── Users ── */}
+        {/* ── Users (Owners, Managers, Hosts) ── */}
         {!keyError && users.length > 0 ? (
           <section className="mb-10">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4">
               <h2 className="text-heading-sm font-semibold text-foreground">
                 Users <span className="text-muted font-normal">({users.length})</span>
               </h2>
+              <p className="text-body-sm text-muted mt-0.5">
+                Owners, managers, and hosts across all organizations. Edit info or send a password-reset email.
+              </p>
             </div>
             <UsersTable users={users} />
           </section>
@@ -282,6 +361,18 @@ export default async function AdminPage({
               <p className="text-body-sm text-muted">
                 Add <code className="text-caption bg-background px-1.5 py-0.5 rounded border border-border">SUPABASE_SERVICE_ROLE_KEY</code> to view user data.
               </p>
+            </div>
+          </section>
+        ) : users.length === 0 ? (
+          <section className="mb-10">
+            <div className="mb-4">
+              <h2 className="text-heading-sm font-semibold text-foreground">Users</h2>
+              <p className="text-body-sm text-muted mt-0.5">
+                Owners, managers, and hosts across all organizations.
+              </p>
+            </div>
+            <div className="rounded-lg border border-dashed border-border-strong bg-surface/50 p-8 text-center">
+              <p className="text-body-sm text-muted">No owners, managers, or hosts yet. Add staff via an organization's Access page.</p>
             </div>
           </section>
         ) : null}

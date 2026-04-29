@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState, useTransition, useMemo } from 'react';
 import { adminToggleWindow, adminToggleVenueStatus, adminSetPromotionTier, type PromotionTier } from '@/actions/admin-actions';
+import { adminSendPasswordReset, adminUpdateUserInfo } from '@/actions/admin-user-actions';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -46,8 +47,11 @@ export type WindowRow = {
 export type UserRow = {
   id: string;
   email: string | null;
+  first_name: string | null;
+  last_name: string | null;
   created_at: string;
   last_sign_in_at: string | null;
+  memberships: { org_id: string; org_name: string; role: string }[];
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -768,19 +772,172 @@ export function WindowsTable({ windows, venues }: { windows: WindowRow[]; venues
 }
 
 /* ════════════════════════════════════════════════════════════════════════
-   USERS TABLE
+   USERS TABLE — Owners, Managers, Hosts only
    ════════════════════════════════════════════════════════════════════════ */
+function roleBadgeCls(role: string) {
+  if (role === 'owner') return 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-brand-subtle text-brand-text';
+  if (role === 'manager') return 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-[#DBEAFE] text-[#2563EB]';
+  if (role === 'host') return 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-[#FEF3C7] text-[#92400E]';
+  return badgeGray;
+}
+
+function fullName(u: UserRow): string {
+  const parts = [u.first_name, u.last_name].filter(Boolean) as string[];
+  return parts.length ? parts.join(' ') : '—';
+}
+
+function roleSummary(memberships: UserRow['memberships']): string {
+  const roles = Array.from(new Set(memberships.map((m) => m.role)));
+  return roles.join(', ');
+}
+
+function UserRowItem({ user }: { user: UserRow }) {
+  const [editing, setEditing] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  return (
+    <>
+      <tr className="border-b border-border last:border-b-0 hover:bg-background/50 transition-colors">
+        <td className={`${tdCls} text-foreground font-medium`}>{fullName(user)}</td>
+        <td className={`${tdCls} font-mono text-caption text-foreground`}>{user.email ?? '—'}</td>
+        <td className={tdCls}>
+          <div className="flex flex-wrap gap-1">
+            {Array.from(new Set(user.memberships.map((m) => m.role))).map((r) => (
+              <span key={r} className={roleBadgeCls(r)}>{r}</span>
+            ))}
+          </div>
+        </td>
+        <td className={`${tdCls} text-muted`}>
+          {user.memberships.length === 0 ? '—' : (
+            <div className="flex flex-col gap-0.5">
+              {user.memberships.slice(0, 2).map((m, i) => (
+                <span key={`${m.org_id}-${i}`} className="text-caption">{m.org_name} <span className="text-muted-light">· {m.role}</span></span>
+              ))}
+              {user.memberships.length > 2 ? (
+                <span className="text-caption text-muted-light">+{user.memberships.length - 2} more</span>
+              ) : null}
+            </div>
+          )}
+        </td>
+        <td className={`${tdCls} text-muted`}>{relativeTime(user.last_sign_in_at)}</td>
+        <td className={`${tdCls} text-right whitespace-nowrap`}>
+          <div className="inline-flex gap-2 items-center justify-end">
+            <button
+              type="button"
+              onClick={() => setEditing((v) => !v)}
+              className="text-caption font-medium text-brand hover:text-brand-dark cursor-pointer"
+            >
+              {editing ? 'Cancel' : 'Edit'}
+            </button>
+            <span className="text-muted-light">·</span>
+            {confirmReset ? (
+              <form className="inline-flex gap-1 items-center">
+                <input type="hidden" name="user_id" value={user.id} />
+                <input type="hidden" name="return_path" value="/admin" />
+                <button
+                  formAction={adminSendPasswordReset}
+                  className="text-caption font-medium text-warning hover:underline cursor-pointer"
+                >
+                  Confirm send
+                </button>
+                <span className="text-muted-light">·</span>
+                <button
+                  type="button"
+                  onClick={() => setConfirmReset(false)}
+                  className="text-caption font-medium text-muted hover:text-foreground cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmReset(true)}
+                className="text-caption font-medium text-muted hover:text-foreground cursor-pointer"
+              >
+                Reset password
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+      {editing ? (
+        <tr className="bg-background/40 border-b border-border">
+          <td colSpan={6} className="px-4 py-4">
+            <form className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+              <input type="hidden" name="user_id" value={user.id} />
+              <input type="hidden" name="return_path" value="/admin" />
+              <div className="flex flex-col gap-1">
+                <label className="text-caption font-semibold text-muted uppercase tracking-wider">First name</label>
+                <input
+                  name="first_name"
+                  defaultValue={user.first_name ?? ''}
+                  className="flex h-9 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-caption font-semibold text-muted uppercase tracking-wider">Last name</label>
+                <input
+                  name="last_name"
+                  defaultValue={user.last_name ?? ''}
+                  className="flex h-9 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-caption font-semibold text-muted uppercase tracking-wider">Email</label>
+                <input
+                  name="email"
+                  type="email"
+                  defaultValue={user.email ?? ''}
+                  className="flex h-9 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  formAction={adminUpdateUserInfo}
+                  className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditing(false)}
+                  className="inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-muted hover:text-foreground hover:bg-background transition-colors cursor-pointer"
+                >
+                  Discard
+                </button>
+              </div>
+            </form>
+          </td>
+        </tr>
+      ) : null}
+    </>
+  );
+}
+
 export function UsersTable({ users }: { users: UserRow[] }) {
-  const { sorted, col, dir, toggle } = useSort(users, 'created_at');
+  const { sorted, col, dir, toggle } = useSort(users, 'last_sign_in_at');
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState<'all' | 'owner' | 'manager' | 'host'>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
   const filtered = useMemo(() => {
-    if (!search) return sorted;
-    const q = search.toLowerCase();
-    return sorted.filter((u) => (u.email ?? '').toLowerCase().includes(q));
-  }, [sorted, search]);
+    let list = sorted;
+    if (roleFilter !== 'all') {
+      list = list.filter((u) => u.memberships.some((m) => m.role === roleFilter));
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter((u) =>
+        (u.email ?? '').toLowerCase().includes(q)
+        || (u.first_name ?? '').toLowerCase().includes(q)
+        || (u.last_name ?? '').toLowerCase().includes(q)
+        || u.memberships.some((m) => (m.org_name ?? '').toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [sorted, search, roleFilter]);
 
   const total = filtered.length;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -790,35 +947,60 @@ export function UsersTable({ users }: { users: UserRow[] }) {
 
   const filterParts: string[] = [];
   if (search) filterParts.push(`"${search}"`);
+  if (roleFilter !== 'all') filterParts.push(`role: ${roleFilter}`);
+
+  const roleTabs: { key: typeof roleFilter; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'owner', label: 'Owners' },
+    { key: 'manager', label: 'Managers' },
+    { key: 'host', label: 'Hosts' },
+  ];
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search by email…" />
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search by name, email, or org…" />
+        <div className="inline-flex rounded-md border border-border bg-surface p-0.5">
+          {roleTabs.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => { setRoleFilter(t.key); setPage(1); }}
+              className={`px-3 h-8 text-caption font-medium rounded transition-colors cursor-pointer ${
+                roleFilter === t.key ? 'bg-brand text-white' : 'text-muted hover:text-foreground'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
-      <FilterSummary parts={filterParts} count={total} onClear={() => { setSearch(''); setPage(1); }} />
+      <FilterSummary
+        parts={filterParts}
+        count={total}
+        onClear={() => { setSearch(''); setRoleFilter('all'); setPage(1); }}
+      />
       <div className="rounded-lg border border-border bg-surface shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className={tableCls}>
             <thead>
               <tr className="border-b border-border bg-background">
+                <SortHeader label="Name" col="last_name" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="Email" col="email" active={col} dir={dir} onClick={toggle} />
-                <SortHeader label="Joined" col="created_at" active={col} dir={dir} onClick={toggle} />
+                <th className={thCls}>Roles</th>
+                <th className={thCls}>Org(s)</th>
                 <SortHeader label="Last Sign In" col="last_sign_in_at" active={col} dir={dir} onClick={toggle} />
+                <th className={`${thCls} text-right`}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {paged.map((u) => (
-                <tr key={u.id} className="border-b border-border last:border-b-0 hover:bg-background/50 transition-colors">
-                  <td className={`${tdCls} font-mono text-caption text-foreground`}>{u.email ?? '—'}</td>
-                  <td className={`${tdCls} text-muted`}>{relativeTime(u.created_at)}</td>
-                  <td className={`${tdCls} text-muted`}>{relativeTime(u.last_sign_in_at)}</td>
-                </tr>
+                <UserRowItem key={u.id} user={u} />
               ))}
               {paged.length === 0 && (
                 <tr>
-                  <td colSpan={3} className={`${tdCls} text-muted text-center py-8`}>
-                    {search ? 'No users match your search.' : 'No users yet'}
+                  <td colSpan={6} className={`${tdCls} text-muted text-center py-8`}>
+                    {search || roleFilter !== 'all' ? 'No users match your filters.' : 'No staff members yet'}
                   </td>
                 </tr>
               )}

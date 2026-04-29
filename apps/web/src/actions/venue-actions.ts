@@ -87,6 +87,8 @@ async function nextSortOrder(
 
 /** Updates core venue fields (name, address, timezone, app_name_preference). */
 export async function updateVenue(orgId: string, venueId: string, formData: FormData) {
+  // Authed session only. RLS handles authorization, including the admin override
+  // (policy `venues_admin_all` permits platform admins via public.is_platform_admin()).
   const { supabase } = await requireAuth();
 
   const patch: {
@@ -114,15 +116,24 @@ export async function updateVenue(orgId: string, venueId: string, formData: Form
 
   if (!patch.name) redirectWithError(orgId, venueId, 'missing_venue_name');
 
-  const { error } = await supabase
+  // Update and verify rows actually changed. Without this verification, RLS-filtered
+  // writes return success with 0 rows affected — the form silently reverts.
+  const { data: updated, error } = await supabase
     .from('venues')
     .update(patch)
     .eq('id', venueId)
-    .eq('org_id', orgId);
+    .eq('org_id', orgId)
+    .select('id');
 
   if (error) {
-    console.error(error);
+    console.error('[updateVenue] update failed', error);
     redirectWithError(orgId, venueId, 'venue_update_failed');
+  }
+
+  if (!updated || updated.length === 0) {
+    // RLS filtered the row, or the venue/org pair doesn't match.
+    console.warn('[updateVenue] zero rows updated', { orgId, venueId });
+    redirectWithError(orgId, venueId, 'not_authorized');
   }
 
   revalidateVenue(orgId, venueId);
