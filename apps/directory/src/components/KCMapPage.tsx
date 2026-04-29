@@ -150,6 +150,27 @@ function makePinElement(selected: boolean, active: boolean): HTMLElement {
   return el;
 }
 
+function injectPulseStyle() {
+  if (typeof document === 'undefined' || document.getElementById('ht-pulse-style')) return;
+  const el = document.createElement('style');
+  el.id = 'ht-pulse-style';
+  el.textContent = '@keyframes ht-pulse{0%{transform:scale(0.35);opacity:0.7}100%{transform:scale(1);opacity:0}}';
+  document.head.appendChild(el);
+}
+
+function makeUserLocationElement(): HTMLElement {
+  injectPulseStyle();
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:relative;width:40px;height:40px;display:flex;align-items:center;justify-content:center;';
+  const pulse = document.createElement('div');
+  pulse.style.cssText = 'position:absolute;width:40px;height:40px;border-radius:50%;background:rgba(66,133,244,0.3);animation:ht-pulse 2s ease-out infinite;';
+  const dot = document.createElement('div');
+  dot.style.cssText = 'width:14px;height:14px;border-radius:50%;background:#4285F4;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(66,133,244,0.4);flex-shrink:0;';
+  wrapper.appendChild(pulse);
+  wrapper.appendChild(dot);
+  return wrapper;
+}
+
 // ── MapView ────────────────────────────────────────────────────────────────────
 
 type MapViewProps = {
@@ -158,14 +179,20 @@ type MapViewProps = {
   selectedId: string | null;
   todayDow: number;
   onSelectPin: (venue: VenueWithWindows) => void;
+  isMobile: boolean;
+  onCopyLink: () => void;
+  copied: boolean;
 };
 
-function MapView({ filteredVenues, allVenues, selectedId, todayDow, onSelectPin }: MapViewProps) {
+function MapView({ filteredVenues, allVenues, selectedId, todayDow, onSelectPin, isMobile, onCopyLink, copied }: MapViewProps) {
   const divRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<Record<string, any>>({});
   const cbRef = useRef(onSelectPin);
+  const userMarkerRef = useRef<any>(null);
+  const userPosRef = useRef<{ lat: number; lng: number } | null>(null);
   const gmReady = useGoogleMaps();
+  const [locating, setLocating] = useState(false);
 
   useEffect(() => { cbRef.current = onSelectPin; }, [onSelectPin]);
 
@@ -196,7 +223,60 @@ function MapView({ filteredVenues, allVenues, selectedId, todayDow, onSelectPin 
       marker.addListener("click", () => cbRef.current(v));
       markersRef.current[v.id] = marker;
     });
+
+    // Silently request user location on load — no loading state, no error UI
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const gm2 = (window as any).google?.maps;
+          if (!gm2 || !mapRef.current) return;
+          const position = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          userPosRef.current = position;
+          userMarkerRef.current = new gm2.marker.AdvancedMarkerElement({
+            position,
+            map: mapRef.current,
+            content: makeUserLocationElement(),
+            title: 'Your location',
+            zIndex: 50,
+          });
+        },
+        () => {} // permission denied or unavailable — no marker, no error
+      );
+    }
   }, [gmReady]);
+
+  const locateMe = useCallback(() => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation || !mapRef.current) return;
+    // Already have position — just re-center
+    if (userPosRef.current) {
+      mapRef.current.panTo(userPosRef.current);
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocating(false);
+        const gm = (window as any).google?.maps;
+        if (!gm || !mapRef.current) return;
+        const position = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        userPosRef.current = position;
+        if (userMarkerRef.current) {
+          userMarkerRef.current.position = position;
+        } else {
+          userMarkerRef.current = new gm.marker.AdvancedMarkerElement({
+            position,
+            map: mapRef.current,
+            content: makeUserLocationElement(),
+            title: 'Your location',
+            zIndex: 50,
+          });
+        }
+        mapRef.current.panTo(position);
+      },
+      () => setLocating(false),
+      { enableHighAccuracy: false, timeout: 10000 }
+    );
+  }, []);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -222,7 +302,80 @@ function MapView({ filteredVenues, allVenues, selectedId, todayDow, onSelectPin 
     );
   }
 
-  return <div ref={divRef} className="w-full h-full" />;
+  return (
+    <div className="relative w-full h-full">
+      <div ref={divRef} className="w-full h-full" />
+
+      {/* Map controls overlay */}
+      <div
+        className="absolute flex flex-col gap-1.5"
+        style={{ bottom: isMobile ? 80 : 16, left: 12 }}
+      >
+        {/* Locate me */}
+        <button
+          onClick={locateMe}
+          title="Find my location"
+          disabled={locating}
+          className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200"
+          style={{
+            background: "rgba(255,255,255,0.94)",
+            border: "1px solid #E8E5E0",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            cursor: locating ? "default" : "pointer",
+            opacity: locating ? 0.65 : 1,
+          }}
+        >
+          {locating ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9B9B9B" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+            </svg>
+          ) : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="3" />
+              <line x1="12" y1="2" x2="12" y2="7" />
+              <line x1="12" y1="17" x2="12" y2="22" />
+              <line x1="2" y1="12" x2="7" y2="12" />
+              <line x1="17" y1="12" x2="22" y2="12" />
+            </svg>
+          )}
+        </button>
+
+        {/* Share / copy link */}
+        <button
+          onClick={onCopyLink}
+          title="Copy shareable link"
+          className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200"
+          style={{
+            background: copied ? "#ECFDF5" : "rgba(255,255,255,0.94)",
+            border: `1px solid ${copied ? "#2D7A4F" : "#E8E5E0"}`,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+            cursor: "pointer",
+          }}
+        >
+          {copied ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D7A4F" strokeWidth="2.5" strokeLinecap="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="2" strokeLinecap="round">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+              <polyline points="16 6 12 2 8 6" />
+              <line x1="12" y1="2" x2="12" y2="15" />
+            </svg>
+          )}
+        </button>
+
+        {copied && (
+          <div
+            className="absolute text-white text-[11px] font-semibold whitespace-nowrap rounded-md pointer-events-none"
+            style={{ left: 44, bottom: 0, background: "#1A1A1A", padding: "5px 9px" }}
+          >
+            Link copied!
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ── MapPopup ───────────────────────────────────────────────────────────────────
@@ -774,6 +927,9 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
         selectedId={selectedId}
         todayDow={todayDow}
         onSelectPin={handlePin}
+        isMobile={isMobile}
+        onCopyLink={copyLink}
+        copied={copied}
       />
 
       {selectedVenue && (
@@ -785,44 +941,6 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
           onClose={() => setSelectedId(null)}
         />
       )}
-
-      {/* Map controls */}
-      <div
-        className="absolute flex flex-col gap-1.5"
-        style={{ bottom: isMobile ? 80 : 16, left: 12, position: "absolute" }}
-      >
-        <button
-          onClick={copyLink}
-          title="Copy shareable link"
-          className="w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200"
-          style={{
-            background: copied ? "#ECFDF5" : "rgba(255,255,255,0.94)",
-            border: `1px solid ${copied ? "#2D7A4F" : "#E8E5E0"}`,
-            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-            cursor: "pointer",
-          }}
-        >
-          {copied ? (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2D7A4F" strokeWidth="2.5" strokeLinecap="round">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
-          ) : (
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1A1A1A" strokeWidth="2" strokeLinecap="round">
-              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
-              <polyline points="16 6 12 2 8 6" />
-              <line x1="12" y1="2" x2="12" y2="15" />
-            </svg>
-          )}
-        </button>
-        {copied && (
-          <div
-            className="absolute text-white text-[11px] font-semibold whitespace-nowrap rounded-md pointer-events-none"
-            style={{ left: 44, bottom: 0, background: "#1A1A1A", padding: "5px 9px" }}
-          >
-            Link copied!
-          </div>
-        )}
-      </div>
 
       {/* Desktop legend */}
       {!isMobile && (
