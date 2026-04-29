@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { KC_NEIGHBORHOODS, type Neighborhood } from "@/lib/neighborhoods";
 import { getAllKCVenues } from "@/lib/queries";
 import type { VenueWithWindows } from "@/lib/queries";
-import { FilterableVenueGrid } from "@/components/FilterableVenueGrid";
+import { KCMapPage } from "@/components/KCMapPage";
 
 // Revalidate every 15 minutes — keeps venue data fresh
 export const revalidate = 900;
@@ -67,9 +67,7 @@ function bestNeighborhoodSlug(venue: VenueWithWindows): string {
 
 export default async function KCPage() {
   const venues = await getAllKCVenues();
-  const todayIndex = new Date().getDay();
 
-  // Pre-compute neighborhood slug map for each venue
   const bestNeighborhoodSlugMap: Record<string, string> = {};
   for (const v of venues) {
     bestNeighborhoodSlugMap[v.id] = bestNeighborhoodSlug(v);
@@ -115,7 +113,7 @@ export default async function KCPage() {
   };
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
@@ -124,64 +122,11 @@ export default async function KCPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageJsonLd) }}
       />
-      <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-3">
-        Happy Hours in <span className="text-brand">Kansas City</span>
-      </h1>
-      <p className="text-muted text-lg mb-10">
-        {venues.length} venues with active happy hour specials across{" "}
-        {KC_NEIGHBORHOODS.length} neighborhoods.
-      </p>
-
-      {/* Neighborhood grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
-        {KC_NEIGHBORHOODS.map((n) => {
-          const count = venues.filter((v) =>
-            isVenueInNeighborhood(v, n)
-          ).length;
-
-          return (
-            <a
-              key={n.slug}
-              href={`/kc/${n.slug}/`}
-              className="group block rounded-2xl border border-border bg-surface p-6 hover:border-brand hover:shadow-md transition-all"
-            >
-              <h2 className="text-lg font-bold text-foreground group-hover:text-brand transition-colors mb-1">
-                {n.name}
-              </h2>
-              <p className="text-xs text-muted-light font-medium mb-2">
-                {count} {count === 1 ? "venue" : "venues"}
-              </p>
-              <p className="text-sm text-muted leading-relaxed line-clamp-2">
-                {n.description}
-              </p>
-            </a>
-          );
-        })}
-      </div>
-
-      {/* All venues — filterable + itinerary-enabled */}
-      <section>
-        <h2 className="text-2xl font-bold text-foreground mb-6">All Venues</h2>
-        <FilterableVenueGrid
-          venues={venues}
-          neighborhoods={KC_NEIGHBORHOODS}
-          todayIndex={todayIndex}
-          bestNeighborhoodSlugMap={bestNeighborhoodSlugMap}
-        />
-      </section>
-
-      {/* Did we miss one? */}
-      <div className="mt-12 text-center">
-        <a
-          href="/contactus"
-          className="inline-flex items-center gap-2 text-sm font-medium text-brand hover:underline"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Did we miss one? Suggest a venue
-        </a>
-      </div>
-    </div>
+      <KCMapPage
+        venues={venues}
+        neighborhoods={KC_NEIGHBORHOODS}
+        bestNeighborhoodSlugMap={bestNeighborhoodSlugMap}
+      />
+    </>
   );
 }
