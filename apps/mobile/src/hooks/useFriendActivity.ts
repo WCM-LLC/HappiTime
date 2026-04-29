@@ -115,6 +115,7 @@ export function useFriendActivity() {
     }
 
     // 3. Fetch venue_visits for followed users at partner venues (promotion_tier is not null)
+    // Only include rows the visit owner has not marked private
     const { data: visits, error: visitsError } = await supabase
       .from("venue_visits")
       .select(
@@ -122,6 +123,7 @@ export function useFriendActivity() {
       )
       .in("user_id", visibleIds)
       .not("venue.promotion_tier", "is", null)
+      .eq("is_private" as any, false)
       .order("visited_at", { ascending: false })
       .limit(50);
 

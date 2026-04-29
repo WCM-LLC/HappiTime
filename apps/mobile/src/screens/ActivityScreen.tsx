@@ -13,6 +13,7 @@ import { SegmentedTabs } from "../components/SegmentedTabs";
 import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity";
 import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendSuggestions";
 import { useUserFollowers } from "../hooks/useUserFollowers";
+import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -29,12 +30,17 @@ const timeAgo = (iso: string) => {
   return `${days}d ago`;
 };
 
+const formatDate = (iso: string) => {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
 const RatingStars: React.FC<{ rating: number }> = ({ rating }) => {
   const stars = [];
   for (let i = 1; i <= 5; i++) {
     stars.push(
       <Text key={i} style={i <= rating ? styles.starFilled : styles.starEmpty}>
-        {"\u2605"}
+        {"★"}
       </Text>
     );
   }
@@ -170,10 +176,51 @@ const SuggestionCard: React.FC<{
   );
 };
 
+/* ── Check-In Card ── */
+
+const CheckInCard: React.FC<{
+  item: CheckInItem;
+  onTogglePrivacy: (id: string, makePrivate: boolean) => void;
+}> = ({ item, onTogglePrivacy }) => {
+  const isAuto = item.source === "auto_proximity";
+
+  return (
+    <View style={styles.checkinRow}>
+      <View style={styles.checkinIcon}>
+        <Text style={styles.checkinIconText}>{isAuto ? "📍" : "✓"}</Text>
+      </View>
+      <View style={styles.textContainer}>
+        <View style={styles.nameRow}>
+          <Text style={styles.actor} numberOfLines={1}>{item.venue_name}</Text>
+          <Text style={styles.when}>{timeAgo(item.entered_at)}</Text>
+        </View>
+        <Text style={styles.checkinDate}>{formatDate(item.entered_at)}</Text>
+        <View style={styles.checkinMeta}>
+          {isAuto && (
+            <View style={styles.autoBadge}>
+              <Text style={styles.autoBadgeText}>Auto</Text>
+            </View>
+          )}
+          {item.rating != null && <RatingStars rating={item.rating} />}
+        </View>
+      </View>
+      <Pressable
+        onPress={() => onTogglePrivacy(item.id, !item.is_private)}
+        style={({ pressed }) => [styles.privacyButton, pressed && styles.buttonPressed]}
+        hitSlop={8}
+      >
+        <Text style={styles.privacyIcon}>{item.is_private ? "🔒" : "👁"}</Text>
+      </Pressable>
+    </View>
+  );
+};
+
 /* ── Main Screen ── */
 
+type Tab = "friends" | "discover" | "checkins";
+
 export const ActivityScreen: React.FC = () => {
-  const [tab, setTab] = useState<"friends" | "discover">("friends");
+  const [tab, setTab] = useState<Tab>("friends");
   const {
     pendingRequests,
     loading: followersLoading,
@@ -187,6 +234,12 @@ export const ActivityScreen: React.FC = () => {
     loading: suggestionsLoading,
     refresh: refreshSuggestions,
   } = useFriendSuggestions();
+  const {
+    checkins,
+    loading: checkinsLoading,
+    refresh: refreshCheckins,
+    togglePrivacy,
+  } = useUserCheckins();
 
   const [requestedUsers, setRequestedUsers] = useState<Record<string, boolean>>({});
 
@@ -204,7 +257,9 @@ export const ActivityScreen: React.FC = () => {
   };
 
   const isLoading =
-    tab === "friends" ? followersLoading || activityLoading : suggestionsLoading;
+    tab === "friends" ? followersLoading || activityLoading
+    : tab === "discover" ? suggestionsLoading
+    : checkinsLoading;
 
   return (
     <View style={styles.container}>
@@ -213,9 +268,10 @@ export const ActivityScreen: React.FC = () => {
         tabs={[
           { key: "friends", label: "Friends" },
           { key: "discover", label: "Discover" },
+          { key: "checkins", label: "Check Ins" },
         ]}
         activeKey={tab}
-        onChange={(key) => setTab(key as "friends" | "discover")}
+        onChange={(key) => setTab(key as Tab)}
       />
 
       {isLoading ? (
@@ -264,7 +320,7 @@ export const ActivityScreen: React.FC = () => {
           }
           renderItem={({ item }) => <ActivityCard item={item} />}
         />
-      ) : (
+      ) : tab === "discover" ? (
         <FlatList
           data={suggestions}
           keyExtractor={(item) => item.user_id}
@@ -285,6 +341,36 @@ export const ActivityScreen: React.FC = () => {
               suggestion={item}
               onFollow={handleFollow}
               following={requestedUsers[item.user_id] ?? false}
+            />
+          )}
+        />
+      ) : (
+        <FlatList
+          data={checkins}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          onRefresh={refreshCheckins}
+          refreshing={checkinsLoading}
+          ListHeaderComponent={
+            <View style={styles.privacyNote}>
+              <Text style={styles.privacyNoteText}>
+                Tap 👁 to make a check-in visible to friends, or 🔒 to keep it private.
+              </Text>
+            </View>
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No check-ins yet</Text>
+              <Text style={styles.emptyText}>
+                Visit a venue to get your first check-in!
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <CheckInCard
+              item={item}
+              onTogglePrivacy={togglePrivacy}
             />
           )}
         />
@@ -360,6 +446,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     marginRight: spacing.sm,
+    flexShrink: 1,
   },
   handle: {
     color: colors.textMuted,
@@ -502,5 +589,67 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 13,
     textAlign: "center",
+  },
+
+  /* ── Check-in tab ── */
+  checkinRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.md,
+  },
+  checkinIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.brandSubtle,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: spacing.md,
+  },
+  checkinIconText: {
+    fontSize: 20,
+  },
+  checkinDate: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginBottom: spacing.xs,
+  },
+  checkinMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: 2,
+  },
+  autoBadge: {
+    backgroundColor: colors.brandSubtle,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+  },
+  autoBadgeText: {
+    color: colors.brandDark,
+    fontSize: 10,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+  privacyButton: {
+    marginLeft: spacing.md,
+    padding: spacing.xs,
+  },
+  privacyIcon: {
+    fontSize: 20,
+  },
+  privacyNote: {
+    backgroundColor: colors.cream,
+    borderRadius: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  privacyNoteText: {
+    color: colors.textMuted,
+    fontSize: 12,
+    lineHeight: 18,
   },
 });

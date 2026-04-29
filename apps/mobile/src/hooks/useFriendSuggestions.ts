@@ -85,6 +85,7 @@ export function useFriendSuggestions() {
           .select("user_id, entered_at, venue:venues(name)")
           .eq("venue_id", visit.venue_id)
           .neq("user_id", user.id)
+          .eq("is_private" as any, false)
           .gte("entered_at", windowStart)
           .lte("entered_at", windowEnd)
           .limit(20);

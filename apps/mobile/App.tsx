@@ -18,23 +18,37 @@ function AuthenticatedApp({ session }: { session: any }) {
   const { pendingVisit, submitRating, dismissRating, submitting, triggerRating } =
     useVisitRating();
 
-  // Build venue points from happy hour data
+  // Build venue points from happy hour data.
+  // Each venue aggregates all its happy hour windows so the visit tracker can
+  // check whether a happy hour is currently active when deciding to ping the user.
   const venues: VenuePoint[] = useMemo(() => {
-    const seen = new Set<string>();
-    const result: VenuePoint[] = [];
+    const seen = new Map<string, VenuePoint>();
     for (const window of happyHours) {
       const venue = window.venue;
       if (!venue?.id || !venue.lat || !venue.lng) continue;
-      if (seen.has(venue.id)) continue;
-      seen.add(venue.id);
-      result.push({
-        id: venue.id,
-        name: venue.name ?? window.venue_name ?? "Venue",
-        lat: venue.lat,
-        lng: venue.lng,
-      });
+
+      const windowSlice = {
+        dow: (window.dow ?? []).map(Number),
+        start_time: window.start_time ?? "",
+        end_time: window.end_time ?? "",
+      };
+
+      if (seen.has(venue.id)) {
+        seen.get(venue.id)!.happyHourWindows!.push(windowSlice);
+      } else {
+        seen.set(venue.id, {
+          id: venue.id,
+          name: venue.name ?? window.venue_name ?? "Venue",
+          lat: venue.lat,
+          lng: venue.lng,
+          isPremium:
+            venue.promotion_tier === "premium" || venue.promotion_tier === "featured",
+          timezone: (window as any).timezone ?? undefined,
+          happyHourWindows: [windowSlice],
+        });
+      }
     }
-    return result;
+    return Array.from(seen.values());
   }, [happyHours]);
 
   const { startTracking, setOnVisitDetected } = useVisitTracker(venues);
