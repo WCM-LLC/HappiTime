@@ -4,12 +4,22 @@ import { createClient } from '@/utils/supabase/server';
 import { createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
 import { OrgsTable, VenuesTable, WindowsTable, UsersTable } from './AdminTables';
 import type { OrgRow, VenueRow, WindowRow, UserRow } from './AdminTables';
+import { SUPER_ADMIN_EMAIL } from '@/utils/admin-emails';
+import { addAdminUser, removeAdminUser } from '@/actions/admin-manage-actions';
 
-export default async function AdminPage() {
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const sp = await searchParams;
+  const pageError = sp?.error;
   const keyError = getServiceRoleKeyError();
   const supabase = keyError ? await createClient() : createServiceClient();
   const authClient = await createClient();
   const { data: auth } = await authClient.auth.getUser();
+  const currentUserEmail = (auth.user?.email ?? '').toLowerCase();
+  const isSuperAdmin = currentUserEmail === SUPER_ADMIN_EMAIL;
 
   // ─── Stats ───────────────────────────────────────────────────────────
   const [
@@ -138,6 +148,16 @@ export default async function AdminPage() {
     }));
   }
 
+  // ─── Admin users (super-admin only) ──────────────────────────────────
+  let adminUsers: { email: string; created_at: string }[] = [];
+  if (isSuperAdmin && !keyError) {
+    const { data: adminUsersRaw } = await supabase
+      .from('admin_users')
+      .select('email, created_at')
+      .order('created_at', { ascending: true });
+    adminUsers = adminUsersRaw ?? [];
+  }
+
   const stats: { label: string; value: number; icon: string; href?: string }[] = [
     { label: 'Organizations', value: orgCount ?? 0, icon: '⚙️' },
     { label: 'Venues', value: venueCount ?? 0, icon: '🍺' },
@@ -172,6 +192,14 @@ export default async function AdminPage() {
             </span>
           </Link>
         </div>
+
+        {/* ── Action Error Banner ── */}
+        {pageError ? (
+          <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-6">
+            <p className="text-body-sm font-medium text-error">Action failed</p>
+            <p className="text-body-sm text-error/80 mt-0.5">{pageError}</p>
+          </div>
+        ) : null}
 
         {/* ── Warning Banner ── */}
         {keyError ? (
@@ -279,6 +307,100 @@ export default async function AdminPage() {
             </Link>
           </div>
         </section>
+
+        {/* ── Admin Users (super-admin only) ── */}
+        {isSuperAdmin ? (
+          <section className="mb-10">
+            <div className="mb-4">
+              <h2 className="text-heading-sm font-semibold text-foreground">Admin Users</h2>
+              <p className="text-body-sm text-muted mt-0.5">
+                Accounts with admin console access. Only you can add or remove admins.
+              </p>
+            </div>
+
+            {keyError ? (
+              <div className="rounded-lg border border-dashed border-border-strong bg-surface/50 p-8 text-center">
+                <p className="text-body-sm text-muted">
+                  Add <code className="text-caption bg-background px-1.5 py-0.5 rounded border border-border">SUPABASE_SERVICE_ROLE_KEY</code> to manage admin users.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Add admin form */}
+                <div className="rounded-lg border border-border bg-surface p-5 shadow-sm mb-4">
+                  <form className="flex gap-3 items-end">
+                    <div className="flex-1">
+                      <label htmlFor="new-admin-email" className="text-body-sm font-medium text-foreground block mb-1.5">
+                        Email address
+                      </label>
+                      <input
+                        id="new-admin-email"
+                        name="email"
+                        type="email"
+                        required
+                        placeholder="colleague@example.com"
+                        className="flex h-9 w-full rounded-md border border-border bg-background px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+                      />
+                    </div>
+                    <button
+                      formAction={addAdminUser}
+                      className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer shrink-0"
+                    >
+                      Add admin
+                    </button>
+                  </form>
+                </div>
+
+                {/* Current admin list */}
+                <div className="rounded-lg border border-border bg-surface shadow-sm overflow-hidden">
+                  {adminUsers.length === 0 ? (
+                    <p className="text-body-sm text-muted p-5">No admin users found.</p>
+                  ) : (
+                    <table className="w-full text-body-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-background/50">
+                          <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Email</th>
+                          <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Added</th>
+                          <th className="px-4 py-2.5" />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {adminUsers.map((u) => (
+                          <tr key={u.email} className="border-b border-border last:border-0 hover:bg-background/40 transition-colors">
+                            <td className="px-4 py-3 text-foreground font-medium">
+                              {u.email}
+                              {u.email === SUPER_ADMIN_EMAIL ? (
+                                <span className="ml-2 inline-flex items-center rounded-full bg-brand-subtle px-2 py-0.5 text-caption font-semibold text-brand-dark-alt">
+                                  super admin
+                                </span>
+                              ) : null}
+                            </td>
+                            <td className="px-4 py-3 text-muted">
+                              {new Date(u.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              {u.email !== SUPER_ADMIN_EMAIL ? (
+                                <form>
+                                  <input type="hidden" name="email" value={u.email} />
+                                  <button
+                                    formAction={removeAdminUser}
+                                    className="text-caption font-medium text-error hover:underline cursor-pointer"
+                                  >
+                                    Remove
+                                  </button>
+                                </form>
+                              ) : null}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </>
+            )}
+          </section>
+        ) : null}
       </main>
     </div>
   );

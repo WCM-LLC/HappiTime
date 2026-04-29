@@ -85,7 +85,7 @@ export default async function LoginPage({
                 type="email"
                 required
                 autoComplete="email"
-                defaultValue={isAdminLogin ? 'admin@happitime.biz' : ''}
+                defaultValue=""
                 placeholder="you@example.com"
                 className={inputCls}
               />

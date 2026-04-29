@@ -30,7 +30,7 @@ export default async function OrgPage({
     );
   }
 
-  const userIsAdmin = isAdminEmail(user.email);
+  const userIsAdmin = await isAdminEmail(user.email);
   const supabase = (fromAdmin && userIsAdmin) ? createServiceClient() : await createClient();
 
   const { data: membership } = await (await createClient())

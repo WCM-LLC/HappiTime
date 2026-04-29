@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
 import { slugify } from "@/utils/slugify";
+import { hasAdminEmailsConfigured, isAdmin, getAdminClient } from "@/utils/admin";
 
 export async function createOrganization(formData: FormData) {
   const supabase = await createClient();
@@ -17,8 +18,14 @@ export async function createOrganization(formData: FormData) {
 
   const slug = slugify(name);
 
+  // Admin users bypass RLS via service role client — necessary because the
+  // org_members insert policy does a sub-SELECT on organizations, which is
+  // filtered by SELECT RLS before the user has any membership row.
+  const useAdmin = hasAdminEmailsConfigured() && (await isAdmin());
+  const dbClient = useAdmin ? getAdminClient() : supabase;
+
   // 1) Create org
-  const { data: org, error: orgErr } = await supabase
+  const { data: org, error: orgErr } = await dbClient
     .from("organizations")
     .insert({ name, slug, created_by: user.id })
     .select("id")
@@ -29,7 +36,7 @@ export async function createOrganization(formData: FormData) {
   }
 
   // 2) Create membership for creator
-  const { error: memErr } = await supabase
+  const { error: memErr } = await dbClient
     .from("org_members")
     .insert({ org_id: org.id, user_id: user.id, role: "owner", email: user.email ?? null });
 

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import VenueMediaUploader from '@/components/VenueMediaUploader';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
+import { isAdminEmail } from '@/utils/admin-emails';
 import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
 import {
   updateVenue,
@@ -164,13 +165,6 @@ function distanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): 
   );
 }
 
-function isAdminEmail(email: string | undefined): boolean {
-  if (!email) return false;
-  const adminEmails = (process.env.ADMIN_EMAILS ?? '')
-    .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean);
-  return adminEmails.length > 0 && adminEmails.includes(email.toLowerCase());
-}
-
 export default async function VenuePage({
   params,
   searchParams,
@@ -195,7 +189,7 @@ export default async function VenuePage({
     );
   }
 
-  const userIsAdmin = isAdminEmail(user.email);
+  const userIsAdmin = await isAdminEmail(user.email);
   const supabase = (fromAdmin && userIsAdmin) ? createServiceClient() : await createClient();
 
   const { data: membership } = await (await createClient())
