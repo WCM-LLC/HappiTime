@@ -127,30 +127,27 @@ function useGoogleMaps(): boolean {
     const s = document.createElement("script");
     s.id = "ht-gm-script";
     s.async = true;
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=__gmReady`;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&callback=__gmReady&loading=async&libraries=marker`;
     document.head.appendChild(s);
   }, []);
 
   return ready;
 }
 
-function pinIcon(selected: boolean, active: boolean) {
-  const gm = (window as any).google.maps;
+function makePinElement(selected: boolean, active: boolean): HTMLElement {
   const sz = selected ? 34 : 26;
-  const r = selected ? 14 : 10;
-  const cr = selected ? 5 : 3.5;
-  const fill = selected ? "%23A67842" : "%23C8965A";
-  const ring = active
-    ? `<circle cx="${sz / 2}" cy="${sz / 2}" r="${r}" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2"/>`
-    : "";
-  const outer = selected
-    ? `<circle cx="${sz / 2}" cy="${sz / 2}" r="${r + 4}" fill="%23C8965A" opacity=".18"/>`
-    : "";
-  return {
-    url: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="${sz}" height="${sz}">${outer}<circle cx="${sz / 2}" cy="${sz / 2}" r="${r}" fill="${fill}"/>${ring}<circle cx="${sz / 2}" cy="${sz / 2}" r="${cr}" fill="white"/></svg>`,
-    scaledSize: new gm.Size(sz, sz),
-    anchor: new gm.Point(sz / 2, sz / 2),
-  };
+  const fill = selected ? "#A67842" : "#C8965A";
+  const el = document.createElement("div");
+  el.style.cssText = `width:${sz}px;height:${sz}px;border-radius:50%;background:${fill};display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:${selected ? "0 0 0 6px rgba(200,150,90,0.2)" : "0 2px 6px rgba(0,0,0,0.25)"};transition:all 150ms;position:relative;`;
+  const dot = document.createElement("div");
+  dot.style.cssText = `width:${selected ? 10 : 8}px;height:${selected ? 10 : 8}px;border-radius:50%;background:#fff;`;
+  if (active) {
+    const ring = document.createElement("div");
+    ring.style.cssText = `position:absolute;inset:0;border-radius:50%;border:2px solid rgba(255,255,255,0.6);`;
+    el.appendChild(ring);
+  }
+  el.appendChild(dot);
+  return el;
 }
 
 // ── MapView ────────────────────────────────────────────────────────────────────
@@ -178,7 +175,7 @@ function MapView({ filteredVenues, allVenues, selectedId, todayDow, onSelectPin 
     const map = new gm.Map(divRef.current, {
       center: { lat: 39.085, lng: -94.583 },
       zoom: 13,
-      styles: MAP_STYLES,
+      mapId: "DEMO_MAP_ID",
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
@@ -188,10 +185,11 @@ function MapView({ filteredVenues, allVenues, selectedId, todayDow, onSelectPin 
 
     allVenues.forEach((v) => {
       if (v.lat == null || v.lng == null) return;
-      const marker = new gm.Marker({
+      const active = isActiveToday(v, todayDow);
+      const marker = new gm.marker.AdvancedMarkerElement({
         position: { lat: v.lat, lng: v.lng },
         map,
-        icon: pinIcon(false, isActiveToday(v, todayDow)),
+        content: makePinElement(false, active),
         title: v.name,
         zIndex: 1,
       });
@@ -204,10 +202,12 @@ function MapView({ filteredVenues, allVenues, selectedId, todayDow, onSelectPin 
     if (!mapRef.current) return;
     const visSet = new Set(filteredVenues.map((v) => v.id));
     Object.entries(markersRef.current).forEach(([id, marker]) => {
-      marker.setVisible(visSet.has(id));
+      const visible = visSet.has(id);
+      marker.map = visible ? mapRef.current : null;
       const v = allVenues.find((x) => x.id === id);
-      marker.setIcon(pinIcon(id === selectedId, v ? isActiveToday(v, todayDow) : false));
-      marker.setZIndex(id === selectedId ? 100 : 1);
+      const active = v ? isActiveToday(v, todayDow) : false;
+      marker.content = makePinElement(id === selectedId, active);
+      marker.zIndex = id === selectedId ? 100 : 1;
     });
   }, [filteredVenues, selectedId]);
 
