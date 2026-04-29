@@ -114,12 +114,86 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
     if (file) void uploadFile(file);
   }
 
-  const coverRow = rows.find((r) => r.sort_order === 0);
-  const images = rows.filter((r) => r.type === 'image');
+  // Mirror the consumer site's display logic: source priority first, then sort_order.
+  // (apps/directory/src/lib/queries.ts uses identical SOURCE_PRIORITY ordering.)
+  const SOURCE_PRIORITY: Record<string, number> = {
+    upload: 0,
+    website: 1,
+    google_places: 2,
+    unsplash: 3,
+    unknown: 4,
+  };
+  function priorityOf(r: MediaRow) {
+    return SOURCE_PRIORITY[r.source ?? 'unknown'] ?? 4;
+  }
+  const imagesDisplayOrder = [...rows]
+    .filter((r) => r.type === 'image')
+    .sort((a, b) => {
+      const pa = priorityOf(a);
+      const pb = priorityOf(b);
+      if (pa !== pb) return pa - pb;
+      return a.sort_order - b.sort_order;
+    });
+  // First image in display order = the cover that actually shows on the consumer site.
+  const displayedCoverId = imagesDisplayOrder[0]?.id ?? null;
+  const positionById = new Map(imagesDisplayOrder.map((r, i) => [r.id, i]));
   const others = rows.filter((r) => r.type !== 'image');
+
+  function sourceBadge(source: string | null | undefined) {
+    const s = source ?? 'unknown';
+    if (s === 'upload') return { label: 'Uploaded', bg: '#DCFCE7', fg: '#065F46' };
+    if (s === 'google_places') return { label: 'Google', bg: '#E0E7FF', fg: '#3730A3' };
+    if (s === 'website') return { label: 'Website', bg: '#FEF3C7', fg: '#92400E' };
+    if (s === 'unsplash') return { label: 'Unsplash', bg: '#F3F4F6', fg: '#374151' };
+    return null;
+  }
 
   return (
     <div className="col" style={{ gap: 16 }}>
+      {/* Where-images-show explainer */}
+      <div style={{
+        border: '1px solid var(--border)',
+        borderRadius: 10,
+        padding: '12px 14px',
+        background: 'var(--surface)',
+        display: 'grid',
+        gridTemplateColumns: 'auto 1fr',
+        gap: 12,
+        alignItems: 'start',
+      }}>
+        <div style={{
+          fontSize: 18,
+          lineHeight: '20px',
+          padding: 4,
+        }}>📍</div>
+        <div style={{ display: 'grid', gap: 6 }}>
+          <strong style={{ fontSize: 13 }}>Where these images appear</strong>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'grid', gap: 2 }}>
+            <span>
+              <span style={{
+                display: 'inline-block', minWidth: 56, padding: '1px 7px', marginRight: 6,
+                background: 'var(--brand)', color: '#fff', fontSize: 10, fontWeight: 700,
+                borderRadius: 999, letterSpacing: '0.06em', textTransform: 'uppercase',
+                textAlign: 'center',
+              }}>Cover</span>
+              Hero image at the top of the venue page on the website AND mobile app, plus the venue card thumbnail in lists.
+            </span>
+            <span>
+              <span style={{
+                display: 'inline-block', minWidth: 56, padding: '1px 7px', marginRight: 6,
+                background: '#E5E7EB', color: '#374151', fontSize: 10, fontWeight: 700,
+                borderRadius: 999, letterSpacing: '0.06em', textTransform: 'uppercase',
+                textAlign: 'center',
+              }}>Gallery</span>
+              Shown in the venue's photo gallery in the order numbered below.
+            </span>
+            <span style={{ marginTop: 4 }}>
+              Uploaded photos always rank ahead of Google Places photos. If the cover isn't what you expect, upload your preferred photo or click <em>Set Cover</em>.
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Drop zone */}
       <div
         role="button"
@@ -163,17 +237,19 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
         </div>
       ) : null}
 
-      {/* Image grid */}
-      {images.length > 0 ? (
+      {/* Image grid — ordered the same way the consumer site shows them */}
+      {imagesDisplayOrder.length > 0 ? (
         <div>
           <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-muted)', fontWeight: 600 }}>
-            Photos
+            Photos · {imagesDisplayOrder.length}
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 10 }}>
-            {images.map((row) => {
-              const isCover = row.sort_order === 0;
+            {imagesDisplayOrder.map((row) => {
+              const isCover = row.id === displayedCoverId;
+              const position = (positionById.get(row.id) ?? 0) + 1; // 1-indexed for humans
               const isDeleting = deletingId === row.id;
               const isCoverBusy = coverBusyId === row.id;
+              const srcBadge = sourceBadge(row.source);
 
               return (
                 <div
@@ -192,21 +268,38 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
                     alt={row.title ?? 'venue photo'}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   />
-                  {isCover ? (
+                  {/* Position pill — Cover or Gallery #N */}
+                  <span style={{
+                    position: 'absolute',
+                    top: 6,
+                    left: 6,
+                    background: isCover ? 'var(--brand)' : 'rgba(17,24,39,0.78)',
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: '2px 7px',
+                    borderRadius: 999,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                  }}>
+                    {isCover ? 'Cover' : `Gallery #${position - 1}`}
+                  </span>
+                  {/* Source pill — top-right */}
+                  {srcBadge ? (
                     <span style={{
                       position: 'absolute',
                       top: 6,
-                      left: 6,
-                      background: 'var(--brand)',
-                      color: '#fff',
-                      fontSize: 10,
+                      right: 6,
+                      background: srcBadge.bg,
+                      color: srcBadge.fg,
+                      fontSize: 9,
                       fontWeight: 700,
-                      padding: '2px 7px',
+                      padding: '2px 6px',
                       borderRadius: 999,
-                      letterSpacing: '0.06em',
+                      letterSpacing: '0.04em',
                       textTransform: 'uppercase',
                     }}>
-                      Cover
+                      {srcBadge.label}
                     </span>
                   ) : null}
 
