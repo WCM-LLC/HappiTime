@@ -1,6 +1,6 @@
 import OAuthButtons from '@/components/OAuthButtons';
 import { Logo } from '@/components/ui/Logo';
-import { login, signup } from '../../actions/login-actions';
+import { login } from '../../actions/login-actions';
 
 
 export default async function LoginPage({
@@ -114,14 +114,6 @@ export default async function LoginPage({
               >
                 Sign in
               </button>
-              {!isAdminLogin ? (
-                <button
-                  formAction={signup}
-                  className="inline-flex items-center justify-center h-10 px-4 w-full rounded-md border border-border bg-surface text-foreground text-body-sm font-medium hover:bg-background transition-colors cursor-pointer"
-                >
-                  Create account
-                </button>
-              ) : null}
             </div>
           </form>
 
