@@ -36,6 +36,7 @@ type AssignmentRow = {
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
+  // Invite + member management
   invalid_email: 'Please enter a valid email address.',
   invite_name_required: 'Please provide at least a first or last name.',
   invalid_role: 'Please select a valid role.',
@@ -56,8 +57,20 @@ const ERROR_MESSAGES: Record<string, string> = {
   cannot_remove_owner: 'Owner cannot be removed.',
   invalid_venues: 'One or more venues were invalid.',
   venue_lookup_failed: 'Unable to validate venues.',
+  not_org_owner: 'Only the organization owner can perform that action.',
   missing_service_role_key: 'Missing server credentials for invitations.',
   invalid_service_role_key: 'Invalid server credentials for invitations. Check SUPABASE_SERVICE_ROLE_KEY.',
+
+  // Admin-only direct staff add/remove (admin-staff-actions.ts)
+  staff_name_required: 'Please provide at least a first or last name.',
+  staff_invalid_email: 'Please enter a valid email address.',
+  staff_password_too_short: 'Password must be at least 8 characters.',
+  staff_invalid_role: 'Role must be owner, manager, or host.',
+  staff_user_create_failed: "We couldn't create that user. They may already exist with a different password — try resetting it instead.",
+  staff_member_add_failed: 'Adding the staff member to this organization failed.',
+  staff_venue_assign_failed: 'The user was added to the org, but assigning them to one or more venues failed.',
+  staff_missing_user: 'No user was selected for that action.',
+  staff_remove_failed: 'Removing the staff member failed.',
 };
 
 /* ── Shared styles ── */

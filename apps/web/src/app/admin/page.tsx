@@ -15,11 +15,36 @@ export default async function AdminPage({
   const sp = await searchParams;
   const pageError = sp?.error;
   const pageNotice = sp?.notice;
-  const noticeText = pageNotice === 'password_reset_sent'
-    ? 'Password-reset email sent.'
-    : pageNotice === 'user_updated'
-      ? 'User info updated.'
-      : null;
+
+  const NOTICE_MESSAGES: Record<string, string> = {
+    password_reset_sent: 'Password-reset email sent.',
+    user_updated: 'User info updated.',
+    org_updated: 'Organization updated. Venue display names propagated automatically.',
+  };
+  const noticeText = pageNotice ? (NOTICE_MESSAGES[pageNotice] ?? null) : null;
+
+  const ERROR_MESSAGES: Record<string, string> = {
+    // User-action errors
+    missing_user_id: 'No user was selected.',
+    user_not_staff: 'That user is not an owner, manager, or host — action skipped to be safe.',
+    user_email_not_found: "We couldn't find an email address for that user.",
+    password_reset_failed: 'Password reset failed. Check Supabase Auth → Emails is configured, then try again.',
+    invalid_email: 'That email address is not valid.',
+    user_update_failed: 'Updating the user failed. Check the logs.',
+    member_update_failed: 'Updating the user worked, but their org membership rows failed to sync. Try again.',
+
+    // Org-action errors
+    missing_org_id: 'No organization was selected.',
+    org_name_required: 'Organization name is required.',
+    invalid_slug: 'Slug must be lowercase letters, numbers, and hyphens (no leading or trailing hyphen).',
+    slug_taken: 'That slug is already in use by another organization.',
+    org_not_found: 'Organization not found, or it was deleted before the update completed.',
+
+    // Admin-user (super-admin only) errors
+    missing_email: 'Email address is required.',
+    cannot_remove_super_admin: 'The super admin cannot be removed.',
+  };
+  const errorText = pageError ? (ERROR_MESSAGES[pageError] ?? pageError) : null;
   const keyError = getServiceRoleKeyError();
   const supabase = keyError ? await createClient() : createServiceClient();
   const authClient = await createClient();
@@ -263,10 +288,10 @@ export default async function AdminPage({
         </div>
 
         {/* ── Action Error Banner ── */}
-        {pageError ? (
+        {errorText ? (
           <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-6">
             <p className="text-body-sm font-medium text-error">Action failed</p>
-            <p className="text-body-sm text-error/80 mt-0.5">{pageError}</p>
+            <p className="text-body-sm text-error/80 mt-0.5">{errorText}</p>
           </div>
         ) : null}
 

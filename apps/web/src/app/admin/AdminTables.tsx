@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useTransition, useMemo } from 'react';
 import { adminToggleWindow, adminToggleVenueStatus, adminSetPromotionTier, type PromotionTier } from '@/actions/admin-actions';
 import { adminSendPasswordReset, adminUpdateUserInfo } from '@/actions/admin-user-actions';
+import { adminUpdateOrganization } from '@/actions/admin-org-actions';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -340,6 +341,83 @@ function useSort<T>(rows: T[], defaultCol: keyof T) {
 /* ════════════════════════════════════════════════════════════════════════
    ORGANIZATIONS TABLE
    ════════════════════════════════════════════════════════════════════════ */
+function OrgRowItem({ org }: { org: OrgRow }) {
+  const [editing, setEditing] = useState(false);
+
+  return (
+    <>
+      <tr className="border-b border-border last:border-b-0 hover:bg-background/50 transition-colors">
+        <td className={`${tdCls} font-semibold text-foreground`}>{org.name}</td>
+        <td className={`${tdCls} font-mono text-caption text-muted`}>{org.slug}</td>
+        <td className={`${tdCls} tabular-nums`}>{org.venue_count}</td>
+        <td className={`${tdCls} tabular-nums`}>{org.member_count}</td>
+        <td className={`${tdCls} text-muted`}>{relativeTime(org.created_at)}</td>
+        <td className={`${tdCls} text-right whitespace-nowrap`}>
+          <div className="inline-flex gap-2 items-center justify-end">
+            <button
+              type="button"
+              onClick={() => setEditing((v) => !v)}
+              className="text-caption font-medium text-brand hover:text-brand-dark cursor-pointer"
+            >
+              {editing ? 'Cancel' : 'Edit'}
+            </button>
+            <span className="text-muted-light">·</span>
+            <Link href={`/orgs/${org.id}?from=admin`} className={linkCls}>Manage &rarr;</Link>
+          </div>
+        </td>
+      </tr>
+      {editing ? (
+        <tr className="bg-background/40 border-b border-border">
+          <td colSpan={6} className="px-4 py-4">
+            <form className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+              <input type="hidden" name="org_id" value={org.id} />
+              <div className="md:col-span-5 flex flex-col gap-1">
+                <label className="text-caption font-semibold text-muted uppercase tracking-wider">Organization name</label>
+                <input
+                  name="name"
+                  defaultValue={org.name}
+                  required
+                  className="flex h-9 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                />
+              </div>
+              <div className="md:col-span-4 flex flex-col gap-1">
+                <label className="text-caption font-semibold text-muted uppercase tracking-wider">
+                  Slug <span className="text-muted-light normal-case font-normal">(URL identifier — leave blank to keep)</span>
+                </label>
+                <input
+                  name="slug"
+                  defaultValue={org.slug}
+                  pattern="^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$"
+                  className="flex h-9 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm font-mono text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                />
+              </div>
+              <div className="md:col-span-3 flex gap-2">
+                <button
+                  formAction={adminUpdateOrganization.bind(null, org.id)}
+                  className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditing(false)}
+                  className="inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-muted hover:text-foreground hover:bg-background transition-colors cursor-pointer"
+                >
+                  Discard
+                </button>
+              </div>
+              <p className="md:col-span-12 text-caption text-muted-light -mt-1">
+                Renaming the org will automatically update <code className="font-mono">venue.org_name</code> on every venue (via the <code className="font-mono">trg_propagate_org_name</code> trigger).
+                Slug changes break old shareable URLs — only edit if you know what you're doing.
+              </p>
+            </form>
+          </td>
+        </tr>
+      ) : null}
+    </>
+  );
+}
+
 export function OrgsTable({ orgs }: { orgs: OrgRow[] }) {
   const { sorted, col, dir, toggle } = useSort(orgs, 'name');
   const [search, setSearch] = useState('');
@@ -386,21 +464,12 @@ export function OrgsTable({ orgs }: { orgs: OrgRow[] }) {
                 <SortHeader label="Venues" col="venue_count" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="Members" col="member_count" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="Created" col="created_at" active={col} dir={dir} onClick={toggle} />
-                <th className={thCls}></th>
+                <th className={`${thCls} text-right`}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {paged.map((o) => (
-                <tr key={o.id} className="border-b border-border last:border-b-0 hover:bg-background/50 transition-colors">
-                  <td className={`${tdCls} font-semibold text-foreground`}>{o.name}</td>
-                  <td className={`${tdCls} font-mono text-caption text-muted`}>{o.slug}</td>
-                  <td className={`${tdCls} tabular-nums`}>{o.venue_count}</td>
-                  <td className={`${tdCls} tabular-nums`}>{o.member_count}</td>
-                  <td className={`${tdCls} text-muted`}>{relativeTime(o.created_at)}</td>
-                  <td className={tdCls}>
-                    <Link href={`/orgs/${o.id}?from=admin`} className={linkCls}>Manage &rarr;</Link>
-                  </td>
-                </tr>
+                <OrgRowItem key={o.id} org={o} />
               ))}
               {paged.length === 0 && (
                 <tr>

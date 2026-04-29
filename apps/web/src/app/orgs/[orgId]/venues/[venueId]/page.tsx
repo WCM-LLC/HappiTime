@@ -177,6 +177,45 @@ export default async function VenuePage({
   const pageError = sp?.error;
   const fromAdmin = sp?.from === 'admin';
 
+  const VENUE_ERROR_MESSAGES: Record<string, string> = {
+    not_authorized: "You don't have permission to make that change.",
+    venue_not_found: "We couldn't find that venue.",
+    venue_update_failed: 'Saving venue details failed. Try again.',
+    missing_venue_name: 'Venue name is required.',
+    cuisine_update_failed: 'Updating the cuisine type failed.',
+    tags_update_failed: 'Updating venue tags failed.',
+    happyhour_create_failed: 'Creating that happy hour window failed.',
+    happyhour_update_failed: 'Updating that happy hour window failed.',
+    happyhour_delete_failed: 'Deleting that happy hour window failed.',
+    happyhour_publish_failed: 'Publishing that happy hour window failed.',
+    happyhour_unpublish_failed: 'Unpublishing that happy hour window failed.',
+    happyhour_menus_update_failed: 'Updating which menus run during this happy hour failed.',
+    happyhour_not_found: "We couldn't find that happy hour window.",
+    missing_dow: 'Pick at least one day of the week.',
+    missing_time: 'Start and end times are required.',
+    menu_create_failed: 'Creating the menu failed.',
+    menu_update_failed: 'Updating the menu failed.',
+    menu_delete_failed: 'Deleting the menu failed.',
+    menu_publish_failed: 'Publishing the menu failed.',
+    menu_unpublish_failed: 'Unpublishing the menu failed.',
+    missing_menu_name: 'Menu name is required.',
+    section_create_failed: 'Creating the menu section failed.',
+    section_update_failed: 'Updating the menu section failed.',
+    section_delete_failed: 'Deleting the menu section failed.',
+    item_create_failed: 'Creating the menu item failed.',
+    item_update_failed: 'Updating the menu item failed.',
+    item_delete_failed: 'Deleting the menu item failed.',
+    missing_item_fields: 'Item name and price are required.',
+    event_create_failed: 'Creating the event failed.',
+    event_update_failed: 'Updating the event failed.',
+    event_delete_failed: 'Deleting the event failed.',
+    event_publish_failed: 'Publishing the event failed.',
+    event_unpublish_failed: 'Unpublishing the event failed.',
+    missing_event_title: 'Event title is required.',
+    missing_event_date: 'Event start date is required.',
+  };
+  const errorText = pageError ? (VENUE_ERROR_MESSAGES[pageError] ?? pageError) : null;
+
   const authClient = await createClient();
   const { data: auth } = await authClient.auth.getUser();
   const user = auth.user;
@@ -190,7 +229,9 @@ export default async function VenuePage({
   }
 
   const userIsAdmin = await isAdminEmail(user.email);
-  const supabase = (fromAdmin && userIsAdmin) ? createServiceClient() : await createClient();
+  // Admins always read via service role so cross-org reads bypass RLS.
+  // (RLS on writes is now handled by the platform_admin override policies.)
+  const supabase = userIsAdmin ? createServiceClient() : await createClient();
 
   const { data: membership } = await (await createClient())
     .from('org_members')
@@ -200,10 +241,13 @@ export default async function VenuePage({
     .maybeSingle();
 
   const role = String(membership?.role ?? '');
-  const isOwner = role === 'owner' || (fromAdmin && userIsAdmin);
+  // Admin users always get full management access regardless of how they navigated
+  // (used to require ?from=admin in the URL — that bug caused the misleading
+  //  "editing requires manager access" message after a successful save).
+  const isOwner = role === 'owner' || userIsAdmin;
   const isManager = role === 'manager' || role === 'admin' || role === 'editor';
   const isHost = role === 'host';
-  const canManageVenue = isOwner || isManager || (fromAdmin && userIsAdmin);
+  const canManageVenue = isOwner || isManager || userIsAdmin;
   const canEditMenuItems = canManageVenue || isHost;
 
   const { data: venue, error: venueErr } = await fetchVenueById(supabase as any, venueId, { orgId });
@@ -356,7 +400,7 @@ export default async function VenuePage({
 
         {/* ── Error Banners ── */}
         {[
-          pageError && { title: 'Error', msg: pageError },
+          errorText && { title: 'Error', msg: errorText },
           venueErr && { title: 'Venue load error', msg: venueErr.message },
           hhErr && { title: 'Happy hour load error', msg: hhErr.message },
           menusErr && { title: 'Menus load error', msg: menusErr.message },
