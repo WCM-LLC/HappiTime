@@ -131,7 +131,7 @@ export default async function VenueDetailPage({ params }: Props) {
 
       {/* Venue header */}
       <div className="mb-8">
-        <div className="flex items-start justify-between gap-4 mb-2">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-2">
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
             {venue.name}
           </h1>
@@ -144,7 +144,7 @@ export default async function VenueDetailPage({ params }: Props) {
           />
         </div>
         <p className="text-muted">{venue.address}</p>
-        <div className="flex items-center gap-4 mt-3 text-sm">
+        <div className="flex flex-wrap items-center gap-3 mt-3 text-sm">
           {venue.rating != null && (
             <span className="font-semibold text-brand">
               ★ {Number(venue.rating).toFixed(1)}
@@ -162,7 +162,7 @@ export default async function VenueDetailPage({ params }: Props) {
           )}
           {venue.tags.length > 0 && (
             <div className="flex gap-1.5 flex-wrap">
-              {venue.tags.slice(0, 6).map((tag) => (
+              {venue.tags.slice(0, 3).map((tag) => (
                 <span
                   key={tag}
                   className="rounded-full bg-brand-subtle px-2.5 py-0.5 text-xs font-medium text-brand-text"
@@ -170,6 +170,11 @@ export default async function VenueDetailPage({ params }: Props) {
                   {tag.replace(/[_-]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
                 </span>
               ))}
+              {venue.tags.length > 3 && (
+                <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-muted">
+                  +{venue.tags.length - 3} more
+                </span>
+              )}
             </div>
           )}
         </div>

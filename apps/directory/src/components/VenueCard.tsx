@@ -131,7 +131,7 @@ export function VenueCard({ venue, neighborhoodSlug, todayIndex }: VenueCardProp
       <div className="space-y-2">
         {venue.happy_hour_windows.slice(0, 3).map((w) => (
           <div key={w.id} className="flex items-center justify-between text-xs">
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
               {w.dow.map((d) => (
                 <span
                   key={d}

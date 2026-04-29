@@ -64,7 +64,7 @@ export const metadata: Metadata = {
 };
 
 import { ItineraryProvider } from "@/components/ItineraryContext";
-import { ItineraryBadge } from "@/components/ItineraryBadge";
+import { SiteNav } from "@/components/SiteNav";
 
 export default function RootLayout({
   children,
@@ -141,32 +141,12 @@ gtag('config', 'G-8MZMX2GH4E');`,
 
 function SiteHeader() {
   return (
-    <header className="border-b border-border bg-surface sticky top-0 z-50">
+    <header className="border-b border-border bg-surface sticky top-0 z-50 relative">
       <div className="mx-auto max-w-5xl flex items-center justify-between px-6 py-4">
         <a href="/" className="flex items-center">
           <HappiTimeLogo className="h-8" />
         </a>
-        <nav className="flex items-center gap-4 text-sm font-medium text-muted">
-          <a href="/kc/" className="hover:text-foreground transition-colors">
-            Kansas City
-          </a>
-          <a href="/guides/" className="hover:text-foreground transition-colors">
-            Guides
-          </a>
-          <ItineraryBadge />
-          <a
-            href="https://happitime-console.vercel.app/login"
-            className="hover:text-foreground transition-colors"
-          >
-            Venue Login
-          </a>
-          <a
-            href="/app/"
-            className="rounded-full bg-brand px-4 py-2 text-white font-semibold text-xs hover:bg-brand-dark transition-colors"
-          >
-            Get the App
-          </a>
-        </nav>
+        <SiteNav />
       </div>
     </header>
   );
@@ -180,7 +160,7 @@ function SiteFooter() {
           <HappiTimeLogo className="h-5" />
           <span className="text-muted-light">&copy; {new Date().getFullYear()}</span>
         </div>
-        <div className="flex gap-6">
+        <div className="flex flex-wrap gap-x-6 gap-y-3 justify-center sm:justify-end">
           <a
             href="https://happitime-console.vercel.app/login"
             className="hover:text-foreground transition-colors"

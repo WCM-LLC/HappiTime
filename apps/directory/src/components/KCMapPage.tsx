@@ -588,6 +588,7 @@ function FilterBar({ filters, setFilters, openNow, setOpenNow, search, setSearch
       </div>
 
       {/* Filter chips row */}
+      <div className="relative">
       <div
         className="flex items-center gap-1.5 px-3.5 py-2 overflow-x-auto"
         style={{ scrollbarWidth: "none" } as React.CSSProperties}
@@ -642,6 +643,8 @@ function FilterBar({ filters, setFilters, openNow, setOpenNow, search, setSearch
             Clear all
           </button>
         )}
+      </div>
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-surface to-transparent" />
       </div>
 
       {/* Dropdown panel */}
@@ -920,7 +923,7 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
   );
 
   const mapPanel = (
-    <div className="flex-1 relative overflow-hidden" style={{ background: "#D4D9E6", minHeight: isMobile ? "100%" : 0 }}>
+    <div className="flex-1 relative overflow-hidden" style={{ background: "#D4D9E6", height: isMobile ? "100%" : undefined, minHeight: 0 }}>
       <MapView
         filteredVenues={filteredVenues}
         allVenues={venues}
