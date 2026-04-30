@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { getStripe } from '@/utils/stripe';
+import {
+  STRIPE_BILLING_CONFIG_ERROR,
+  getStripe,
+  isStripeConfigurationError,
+} from '@/utils/stripe';
 
 export const runtime = 'nodejs';
 
@@ -46,7 +50,11 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('[stripe/portal]', err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Internal error' },
+      {
+        error: isStripeConfigurationError(err)
+          ? STRIPE_BILLING_CONFIG_ERROR
+          : 'Could not open billing. Please try again.',
+      },
       { status: 500 }
     );
   }

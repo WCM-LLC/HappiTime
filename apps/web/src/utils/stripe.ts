@@ -3,6 +3,20 @@ import Stripe from 'stripe';
 // Singleton Stripe client — reused across invocations in the same function instance
 let _stripe: Stripe | null = null;
 
+export const STRIPE_BILLING_CONFIG_ERROR =
+  'Billing is not configured yet. Please contact support.';
+
+const STRIPE_CONFIG_ERROR_PATTERNS = [
+  /^STRIPE_SECRET_KEY is not set$/,
+  /^STRIPE_PRODUCT_(BASIC|FEATURED|PREMIUM) is not set$/,
+  /^No active recurring price found for product /,
+];
+
+export function isStripeConfigurationError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return STRIPE_CONFIG_ERROR_PATTERNS.some((pattern) => pattern.test(err.message));
+}
+
 export function getStripe(): Stripe {
   if (!_stripe) {
     const key = process.env.STRIPE_SECRET_KEY;

@@ -11,6 +11,18 @@ Server-only (required for org invites + admin actions):
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `ADMIN_EMAILS` — comma-separated list of admin email addresses
 
+Server-only (required for venue billing / Stripe checkout):
+- `STRIPE_SECRET_KEY` — Stripe test or live secret key; use test mode until checkout and webhooks are verified.
+- `STRIPE_PRODUCT_BASIC` — Stripe product ID for the Basic monthly plan.
+- `STRIPE_PRODUCT_FEATURED` — Stripe product ID for the Featured monthly plan.
+- `STRIPE_PRODUCT_PREMIUM` — Stripe product ID for the Premium monthly plan.
+- `STRIPE_WEBHOOK_SECRET` — Stripe webhook signing secret for `/api/stripe/webhook`.
+
+Optional Stripe:
+- `STRIPE_WEBHOOK_SECRET_THIN` — only set this if a second Stripe webhook endpoint/signing secret is configured.
+
+Do not expose Stripe secrets with `NEXT_PUBLIC_` names.
+
 Optional (auth debug):
 - `AUTH_DEBUG` — enable server-side auth logging (`true`/`false`)
 - `NEXT_PUBLIC_AUTH_DEBUG` — enable client-side auth logging (`true`/`false`)

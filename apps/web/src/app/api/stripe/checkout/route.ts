@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { getStripe, getPriceIdForPlan, type SubscriptionPlan } from '@/utils/stripe';
+import {
+  STRIPE_BILLING_CONFIG_ERROR,
+  getStripe,
+  getPriceIdForPlan,
+  isStripeConfigurationError,
+  type SubscriptionPlan,
+} from '@/utils/stripe';
 
 export const runtime = 'nodejs';
 
@@ -76,7 +82,11 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error('[stripe/checkout]', err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Internal error' },
+      {
+        error: isStripeConfigurationError(err)
+          ? STRIPE_BILLING_CONFIG_ERROR
+          : 'Checkout failed. Please try again.',
+      },
       { status: 500 }
     );
   }
