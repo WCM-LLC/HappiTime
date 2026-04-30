@@ -68,8 +68,8 @@ export async function POST(req: NextRequest) {
       subscription_data: {
         metadata: { venue_id: venueId, org_id: orgId, plan },
       },
-      success_url: `${origin}/orgs/${body.orgId}/venues/${venueId}?subscription=success`,
-      cancel_url:  `${origin}/orgs/${body.orgId}/venues/${venueId}?subscription=cancelled`,
+      success_url: `${origin}/orgs/${orgId}/venues/${venueId}/subscription?subscription=success`,
+      cancel_url:  `${origin}/orgs/${orgId}/venues/${venueId}/subscription?subscription=cancelled`,
     });
 
     return NextResponse.json({ url: session.url });

@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import VenueMediaUploader from '@/components/VenueMediaUploader';
-import { SubscriptionPanel } from '@/components/SubscriptionPanel';
 import type { SubscriptionPlan } from '@/utils/stripe';
+import { PLAN_LABEL } from '@/utils/subscription-features';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
 import { isAdminEmail } from '@/utils/admin-emails';
 import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
@@ -172,13 +172,12 @@ export default async function VenuePage({
   searchParams,
 }: {
   params: Promise<{ orgId: string; venueId: string }>;
-  searchParams: Promise<{ error?: string; from?: string; subscription?: string }>;
+  searchParams: Promise<{ error?: string; from?: string }>;
 }) {
   const { orgId, venueId } = await params;
   const sp = await searchParams;
   const pageError = sp?.error;
   const fromAdmin = sp?.from === 'admin';
-  const subscriptionResult = sp?.subscription;
 
   const VENUE_ERROR_MESSAGES: Record<string, string> = {
     not_authorized: "You don't have permission to make that change.",
@@ -402,6 +401,21 @@ export default async function VenuePage({
             <Link href={previewHref} target="_blank" rel="noopener noreferrer">
               <span className={btnDark}>Preview in App</span>
             </Link>
+            {canManageVenue && (
+              <Link href={`/orgs/${orgId}/venues/${venueId}/subscription`}>
+                <span className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-md border text-body-sm font-medium transition-colors cursor-pointer ${
+                  currentPlan === 'premium'  ? 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100' :
+                  currentPlan === 'featured' ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100' :
+                  currentPlan === 'basic'    ? 'border-brand/30 bg-brand-subtle text-brand-dark-alt hover:bg-brand-subtle/80' :
+                  'border-border bg-surface text-muted hover:bg-background'
+                }`}>
+                  <span className={`inline-block h-2 w-2 rounded-full ${
+                    currentPlan === 'listed' ? 'bg-muted-light' : 'bg-current'
+                  }`} />
+                  {PLAN_LABEL[currentPlan]}
+                </span>
+              </Link>
+            )}
             {fromAdmin ? (
               <Link href="/admin">
                 <span className={btnSecondary}>Return to console</span>
@@ -412,18 +426,6 @@ export default async function VenuePage({
             </Link>
           </div>
         </div>
-
-        {/* ── Subscription banners ── */}
-        {subscriptionResult === 'success' && (
-          <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 mb-4">
-            <p className="text-body-sm font-medium text-green-700">Subscription activated — your plan is now live.</p>
-          </div>
-        )}
-        {subscriptionResult === 'cancelled' && (
-          <div className="rounded-md border border-border bg-surface px-4 py-3 mb-4">
-            <p className="text-body-sm text-muted">Checkout was cancelled — no changes were made.</p>
-          </div>
-        )}
 
         {/* ── Error Banners ── */}
         {[
@@ -1456,14 +1458,7 @@ export default async function VenuePage({
         ) : null}
 
         {/* ══════════════════════════════════════════════
-            SECTION 5 — SUBSCRIPTION
-        ══════════════════════════════════════════════ */}
-        {canManageVenue && (
-          <SubscriptionPanel venueId={venueId} orgId={orgId} currentPlan={currentPlan} />
-        )}
-
-        {/* ══════════════════════════════════════════════
-            SECTION 6 — ANALYTICS
+            SECTION 5 — ANALYTICS
         ══════════════════════════════════════════════ */}
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
           <div className="mb-5">

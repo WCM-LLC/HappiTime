@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     const origin = req.headers.get('origin') ?? 'https://www.happitime.biz';
     const session = await getStripe().billingPortal.sessions.create({
       customer: sub.stripe_customer_id,
-      return_url: `${origin}/orgs/${orgId}/venues/${venueId}`,
+      return_url: `${origin}/orgs/${orgId}/venues/${venueId}/subscription`,
     });
 
     return NextResponse.json({ url: session.url });
