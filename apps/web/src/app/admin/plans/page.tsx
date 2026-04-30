@@ -40,6 +40,11 @@ const thCls = 'text-left px-4 py-3 text-caption font-semibold text-muted upperca
 const tdCls = 'px-4 py-3';
 
 const PLAN_BADGE: Record<string, string> = {
+  listed:   'bg-surface text-muted border border-border',
+  basic:    'bg-brand-subtle text-brand-dark-alt',
+  featured: 'bg-amber-50 text-amber-700',
+  premium:  'bg-violet-50 text-violet-700',
+  // legacy names kept for existing rows
   free:     'bg-surface text-muted border border-border',
   pro:      'bg-brand-subtle text-brand-dark-alt',
   business: 'bg-amber-50 text-amber-700',
@@ -278,9 +283,10 @@ export default async function PlansPage() {
                     required
                     className="h-9 px-3 rounded-md border border-border bg-background text-body-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand"
                   >
-                    <option value="free">free</option>
-                    <option value="pro">pro</option>
-                    <option value="business">business</option>
+                    <option value="listed">listed</option>
+                    <option value="basic">basic</option>
+                    <option value="featured">featured</option>
+                    <option value="premium">premium</option>
                   </select>
                 </div>
 

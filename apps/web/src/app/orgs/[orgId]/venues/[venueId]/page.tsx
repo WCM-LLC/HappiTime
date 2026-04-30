@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import VenueMediaUploader from '@/components/VenueMediaUploader';
+import { SubscriptionPanel } from '@/components/SubscriptionPanel';
+import type { SubscriptionPlan } from '@/utils/stripe';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
 import { isAdminEmail } from '@/utils/admin-emails';
 import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
@@ -170,12 +172,13 @@ export default async function VenuePage({
   searchParams,
 }: {
   params: Promise<{ orgId: string; venueId: string }>;
-  searchParams: Promise<{ error?: string; from?: string }>;
+  searchParams: Promise<{ error?: string; from?: string; subscription?: string }>;
 }) {
   const { orgId, venueId } = await params;
   const sp = await searchParams;
   const pageError = sp?.error;
   const fromAdmin = sp?.from === 'admin';
+  const subscriptionResult = sp?.subscription;
 
   const VENUE_ERROR_MESSAGES: Record<string, string> = {
     not_authorized: "You don't have permission to make that change.",
@@ -309,6 +312,18 @@ export default async function VenuePage({
     .select('tag_id')
     .eq('venue_id', venueId);
 
+  // Venue subscription
+  const { data: venueSub } = await (supabase as any)
+    .from('venue_subscriptions')
+    .select('plan, status')
+    .eq('venue_id', venueId)
+    .maybeSingle();
+
+  const currentPlan: SubscriptionPlan =
+    venueSub?.status === 'active' || venueSub?.status === 'trialing'
+      ? ((['basic', 'featured', 'premium'].includes(venueSub.plan) ? venueSub.plan : 'listed') as SubscriptionPlan)
+      : 'listed';
+
   // Staff members for this venue (admin only)
   type StaffMember = { user_id: string; role: string; email: string | null; first_name: string | null; last_name: string | null };
   type VenueMemberRow = { user_id: string };
@@ -397,6 +412,18 @@ export default async function VenuePage({
             </Link>
           </div>
         </div>
+
+        {/* ── Subscription banners ── */}
+        {subscriptionResult === 'success' && (
+          <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 mb-4">
+            <p className="text-body-sm font-medium text-green-700">Subscription activated — your plan is now live.</p>
+          </div>
+        )}
+        {subscriptionResult === 'cancelled' && (
+          <div className="rounded-md border border-border bg-surface px-4 py-3 mb-4">
+            <p className="text-body-sm text-muted">Checkout was cancelled — no changes were made.</p>
+          </div>
+        )}
 
         {/* ── Error Banners ── */}
         {[
@@ -1429,7 +1456,14 @@ export default async function VenuePage({
         ) : null}
 
         {/* ══════════════════════════════════════════════
-            SECTION 5 — ANALYTICS
+            SECTION 5 — SUBSCRIPTION
+        ══════════════════════════════════════════════ */}
+        {canManageVenue && (
+          <SubscriptionPanel venueId={venueId} orgId={orgId} currentPlan={currentPlan} />
+        )}
+
+        {/* ══════════════════════════════════════════════
+            SECTION 6 — ANALYTICS
         ══════════════════════════════════════════════ */}
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
           <div className="mb-5">
