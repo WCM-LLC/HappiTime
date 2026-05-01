@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getNeighborhood } from "@/lib/neighborhoods";
+import { getHappyHourLandingPageByNeighborhoodSlug } from "@/lib/seoNeighborhoods";
 import { getVenueBySlug } from "@/lib/queries";
 import { venueJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 import { PageTracker } from "@/components/PageTracker";
@@ -74,14 +75,20 @@ export default async function VenueDetailPage({ params }: Props) {
   if (!venue) notFound();
 
   const jsonLd = venueJsonLd(venue);
+  const neighborhoodLandingPage = neighborhood
+    ? getHappyHourLandingPageByNeighborhoodSlug(neighborhood.slug)
+    : undefined;
+  const neighborhoodPath = neighborhood
+    ? neighborhoodLandingPage?.canonicalPath ?? `/kc/${neighborhood.slug}/`
+    : null;
   const breadcrumbs = breadcrumbJsonLd([
     { name: "HappiTime", url: "https://happitime.biz/" },
     { name: "Kansas City", url: "https://happitime.biz/kc/" },
-    ...(neighborhood
+    ...(neighborhood && neighborhoodPath
       ? [
           {
             name: neighborhood.name,
-            url: `https://happitime.biz/kc/${neighborhood.slug}/`,
+            url: `https://happitime.biz${neighborhoodPath}`,
           },
         ]
       : []),
@@ -118,7 +125,7 @@ export default async function VenueDetailPage({ params }: Props) {
           <>
             <span className="text-muted-light">/</span>
             <a
-              href={`/kc/${neighborhood.slug}/`}
+              href={neighborhoodPath ?? `/kc/${neighborhood.slug}/`}
               className="hover:text-foreground transition-colors"
             >
               {neighborhood.name}

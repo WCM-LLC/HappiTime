@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
 import { KC_NEIGHBORHOODS, type Neighborhood } from "@/lib/neighborhoods";
+import {
+  HAPPY_HOUR_LANDING_PAGES,
+  getHappyHourLandingPageByNeighborhoodSlug,
+  getNeighborhoodForLandingPage,
+} from "@/lib/seoNeighborhoods";
 import { getAllKCVenues } from "@/lib/queries";
 import type { VenueWithWindows } from "@/lib/queries";
 import { KCMapPage } from "@/components/KCMapPage";
@@ -7,10 +12,15 @@ import { KCMapPage } from "@/components/KCMapPage";
 // Revalidate every 15 minutes — keeps venue data fresh
 export const revalidate = 900;
 
+const KC_SEO_TITLE = "Happy Hours in Kansas City | HappiTime";
+const KC_SEO_DESCRIPTION =
+  "Find the best happy hour deals in Kansas City. Browse drink specials and food deals by neighborhood — Westport, Plaza, Crossroads & more. Download HappiTime free.";
+
 export const metadata: Metadata = {
-  title: "Happy Hours in Kansas City — Best Deals by Neighborhood (2026)",
-  description:
-    "Daily updated happy hours in Kansas City — find the best drink specials, food deals, and bar discounts across Westport, Power & Light, Crossroads, Plaza, 18th & Vine, Brookside, and more KC neighborhoods.",
+  title: {
+    absolute: KC_SEO_TITLE,
+  },
+  description: KC_SEO_DESCRIPTION,
   keywords: [
     "Kansas City happy hour",
     "KC happy hour deals",
@@ -25,6 +35,17 @@ export const metadata: Metadata = {
   ],
   alternates: {
     canonical: "/kc/",
+  },
+  openGraph: {
+    type: "website",
+    title: KC_SEO_TITLE,
+    description: KC_SEO_DESCRIPTION,
+    url: "https://happitime.biz/kc/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: KC_SEO_TITLE,
+    description: KC_SEO_DESCRIPTION,
   },
 };
 
@@ -84,15 +105,19 @@ export default async function KCPage() {
       "@type": "ListItem",
       position: i + 1,
       name: n.name,
-      url: `https://happitime.biz/kc/${n.slug}/`,
+      url: `https://happitime.biz${
+        getHappyHourLandingPageByNeighborhoodSlug(n.slug)?.canonicalPath ??
+        `/kc/${n.slug}/`
+      }`,
     })),
   };
 
   const webPageJsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: "Happy Hours in Kansas City — Best Deals by Neighborhood (2026)",
+    name: KC_SEO_TITLE,
     url: "https://happitime.biz/kc/",
+    description: KC_SEO_DESCRIPTION,
     breadcrumb: {
       "@type": "BreadcrumbList",
       itemListElement: [
@@ -127,6 +152,42 @@ export default async function KCPage() {
         neighborhoods={KC_NEIGHBORHOODS}
         bestNeighborhoodSlugMap={bestNeighborhoodSlugMap}
       />
+      <NeighborhoodSeoLinks />
     </>
+  );
+}
+
+function NeighborhoodSeoLinks() {
+  return (
+    <section
+      aria-label="Kansas City happy hour neighborhoods"
+      className="border-t border-border bg-background"
+    >
+      <div className="mx-auto max-w-5xl px-6 py-12">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {HAPPY_HOUR_LANDING_PAGES.map((page) => {
+            const neighborhood = getNeighborhoodForLandingPage(page);
+
+            return (
+              <a
+                key={page.slug}
+                href={page.canonicalPath}
+                className="group block rounded-2xl border border-border bg-surface p-5 transition-all hover:border-brand hover:shadow-sm"
+              >
+                <h2 className="text-lg font-bold text-foreground transition-colors group-hover:text-brand">
+                  {page.h2}
+                </h2>
+                <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted">
+                  {neighborhood?.description ?? page.intro}
+                </p>
+                <span className="mt-4 inline-flex text-xs font-semibold text-brand">
+                  View happy hours →
+                </span>
+              </a>
+            );
+          })}
+        </div>
+      </div>
+    </section>
   );
 }

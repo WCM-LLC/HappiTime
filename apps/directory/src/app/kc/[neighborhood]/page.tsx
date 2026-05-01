@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import {
   KC_NEIGHBORHOODS,
   getNeighborhood,
 } from "@/lib/neighborhoods";
+import { getHappyHourLandingPageByNeighborhoodSlug } from "@/lib/seoNeighborhoods";
 import { getVenuesByNeighborhood } from "@/lib/queries";
 import { breadcrumbJsonLd } from "@/lib/structuredData";
 import { NeighborhoodVenues } from "@/components/NeighborhoodVenues";
@@ -21,6 +22,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { neighborhood: slug } = await params;
   const n = getNeighborhood(slug);
   if (!n) return {};
+  const landingPage = getHappyHourLandingPageByNeighborhoodSlug(slug);
+
+  if (landingPage) {
+    return {
+      title: {
+        absolute: `${landingPage.h2} | HappiTime`,
+      },
+      description: landingPage.metaDescription,
+      alternates: {
+        canonical: landingPage.canonicalPath,
+      },
+    };
+  }
 
   return {
     title: `${n.name} Happy Hour Deals & Specials — Kansas City | HappiTime`,
@@ -48,6 +62,11 @@ export default async function NeighborhoodPage({ params }: Props) {
   const { neighborhood: slug } = await params;
   const neighborhood = getNeighborhood(slug);
   if (!neighborhood) notFound();
+  const landingPage = getHappyHourLandingPageByNeighborhoodSlug(slug);
+
+  if (landingPage) {
+    permanentRedirect(landingPage.canonicalPath);
+  }
 
   const venues = await getVenuesByNeighborhood(neighborhood);
   const todayIndex = new Date().getDay();
@@ -138,20 +157,26 @@ export default async function NeighborhoodPage({ params }: Props) {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {KC_NEIGHBORHOODS.filter((n) => n.slug !== neighborhood.slug)
             .slice(0, 4)
-            .map((n) => (
-              <a
-                key={n.slug}
-                href={`/kc/${n.slug}/`}
-                className="block rounded-xl border border-border bg-surface p-4 hover:border-brand hover:shadow-sm transition-all"
-              >
-                <p className="font-semibold text-foreground text-sm group-hover:text-brand">
-                  {n.name}
-                </p>
-                <p className="text-xs text-muted mt-1 line-clamp-2">
-                  {n.description}
-                </p>
-              </a>
-            ))}
+            .map((n) => {
+              const landingPage = getHappyHourLandingPageByNeighborhoodSlug(
+                n.slug
+              );
+
+              return (
+                <a
+                  key={n.slug}
+                  href={landingPage?.canonicalPath ?? `/kc/${n.slug}/`}
+                  className="block rounded-xl border border-border bg-surface p-4 hover:border-brand hover:shadow-sm transition-all"
+                >
+                  <p className="font-semibold text-foreground text-sm group-hover:text-brand">
+                    {n.name}
+                  </p>
+                  <p className="text-xs text-muted mt-1 line-clamp-2">
+                    {n.description}
+                  </p>
+                </a>
+              );
+            })}
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { KC_NEIGHBORHOODS } from "@/lib/neighborhoods";
+import { HAPPY_HOUR_LANDING_PAGES } from "@/lib/seoNeighborhoods";
 import { getAllKCVenues } from "@/lib/queries";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -87,15 +88,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // Neighborhood pages
-  const neighborhoodPages: MetadataRoute.Sitemap = KC_NEIGHBORHOODS.map(
-    (n) => ({
-      url: `${baseUrl}/kc/${n.slug}/`,
+  const redirectedNeighborhoodSlugs = new Set(
+    HAPPY_HOUR_LANDING_PAGES.map((page) => page.neighborhoodSlug)
+  );
+
+  // Canonical happy-hour neighborhood landing pages
+  const happyHourLandingPages: MetadataRoute.Sitemap =
+    HAPPY_HOUR_LANDING_PAGES.map((page) => ({
+      url: `${baseUrl}${page.canonicalPath}`,
       lastModified: new Date(),
       changeFrequency: "daily" as const,
-      priority: 0.8,
-    })
-  );
+      priority: 0.85,
+    }));
+
+  // Remaining neighborhood pages
+  const neighborhoodPages: MetadataRoute.Sitemap = KC_NEIGHBORHOODS.filter(
+    (n) => !redirectedNeighborhoodSlugs.has(n.slug)
+  ).map((n) => ({
+    url: `${baseUrl}/kc/${n.slug}/`,
+    lastModified: new Date(),
+    changeFrequency: "daily" as const,
+    priority: 0.8,
+  }));
 
   // Venue detail pages
   let venuePages: MetadataRoute.Sitemap = [];
@@ -133,5 +147,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // If DB is unavailable, skip venue pages
   }
 
-  return [...staticPages, ...neighborhoodPages, ...venuePages];
+  return [
+    ...staticPages,
+    ...happyHourLandingPages,
+    ...neighborhoodPages,
+    ...venuePages,
+  ];
 }
