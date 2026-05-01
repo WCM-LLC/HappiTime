@@ -1,7 +1,12 @@
 -- venue_visits: track how a visit was recorded and whether the user wants it private
-ALTER TABLE venue_visits
-  ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'manual',
-  ADD COLUMN IF NOT EXISTS is_private BOOLEAN NOT NULL DEFAULT false;
+DO $$
+BEGIN
+  IF to_regclass('public.venue_visits') IS NOT NULL THEN
+    ALTER TABLE public.venue_visits
+      ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'manual',
+      ADD COLUMN IF NOT EXISTS is_private BOOLEAN NOT NULL DEFAULT false;
+  END IF;
+END $$;
 
 -- Per-venue notification opt-out (user blocks happy-hour pings from a specific venue)
 CREATE TABLE IF NOT EXISTS user_venue_notification_blocks (
