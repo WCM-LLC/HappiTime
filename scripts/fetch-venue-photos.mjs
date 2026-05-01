@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
- * Fetch venue photos: Website first, Google Places second, Unsplash last.
+ * Fetch venue photos: Google Places first, then venue-owned sources,
+ * then Unsplash as a strict last resort.
  *
  * For each venue without media:
- *   1. Try venue website — scrape og:image, twitter:image, and large <img> tags
- *   2. Try Google Places — search by name + address, download up to 6 photos
+ *   1. Try Google Places — search by name + address, download up to 6 photos
+ *   2. Try venue-owned sources — website + linked social profiles
  *   3. Fall back to Unsplash — cuisine/tag-based search, 1 cover image
  *
  * Run from project root:
@@ -174,6 +175,35 @@ async function scrapeWebsiteImages(websiteUrl) {
   }
 }
 
+async function scrapeSocialImagesFromWebsite(websiteUrl) {
+  try {
+    const res = await fetch(websiteUrl, { headers: { "User-Agent": "HappiTime-PhotoBot/1.0" } });
+    if (!res.ok) return [];
+    const html = await res.text();
+    const socialUrls = new Set();
+    const hrefRegex = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
+    let match;
+    while ((match = hrefRegex.exec(html)) !== null) {
+      const href = match[1];
+      if (!href) continue;
+      const lower = href.toLowerCase();
+      if (lower.includes("instagram.com") || lower.includes("facebook.com") || lower.includes("tiktok.com")) {
+        const resolved = resolveUrl(href, websiteUrl);
+        if (resolved) socialUrls.add(resolved);
+      }
+    }
+    const images = [];
+    for (const socialUrl of socialUrls) {
+      const social = await scrapeWebsiteImages(socialUrl);
+      for (const img of social) images.push({ ...img, source: `social:${new URL(socialUrl).hostname}` });
+      if (images.length >= 6) break;
+    }
+    return images.slice(0, 6);
+  } catch {
+    return [];
+  }
+}
+
 function resolveUrl(src, base) {
   try {
     return new URL(src, base).href;
@@ -243,17 +273,19 @@ async function tryWebsite(venue) {
   if (!url.startsWith("http")) url = `https://${url}`;
 
   const images = await scrapeWebsiteImages(url);
-  if (images.length === 0) return 0;
+  const socialImages = await scrapeSocialImagesFromWebsite(url);
+  const merged = [...images, ...socialImages].slice(0, 6);
+  if (merged.length === 0) return 0;
 
   if (DRY_RUN) {
-    console.log(`\n      Website: found ${images.length} images`);
-    for (const img of images) console.log(`        ${img.source}: ${img.url.substring(0, 80)}...`);
-    return images.length;
+    console.log(`\n      Website/Social: found ${merged.length} images`);
+    for (const img of merged) console.log(`        ${img.source}: ${img.url.substring(0, 80)}...`);
+    return merged.length;
   }
 
   let uploaded = 0;
-  for (let i = 0; i < Math.min(images.length, 6); i++) {
-    const img = images[i];
+  for (let i = 0; i < Math.min(merged.length, 6); i++) {
+    const img = merged[i];
     const result = await downloadImage(img.url);
     if (!result) continue;
 
@@ -278,7 +310,7 @@ async function tryWebsite(venue) {
       storage_bucket: "venue-media",
       storage_path: storagePath,
       sort_order: uploaded,
-      source: "website",
+      source: img.source.startsWith("social:") ? "social_media" : "website",
       status: "published",
     });
 
@@ -511,8 +543,8 @@ async function main() {
   const strategy = UNSPLASH_ONLY
     ? "Unsplash only"
     : [
-        !SKIP_WEBSITE ? "Website" : null,
         !SKIP_GOOGLE ? "Google Places" : null,
+        !SKIP_WEBSITE ? "Website/Social" : null,
         "Unsplash",
       ]
         .filter(Boolean)
@@ -563,19 +595,7 @@ async function main() {
     process.stdout.write(`  ${label}...`);
 
     try {
-      // Step 1: Try venue website (unless --skip-website or --unsplash-only)
-      if (!SKIP_WEBSITE && !UNSPLASH_ONLY && venue.website) {
-        const websiteCount = await tryWebsite(venue);
-        if (websiteCount > 0) {
-          console.log(` Website: ${websiteCount} photos`);
-          website++;
-          await sleep(500); // polite delay between website scrapes
-          continue;
-        }
-        process.stdout.write(" Website: miss →");
-      }
-
-      // Step 2: Try Google Places (unless --skip-google or --unsplash-only)
+      // Step 1: Try Google Places (unless --skip-google or --unsplash-only)
       if (!SKIP_GOOGLE && !UNSPLASH_ONLY) {
         const googleCount = await tryGooglePlaces(venue);
         if (googleCount > 0) {
@@ -585,6 +605,18 @@ async function main() {
           continue;
         }
         process.stdout.write(" Google: miss →");
+      }
+
+      // Step 2: Try venue website/social (unless --skip-website or --unsplash-only)
+      if (!SKIP_WEBSITE && !UNSPLASH_ONLY && venue.website) {
+        const websiteCount = await tryWebsite(venue);
+        if (websiteCount > 0) {
+          console.log(` Website/Social: ${websiteCount} photos`);
+          website++;
+          await sleep(500);
+          continue;
+        }
+        process.stdout.write(" Website/Social: miss →");
       }
 
       // Step 3: Unsplash fallback
