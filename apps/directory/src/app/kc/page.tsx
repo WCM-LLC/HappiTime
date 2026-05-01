@@ -15,6 +15,54 @@ export const revalidate = 900;
 const KC_SEO_TITLE = "Happy Hours in Kansas City | HappiTime";
 const KC_SEO_DESCRIPTION =
   "Find the best happy hour deals in Kansas City. Browse drink specials and food deals by neighborhood — Westport, Plaza, Crossroads & more. Download HappiTime free.";
+const HAPPITIME_BUSINESS_JSON_LD = [
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "HappiTime",
+    url: "https://happitime.biz",
+    logo: "https://happitime.biz/icon.png",
+    description:
+      "HappiTime is Kansas City's happy hour app — browse drink specials, food deals, and menus from local bars and restaurants by neighborhood.",
+    sameAs: [
+      "https://www.instagram.com/findhappitime",
+      "https://apps.apple.com/app/happitime",
+      "https://play.google.com/store/apps/happitime",
+    ],
+    contactPoint: {
+      "@type": "ContactPoint",
+      contactType: "Customer Support",
+      email: "admin@happitime.biz",
+    },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    name: "HappiTime",
+    description:
+      "Kansas City's only purpose-built happy hour app. Find drink specials and food deals near you in Westport, Plaza, Crossroads, Power & Light, and more.",
+    url: "https://happitime.biz",
+    telephone: "",
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: "Kansas City",
+      addressRegion: "MO",
+      addressCountry: "US",
+    },
+    geo: {
+      "@type": "GeoCoordinates",
+      latitude: "39.0997",
+      longitude: "-94.5786",
+    },
+    areaServed: {
+      "@type": "City",
+      name: "Kansas City",
+    },
+    priceRange: "Free",
+    openingHours: "Mo-Su 00:00-23:59",
+    sameAs: ["https://www.instagram.com/findhappitime"],
+  },
+];
 
 export const metadata: Metadata = {
   title: {
@@ -139,6 +187,15 @@ export default async function KCPage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(HAPPITIME_BUSINESS_JSON_LD).replace(
+            /</g,
+            "\\u003c"
+          ),
+        }}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
