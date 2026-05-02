@@ -397,7 +397,7 @@ export default async function AdminPage({
               </p>
             </div>
             <div className="rounded-lg border border-dashed border-border-strong bg-surface/50 p-8 text-center">
-              <p className="text-body-sm text-muted">No owners, managers, or hosts yet. Add staff via an organization's Access page.</p>
+              <p className="text-body-sm text-muted">No owners, managers, or hosts yet. Add staff via an organization&apos;s Access page.</p>
             </div>
           </section>
         ) : null}

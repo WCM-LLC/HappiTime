@@ -408,7 +408,7 @@ function OrgRowItem({ org }: { org: OrgRow }) {
               </div>
               <p className="md:col-span-12 text-caption text-muted-light -mt-1">
                 Renaming the org will automatically update <code className="font-mono">venue.org_name</code> on every venue (via the <code className="font-mono">trg_propagate_org_name</code> trigger).
-                Slug changes break old shareable URLs — only edit if you know what you're doing.
+                Slug changes break old shareable URLs — only edit if you know what you&apos;re doing.
               </p>
             </form>
           </td>
