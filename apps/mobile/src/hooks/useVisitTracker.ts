@@ -48,6 +48,7 @@ let _notifiedVenues = new Map<string, number>(); // venueId → last-notified ti
 let _autoCheckedInVenues = new Map<string, number>(); // venueId → last auto check-in timestamp
 let _notificationBlocks = new Set<string>(); // venueId
 let _blocksLoadedFor: string | null = null;
+let _defaultCheckinPrivacy: "private" | "friends" = "private";
 
 /* ── Helpers ──────────────────────────────────────────────────── */
 
@@ -110,6 +111,7 @@ async function registerAutoCheckIn(userId: string, venueId: string, venueName: s
       venue_id: venueId,
       entered_at: new Date().toISOString(),
       source: "auto_proximity",
+      is_private: _defaultCheckinPrivacy !== "friends",
     });
 
   if (error) {
@@ -127,6 +129,7 @@ async function registerVisit(userId: string, venueId: string, venueName: string)
       venue_id: venueId,
       entered_at: new Date().toISOString(),
       source: "dwell",
+      is_private: _defaultCheckinPrivacy !== "friends",
     })
     .select("id")
     .single();
@@ -258,6 +261,20 @@ export function useVisitTracker(venues: VenuePoint[]) {
   useEffect(() => {
     _venues = venues;
   }, [venues]);
+
+  useEffect(() => {
+    _defaultCheckinPrivacy = "private";
+    const userId = user?.id;
+    if (!userId) return;
+    void (async () => {
+      const { data } = await (supabase as any)
+        .from("user_preferences")
+        .select("default_checkin_privacy")
+        .eq("user_id", userId)
+        .maybeSingle();
+      _defaultCheckinPrivacy = data?.default_checkin_privacy === "friends" ? "friends" : "private";
+    })();
+  }, [user?.id]);
 
   useEffect(() => {
     const newId = user?.id ?? null;
