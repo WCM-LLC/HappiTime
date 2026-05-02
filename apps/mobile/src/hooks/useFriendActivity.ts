@@ -12,7 +12,8 @@ export type ActivityItem = {
   visitedAt: string;
   rating: number | null;
   comment: string | null;
-  isAnonymous: boolean;
+  isPrivate: boolean;
+  isAnonymized: boolean;
 };
 
 type State = {
@@ -116,7 +117,6 @@ export function useFriendActivity() {
     }
 
     // 3. Fetch venue_visits for followed users at partner venues (promotion_tier is not null)
-    // Only include rows the visit owner has not marked private
     const { data: visits, error: visitsError } = await supabase
       .from("venue_visits")
       .select(
@@ -124,7 +124,7 @@ export function useFriendActivity() {
       )
       .in("user_id", visibleIds)
       .not("venue.promotion_tier", "is", null)
-            .order("visited_at", { ascending: false })
+      .order("visited_at", { ascending: false })
       .limit(50);
 
     if (visitsError) {
@@ -134,21 +134,23 @@ export function useFriendActivity() {
 
     const activities: ActivityItem[] = (visits ?? []).map((v: any) => {
       const profile = profileMap.get(v.user_id);
-      const isAnonymous = v.is_private === true;
-      const displayName =
-        isAnonymous ? "a HappiTime user" : (profile?.display_name ?? profile?.handle ?? v.user_id.slice(0, 8));
+      const profileDisplayName =
+        profile?.display_name ?? profile?.handle ?? v.user_id.slice(0, 8);
+      const isPrivate = v.is_private === true;
+      const displayName = isPrivate ? "a HappiTime user" : profileDisplayName;
 
       return {
         id: v.id,
         userId: v.user_id,
         userName: displayName,
-        userAvatar: isAnonymous ? null : (profile?.avatar_url ?? null),
-        venueName: v.venue?.name ?? "Venue",
+        userAvatar: isPrivate ? null : (profile?.avatar_url ?? null),
+        venueName: isPrivate ? "a venue" : (v.venue?.name ?? "Venue"),
         venueId: v.venue_id,
         visitedAt: v.visited_at,
-        rating: v.rating ?? null,
-        comment: v.comment ?? null,
-        isAnonymous,
+        rating: isPrivate ? null : (v.rating ?? null),
+        comment: isPrivate ? null : (v.comment ?? null),
+        isPrivate,
+        isAnonymized: isPrivate,
       };
     });
 

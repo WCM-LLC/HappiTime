@@ -14,11 +14,13 @@ import {
 } from "react-native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity";
-import { useDiscoverActivity, type DiscoverActivityItem } from "../hooks/useDiscoverActivity";
+import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendSuggestions";
+import { useDiscoverFeed, type DiscoverFeedItem } from "../hooks/useDiscoverFeed";
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
-import { useUserPreferences } from "../hooks/useUserPreferences";
+import { isFeatureEnabled } from "../lib/featureFlags";
 import { colors } from "../theme/colors";
+import { SuggestionCard } from "../components/SuggestionCard";
 import { spacing } from "../theme/spacing";
 
 /* ── Helpers ── */
@@ -114,7 +116,13 @@ const ActivityCard: React.FC<{ item: ActivityItem }> = ({ item }) => (
         <Text style={styles.when}>{timeAgo(item.visitedAt)}</Text>
       </View>
       <Text style={styles.message}>
-        {item.isAnonymous ? "checked in" : <>visited <Text style={styles.venueName}>{item.venueName}</Text></>}
+        {item.isAnonymized ? (
+          "checked in privately"
+        ) : (
+          <>
+            visited <Text style={styles.venueName}>{item.venueName}</Text>
+          </>
+        )}
       </Text>
       {item.rating != null && <RatingStars rating={item.rating} />}
       {item.comment ? (
@@ -149,32 +157,35 @@ const DiscoverCard: React.FC<{ item: DiscoverActivityItem; onPress: (listId: str
   </Pressable>
 );
 
-/* ── Discover Feed Card ── */
+const DiscoverFeedCard: React.FC<{ item: DiscoverFeedItem }> = ({ item }) => {
+  const actor = item.userHandle ? `@${item.userHandle}` : item.userDisplayName ?? "a HappiTime user";
+  const message = (() => {
+    if (item.eventType === "itinerary_share") {
+      const itineraryName = item.itineraryName ?? "an itinerary";
+      return `${actor} shared their itinerary ${itineraryName}`;
+    }
+    if (item.eventType === "auto_checkin") {
+      if (item.isPrivate) return "a HappiTime user checked in";
+      const venueName = item.venueName ?? "a venue";
+      return `${actor} checked in at ${venueName}`;
+    }
+    if (item.eventType === "rating") return `${actor} left a new rating`;
+    if (item.eventType === "comment") return `${actor} posted a comment`;
+    if (item.eventType === "follow") return `${actor} followed someone new`;
+    return `${actor} had new activity`;
+  })();
 
-const DiscoverFeedCard: React.FC<{
-  item: import("../hooks/useDiscoverFeed").DiscoverFeedItem;
-}> = ({ item }) => (
-  <View style={styles.row}>
-    <View style={styles.avatarWrap}>
-      {item.actorAvatar ? (
-        <Image source={{ uri: item.actorAvatar }} style={styles.avatar} />
-      ) : (
-        <View style={styles.avatarPlaceholder}>
-          <Text style={styles.avatarInitial}>
-            {(item.isAnonymous ? "H" : item.actorName).charAt(0).toUpperCase()}
-          </Text>
+  return (
+    <View style={styles.row}>
+      <View style={styles.textContainer}>
+        <View style={styles.nameRow}>
+          <Text style={styles.when}>{timeAgo(item.createdAt)}</Text>
         </View>
-      )}
-    </View>
-    <View style={styles.textContainer}>
-      <View style={styles.nameRow}>
-        <Text style={styles.actor}>{item.isAnonymous ? "HappiTime" : item.actorName}</Text>
-        <Text style={styles.when}>{timeAgo(item.createdAt)}</Text>
+        <Text style={styles.message}>{message}</Text>
       </View>
-      <Text style={styles.message}>{item.message}</Text>
     </View>
-  </View>
-);
+  );
+};
 
 /* ── Check-In Card ── */
 
@@ -218,6 +229,9 @@ const CheckInCard: React.FC<{
 /* ── Main Screen ── */
 
 type Tab = "friends" | "discover" | "checkins";
+type DiscoverListItem =
+  | { kind: "feed"; id: string; item: DiscoverFeedItem }
+  | { kind: "suggestion"; id: string; item: FriendSuggestion };
 
 export const ActivityScreen: React.FC = () => {
   const [tab, setTab] = useState<Tab>("friends");
@@ -228,12 +242,13 @@ export const ActivityScreen: React.FC = () => {
     rejectFollowRequest,
   } = useUserFollowers();
   const { activities, loading: activityLoading, refresh: refreshActivity } = useFriendActivity();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { items: discoverItems, loading: suggestionsLoading, refresh: refreshSuggestions } = useDiscoverActivity();
   const {
-    suggestions,
-    loading: suggestionsLoading,
-    refresh: refreshSuggestions,
-  } = useFriendSuggestions();
-  const { items: discoverItems, loading: discoverLoading, refresh: refreshDiscover } = useDiscoverFeed();
+    feed: discoverFeed,
+    loading: discoverLoading,
+    refresh: refreshDiscoverFeed,
+  } = useDiscoverFeed();
   const {
     checkins,
     loading: checkinsLoading,
@@ -242,6 +257,11 @@ export const ActivityScreen: React.FC = () => {
   } = useUserCheckins();
   const { preferences, savePreferences } = useUserPreferences();
 
+  const [requestedUsers, setRequestedUsers] = useState<Record<string, boolean>>({});
+  const useDiscoverFeedSource = isFeatureEnabled("discoverFeedFromUserEvents");
+  const discoverListData: DiscoverListItem[] = useDiscoverFeedSource
+    ? discoverFeed.map((item) => ({ kind: "feed" as const, id: item.id, item }))
+    : suggestions.map((item) => ({ kind: "suggestion" as const, id: item.user_id, item }));
 
   const handleDiscoverPress = (listId: string) => {
     navigation.navigate("AppTabs", { screen: "Favorites", params: { openListId: listId } } as any);
@@ -257,7 +277,7 @@ export const ActivityScreen: React.FC = () => {
 
   const isLoading =
     tab === "friends" ? followersLoading || activityLoading
-    : tab === "discover" ? discoverLoading
+    : tab === "discover" ? (useDiscoverFeedSource ? discoverLoading : suggestionsLoading)
     : checkinsLoading;
 
   return (
@@ -321,17 +341,17 @@ export const ActivityScreen: React.FC = () => {
         />
       ) : tab === "discover" ? (
         <FlatList
-          data={discoverItems}
+          data={discoverListData}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          onRefresh={refreshDiscover}
-          refreshing={discoverLoading}
+          onRefresh={useDiscoverFeedSource ? refreshDiscoverFeed : refreshSuggestions}
+          refreshing={useDiscoverFeedSource ? discoverLoading : suggestionsLoading}
           ListHeaderComponent={
-            suggestions.length > 0 ? (
+            suggestions.length > 0 && useDiscoverFeedSource ? (
               <View style={styles.pendingSection}>
-                <Text style={styles.sectionTitle}>People you may know</Text>
-                {suggestions.slice(0, 3).map((item) => (
+                <Text style={styles.sectionTitle}>Suggested people</Text>
+                {suggestions.slice(0, 5).map((item) => (
                   <SuggestionCard
                     key={item.user_id}
                     suggestion={item}
@@ -345,13 +365,40 @@ export const ActivityScreen: React.FC = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No social activity yet</Text>
-              <Text style={styles.emptyText}>
-                Follow friends and share itineraries to light up Discover.
+              <Text style={styles.emptyTitle}>
+                {useDiscoverFeedSource ? "No discover activity yet" : "No suggestions yet"}
               </Text>
+              <Text style={styles.emptyText}>
+                {useDiscoverFeedSource
+                  ? "Visit more venues to populate your discover feed."
+                  : "Visit more venues to discover people with similar taste!"}
+              </Text>
+              {useDiscoverFeedSource && suggestions.length > 0 ? (
+                <View style={styles.pendingSection}>
+                  <Text style={styles.sectionTitle}>Suggested people</Text>
+                  {suggestions.slice(0, 5).map((item) => (
+                    <SuggestionCard
+                      key={item.user_id}
+                      suggestion={item}
+                      onFollow={handleFollow}
+                      following={requestedUsers[item.user_id] ?? false}
+                    />
+                  ))}
+                </View>
+              ) : null}
             </View>
           }
-          renderItem={({ item }) => <DiscoverFeedCard item={item} />}
+          renderItem={({ item }) =>
+            item.kind === "feed" ? (
+              <DiscoverFeedCard item={item.item} />
+            ) : (
+              <SuggestionCard
+                suggestion={item.item}
+                onFollow={handleFollow}
+                following={requestedUsers[item.item.user_id] ?? false}
+              />
+            )
+          }
         />
       ) : (
         <FlatList
