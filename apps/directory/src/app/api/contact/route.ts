@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { createClient } from "@supabase/supabase-js";
 
 const MAX_SUBJECT_LENGTH = 160;
 const MAX_MESSAGE_LENGTH = 4000;
@@ -12,6 +13,44 @@ const ACCEPTED_FILE_TYPES = new Set([
   "application/pdf",
   "text/plain",
 ]);
+const RATE_LIMIT_WINDOW_SECONDS = 60;
+const RATE_LIMIT_MAX_REQUESTS = 5;
+
+function getClientId(request: NextRequest): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0]?.trim() ?? "unknown";
+  }
+  return request.headers.get("x-real-ip") ?? "unknown";
+}
+
+function getRateLimitClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !serviceRoleKey) {
+    return null;
+  }
+
+  return createClient(url, serviceRoleKey, { auth: { persistSession: false } });
+}
+
+async function isRateLimited(clientId: string): Promise<boolean> {
+  const supabase = getRateLimitClient();
+  if (!supabase) return false;
+
+  const { data, error } = await supabase.rpc("check_rate_limit", {
+    p_key: `contact:${clientId}`,
+    p_limit: RATE_LIMIT_MAX_REQUESTS,
+    p_window_seconds: RATE_LIMIT_WINDOW_SECONDS,
+  });
+
+  if (error) {
+    console.error("Rate limit check failed", { message: error.message });
+    return false;
+  }
+
+  return data === true;
+}
 
 function parseBoolean(value: string | undefined, fallback: boolean) {
   if (!value) return fallback;
@@ -40,6 +79,10 @@ function isValidEmail(value: string) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (await isRateLimited(getClientId(request))) {
+      return NextResponse.json({ error: "Too many requests. Please try again shortly." }, { status: 429 });
+    }
+
     const formData = await request.formData();
     const email = String(formData.get("email") ?? "").trim();
     const subject = String(formData.get("subject") ?? "").trim();

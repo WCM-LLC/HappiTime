@@ -5,11 +5,16 @@ import {
   getStripe,
   isStripeConfigurationError,
 } from '@/utils/stripe';
+import { getSafeAppOrigin, isTrustedBrowserRequest } from '@/utils/security';
 
 export const runtime = 'nodejs';
 
 export async function POST(req: NextRequest) {
   try {
+    if (!isTrustedBrowserRequest(req.headers)) {
+      return NextResponse.json({ error: 'Invalid request origin' }, { status: 403 });
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -40,7 +45,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No active subscription found' }, { status: 404 });
     }
 
-    const origin = req.headers.get('origin') ?? 'https://www.happitime.biz';
+    const origin = getSafeAppOrigin(req.headers.get('origin'));
     const session = await getStripe().billingPortal.sessions.create({
       customer: sub.stripe_customer_id,
       return_url: `${origin}/orgs/${orgId}/venues/${venueId}/subscription`,
