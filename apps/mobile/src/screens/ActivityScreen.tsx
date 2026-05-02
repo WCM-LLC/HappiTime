@@ -1,5 +1,8 @@
 // src/screens/ActivityScreen.tsx
 import React, { useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigation/types";
 import {
   View,
   Text,
@@ -11,12 +14,12 @@ import {
 } from "react-native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity";
-import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendSuggestions";
-import { useDiscoverFeed } from "../hooks/useDiscoverFeed";
+import { useDiscoverActivity } from "../hooks/useDiscoverActivity";
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { colors } from "../theme/colors";
+import { SuggestionCard } from "../components/SuggestionCard";
 import { spacing } from "../theme/spacing";
 
 /* ── Helpers ── */
@@ -261,9 +264,10 @@ export const ActivityScreen: React.FC = () => {
     loading: followersLoading,
     approveFollowRequest,
     rejectFollowRequest,
-    sendFollowRequest,
   } = useUserFollowers();
   const { activities, loading: activityLoading, refresh: refreshActivity } = useFriendActivity();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { items: discoverItems, loading: suggestionsLoading, refresh: refreshSuggestions } = useDiscoverActivity();
   const {
     suggestions,
     loading: suggestionsLoading,
@@ -278,11 +282,9 @@ export const ActivityScreen: React.FC = () => {
   } = useUserCheckins();
   const { preferences, savePreferences } = useUserPreferences();
 
-  const [requestedUsers, setRequestedUsers] = useState<Record<string, boolean>>({});
 
-  const handleFollow = (userId: string) => {
-    setRequestedUsers((prev) => ({ ...prev, [userId]: true }));
-    void sendFollowRequest(userId);
+  const handleDiscoverPress = (listId: string) => {
+    navigation.navigate("AppTabs", { screen: "Favorites", params: { openListId: listId } } as any);
   };
 
   const handleApprove = (followId: string) => {
@@ -383,13 +385,23 @@ export const ActivityScreen: React.FC = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No social activity yet</Text>
+              <Text style={styles.emptyTitle}>No discover activity yet</Text>
               <Text style={styles.emptyText}>
-                Follow friends and share itineraries to light up Discover.
+                Shared itineraries from friends will appear here.
               </Text>
             </View>
           }
-          renderItem={({ item }) => <DiscoverFeedCard item={item} />}
+          renderItem={({ item }) => (
+            <SuggestionCard
+              item={{
+                actorHandle: item.actorHandle,
+                actorAvatar: item.actorAvatar,
+                createdAtLabel: timeAgo(item.createdAt),
+                message: item.message,
+              }}
+              onPress={() => handleDiscoverPress(item.itineraryId)}
+            />
+          )}
         />
       ) : (
         <FlatList
