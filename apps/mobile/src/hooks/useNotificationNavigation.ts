@@ -8,7 +8,7 @@ import type { RootStackParamList } from "../navigation/types";
  * Handles notification deep linking.
  *
  * Notification payloads should include a `data` object with:
- *   - type: "happy_hour" | "venue" | "friend" | "general"
+ *   - type: "happy_hour" | "venue" | "friend" | "itinerary" | "general"
  *   - windowId?: string   (for happy_hour type)
  *   - venueId?: string    (for venue type)
  *   - tab?: string        (for friend → Activity, general → Home)
@@ -39,8 +39,9 @@ export function useNotificationNavigation(
       } else if (type === "venue" && typeof data.venueId === "string") {
         nav.navigate("VenuePreview", { venueId: data.venueId });
       } else if (type === "friend") {
-        // Navigate to Activity tab
         nav.navigate("AppTabs" as any, { screen: "Activity" } as any);
+      } else if (type === "itinerary" && typeof data.listId === "string") {
+        nav.navigate("AppTabs" as any, { screen: "Favorites", params: { openListId: data.listId } } as any);
       }
     };
 

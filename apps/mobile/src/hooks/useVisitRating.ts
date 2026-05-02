@@ -9,7 +9,24 @@ export type PendingVisit = {
   venueId: string;
   venueName: string;
   enteredAt: string;
+  aspects?: string[];
+  source?: "server" | "client";
 };
+
+export function buildFallbackVisitInsert(
+  userId: string,
+  pendingVisit: PendingVisit,
+  rating: number,
+  comment?: string
+) {
+  return {
+    user_id: userId,
+    venue_id: pendingVisit.venueId,
+    entered_at: pendingVisit.enteredAt,
+    rating,
+    comment: comment?.trim() || null,
+  };
+}
 
 export function useVisitRating() {
   const { user } = useCurrentUser();
@@ -27,6 +44,8 @@ export function useVisitRating() {
             venueId: data.venueId as string,
             venueName: data.venueName as string,
             enteredAt: new Date().toISOString(),
+            aspects: Array.isArray(data.aspects) ? (data.aspects as string[]) : [],
+            source: "server",
           });
         }
       }
@@ -35,17 +54,19 @@ export function useVisitRating() {
     return () => subscription.remove();
   }, []);
 
-  const triggerRating = useCallback((venueId: string, venueName: string, visitId?: string) => {
+  const triggerRating = useCallback((venueId: string, venueName: string, visitId?: string, aspects: string[] = [], source: "server" | "client" = "client") => {
     setPendingVisit({
       visitId,
       venueId,
       venueName,
       enteredAt: new Date().toISOString(),
+      aspects,
+      source,
     });
   }, []);
 
   const submitRating = useCallback(
-    async (rating: number, comment?: string) => {
+    async (rating: number, comment?: string, aspects: string[] = []) => {
       if (!pendingVisit) return;
       setSubmitting(true);
 
@@ -60,6 +81,12 @@ export function useVisitRating() {
           if (error) {
             console.warn("[visit-rating] failed to update:", error.message);
           }
+          if (aspects.length > 0) {
+            await (supabase as any).from("visit_rating_aspects").upsert(
+              aspects.map((aspect) => ({ visit_id: pendingVisit.visitId, aspect_key: aspect })),
+              { onConflict: "visit_id,aspect_key" }
+            );
+          }
         } else {
           // Fallback: insert a new record if we don't have a visitId
           const { data: auth } = await supabase.auth.getUser();
@@ -67,7 +94,7 @@ export function useVisitRating() {
           const { error } = await supabase.from("venue_visits").insert({
             user_id: auth.user.id,
             venue_id: pendingVisit.venueId,
-            entered_at: pendingVisit.visitedAt,
+            entered_at: pendingVisit.enteredAt,
             rating,
             comment: comment?.trim() || null,
           });

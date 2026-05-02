@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
   } else if (event === "itinerary_share") {
     title = `📋 ${actorName} shared a list with you`;
     body = `Check out the itinerary ${actorName} put together`;
-    navData = { type: "friend", actorId, listId: meta.listId };
+    navData = { type: "itinerary", actorId, listId: meta.listId };
   }
 
   const messages: ExpoPushMessage[] = [];
