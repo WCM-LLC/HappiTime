@@ -1,5 +1,8 @@
 // src/screens/ActivityScreen.tsx
 import React, { useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigation/types";
 import {
   View,
   Text,
@@ -17,6 +20,7 @@ import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
 import { isFeatureEnabled } from "../lib/featureFlags";
 import { colors } from "../theme/colors";
+import { SuggestionCard } from "../components/SuggestionCard";
 import { spacing } from "../theme/spacing";
 
 /* ── Helpers ── */
@@ -267,15 +271,10 @@ export const ActivityScreen: React.FC = () => {
     loading: followersLoading,
     approveFollowRequest,
     rejectFollowRequest,
-    sendFollowRequest,
   } = useUserFollowers();
   const { activities, loading: activityLoading, refresh: refreshActivity } = useFriendActivity();
-  const {
-    suggestions,
-    loading: suggestionsLoading,
-    refresh: refreshSuggestions,
-  } = useFriendSuggestions();
-  const { items: discoverItems, loading: discoverLoading, refresh: refreshDiscover } = useDiscoverFeed();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { items: discoverItems, loading: suggestionsLoading, refresh: refreshSuggestions } = useDiscoverActivity();
   const {
     feed: discoverFeed,
     loading: discoverLoading,
@@ -295,9 +294,8 @@ export const ActivityScreen: React.FC = () => {
     ? discoverFeed.map((item) => ({ kind: "feed" as const, id: item.id, item }))
     : suggestions.map((item) => ({ kind: "suggestion" as const, id: item.user_id, item }));
 
-  const handleFollow = (userId: string) => {
-    setRequestedUsers((prev) => ({ ...prev, [userId]: true }));
-    void sendFollowRequest(userId);
+  const handleDiscoverPress = (listId: string) => {
+    navigation.navigate("AppTabs", { screen: "Favorites", params: { openListId: listId } } as any);
   };
 
   const handleApprove = (followId: string) => {

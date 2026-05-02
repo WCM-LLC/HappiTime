@@ -2,7 +2,7 @@
 export type RootStackParamList = {
   Home: undefined;
   Auth: undefined;
-  AppTabs: undefined;
+  AppTabs: { screen?: keyof MainTabParamList; params?: Record<string, unknown> } | undefined;
   HappyHourDetail: { windowId: string };
   VenuePreview?: { venueId: string };
 };
@@ -10,7 +10,7 @@ export type RootStackParamList = {
 export type MainTabParamList = {
   Home: undefined;
   Map: undefined;
-  Favorites: undefined;
+  Favorites: { openListId?: string } | undefined;
   Activity: undefined;
   Profile: undefined;
 };

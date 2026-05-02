@@ -1,7 +1,7 @@
 // src/screens/FavoritesScreen.tsx
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, FlatList, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView, Share } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { SegmentedTabs } from "../components/SegmentedTabs";
@@ -21,6 +21,7 @@ import { distanceMiles } from "../utils/location";
 
 export const FavoritesScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const route = useRoute<any>();
   const [tab, setTab] = useState<"favorites" | "history" | "lists">(
     "favorites"
   );
@@ -33,6 +34,17 @@ export const FavoritesScreen: React.FC = () => {
   const { followers } = useUserFollowers();
   const [editingList, setEditingList] = useState<UserList | null>(null);
   const [showNewListForm, setShowNewListForm] = useState(false);
+
+  useEffect(() => {
+    const openListId = route?.params?.openListId as string | undefined;
+    if (!openListId || lists.length === 0) return;
+    const found = lists.find((l) => l.id === openListId);
+    if (found) {
+      setTab("lists");
+      setEditingList(found);
+      navigation.setParams({ openListId: undefined } as any);
+    }
+  }, [lists, navigation, route?.params?.openListId]);
 
   const favoriteWindows = data;
   const favoritesWithDistance = useMemo(() => {
