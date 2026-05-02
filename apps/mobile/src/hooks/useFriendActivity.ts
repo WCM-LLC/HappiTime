@@ -12,6 +12,7 @@ export type ActivityItem = {
   visitedAt: string;
   rating: number | null;
   comment: string | null;
+  isAnonymous: boolean;
 };
 
 type State = {
@@ -119,12 +120,11 @@ export function useFriendActivity() {
     const { data: visits, error: visitsError } = await supabase
       .from("venue_visits")
       .select(
-        "id, user_id, venue_id, visited_at, rating, comment, venue:venues!inner(id, name, promotion_tier)"
+        "id, user_id, venue_id, visited_at, rating, comment, is_private, venue:venues!inner(id, name, promotion_tier)"
       )
       .in("user_id", visibleIds)
       .not("venue.promotion_tier", "is", null)
-      .eq("is_private" as any, false)
-      .order("visited_at", { ascending: false })
+            .order("visited_at", { ascending: false })
       .limit(50);
 
     if (visitsError) {
@@ -134,19 +134,21 @@ export function useFriendActivity() {
 
     const activities: ActivityItem[] = (visits ?? []).map((v: any) => {
       const profile = profileMap.get(v.user_id);
+      const isAnonymous = v.is_private === true;
       const displayName =
-        profile?.display_name ?? profile?.handle ?? v.user_id.slice(0, 8);
+        isAnonymous ? "a HappiTime user" : (profile?.display_name ?? profile?.handle ?? v.user_id.slice(0, 8));
 
       return {
         id: v.id,
         userId: v.user_id,
         userName: displayName,
-        userAvatar: profile?.avatar_url ?? null,
+        userAvatar: isAnonymous ? null : (profile?.avatar_url ?? null),
         venueName: v.venue?.name ?? "Venue",
         venueId: v.venue_id,
         visitedAt: v.visited_at,
         rating: v.rating ?? null,
         comment: v.comment ?? null,
+        isAnonymous,
       };
     });
 

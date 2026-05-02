@@ -15,6 +15,7 @@ import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendS
 import { useDiscoverFeed } from "../hooks/useDiscoverFeed";
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -111,7 +112,7 @@ const ActivityCard: React.FC<{ item: ActivityItem }> = ({ item }) => (
         <Text style={styles.when}>{timeAgo(item.visitedAt)}</Text>
       </View>
       <Text style={styles.message}>
-        visited <Text style={styles.venueName}>{item.venueName}</Text>
+        {item.isAnonymous ? "checked in" : <>visited <Text style={styles.venueName}>{item.venueName}</Text></>}
       </Text>
       {item.rating != null && <RatingStars rating={item.rating} />}
       {item.comment ? (
@@ -269,6 +270,7 @@ export const ActivityScreen: React.FC = () => {
     refresh: refreshCheckins,
     togglePrivacy,
   } = useUserCheckins();
+  const { preferences, savePreferences } = useUserPreferences();
 
   const [requestedUsers, setRequestedUsers] = useState<Record<string, boolean>>({});
 
@@ -396,6 +398,25 @@ export const ActivityScreen: React.FC = () => {
               <Text style={styles.privacyNoteText}>
                 Tap 👁 to make a check-in visible to friends, or 🔒 to keep it private.
               </Text>
+              {!preferences.checkin_default_privacy ? (
+                <View style={styles.privacyChoiceWrap}>
+                  <Text style={styles.privacyChoiceTitle}>Default check-in privacy</Text>
+                  <View style={styles.privacyChoiceRow}>
+                    <Pressable
+                      style={styles.privacyChoiceBtn}
+                      onPress={() => void savePreferences({ checkin_default_privacy: "private" })}
+                    >
+                      <Text style={styles.privacyChoiceBtnText}>Keep Private</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.privacyChoiceBtn, styles.privacyChoiceBtnAlt]}
+                      onPress={() => void savePreferences({ checkin_default_privacy: "public" })}
+                    >
+                      <Text style={[styles.privacyChoiceBtnText, styles.privacyChoiceBtnTextAlt]}>Share with Friends</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : null}
             </View>
           }
           ListEmptyComponent={
@@ -690,5 +711,37 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 12,
     lineHeight: 18,
+  },
+  privacyChoiceWrap: {
+    marginTop: spacing.sm,
+  },
+  privacyChoiceTitle: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: spacing.xs,
+  },
+  privacyChoiceRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  privacyChoiceBtn: {
+    backgroundColor: colors.text,
+    borderRadius: 999,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  privacyChoiceBtnAlt: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  privacyChoiceBtnText: {
+    color: colors.background,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  privacyChoiceBtnTextAlt: {
+    color: colors.text,
   },
 });
