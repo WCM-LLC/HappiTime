@@ -67,7 +67,7 @@ export function useVisitRating() {
           const { error } = await supabase.from("venue_visits").insert({
             user_id: auth.user.id,
             venue_id: pendingVisit.venueId,
-            entered_at: pendingVisit.visitedAt,
+            entered_at: pendingVisit.enteredAt,
             rating,
             comment: comment?.trim() || null,
           });
