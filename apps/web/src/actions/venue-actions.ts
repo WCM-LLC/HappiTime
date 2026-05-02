@@ -139,6 +139,31 @@ export async function updateVenue(orgId: string, venueId: string, formData: Form
   revalidateVenue(orgId, venueId);
 }
 
+
+export async function updateVenueRatingSettings(orgId: string, venueId: string, formData: FormData) {
+  const { supabase } = await requireAuth();
+  const enabled = formData.get("post_visit_rating_enabled") === "on";
+  const aspects = formData
+    .getAll("rating_aspects")
+    .map((v) => String(v).trim())
+    .filter(Boolean);
+
+  const { error } = await supabase
+    .from("venues")
+    .update({
+      post_visit_rating_enabled: enabled,
+      post_visit_rating_aspects: aspects,
+    } as any)
+    .eq("id", venueId)
+    .eq("org_id", orgId);
+
+  if (error) {
+    console.error(error);
+    redirectWithError(orgId, venueId, "venue_update_failed");
+  }
+
+  revalidateVenue(orgId, venueId);
+}
 /** Creates a new happy hour window in 'draft' status for the given venue. */
 export async function addHappyHour(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
