@@ -17,11 +17,19 @@ import { spacing } from "../theme/spacing";
 type Props = {
   pendingVisit: PendingVisit | null;
   submitting: boolean;
-  onSubmit: (rating: number, comment?: string) => void;
+  onSubmit: (rating: number, comment?: string, aspects?: string[]) => void;
   onDismiss: () => void;
 };
 
 const STAR_COUNT = 5;
+
+const ASPECT_LABELS: Record<string, string> = {
+  food_quality: "Food quality",
+  service: "Service",
+  drink_selection: "Drink selection",
+  ambiance: "Ambiance",
+  value: "Value",
+};
 
 export const VisitRatingModal: React.FC<Props> = ({
   pendingVisit,
@@ -31,17 +39,20 @@ export const VisitRatingModal: React.FC<Props> = ({
 }) => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
+  const [selectedAspects, setSelectedAspects] = useState<string[]>([]);
 
   // Reset state when a new visit appears
   React.useEffect(() => {
     if (pendingVisit) {
       setRating(0);
       setComment("");
+      setSelectedAspects([]);
     }
   }, [pendingVisit?.venueId]);
 
   if (!pendingVisit) return null;
 
+  const availableAspects = pendingVisit.aspects ?? [];
   const canSubmit = rating >= 1 && !submitting;
 
   return (
@@ -91,6 +102,30 @@ export const VisitRatingModal: React.FC<Props> = ({
             </Text>
           )}
 
+          {/* Aspect chips */}
+          {availableAspects.length > 0 && (
+            <View style={styles.chipsWrap}>
+              {availableAspects.map((aspect) => {
+                const selected = selectedAspects.includes(aspect);
+                return (
+                  <Pressable
+                    key={aspect}
+                    onPress={() =>
+                      setSelectedAspects((prev) =>
+                        prev.includes(aspect) ? prev.filter((a) => a !== aspect) : [...prev, aspect]
+                      )
+                    }
+                    style={[styles.chip, selected && styles.chipSelected]}
+                  >
+                    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                      {ASPECT_LABELS[aspect] ?? aspect.replaceAll("_", " ")}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+
           {/* Comment input */}
           <TextInput
             style={styles.commentInput}
@@ -111,7 +146,7 @@ export const VisitRatingModal: React.FC<Props> = ({
               !canSubmit && styles.submitButtonDisabled,
               pressed && canSubmit && styles.submitButtonPressed,
             ]}
-            onPress={() => canSubmit && onSubmit(rating, comment || undefined)}
+            onPress={() => canSubmit && onSubmit(rating, comment || undefined, selectedAspects)}
             disabled={!canSubmit}
           >
             <Text style={styles.submitButtonText}>
@@ -189,6 +224,31 @@ const styles = StyleSheet.create({
   },
   starFilled: {
     color: colors.primary,
+  },
+  chipsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
+    marginBottom: spacing.md,
+    justifyContent: "center",
+  },
+  chip: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  chipSelected: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  chipText: {
+    color: colors.textMuted,
+    fontSize: 12,
+  },
+  chipTextSelected: {
+    color: "#fff",
   },
   ratingHint: {
     color: colors.textMuted,
