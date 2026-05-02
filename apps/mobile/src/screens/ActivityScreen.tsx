@@ -17,6 +17,7 @@ import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity
 import { useDiscoverActivity, type DiscoverActivityItem } from "../hooks/useDiscoverActivity";
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -113,7 +114,7 @@ const ActivityCard: React.FC<{ item: ActivityItem }> = ({ item }) => (
         <Text style={styles.when}>{timeAgo(item.visitedAt)}</Text>
       </View>
       <Text style={styles.message}>
-        visited <Text style={styles.venueName}>{item.venueName}</Text>
+        {item.isAnonymous ? "checked in" : <>visited <Text style={styles.venueName}>{item.venueName}</Text></>}
       </Text>
       {item.rating != null && <RatingStars rating={item.rating} />}
       {item.comment ? (
@@ -146,6 +147,33 @@ const DiscoverCard: React.FC<{ item: DiscoverActivityItem; onPress: (listId: str
       <Text style={styles.message}>{item.message}</Text>
     </View>
   </Pressable>
+);
+
+/* ── Discover Feed Card ── */
+
+const DiscoverFeedCard: React.FC<{
+  item: import("../hooks/useDiscoverFeed").DiscoverFeedItem;
+}> = ({ item }) => (
+  <View style={styles.row}>
+    <View style={styles.avatarWrap}>
+      {item.actorAvatar ? (
+        <Image source={{ uri: item.actorAvatar }} style={styles.avatar} />
+      ) : (
+        <View style={styles.avatarPlaceholder}>
+          <Text style={styles.avatarInitial}>
+            {(item.isAnonymous ? "H" : item.actorName).charAt(0).toUpperCase()}
+          </Text>
+        </View>
+      )}
+    </View>
+    <View style={styles.textContainer}>
+      <View style={styles.nameRow}>
+        <Text style={styles.actor}>{item.isAnonymous ? "HappiTime" : item.actorName}</Text>
+        <Text style={styles.when}>{timeAgo(item.createdAt)}</Text>
+      </View>
+      <Text style={styles.message}>{item.message}</Text>
+    </View>
+  </View>
 );
 
 /* ── Check-In Card ── */
@@ -200,14 +228,19 @@ export const ActivityScreen: React.FC = () => {
     rejectFollowRequest,
   } = useUserFollowers();
   const { activities, loading: activityLoading, refresh: refreshActivity } = useFriendActivity();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { items: discoverItems, loading: suggestionsLoading, refresh: refreshSuggestions } = useDiscoverActivity();
+  const {
+    suggestions,
+    loading: suggestionsLoading,
+    refresh: refreshSuggestions,
+  } = useFriendSuggestions();
+  const { items: discoverItems, loading: discoverLoading, refresh: refreshDiscover } = useDiscoverFeed();
   const {
     checkins,
     loading: checkinsLoading,
     refresh: refreshCheckins,
     togglePrivacy,
   } = useUserCheckins();
+  const { preferences, savePreferences } = useUserPreferences();
 
 
   const handleDiscoverPress = (listId: string) => {
@@ -224,7 +257,7 @@ export const ActivityScreen: React.FC = () => {
 
   const isLoading =
     tab === "friends" ? followersLoading || activityLoading
-    : tab === "discover" ? suggestionsLoading
+    : tab === "discover" ? discoverLoading
     : checkinsLoading;
 
   return (
@@ -292,17 +325,33 @@ export const ActivityScreen: React.FC = () => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          onRefresh={refreshSuggestions}
-          refreshing={suggestionsLoading}
+          onRefresh={refreshDiscover}
+          refreshing={discoverLoading}
+          ListHeaderComponent={
+            suggestions.length > 0 ? (
+              <View style={styles.pendingSection}>
+                <Text style={styles.sectionTitle}>People you may know</Text>
+                {suggestions.slice(0, 3).map((item) => (
+                  <SuggestionCard
+                    key={item.user_id}
+                    suggestion={item}
+                    onFollow={handleFollow}
+                    following={requestedUsers[item.user_id] ?? false}
+                  />
+                ))}
+                <View style={styles.sectionDivider} />
+              </View>
+            ) : null
+          }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No discover activity yet</Text>
+              <Text style={styles.emptyTitle}>No social activity yet</Text>
               <Text style={styles.emptyText}>
-                Shared itineraries from friends will appear here.
+                Follow friends and share itineraries to light up Discover.
               </Text>
             </View>
           }
-          renderItem={({ item }) => <DiscoverCard item={item} onPress={handleDiscoverPress} />}
+          renderItem={({ item }) => <DiscoverFeedCard item={item} />}
         />
       ) : (
         <FlatList
@@ -317,6 +366,25 @@ export const ActivityScreen: React.FC = () => {
               <Text style={styles.privacyNoteText}>
                 Tap 👁 to make a check-in visible to friends, or 🔒 to keep it private.
               </Text>
+              {!preferences.checkin_default_privacy ? (
+                <View style={styles.privacyChoiceWrap}>
+                  <Text style={styles.privacyChoiceTitle}>Default check-in privacy</Text>
+                  <View style={styles.privacyChoiceRow}>
+                    <Pressable
+                      style={styles.privacyChoiceBtn}
+                      onPress={() => void savePreferences({ checkin_default_privacy: "private" })}
+                    >
+                      <Text style={styles.privacyChoiceBtnText}>Keep Private</Text>
+                    </Pressable>
+                    <Pressable
+                      style={[styles.privacyChoiceBtn, styles.privacyChoiceBtnAlt]}
+                      onPress={() => void savePreferences({ checkin_default_privacy: "public" })}
+                    >
+                      <Text style={[styles.privacyChoiceBtnText, styles.privacyChoiceBtnTextAlt]}>Share with Friends</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ) : null}
             </View>
           }
           ListEmptyComponent={
@@ -611,5 +679,37 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 12,
     lineHeight: 18,
+  },
+  privacyChoiceWrap: {
+    marginTop: spacing.sm,
+  },
+  privacyChoiceTitle: {
+    color: colors.text,
+    fontSize: 12,
+    fontWeight: "600",
+    marginBottom: spacing.xs,
+  },
+  privacyChoiceRow: {
+    flexDirection: "row",
+    gap: spacing.sm,
+  },
+  privacyChoiceBtn: {
+    backgroundColor: colors.text,
+    borderRadius: 999,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  privacyChoiceBtnAlt: {
+    backgroundColor: colors.background,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  privacyChoiceBtnText: {
+    color: colors.background,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  privacyChoiceBtnTextAlt: {
+    color: colors.text,
   },
 });
