@@ -161,17 +161,29 @@ export function useUserLists() {
     async (listId: string, targetUserId: string): Promise<{ error: Error | null }> => {
       if (!user?.id) return { error: new Error("Not signed in") };
 
+      const listName = state.lists.find((l) => l.id === listId)?.name ?? null;
+      const { data: profile } = await (supabase as any)
+        .from("user_profiles")
+        .select("handle")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
       const { error } = await (supabase as any).from("user_events").insert({
         user_id: user.id,
         event_type: "itinerary_share",
         venue_id: null,
-        meta: { list_id: listId, shared_with_user_id: targetUserId },
+        meta: {
+          list_id: listId,
+          list_name: listName,
+          shared_with_user_id: targetUserId,
+          sharer_handle: profile?.handle ?? null,
+        },
       });
 
       if (error) return { error: new Error(error.message) };
       return { error: null };
     },
-    [user?.id]
+    [state.lists, user?.id]
   );
 
   return {
