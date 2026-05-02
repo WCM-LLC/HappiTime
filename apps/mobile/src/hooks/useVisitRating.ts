@@ -11,6 +11,21 @@ export type PendingVisit = {
   enteredAt: string;
 };
 
+export function buildFallbackVisitInsert(
+  userId: string,
+  pendingVisit: PendingVisit,
+  rating: number,
+  comment?: string
+) {
+  return {
+    user_id: userId,
+    venue_id: pendingVisit.venueId,
+    entered_at: pendingVisit.enteredAt,
+    rating,
+    comment: comment?.trim() || null,
+  };
+}
+
 export function useVisitRating() {
   const { user } = useCurrentUser();
   const [pendingVisit, setPendingVisit] = useState<PendingVisit | null>(null);
@@ -64,13 +79,9 @@ export function useVisitRating() {
           // Fallback: insert a new record if we don't have a visitId
           const { data: auth } = await supabase.auth.getUser();
           if (!auth.user) return;
-          const { error } = await supabase.from("venue_visits").insert({
-            user_id: auth.user.id,
-            venue_id: pendingVisit.venueId,
-            entered_at: pendingVisit.visitedAt,
-            rating,
-            comment: comment?.trim() || null,
-          });
+          const { error } = await supabase
+            .from("venue_visits")
+            .insert(buildFallbackVisitInsert(auth.user.id, pendingVisit, rating, comment));
 
           if (error) {
             console.warn("[visit-rating] failed to insert:", error.message);
