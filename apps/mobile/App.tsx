@@ -45,6 +45,7 @@ function AuthenticatedApp({ session }: { session: any }) {
             venue.promotion_tier === "premium" || venue.promotion_tier === "featured",
           timezone: (window as any).timezone ?? undefined,
           happyHourWindows: [windowSlice],
+          serverRatingPromptsEnabled: (venue as any).post_visit_rating_enabled ?? true,
         });
       }
     }
@@ -62,8 +63,8 @@ function AuthenticatedApp({ session }: { session: any }) {
 
   // Wire visit detection to rating flow
   useEffect(() => {
-    setOnVisitDetected((venueId: string, venueName: string) => {
-      triggerRating(venueId, venueName);
+    setOnVisitDetected((venueId: string, venueName: string, visitId?: string) => {
+      triggerRating(venueId, venueName, visitId, [], "client");
     });
   }, [setOnVisitDetected, triggerRating]);
 

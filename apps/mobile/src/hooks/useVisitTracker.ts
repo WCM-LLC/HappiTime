@@ -31,6 +31,7 @@ export type VenuePoint = {
   isPremium?: boolean;
   timezone?: string;
   happyHourWindows?: HappyHourWindowSlice[];
+  serverRatingPromptsEnabled?: boolean;
 };
 
 type ProximityState = {
@@ -43,7 +44,7 @@ type ProximityState = {
 let _venues: VenuePoint[] = [];
 let _proximityState: ProximityState = null;
 let _userId: string | null = null;
-let _onVisitDetected: ((venueId: string, venueName: string) => void) | null = null;
+let _onVisitDetected: ((venueId: string, venueName: string, visitId?: string) => void) | null = null;
 let _notifiedVenues = new Map<string, number>(); // venueId → last-notified timestamp
 let _autoCheckedInVenues = new Map<string, number>(); // venueId → last auto check-in timestamp
 let _notificationBlocks = new Set<string>(); // venueId
@@ -136,15 +137,6 @@ async function registerVisit(userId: string, venueId: string, venueName: string)
     return null;
   }
 
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: "Did you visit " + venueName + "?",
-      body: "Rate your experience!",
-      data: { type: "visit_rating", venueId, venueName, visitId: data?.id },
-    },
-    trigger: null,
-  });
-
   return data?.id ?? null;
 }
 
@@ -214,8 +206,10 @@ function handleLocationUpdate(locations: Location.LocationObject[]) {
       if (elapsed >= DWELL_TIME_MS) {
         const { venueId, venueName } = _proximityState;
         _proximityState = null;
-        void registerVisit(_userId!, venueId, venueName);
-        if (_onVisitDetected) _onVisitDetected(venueId, venueName);
+        const visitIdPromise = registerVisit(_userId!, venueId, venueName);
+        if (_onVisitDetected && !nearestVenue.serverRatingPromptsEnabled) {
+          void visitIdPromise.then((visitId) => _onVisitDetected?.(venueId, venueName, visitId ?? undefined));
+        }
       }
     } else {
       // Entered range of a new venue — start dwell timer + fire immediate auto check-in
@@ -253,7 +247,7 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
 export function useVisitTracker(venues: VenuePoint[]) {
   const { user } = useCurrentUser();
   const [isTracking, setIsTracking] = useState(false);
-  const onVisitDetectedRef = useRef<((venueId: string, venueName: string) => void) | null>(null);
+  const onVisitDetectedRef = useRef<((venueId: string, venueName: string, visitId?: string) => void) | null>(null);
 
   useEffect(() => {
     _venues = venues;
@@ -354,7 +348,7 @@ export function useVisitTracker(venues: VenuePoint[]) {
     startTracking,
     stopTracking,
     isTracking,
-    setOnVisitDetected: (cb: (venueId: string, venueName: string) => void) => {
+    setOnVisitDetected: (cb: (venueId: string, venueName: string, visitId?: string) => void) => {
       onVisitDetectedRef.current = cb;
       _onVisitDetected = cb;
     },
