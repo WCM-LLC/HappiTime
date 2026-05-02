@@ -1,156 +1,109 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
-import { useCurrentUser } from "./useCurrentUser";
 
-export type DiscoverFeedItem = {
-  id: string;
-  createdAt: string;
-  type: "checkin" | "itinerary_share";
-  actorName: string;
-  actorAvatar: string | null;
-  actorHandle: string | null;
-  isAnonymous: boolean;
-  message: string;
-  venueName?: string;
+export type DiscoverEventType =
+  | "auto_checkin"
+  | "itinerary_share"
+  | "rating"
+  | "comment"
+  | "follow";
+
+type EventMeta = {
+  is_private?: boolean;
+  itinerary_name?: string;
+  venue_name?: string;
+  comment_text?: string;
 };
 
-
-type FollowRow = { following_user_id: string };
-type ProfileRow = {
-  user_id: string;
+type UserProfile = {
   display_name: string | null;
   handle: string | null;
   avatar_url: string | null;
-  is_public: boolean | null;
+};
+
+type DiscoverEventRow = {
+  id: string;
+  user_id: string;
+  event_type: DiscoverEventType;
+  created_at: string;
+  meta: EventMeta | null;
+  profile: UserProfile | UserProfile[] | null;
+};
+
+export type DiscoverFeedItem = {
+  id: string;
+  eventType: DiscoverEventType;
+  createdAt: string;
+  userHandle: string | null;
+  userDisplayName: string | null;
+  userAvatar: string | null;
+  itineraryName: string | null;
+  venueName: string | null;
+  commentText: string | null;
+  isPrivate: boolean;
 };
 
 type State = {
-  items: DiscoverFeedItem[];
+  feed: DiscoverFeedItem[];
   loading: boolean;
   error: string | null;
 };
 
+const DISCOVER_EVENT_TYPES: DiscoverEventType[] = [
+  "auto_checkin",
+  "itinerary_share",
+  "rating",
+  "comment",
+  "follow",
+];
+
 export function useDiscoverFeed() {
-  const { user } = useCurrentUser();
-  const [state, setState] = useState<State>({ items: [], loading: true, error: null });
+  const [state, setState] = useState<State>({ feed: [], loading: true, error: null });
 
   const load = useCallback(async () => {
-    if (!user?.id) {
-      setState({ items: [], loading: false, error: null });
-      return;
-    }
-
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
-    const { data: followRows, error: followError } = await (supabase as any)
-      .from("user_follows")
-      .select("following_user_id")
-      .eq("follower_id", user.id)
-      .eq("status", "accepted");
+    const { data, error } = await (supabase as any)
+      .from("user_events")
+      .select(
+        "id, user_id, event_type, created_at, meta, profile:user_profiles(display_name, handle, avatar_url)"
+      )
+      .in("event_type", DISCOVER_EVENT_TYPES)
+      .order("created_at", { ascending: false })
+      .limit(80);
 
-    if (followError) {
-      setState({ items: [], loading: false, error: followError.message });
+    if (error) {
+      setState({ feed: [], loading: false, error: error.message });
       return;
     }
 
-    const followedIds = ((followRows ?? []) as FollowRow[]).map((r) => r.following_user_id);
-    if (followedIds.length === 0) {
-      setState({ items: [], loading: false, error: null });
-      return;
-    }
-
-    const { data: profiles } = await (supabase as any)
-      .from("user_profiles")
-      .select("user_id, display_name, handle, avatar_url, is_public")
-      .in("user_id", followedIds);
-
-    const profileMap = new Map<string, ProfileRow>(((profiles ?? []) as ProfileRow[]).map((p) => [p.user_id, p]));
-
-    const visibleIds = followedIds.filter((id) => {
-      const profile = profileMap.get(id);
-      return profile?.is_public !== false;
-    });
-
-    if (visibleIds.length === 0) {
-      setState({ items: [], loading: false, error: null });
-      return;
-    }
-
-    const [visitsRes, sharesRes] = await Promise.all([
-      (supabase as any)
-        .from("venue_visits")
-        .select("id, user_id, entered_at, is_private, venue:venues(name)")
-        .in("user_id", visibleIds)
-        .order("entered_at", { ascending: false })
-        .limit(50),
-      (supabase as any)
-        .from("user_events")
-        .select("id, user_id, created_at, event_type, meta")
-        .eq("event_type", "itinerary_share")
-        .in("user_id", visibleIds)
-        .order("created_at", { ascending: false })
-        .limit(50),
-    ]);
-
-    if (visitsRes.error) {
-      setState({ items: [], loading: false, error: visitsRes.error.message });
-      return;
-    }
-
-    if (sharesRes.error) {
-      setState({ items: [], loading: false, error: sharesRes.error.message });
-      return;
-    }
-
-    const checkins: DiscoverFeedItem[] = (visitsRes.data ?? []).map((row: any) => {
-      const profile = profileMap.get(row.user_id);
-      const actorName = profile?.display_name ?? profile?.handle ?? "HappiTime user";
-      const venueName = row.venue?.name ?? "a venue";
-      const isAnonymous = row.is_private === true;
-
+    const feed = ((data ?? []) as DiscoverEventRow[]).map((row) => {
+      const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
       return {
-        id: `checkin-${row.id}`,
-        createdAt: row.entered_at,
-        type: "checkin",
-        actorName,
-        actorAvatar: isAnonymous ? null : profile?.avatar_url ?? null,
-        actorHandle: isAnonymous ? null : profile?.handle ?? null,
-        isAnonymous,
-        venueName,
-        message: isAnonymous
-          ? "a HappiTime user checked in"
-          : `${actorName} checked in at ${venueName}`,
-      };
-    });
-
-    const itineraryShares: DiscoverFeedItem[] = (sharesRes.data ?? []).map((row: any) => {
-      const profile = profileMap.get(row.user_id);
-      const actorName = profile?.display_name ?? profile?.handle ?? "HappiTime user";
-      const actorHandle = profile?.handle ? `@${profile.handle}` : actorName;
-      const itineraryName = row.meta?.list_name ?? "an itinerary";
-
-      return {
-        id: `share-${row.id}`,
+        id: row.id,
+        eventType: row.event_type,
         createdAt: row.created_at,
-        type: "itinerary_share",
-        actorName,
-        actorAvatar: profile?.avatar_url ?? null,
-        actorHandle: profile?.handle ?? null,
-        isAnonymous: false,
-        message: `${actorHandle} shared their itinerary ${itineraryName}`,
+        userHandle: profile?.handle ?? null,
+        userDisplayName: profile?.display_name ?? null,
+        userAvatar: profile?.avatar_url ?? null,
+        itineraryName: row.meta?.itinerary_name ?? null,
+        venueName: row.meta?.venue_name ?? null,
+        commentText: row.meta?.comment_text ?? null,
+        isPrivate: Boolean(row.meta?.is_private),
       };
     });
 
-    const items = [...checkins, ...itineraryShares].sort(
-      (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)
-    );
-
-    setState({ items: items.slice(0, 100), loading: false, error: null });
-  }, [user?.id]);
+    setState({ feed, loading: false, error: null });
+  }, []);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  return { ...state, refresh: load };
+  return {
+    feed: state.feed,
+    loading: state.loading,
+    error: state.error,
+    refresh: load,
+  };
 }

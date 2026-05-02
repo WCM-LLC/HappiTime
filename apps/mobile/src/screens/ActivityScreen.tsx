@@ -14,10 +14,11 @@ import {
 } from "react-native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity";
-import { useDiscoverActivity } from "../hooks/useDiscoverActivity";
+import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendSuggestions";
+import { useDiscoverFeed, type DiscoverFeedItem } from "../hooks/useDiscoverFeed";
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
-import { useUserPreferences } from "../hooks/useUserPreferences";
+import { isFeatureEnabled } from "../lib/featureFlags";
 import { colors } from "../theme/colors";
 import { SuggestionCard } from "../components/SuggestionCard";
 import { spacing } from "../theme/spacing";
@@ -133,6 +134,90 @@ const ActivityCard: React.FC<{ item: ActivityItem }> = ({ item }) => (
   </View>
 );
 
+/* ── Suggestion Card ── */
+
+const SuggestionCard: React.FC<{
+  suggestion: FriendSuggestion;
+  onFollow: (userId: string) => void;
+  following: boolean;
+}> = ({ suggestion, onFollow, following }) => {
+  const name =
+    suggestion.display_name ?? suggestion.handle ?? suggestion.user_id.slice(0, 8);
+
+  return (
+    <View style={styles.row}>
+      <View style={styles.avatarWrap}>
+        {suggestion.avatar_url ? (
+          <Image source={{ uri: suggestion.avatar_url }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarInitial}>
+              {name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.textContainer}>
+        <Text style={styles.actor}>{name}</Text>
+        {suggestion.handle ? (
+          <Text style={styles.handle}>@{suggestion.handle}</Text>
+        ) : null}
+        <Text style={styles.message}>
+          You both visited{" "}
+          <Text style={styles.venueName}>{suggestion.shared_venue_name}</Text>
+        </Text>
+      </View>
+      <View style={styles.trailing}>
+        <Pressable
+          onPress={() => onFollow(suggestion.user_id)}
+          disabled={following}
+          style={({ pressed }) => [
+            styles.followButton,
+            following && styles.followButtonActive,
+            pressed && styles.followButtonPressed,
+          ]}
+        >
+          <Text
+            style={[styles.followText, following && styles.followTextActive]}
+          >
+            {following ? "Requested" : "Follow"}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+};
+
+const DiscoverFeedCard: React.FC<{ item: DiscoverFeedItem }> = ({ item }) => {
+  const actor = item.userHandle ? `@${item.userHandle}` : item.userDisplayName ?? "a HappiTime user";
+  const message = (() => {
+    if (item.eventType === "itinerary_share") {
+      const itineraryName = item.itineraryName ?? "an itinerary";
+      return `${actor} shared their itinerary ${itineraryName}`;
+    }
+    if (item.eventType === "auto_checkin") {
+      if (item.isPrivate) return "a HappiTime user checked in";
+      const venueName = item.venueName ?? "a venue";
+      return `${actor} checked in at ${venueName}`;
+    }
+    if (item.eventType === "rating") return `${actor} left a new rating`;
+    if (item.eventType === "comment") return `${actor} posted a comment`;
+    if (item.eventType === "follow") return `${actor} followed someone new`;
+    return `${actor} had new activity`;
+  })();
+
+  return (
+    <View style={styles.row}>
+      <View style={styles.textContainer}>
+        <View style={styles.nameRow}>
+          <Text style={styles.when}>{timeAgo(item.createdAt)}</Text>
+        </View>
+        <Text style={styles.message}>{message}</Text>
+      </View>
+    </View>
+  );
+};
+
 /* ── Check-In Card ── */
 
 const CheckInCard: React.FC<{
@@ -175,6 +260,9 @@ const CheckInCard: React.FC<{
 /* ── Main Screen ── */
 
 type Tab = "friends" | "discover" | "checkins";
+type DiscoverListItem =
+  | { kind: "feed"; id: string; item: DiscoverFeedItem }
+  | { kind: "suggestion"; id: string; item: FriendSuggestion };
 
 export const ActivityScreen: React.FC = () => {
   const [tab, setTab] = useState<Tab>("friends");
@@ -188,6 +276,11 @@ export const ActivityScreen: React.FC = () => {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { items: discoverItems, loading: suggestionsLoading, refresh: refreshSuggestions } = useDiscoverActivity();
   const {
+    feed: discoverFeed,
+    loading: discoverLoading,
+    refresh: refreshDiscoverFeed,
+  } = useDiscoverFeed();
+  const {
     checkins,
     loading: checkinsLoading,
     refresh: refreshCheckins,
@@ -195,6 +288,11 @@ export const ActivityScreen: React.FC = () => {
   } = useUserCheckins();
   const { preferences, savePreferences } = useUserPreferences();
 
+  const [requestedUsers, setRequestedUsers] = useState<Record<string, boolean>>({});
+  const useDiscoverFeedSource = isFeatureEnabled("discoverFeedFromUserEvents");
+  const discoverListData: DiscoverListItem[] = useDiscoverFeedSource
+    ? discoverFeed.map((item) => ({ kind: "feed" as const, id: item.id, item }))
+    : suggestions.map((item) => ({ kind: "suggestion" as const, id: item.user_id, item }));
 
   const handleDiscoverPress = (listId: string) => {
     navigation.navigate("AppTabs", { screen: "Favorites", params: { openListId: listId } } as any);
@@ -210,7 +308,7 @@ export const ActivityScreen: React.FC = () => {
 
   const isLoading =
     tab === "friends" ? followersLoading || activityLoading
-    : tab === "discover" ? discoverLoading
+    : tab === "discover" ? (useDiscoverFeedSource ? discoverLoading : suggestionsLoading)
     : checkinsLoading;
 
   return (
@@ -274,17 +372,17 @@ export const ActivityScreen: React.FC = () => {
         />
       ) : tab === "discover" ? (
         <FlatList
-          data={discoverItems}
+          data={discoverListData}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          onRefresh={refreshDiscover}
-          refreshing={discoverLoading}
+          onRefresh={useDiscoverFeedSource ? refreshDiscoverFeed : refreshSuggestions}
+          refreshing={useDiscoverFeedSource ? discoverLoading : suggestionsLoading}
           ListHeaderComponent={
-            suggestions.length > 0 ? (
+            suggestions.length > 0 && useDiscoverFeedSource ? (
               <View style={styles.pendingSection}>
-                <Text style={styles.sectionTitle}>People you may know</Text>
-                {suggestions.slice(0, 3).map((item) => (
+                <Text style={styles.sectionTitle}>Suggested people</Text>
+                {suggestions.slice(0, 5).map((item) => (
                   <SuggestionCard
                     key={item.user_id}
                     suggestion={item}
@@ -298,23 +396,40 @@ export const ActivityScreen: React.FC = () => {
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No discover activity yet</Text>
-              <Text style={styles.emptyText}>
-                Shared itineraries from friends will appear here.
+              <Text style={styles.emptyTitle}>
+                {useDiscoverFeedSource ? "No discover activity yet" : "No suggestions yet"}
               </Text>
+              <Text style={styles.emptyText}>
+                {useDiscoverFeedSource
+                  ? "Visit more venues to populate your discover feed."
+                  : "Visit more venues to discover people with similar taste!"}
+              </Text>
+              {useDiscoverFeedSource && suggestions.length > 0 ? (
+                <View style={styles.pendingSection}>
+                  <Text style={styles.sectionTitle}>Suggested people</Text>
+                  {suggestions.slice(0, 5).map((item) => (
+                    <SuggestionCard
+                      key={item.user_id}
+                      suggestion={item}
+                      onFollow={handleFollow}
+                      following={requestedUsers[item.user_id] ?? false}
+                    />
+                  ))}
+                </View>
+              ) : null}
             </View>
           }
-          renderItem={({ item }) => (
-            <SuggestionCard
-              item={{
-                actorHandle: item.actorHandle,
-                actorAvatar: item.actorAvatar,
-                createdAtLabel: timeAgo(item.createdAt),
-                message: item.message,
-              }}
-              onPress={() => handleDiscoverPress(item.itineraryId)}
-            />
-          )}
+          renderItem={({ item }) =>
+            item.kind === "feed" ? (
+              <DiscoverFeedCard item={item.item} />
+            ) : (
+              <SuggestionCard
+                suggestion={item.item}
+                onFollow={handleFollow}
+                following={requestedUsers[item.item.user_id] ?? false}
+              />
+            )
+          }
         />
       ) : (
         <FlatList
