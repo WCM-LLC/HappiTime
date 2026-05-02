@@ -11,6 +11,21 @@ export type PendingVisit = {
   enteredAt: string;
 };
 
+export function buildFallbackVisitInsert(
+  userId: string,
+  pendingVisit: PendingVisit,
+  rating: number,
+  comment?: string
+) {
+  return {
+    user_id: userId,
+    venue_id: pendingVisit.venueId,
+    entered_at: pendingVisit.enteredAt,
+    rating,
+    comment: comment?.trim() || null,
+  };
+}
+
 export function useVisitRating() {
   const { user } = useCurrentUser();
   const [pendingVisit, setPendingVisit] = useState<PendingVisit | null>(null);
