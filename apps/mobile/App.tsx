@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Modal, Pressable, Text, View } from "react-native";
 import LoadingView from "./src/components/LoadingView";
 import { VisitRatingModal } from "./src/components/VisitRatingModal";
 import { supabase } from "./src/api/supabaseClient";
@@ -53,6 +53,39 @@ function AuthenticatedApp({ session }: { session: any }) {
   }, [happyHours]);
 
   const { startTracking, setOnVisitDetected } = useVisitTracker(venues);
+  const [showCheckinPrivacyPrompt, setShowCheckinPrivacyPrompt] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadPreference = async () => {
+      const userId = session?.user?.id;
+      if (!userId) return;
+      const { data } = await (supabase as any)
+        .from("user_preferences")
+        .select("default_checkin_privacy")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (!mounted) return;
+      const value = data?.default_checkin_privacy;
+      setShowCheckinPrivacyPrompt(value !== "private" && value !== "friends");
+    };
+    void loadPreference();
+    return () => {
+      mounted = false;
+    };
+  }, [session?.user?.id]);
+
+  const saveDefaultCheckinPrivacy = useCallback(
+    async (value: "private" | "friends") => {
+      const userId = session?.user?.id;
+      if (!userId) return;
+      await (supabase as any)
+        .from("user_preferences")
+        .upsert({ user_id: userId, default_checkin_privacy: value }, { onConflict: "user_id" });
+      setShowCheckinPrivacyPrompt(false);
+    },
+    [session?.user?.id]
+  );
 
   // Start tracking when we have venues
   useEffect(() => {
@@ -71,6 +104,39 @@ function AuthenticatedApp({ session }: { session: any }) {
   return (
     <>
       <AppNavigator />
+      <Modal transparent visible={showCheckinPrivacyPrompt} animationType="fade">
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.55)",
+            justifyContent: "center",
+            padding: 20,
+          }}
+        >
+          <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, gap: 12 }}>
+            <Text style={{ fontSize: 18, fontWeight: "700" }}>Check-in privacy</Text>
+            <Text style={{ fontSize: 15, lineHeight: 20 }}>
+              Choose your default: share check-ins with friends, or keep check-ins private.
+            </Text>
+            <Pressable
+              onPress={() => void saveDefaultCheckinPrivacy("friends")}
+              style={{ backgroundColor: "#4F46E5", borderRadius: 12, padding: 12 }}
+            >
+              <Text style={{ color: "white", textAlign: "center", fontWeight: "600" }}>
+                Share my check-ins with friends
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => void saveDefaultCheckinPrivacy("private")}
+              style={{ backgroundColor: "#111827", borderRadius: 12, padding: 12 }}
+            >
+              <Text style={{ color: "white", textAlign: "center", fontWeight: "600" }}>
+                Keep my check-ins private
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
       <VisitRatingModal
         pendingVisit={pendingVisit}
         submitting={submitting}
