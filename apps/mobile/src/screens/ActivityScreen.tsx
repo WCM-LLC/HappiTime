@@ -112,7 +112,13 @@ const ActivityCard: React.FC<{ item: ActivityItem }> = ({ item }) => (
         <Text style={styles.when}>{timeAgo(item.visitedAt)}</Text>
       </View>
       <Text style={styles.message}>
-        {item.isAnonymous ? "checked in" : <>visited <Text style={styles.venueName}>{item.venueName}</Text></>}
+        {item.isAnonymized ? (
+          "checked in privately"
+        ) : (
+          <>
+            visited <Text style={styles.venueName}>{item.venueName}</Text>
+          </>
+        )}
       </Text>
       {item.rating != null && <RatingStars rating={item.rating} />}
       {item.comment ? (
