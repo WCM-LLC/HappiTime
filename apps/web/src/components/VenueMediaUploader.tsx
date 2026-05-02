@@ -185,10 +185,10 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
                 borderRadius: 999, letterSpacing: '0.06em', textTransform: 'uppercase',
                 textAlign: 'center',
               }}>Gallery</span>
-              Shown in the venue's photo gallery in the order numbered below.
+              Shown in the venue&apos;s photo gallery in the order numbered below.
             </span>
             <span style={{ marginTop: 4 }}>
-              Uploaded photos always rank ahead of Google Places photos. If the cover isn't what you expect, upload your preferred photo or click <em>Set Cover</em>.
+              Uploaded photos always rank ahead of Google Places photos. If the cover isn&apos;t what you expect, upload your preferred photo or click <em>Set Cover</em>.
             </span>
           </div>
         </div>
