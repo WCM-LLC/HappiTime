@@ -10,6 +10,14 @@ type MembershipRow = {
   organizations: { id: string; name: string; slug: string }[];
 };
 
+const DASHBOARD_ERROR_MESSAGES: Record<string, string> = {
+  organization_already_exists:
+    'An organization with that name already exists. Ask an owner for access or choose a different organization name.',
+  slug_taken: 'That organization slug is already in use. Choose a different slug.',
+  missing_org_name: 'Enter an organization name.',
+  not_org_owner: 'You must be an organization owner to make that change.',
+};
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -17,6 +25,7 @@ export default async function DashboardPage({
 }) {
   const sp = await searchParams;
   const pageError = sp?.error;
+  const pageErrorMessage = pageError ? DASHBOARD_ERROR_MESSAGES[pageError] ?? pageError : null;
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   const user = auth.user;
@@ -59,10 +68,10 @@ export default async function DashboardPage({
         </div>
 
         {/* Error Banner */}
-        {pageError ? (
+        {pageErrorMessage ? (
           <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-6">
             <p className="text-body-sm font-medium text-error">Something went wrong</p>
-            <p className="text-body-sm text-error/80 mt-0.5">{pageError}</p>
+            <p className="text-body-sm text-error/80 mt-0.5">{pageErrorMessage}</p>
           </div>
         ) : null}
 

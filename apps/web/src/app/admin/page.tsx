@@ -7,6 +7,13 @@ import type { OrgRow, VenueRow, WindowRow, UserRow } from './AdminTables';
 import { SUPER_ADMIN_EMAIL } from '@/utils/admin-emails';
 import { addAdminUser, removeAdminUser } from '@/actions/admin-manage-actions';
 
+const ADMIN_ERROR_MESSAGES: Record<string, string> = {
+  slug_taken: 'That organization slug is already in use. Choose a different slug.',
+  invalid_slug: 'Use a slug with lowercase letters, numbers, and hyphens only.',
+  org_name_required: 'Enter an organization name.',
+  org_not_found: 'That organization could not be found.',
+};
+
 export default async function AdminPage({
   searchParams,
 }: {
@@ -14,6 +21,7 @@ export default async function AdminPage({
 }) {
   const sp = await searchParams;
   const pageError = sp?.error;
+  const pageErrorMessage = pageError ? ADMIN_ERROR_MESSAGES[pageError] ?? pageError : null;
   const keyError = getServiceRoleKeyError();
   const supabase = keyError ? await createClient() : createServiceClient();
   const authClient = await createClient();
@@ -194,10 +202,10 @@ export default async function AdminPage({
         </div>
 
         {/* ── Action Error Banner ── */}
-        {pageError ? (
+        {pageErrorMessage ? (
           <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-6">
             <p className="text-body-sm font-medium text-error">Action failed</p>
-            <p className="text-body-sm text-error/80 mt-0.5">{pageError}</p>
+            <p className="text-body-sm text-error/80 mt-0.5">{pageErrorMessage}</p>
           </div>
         ) : null}
 
