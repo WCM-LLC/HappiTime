@@ -2,9 +2,60 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/utils/supabase/server";
 import { slugify } from "@/utils/slugify";
 import { hasAdminEmailsConfigured, isAdmin, getAdminClient } from "@/utils/admin";
+
+const ORGANIZATION_ALREADY_EXISTS = "organization_already_exists";
+
+async function findOrganizationIdBySlug(dbClient: SupabaseClient, slug: string) {
+  const { data, error } = await dbClient
+    .from("organizations")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[dashboard] organization slug lookup failed", error);
+    return null;
+  }
+
+  return data?.id ? String(data.id) : null;
+}
+
+async function redirectForExistingOrganization(
+  dbClient: SupabaseClient,
+  orgId: string,
+  userId: string
+): Promise<never> {
+  const { data: membership, error } = await dbClient
+    .from("org_members")
+    .select("role")
+    .eq("org_id", orgId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (!error && membership) {
+    redirect(`/orgs/${orgId}`);
+  }
+
+  redirect(`/dashboard?error=${ORGANIZATION_ALREADY_EXISTS}`);
+}
+
+async function redirectForDuplicateOrganizationSlug(
+  dbClient: SupabaseClient,
+  slug: string,
+  userId: string
+): Promise<never> {
+  const existingOrgId = await findOrganizationIdBySlug(dbClient, slug);
+
+  if (existingOrgId) {
+    await redirectForExistingOrganization(dbClient, existingOrgId, userId);
+  }
+
+  redirect(`/dashboard?error=${ORGANIZATION_ALREADY_EXISTS}`);
+}
 
 export async function createOrganization(formData: FormData) {
   const supabase = await createClient();
@@ -24,6 +75,11 @@ export async function createOrganization(formData: FormData) {
   const useAdmin = hasAdminEmailsConfigured() && (await isAdmin());
   const dbClient = useAdmin ? getAdminClient() : supabase;
 
+  const existingOrgId = await findOrganizationIdBySlug(dbClient, slug);
+  if (existingOrgId) {
+    await redirectForExistingOrganization(dbClient, existingOrgId, user.id);
+  }
+
   // 1) Create org
   const { data: org, error: orgErr } = await dbClient
     .from("organizations")
@@ -32,6 +88,10 @@ export async function createOrganization(formData: FormData) {
     .single();
 
   if (orgErr || !org) {
+    if (orgErr?.code === "23505") {
+      await redirectForDuplicateOrganizationSlug(dbClient, slug, user.id);
+    }
+
     redirect(`/dashboard?error=${encodeURIComponent(orgErr?.message ?? "org_create_failed")}`);
   }
 
@@ -79,6 +139,10 @@ export async function updateOrganization(orgId: string, formData: FormData) {
     .eq("id", orgId);
 
   if (error) {
+    if (error.code === "23505") {
+      redirect("/dashboard?error=slug_taken");
+    }
+
     redirect(`/dashboard?error=${encodeURIComponent(error.message ?? "org_update_failed")}`);
   }
 

@@ -7,6 +7,13 @@ import type { OrgRow, VenueRow, WindowRow, UserRow } from './AdminTables';
 import { SUPER_ADMIN_EMAIL } from '@/utils/admin-emails';
 import { addAdminUser, removeAdminUser } from '@/actions/admin-manage-actions';
 
+const ADMIN_ERROR_MESSAGES: Record<string, string> = {
+  slug_taken: 'That organization slug is already in use. Choose a different slug.',
+  invalid_slug: 'Use a slug with lowercase letters, numbers, and hyphens only.',
+  org_name_required: 'Enter an organization name.',
+  org_not_found: 'That organization could not be found.',
+};
+
 export default async function AdminPage({
   searchParams,
 }: {
