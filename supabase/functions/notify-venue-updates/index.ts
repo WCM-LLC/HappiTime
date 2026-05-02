@@ -55,6 +55,20 @@ Deno.serve(async (req) => {
     );
   }
 
+
+  const { data: sub } = await supabase
+    .from("venue_subscriptions")
+    .select("plan, status")
+    .eq("venue_id", venueId)
+    .maybeSingle();
+
+  const isPremium = sub?.plan === "premium" && sub?.status !== "inactive";
+  if (!isPremium) {
+    return new Response(
+      JSON.stringify({ sent: 0, reason: "venue is not a premium subscriber" })
+    );
+  }
+
   // Fetch venue name
   const { data: venue } = await supabase
     .from("venues")
