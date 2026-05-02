@@ -1,5 +1,8 @@
 // src/screens/ActivityScreen.tsx
 import React, { useState } from "react";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../navigation/types";
 import {
   View,
   Text,
@@ -11,7 +14,7 @@ import {
 } from "react-native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity";
-import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendSuggestions";
+import { useDiscoverActivity, type DiscoverActivityItem } from "../hooks/useDiscoverActivity";
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
 import { colors } from "../theme/colors";
@@ -122,59 +125,28 @@ const ActivityCard: React.FC<{ item: ActivityItem }> = ({ item }) => (
   </View>
 );
 
-/* ── Suggestion Card ── */
+/* ── Discover Card ── */
 
-const SuggestionCard: React.FC<{
-  suggestion: FriendSuggestion;
-  onFollow: (userId: string) => void;
-  following: boolean;
-}> = ({ suggestion, onFollow, following }) => {
-  const name =
-    suggestion.display_name ?? suggestion.handle ?? suggestion.user_id.slice(0, 8);
-
-  return (
-    <View style={styles.row}>
-      <View style={styles.avatarWrap}>
-        {suggestion.avatar_url ? (
-          <Image source={{ uri: suggestion.avatar_url }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarInitial}>
-              {name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.textContainer}>
-        <Text style={styles.actor}>{name}</Text>
-        {suggestion.handle ? (
-          <Text style={styles.handle}>@{suggestion.handle}</Text>
-        ) : null}
-        <Text style={styles.message}>
-          You both visited{" "}
-          <Text style={styles.venueName}>{suggestion.shared_venue_name}</Text>
-        </Text>
-      </View>
-      <View style={styles.trailing}>
-        <Pressable
-          onPress={() => onFollow(suggestion.user_id)}
-          disabled={following}
-          style={({ pressed }) => [
-            styles.followButton,
-            following && styles.followButtonActive,
-            pressed && styles.followButtonPressed,
-          ]}
-        >
-          <Text
-            style={[styles.followText, following && styles.followTextActive]}
-          >
-            {following ? "Requested" : "Follow"}
-          </Text>
-        </Pressable>
-      </View>
+const DiscoverCard: React.FC<{ item: DiscoverActivityItem; onPress: (listId: string) => void }> = ({ item, onPress }) => (
+  <Pressable onPress={() => onPress(item.itineraryId)} style={styles.row}>
+    <View style={styles.avatarWrap}>
+      {item.actorAvatar ? (
+        <Image source={{ uri: item.actorAvatar }} style={styles.avatar} />
+      ) : (
+        <View style={styles.avatarPlaceholder}>
+          <Text style={styles.avatarInitial}>{item.actorHandle.charAt(0).toUpperCase()}</Text>
+        </View>
+      )}
     </View>
-  );
-};
+    <View style={styles.textContainer}>
+      <View style={styles.nameRow}>
+        <Text style={styles.actor}>@{item.actorHandle}</Text>
+        <Text style={styles.when}>{timeAgo(item.createdAt)}</Text>
+      </View>
+      <Text style={styles.message}>{item.message}</Text>
+    </View>
+  </Pressable>
+);
 
 /* ── Check-In Card ── */
 
@@ -226,14 +198,10 @@ export const ActivityScreen: React.FC = () => {
     loading: followersLoading,
     approveFollowRequest,
     rejectFollowRequest,
-    sendFollowRequest,
   } = useUserFollowers();
   const { activities, loading: activityLoading, refresh: refreshActivity } = useFriendActivity();
-  const {
-    suggestions,
-    loading: suggestionsLoading,
-    refresh: refreshSuggestions,
-  } = useFriendSuggestions();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { items: discoverItems, loading: suggestionsLoading, refresh: refreshSuggestions } = useDiscoverActivity();
   const {
     checkins,
     loading: checkinsLoading,
@@ -241,11 +209,9 @@ export const ActivityScreen: React.FC = () => {
     togglePrivacy,
   } = useUserCheckins();
 
-  const [requestedUsers, setRequestedUsers] = useState<Record<string, boolean>>({});
 
-  const handleFollow = (userId: string) => {
-    setRequestedUsers((prev) => ({ ...prev, [userId]: true }));
-    void sendFollowRequest(userId);
+  const handleDiscoverPress = (listId: string) => {
+    navigation.navigate("AppTabs", { screen: "Favorites", params: { openListId: listId } } as any);
   };
 
   const handleApprove = (followId: string) => {
@@ -322,27 +288,21 @@ export const ActivityScreen: React.FC = () => {
         />
       ) : tab === "discover" ? (
         <FlatList
-          data={suggestions}
-          keyExtractor={(item) => item.user_id}
+          data={discoverItems}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           onRefresh={refreshSuggestions}
           refreshing={suggestionsLoading}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No suggestions yet</Text>
+              <Text style={styles.emptyTitle}>No discover activity yet</Text>
               <Text style={styles.emptyText}>
-                Visit more venues to discover people with similar taste!
+                Shared itineraries from friends will appear here.
               </Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <SuggestionCard
-              suggestion={item}
-              onFollow={handleFollow}
-              following={requestedUsers[item.user_id] ?? false}
-            />
-          )}
+          renderItem={({ item }) => <DiscoverCard item={item} onPress={handleDiscoverPress} />}
         />
       ) : (
         <FlatList
