@@ -134,59 +134,28 @@ const ActivityCard: React.FC<{ item: ActivityItem }> = ({ item }) => (
   </View>
 );
 
-/* ── Suggestion Card ── */
+/* ── Discover Card ── */
 
-const SuggestionCard: React.FC<{
-  suggestion: FriendSuggestion;
-  onFollow: (userId: string) => void;
-  following: boolean;
-}> = ({ suggestion, onFollow, following }) => {
-  const name =
-    suggestion.display_name ?? suggestion.handle ?? suggestion.user_id.slice(0, 8);
-
-  return (
-    <View style={styles.row}>
-      <View style={styles.avatarWrap}>
-        {suggestion.avatar_url ? (
-          <Image source={{ uri: suggestion.avatar_url }} style={styles.avatar} />
-        ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarInitial}>
-              {name.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.textContainer}>
-        <Text style={styles.actor}>{name}</Text>
-        {suggestion.handle ? (
-          <Text style={styles.handle}>@{suggestion.handle}</Text>
-        ) : null}
-        <Text style={styles.message}>
-          You both visited{" "}
-          <Text style={styles.venueName}>{suggestion.shared_venue_name}</Text>
-        </Text>
-      </View>
-      <View style={styles.trailing}>
-        <Pressable
-          onPress={() => onFollow(suggestion.user_id)}
-          disabled={following}
-          style={({ pressed }) => [
-            styles.followButton,
-            following && styles.followButtonActive,
-            pressed && styles.followButtonPressed,
-          ]}
-        >
-          <Text
-            style={[styles.followText, following && styles.followTextActive]}
-          >
-            {following ? "Requested" : "Follow"}
-          </Text>
-        </Pressable>
-      </View>
+const DiscoverCard: React.FC<{ item: DiscoverActivityItem; onPress: (listId: string) => void }> = ({ item, onPress }) => (
+  <Pressable onPress={() => onPress(item.itineraryId)} style={styles.row}>
+    <View style={styles.avatarWrap}>
+      {item.actorAvatar ? (
+        <Image source={{ uri: item.actorAvatar }} style={styles.avatar} />
+      ) : (
+        <View style={styles.avatarPlaceholder}>
+          <Text style={styles.avatarInitial}>{item.actorHandle.charAt(0).toUpperCase()}</Text>
+        </View>
+      )}
     </View>
-  );
-};
+    <View style={styles.textContainer}>
+      <View style={styles.nameRow}>
+        <Text style={styles.actor}>@{item.actorHandle}</Text>
+        <Text style={styles.when}>{timeAgo(item.createdAt)}</Text>
+      </View>
+      <Text style={styles.message}>{item.message}</Text>
+    </View>
+  </Pressable>
+);
 
 const DiscoverFeedCard: React.FC<{ item: DiscoverFeedItem }> = ({ item }) => {
   const actor = item.userHandle ? `@${item.userHandle}` : item.userDisplayName ?? "a HappiTime user";
