@@ -17,6 +17,7 @@ export type UserPreferences = {
   notifications_friend_activity: boolean;
   notifications_product: boolean;
   notifications_marketing: boolean;
+  checkin_default_privacy: "private" | "public" | null;
 };
 
 const DEFAULTS: UserPreferences = {
@@ -34,6 +35,7 @@ const DEFAULTS: UserPreferences = {
   notifications_friend_activity: true,
   notifications_product: true,
   notifications_marketing: false,
+  checkin_default_privacy: null,
 };
 
 type State = {
@@ -87,6 +89,7 @@ export function useUserPreferences() {
             notifications_friend_activity: d.notifications_friend_activity ?? true,
             notifications_product: d.notifications_product ?? true,
             notifications_marketing: d.notifications_marketing ?? false,
+            checkin_default_privacy: d.checkin_default_privacy ?? null,
           }
         : DEFAULTS,
       loading: false,

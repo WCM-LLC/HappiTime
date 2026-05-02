@@ -8,6 +8,7 @@ import { isAdminEmail } from '@/utils/admin-emails';
 import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
 import {
   updateVenue,
+  updateVenueRatingSettings,
   addHappyHour,
   updateHappyHour,
   deleteHappyHour,
@@ -40,6 +41,7 @@ import {
 } from '../../../../../actions/admin-staff-actions';
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const RATING_ASPECT_OPTIONS = ["food_quality", "service", "drink_selection", "ambiance", "value"];
 
 const HH_STATUS_PUBLISHED = 'published';
 
@@ -511,6 +513,42 @@ export default async function VenuePage({
           </form>
         </div>
 
+
+
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+          <div className="mb-5">
+            <h2 className="text-heading-sm font-semibold text-foreground">Post-visit ratings</h2>
+            <p className="text-body-sm text-muted mt-0.5">Configure rating prompts and selectable aspects.</p>
+          </div>
+
+          <form className="flex flex-col gap-4">
+            <label className="inline-flex items-center gap-2 text-body-sm text-foreground">
+              <input type="checkbox" name="post_visit_rating_enabled" defaultChecked={(v as any)?.post_visit_rating_enabled !== false} disabled={!canManageVenue} />
+              Enable post-visit rating prompts
+            </label>
+            <div>
+              <p className="text-body-sm font-medium text-foreground mb-2">Rating aspects</p>
+              <div className="flex flex-wrap gap-3">
+                {RATING_ASPECT_OPTIONS.map((aspect) => {
+                  const selected = ((v as any)?.post_visit_rating_aspects ?? []).includes(aspect);
+                  return (
+                    <label key={aspect} className="inline-flex items-center gap-2 text-body-sm text-muted">
+                      <input type="checkbox" name="rating_aspects" value={aspect} defaultChecked={selected} disabled={!canManageVenue} />
+                      {aspect.replaceAll('_', ' ')}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+            {canManageVenue ? (
+              <div>
+                <button formAction={updateVenueRatingSettings.bind(null, orgId, venueId)} className={btnPrimary}>
+                  Save rating settings
+                </button>
+              </div>
+            ) : null}
+          </form>
+        </div>
         {/* ══════════════════════════════════════════════
             SECTION 2 — HAPPY HOUR TIMES
         ══════════════════════════════════════════════ */}

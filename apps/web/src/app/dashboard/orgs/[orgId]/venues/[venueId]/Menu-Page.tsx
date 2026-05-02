@@ -133,13 +133,24 @@ export default async function VenuePage({
     .eq('venue_id', venueId)
     .order('created_at', { ascending: false });
 
-  const { data: eventCounts } = await supabase
-    .from('venue_event_counts')
-    .select('event_type,cnt')
-    .eq('org_id', orgId)
+
+  const { data: subRow } = await supabase
+    .from('venue_subscriptions')
+    .select('plan,status')
     .eq('venue_id', venueId)
-    .order('cnt', { ascending: false })
-    .limit(20);
+    .maybeSingle();
+
+  const isPremiumSubscriber = subRow?.plan === 'premium' && subRow?.status !== 'inactive';
+
+  const eventCounts = isPremiumSubscriber
+    ? (await supabase
+        .from('venue_event_counts')
+        .select('event_type,cnt')
+        .eq('org_id', orgId)
+        .eq('venue_id', venueId)
+        .order('cnt', { ascending: false })
+        .limit(20)).data
+    : null;
 
   const v = venue as Venue | null;
 
@@ -520,7 +531,9 @@ export default async function VenuePage({
             This reads from <code>events</code> (user app) via the <code>venue_event_counts</code> view.
           </p>
 
-          {(eventCounts as EventCount[] | null)?.length ? (
+          {!isPremiumSubscriber ? (
+            <p className="muted">User-event analytics are available on the Premium plan only.</p>
+          ) : (eventCounts as EventCount[] | null)?.length ? (
             <div className="col" style={{ gap: 8 }}>
               {(eventCounts as EventCount[]).map((e) => (
                 <div key={e.event_type} className="row" style={{ justifyContent: 'space-between' }}>
