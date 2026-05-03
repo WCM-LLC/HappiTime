@@ -1,26 +1,23 @@
 // src/screens/MapScreen.tsx
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TextInput,
   Pressable,
-  ScrollView,
   Image,
-  useWindowDimensions,
   Platform,
-  FlatList,
 } from "react-native";
 import MapView, { Marker, Region } from "react-native-maps";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "../navigation/types";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import { supabase } from "../api/supabaseClient";
+import type { ItineraryMapVenue } from "../navigation/types";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useUserPreferences } from "../hooks/useUserPreferences";
-import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useVenueCovers } from "../hooks/useVenueCovers";
+import { SearchableOptionSheet } from "../components/SearchableOptionSheet";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
@@ -53,9 +50,143 @@ const DEFAULT_REGION: Region = {
   longitudeDelta: 0.08,
 };
 
+const EMPTY_ITINERARY_VENUE_IDS: string[] = [];
+const EMPTY_ITINERARY_VENUES: ItineraryMapVenue[] = [];
+const DIRECT_VENUE_SEARCH_LIMIT = 20;
+const ITINERARY_EDGE_PADDING = {
+  top: 180,
+  right: 48,
+  bottom: 240,
+  left: 48,
+};
+
+const getWindowVenueId = (window: HappyHourWindow) =>
+  window.venue?.id ?? window.venue_id ?? null;
+
+const hasVenueCoordinates = (window: HappyHourWindow) =>
+  window.venue?.lat != null && window.venue?.lng != null;
+
+const toNullableCoordinate = (value: unknown): number | null => {
+  if (value == null || value === "") return null;
+  const numberValue = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+};
+
+const normalizeMapVenue = (venue: ItineraryMapVenue): ItineraryMapVenue => {
+  return {
+    ...venue,
+    lat: toNullableCoordinate(venue.lat),
+    lng: toNullableCoordinate(venue.lng),
+    tags: Array.isArray(venue.tags) ? venue.tags : [],
+  };
+};
+
+const createVenueWindow = (venueInput: ItineraryMapVenue): HappyHourWindow => {
+  const venue = normalizeMapVenue(venueInput);
+  return ({
+    id: `venue-${venue.id}`,
+    venue_id: venue.id,
+    name: venue.name,
+    venue_name: venue.name,
+    organization_name: venue.org_name,
+    orgName: venue.org_name,
+    dow: [],
+    start_time: null,
+    end_time: null,
+    status: "published",
+    offers: [],
+    venue,
+  }) as unknown as HappyHourWindow;
+};
+
+const getWindowSearchText = (window: HappyHourWindow) => {
+  const venue = window.venue;
+  return [
+    venue?.name,
+    window.venue_name,
+    venue?.org_name,
+    window.organization_name,
+    window.orgName,
+    venue?.address,
+    venue?.neighborhood,
+    venue?.city,
+    venue?.state,
+    (venue?.tags ?? []).join(" "),
+    (venue as any)?.cuisine_type,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+};
+
+const normalizeSearchValue = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/&/g, " and ")
+    .replace(/['’]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+
+const compactSearchValue = (value: string) =>
+  normalizeSearchValue(value).replace(/\s+/g, "");
+
+const getSearchTerms = (query: string) =>
+  query
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean);
+
+const windowMatchesSearchTerms = (window: HappyHourWindow, terms: string[]) => {
+  const rawSearchText = getWindowSearchText(window);
+  const normalizedSearchText = normalizeSearchValue(rawSearchText);
+  const compactSearchText = compactSearchValue(rawSearchText);
+
+  return terms.every((term) => {
+    const normalizedTerm = normalizeSearchValue(term);
+    const compactTerm = compactSearchValue(term);
+    if (!normalizedTerm) return true;
+    if (
+      rawSearchText.includes(term) ||
+      normalizedSearchText.includes(normalizedTerm) ||
+      compactSearchText.includes(compactTerm)
+    ) {
+      return true;
+    }
+    if (normalizedTerm === "bbq") {
+      return (
+        normalizedSearchText.includes("bar b q") ||
+        normalizedSearchText.includes("barbecue") ||
+        normalizedSearchText.includes("barbeque") ||
+        compactSearchText.includes("barbq")
+      );
+    }
+    return false;
+  });
+};
+
+const getVenueSearchNeedles = (query: string) => {
+  const terms = getSearchTerms(query)
+    .map(normalizeSearchValue)
+    .filter((term) => term.length >= 2);
+  const needles = terms.flatMap((term) =>
+    term === "bbq" ? ["bbq", "bar-b-q", "barbeque", "barbecue", "bar"] : [term]
+  );
+  return Array.from(new Set(needles)).slice(0, 4);
+};
+
+const buildVenueSearchFilter = (needles: string[]) => {
+  const fields = ["name", "org_name", "address", "neighborhood", "city", "slug"];
+  return needles
+    .flatMap((needle) =>
+      fields.map((field) => `${field}.ilike.%${needle.replace(/[%*,]/g, "")}%`)
+    )
+    .join(",");
+};
+
 export const MapScreen: React.FC = () => {
-  const navigation =
-    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { data } = useHappyHours();
   const { coords } = useUserLocation();
   const { preferences } = useUserPreferences();
@@ -68,8 +199,49 @@ export const MapScreen: React.FC = () => {
     null
   );
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [fetchedItineraryVenues, setFetchedItineraryVenues] = useState<ItineraryMapVenue[]>([]);
+  const [searchedVenues, setSearchedVenues] = useState<ItineraryMapVenue[]>([]);
 
   const todayIndex = new Date().getDay();
+  const selectedWindowId = selectedWindow?.id;
+  const itineraryVenueIds: string[] = Array.isArray(route.params?.itineraryVenueIds)
+    ? route.params.itineraryVenueIds
+    : EMPTY_ITINERARY_VENUE_IDS;
+  const routeItineraryVenues: ItineraryMapVenue[] = Array.isArray(route.params?.itineraryVenues)
+    ? route.params.itineraryVenues
+    : EMPTY_ITINERARY_VENUES;
+  const itineraryName = route.params?.itineraryName ?? null;
+  const itineraryRequestId = route.params?.itineraryRequestId ?? 0;
+  const itineraryKey = itineraryVenueIds.join("|");
+  const routeItineraryVenueKey = routeItineraryVenues
+    .map((venue: ItineraryMapVenue) => `${venue.id}:${venue.lat ?? ""}:${venue.lng ?? ""}`)
+    .join("|");
+  const itineraryVenueIdSet = useMemo(
+    () => new Set(itineraryVenueIds),
+    [itineraryVenueIds]
+  );
+  const directVenueSearchNeedles = useMemo(
+    () => getVenueSearchNeedles(query),
+    [query]
+  );
+  const directVenueSearchKey = directVenueSearchNeedles.join("|");
+  const hasItineraryFilter = itineraryVenueIdSet.size > 0;
+  const combinedItineraryVenues = useMemo(() => {
+    const venuesById = new Map<string, ItineraryMapVenue>();
+    for (const venue of routeItineraryVenues) {
+      venuesById.set(venue.id, normalizeMapVenue(venue));
+    }
+    for (const venue of fetchedItineraryVenues) {
+      venuesById.set(venue.id, normalizeMapVenue(venue));
+    }
+    return itineraryVenueIds
+      .map((id) => venuesById.get(id))
+      .filter((venue): venue is ItineraryMapVenue => venue != null);
+  }, [fetchedItineraryVenues, itineraryVenueIds, routeItineraryVenues]);
+  const missingCoordinateCount = hasItineraryFilter
+    ? itineraryVenueIds.length -
+      combinedItineraryVenues.filter((venue) => venue.lat != null && venue.lng != null).length
+    : 0;
 
   // Center on user location or home coords or default
   const initialRegion = useMemo<Region>(() => {
@@ -95,14 +267,204 @@ export const MapScreen: React.FC = () => {
     return DEFAULT_REGION;
   }, [coords, preferences.home_lat, preferences.home_lng]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    if (!hasItineraryFilter) {
+      setFetchedItineraryVenues([]);
+      return;
+    }
+
+    setQuery("");
+    setSelectedCuisine("all");
+    setSelectedPrice("all");
+    setSelectedWindow(null);
+    setShowSuggestions(false);
+
+    const routeVenueIds = new Set(
+      routeItineraryVenues.map((venue: ItineraryMapVenue) => venue.id)
+    );
+    const missingVenueIds = itineraryVenueIds.filter((id) => !routeVenueIds.has(id));
+    if (missingVenueIds.length === 0) {
+      setFetchedItineraryVenues([]);
+      return;
+    }
+
+    const loadItineraryVenues = async () => {
+      const { data: venueRows, error } = await (supabase as any)
+        .from("venues")
+        .select(
+          `
+          id,
+          org_id,
+          name,
+          org_name,
+          address,
+          phone,
+          website,
+          neighborhood,
+          city,
+          state,
+          zip,
+          timezone,
+          tags,
+          cuisine_type,
+          price_tier,
+          app_name_preference,
+          status,
+          created_at,
+          updated_at,
+          last_confirmed_at,
+          lat,
+          lng,
+          promotion_tier,
+          promotion_priority
+        `
+        )
+        .in("id", missingVenueIds);
+
+      if (!mounted) return;
+      if (error) {
+        console.warn("[MapScreen] itinerary venue lookup failed", error);
+        setFetchedItineraryVenues([]);
+        return;
+      }
+      setFetchedItineraryVenues(venueRows ?? []);
+    };
+
+    void loadItineraryVenues();
+
+    return () => {
+      mounted = false;
+    };
+  }, [
+    hasItineraryFilter,
+    itineraryKey,
+    itineraryRequestId,
+    itineraryVenueIds,
+    routeItineraryVenueKey,
+    routeItineraryVenues,
+  ]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    if (hasItineraryFilter || directVenueSearchNeedles.length === 0) {
+      setSearchedVenues([]);
+      return;
+    }
+
+    const loadSearchVenues = async () => {
+      const filter = buildVenueSearchFilter(directVenueSearchNeedles);
+      if (!filter) {
+        setSearchedVenues([]);
+        return;
+      }
+
+      const { data: venueRows, error } = await (supabase as any)
+        .from("venues")
+        .select(
+          `
+          id,
+          name,
+          org_name,
+          address,
+          neighborhood,
+          city,
+          state,
+          zip,
+          timezone,
+          tags,
+          cuisine_type,
+          price_tier,
+          app_name_preference,
+          status,
+          lat,
+          lng,
+          promotion_tier,
+          promotion_priority,
+          slug
+        `
+        )
+        .or(filter)
+        .limit(DIRECT_VENUE_SEARCH_LIMIT);
+
+      if (!mounted) return;
+      if (error) {
+        console.warn("[MapScreen] venue search lookup failed", error);
+        setSearchedVenues([]);
+        return;
+      }
+      setSearchedVenues((venueRows ?? []).map(normalizeMapVenue));
+    };
+
+    void loadSearchVenues();
+
+    return () => {
+      mounted = false;
+    };
+  }, [directVenueSearchKey, directVenueSearchNeedles, hasItineraryFilter]);
+
   // All windows that have geocoded venues
   const mappableWindows = useMemo(() => {
-    return data.filter((w) => {
-      const lat = w.venue?.lat;
-      const lng = w.venue?.lng;
-      return lat != null && lng != null;
+    const happyHourWindows = data.filter(hasVenueCoordinates);
+    if (!hasItineraryFilter) {
+      if (searchedVenues.length === 0) return happyHourWindows;
+
+      const windows = [...happyHourWindows];
+      const seenVenueIds = new Set(
+        happyHourWindows
+          .map((window) => getWindowVenueId(window))
+          .filter((id): id is string => id != null)
+      );
+      for (const venue of searchedVenues) {
+        if (!venue.id || seenVenueIds.has(venue.id) || venue.lat == null || venue.lng == null) {
+          continue;
+        }
+        seenVenueIds.add(venue.id);
+        windows.push(createVenueWindow(venue));
+      }
+      return windows;
+    }
+
+    const seenVenueIds = new Set<string>();
+    const itineraryWindows: HappyHourWindow[] = [];
+
+    for (const window of happyHourWindows) {
+      const venueId = getWindowVenueId(window);
+      if (!venueId || !itineraryVenueIdSet.has(venueId) || seenVenueIds.has(venueId)) {
+        continue;
+      }
+      seenVenueIds.add(venueId);
+      itineraryWindows.push(window);
+    }
+
+    for (const venue of combinedItineraryVenues) {
+      if (
+        !venue?.id ||
+        seenVenueIds.has(venue.id) ||
+        venue.lat == null ||
+        venue.lng == null
+      ) {
+        continue;
+      }
+      seenVenueIds.add(venue.id);
+      itineraryWindows.push(createVenueWindow(venue));
+    }
+
+    return itineraryWindows.sort((a, b) => {
+      const aIndex = itineraryVenueIds.indexOf(getWindowVenueId(a) ?? "");
+      const bIndex = itineraryVenueIds.indexOf(getWindowVenueId(b) ?? "");
+      return aIndex - bIndex;
     });
-  }, [data]);
+  }, [
+    combinedItineraryVenues,
+    data,
+    hasItineraryFilter,
+    itineraryVenueIdSet,
+    itineraryVenueIds,
+    searchedVenues,
+  ]);
 
   // Cuisines for filter chips (dynamically from venue data)
   const cuisineOptions = useMemo(() => {
@@ -113,7 +475,7 @@ export const MapScreen: React.FC = () => {
       }
     }
     const sorted = Array.from(set).sort();
-    return sorted.length > 0 ? ["all", ...sorted.slice(0, 8)] : ["all"];
+    return sorted.length > 0 ? ["all", ...sorted] : ["all"];
   }, [mappableWindows]);
 
   // Price filter options (dynamically from venue data)
@@ -127,20 +489,18 @@ export const MapScreen: React.FC = () => {
     }
     return ["all" as const, ...Array.from(tiers).sort((a, b) => a - b)];
   }, [mappableWindows]);
+  const priceFilterOptions = useMemo(
+    () => priceOptions.map((option) => String(option)),
+    [priceOptions]
+  );
 
   // Apply search + cuisine + price filter
   const filtered = useMemo(() => {
     let list = mappableWindows;
 
     if (query.trim()) {
-      const q = query.trim().toLowerCase();
-      list = list.filter((w) => {
-        const name = (w.venue?.name ?? "").toLowerCase();
-        const address = (w.venue?.address ?? "").toLowerCase();
-        const neighborhood = (w.venue?.neighborhood ?? "").toLowerCase();
-        const tags = (w.venue?.tags ?? []).join(" ").toLowerCase();
-        return name.includes(q) || address.includes(q) || neighborhood.includes(q) || tags.includes(q);
-      });
+      const terms = getSearchTerms(query);
+      list = list.filter((w) => windowMatchesSearchTerms(w, terms));
     }
 
     if (selectedCuisine !== "all") {
@@ -158,6 +518,55 @@ export const MapScreen: React.FC = () => {
     return list;
   }, [mappableWindows, query, selectedCuisine, selectedPrice]);
 
+  const itineraryCoordinates = useMemo(() => {
+    if (!hasItineraryFilter) return [];
+    return filtered
+      .map((window) => {
+        const lat = window.venue?.lat;
+        const lng = window.venue?.lng;
+        if (lat == null || lng == null) return null;
+        return { latitude: lat, longitude: lng };
+      })
+      .filter((coord): coord is { latitude: number; longitude: number } => coord != null);
+  }, [filtered, hasItineraryFilter]);
+  const itineraryCoordinateKey = itineraryCoordinates
+    .map((coord) => `${coord.latitude},${coord.longitude}`)
+    .join("|");
+
+  useEffect(() => {
+    if (!selectedWindowId) return;
+    if (!filtered.some((window) => window.id === selectedWindowId)) {
+      setSelectedWindow(null);
+    }
+  }, [filtered, selectedWindowId]);
+
+  useEffect(() => {
+    if (!hasItineraryFilter || itineraryCoordinates.length === 0) return;
+
+    const timeout = setTimeout(() => {
+      if (!mapRef.current) return;
+      if (itineraryCoordinates.length === 1) {
+        const coordinate = itineraryCoordinates[0];
+        mapRef.current.animateToRegion(
+          {
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
+            latitudeDelta: 0.025,
+            longitudeDelta: 0.025,
+          },
+          400
+        );
+        return;
+      }
+      mapRef.current.fitToCoordinates(itineraryCoordinates, {
+        edgePadding: ITINERARY_EDGE_PADDING,
+        animated: true,
+      });
+    }, 250);
+
+    return () => clearTimeout(timeout);
+  }, [hasItineraryFilter, itineraryCoordinateKey, itineraryCoordinates]);
+
   // Venue IDs for cover images
   const filteredVenueIds = useMemo(
     () => filtered.map((w) => w.venue?.id).filter((id): id is string => !!id),
@@ -168,13 +577,13 @@ export const MapScreen: React.FC = () => {
   // Suggestive search: top 5 matching venue names
   const suggestions = useMemo(() => {
     if (!query.trim() || query.trim().length < 2) return [];
-    const q = query.trim().toLowerCase();
+    const terms = getSearchTerms(query);
     const seen = new Set<string>();
     const results: { window: HappyHourWindow; name: string }[] = [];
     for (const w of mappableWindows) {
       const name = w.venue?.name ?? "";
-      const key = name.toLowerCase();
-      if (!key.includes(q)) continue;
+      const key = getWindowVenueId(w) ?? name.toLowerCase();
+      if (!windowMatchesSearchTerms(w, terms)) continue;
       if (seen.has(key)) continue;
       seen.add(key);
       results.push({ window: w, name });
@@ -242,6 +651,19 @@ export const MapScreen: React.FC = () => {
     );
   };
 
+  const handleViewItineraries = () => {
+    navigation.navigate("Favorites", { tab: "lists" });
+  };
+
+  const handleClearItinerary = () => {
+    navigation.setParams({
+      itineraryVenueIds: undefined,
+      itineraryVenues: undefined,
+      itineraryName: undefined,
+      itineraryRequestId: undefined,
+    });
+  };
+
   const isToday = (window: HappyHourWindow) => {
     if (!Array.isArray(window.dow)) return false;
     return window.dow.map(Number).includes(todayIndex);
@@ -262,13 +684,6 @@ export const MapScreen: React.FC = () => {
             setShowSuggestions(false);
           }
         }}
-        onMarkerPress={(e) => {
-          const markerId = e.nativeEvent?.id;
-          if (markerId) {
-            const window = filtered.find((w) => w.id === markerId);
-            if (window) handleMarkerPress(window);
-          }
-        }}
       >
         {filtered.map((window) => {
           const lat = window.venue?.lat!;
@@ -281,6 +696,10 @@ export const MapScreen: React.FC = () => {
               identifier={window.id}
               coordinate={{ latitude: lat, longitude: lng }}
               pinColor={active ? colors.primary : colors.textMutedLight}
+              onPress={(event) => {
+                event.stopPropagation();
+                handleMarkerPress(window);
+              }}
             />
           );
         })}
@@ -334,53 +753,57 @@ export const MapScreen: React.FC = () => {
           </View>
         )}
 
-        {/* Price filter chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipRow}
-        >
-          {priceOptions.map((option) => {
-            const selected = selectedPrice === option;
-            const label = option === "all" ? "All" : formatPriceTier(option as number) ?? "All";
-            return (
-              <Pressable
-                key={`price-${option}`}
-                onPress={() => setSelectedPrice(option as number | "all")}
-                style={[styles.chip, selected && styles.chipSelected]}
-              >
-                <Text style={selected ? styles.chipTextSelected : styles.chipText}>
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        <View style={styles.filterRail}>
+          <SearchableOptionSheet
+            label="Price"
+            value={String(selectedPrice)}
+            options={priceFilterOptions}
+            onChange={(option) =>
+              setSelectedPrice(option === "all" ? "all" : Number(option))
+            }
+            formatOptionLabel={(option) =>
+              option === "all" ? "All" : formatPriceTier(Number(option)) ?? "All"
+            }
+            searchPlaceholder="Search prices"
+            style={styles.filterRailControl}
+          />
+          <SearchableOptionSheet
+            label="Cuisine"
+            value={selectedCuisine}
+            options={cuisineOptions}
+            onChange={setSelectedCuisine}
+            formatOptionLabel={(option) => option === "all" ? "All" : formatTagLabel(option)}
+            searchPlaceholder="Search cuisines"
+            style={styles.filterRailControl}
+          />
+          <Pressable
+            onPress={handleViewItineraries}
+            style={({ pressed }) => [
+              styles.itineraryFilterButton,
+              pressed && { opacity: 0.78 },
+            ]}
+          >
+            <Text style={styles.itineraryFilterLabel} numberOfLines={1}>
+              View
+            </Text>
+            <Text style={styles.itineraryFilterText} numberOfLines={1}>
+              Itineraries
+            </Text>
+          </Pressable>
+        </View>
 
-        {/* Cuisine filter chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chipRow}
-        >
-          {cuisineOptions.map((option) => {
-            const selected = selectedCuisine === option;
-            const label = option === "all" ? "All" : formatTagLabel(option);
-            return (
-              <Pressable
-                key={`cuisine-${option}`}
-                onPress={() => setSelectedCuisine(option)}
-                style={[styles.chip, selected && styles.chipSelected]}
-              >
-                <Text
-                  style={selected ? styles.chipTextSelected : styles.chipText}
-                >
-                  {label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        {hasItineraryFilter ? (
+          <View style={styles.itineraryBanner}>
+            <Text style={styles.itineraryBannerText} numberOfLines={1}>
+              {missingCoordinateCount > 0
+                ? `${missingCoordinateCount} venue${missingCoordinateCount === 1 ? "" : "s"} need coordinates`
+                : `${itineraryName ?? "Itinerary"} on map`}
+            </Text>
+            <Pressable onPress={handleClearItinerary} hitSlop={8}>
+              <Text style={styles.itineraryBannerClear}>Clear</Text>
+            </Pressable>
+          </View>
+        ) : null}
 
         <Text style={styles.resultCount}>
           {filtered.length} venue{filtered.length === 1 ? "" : "s"}
@@ -598,37 +1021,66 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  chipRow: {
-    paddingTop: spacing.xs,
-    paddingBottom: 2,
-    gap: spacing.xs,
+  filterRail: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    zIndex: 30,
   },
-  chip: {
-    paddingHorizontal: spacing.sm + 2,
-    paddingVertical: spacing.xs + 1,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
+  filterRailControl: {
+    flex: 1,
+  },
+  itineraryFilterButton: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 48,
+    borderRadius: 16,
+    borderWidth: 1,
     borderColor: colors.border,
-    shadowColor: colors.shadowSoft,
-    shadowOffset: { width: 0, height: 1 },
+    backgroundColor: colors.dark,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    justifyContent: "center",
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 1,
-    shadowRadius: 2,
+    shadowRadius: 8,
     elevation: 2,
   },
-  chipSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+  itineraryFilterLabel: {
+    color: colors.darkMuted,
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
   },
-  chipText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: colors.text,
+  itineraryFilterText: {
+    color: colors.pillActiveText,
+    fontSize: 13,
+    fontWeight: "800",
+    marginTop: 2,
   },
-  chipTextSelected: {
+  itineraryBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    borderRadius: 14,
+    backgroundColor: colors.brandSubtle,
+    borderWidth: 1,
+    borderColor: colors.brandLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  itineraryBannerText: {
+    flex: 1,
+    color: colors.brandDark,
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  itineraryBannerClear: {
+    color: colors.primary,
     fontSize: 12,
-    fontWeight: "700",
-    color: "#FFFFFF",
+    fontWeight: "800",
   },
   resultCount: {
     color: colors.textMuted,

@@ -48,7 +48,7 @@ export const VisitRatingModal: React.FC<Props> = ({
       setComment("");
       setSelectedAspects([]);
     }
-  }, [pendingVisit?.venueId]);
+  }, [pendingVisit]);
 
   if (!pendingVisit) return null;
 

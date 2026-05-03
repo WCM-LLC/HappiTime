@@ -108,12 +108,11 @@ async function loadNotificationBlocks(userId: string) {
 async function loadCheckinPrivacyPreference(userId: string) {
   const { data } = await (supabase as any)
     .from("user_preferences")
-    .select("checkin_default_privacy")
+    .select("default_checkin_privacy")
     .eq("user_id", userId)
     .maybeSingle();
 
-  const pref = data?.checkin_default_privacy;
-  _defaultCheckinPrivacy = pref === "public" ? "public" : "private";
+  _defaultCheckinPrivacy = data?.default_checkin_privacy === "friends" ? "public" : "private";
 }
 async function registerAutoCheckIn(userId: string, venueId: string, venueName: string) {
   const { error } = await (supabase as any)
@@ -268,32 +267,17 @@ export function useVisitTracker(venues: VenuePoint[]) {
   }, [venues]);
 
   useEffect(() => {
-    _defaultCheckinPrivacy = "private";
-    const userId = user?.id;
-    if (!userId) return;
-    void (async () => {
-      const { data } = await (supabase as any)
-        .from("user_preferences")
-        .select("checkin_default_privacy, default_checkin_privacy")
-        .eq("user_id", userId)
-        .maybeSingle();
-      _defaultCheckinPrivacy =
-        data?.checkin_default_privacy === "public" || data?.default_checkin_privacy === "friends"
-          ? "public"
-          : "private";
-    })();
-  }, [user?.id]);
-
-  useEffect(() => {
     const newId = user?.id ?? null;
     _userId = newId;
     if (!newId) {
       _blocksLoadedFor = null;
       _notificationBlocks.clear();
+      _defaultCheckinPrivacy = "private";
     } else if (newId !== _blocksLoadedFor) {
       _blocksLoadedFor = newId;
       _notificationBlocks.clear();
       void loadNotificationBlocks(newId);
+      void loadCheckinPrivacyPreference(newId);
     }
   }, [user?.id]);
 

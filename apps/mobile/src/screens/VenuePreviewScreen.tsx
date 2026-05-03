@@ -13,7 +13,6 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { useHappyHours } from "../hooks/useHappyHours";
 import { HappyHourCard } from "../components/HappyHourCard";
-import { useVenueCovers } from "../hooks/useVenueCovers";
 import { useVenueEvents } from "../hooks/useVenueEvents";
 import { useVenueMedia } from "../hooks/useVenueMedia";
 import { LoadingSpinner } from "../components/LoadingSpinner";
@@ -63,13 +62,11 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   );
 
   const venueName = windowsForVenue[0]?.venue?.name ?? "This venue";
-  const venueCovers = useVenueCovers(venueId ? [venueId] : []);
-  const coverUrl = venueId ? venueCovers[venueId] ?? null : null;
-
   const images = useMemo(
     () => [...media].sort((a, b) => a.sort_order - b.sort_order),
     [media]
   );
+  const coverUrl = images[0]?.url ?? null;
 
   if (loading && windowsForVenue.length === 0) {
     return (
@@ -188,6 +185,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
               <HappyHourCard
                 window={item}
                 coverUrl={coverUrl}
+                imageUrls={images.map((img) => img.url)}
                 onPress={() =>
                   navigation.navigate("HappyHourDetail", {
                     windowId: item.id

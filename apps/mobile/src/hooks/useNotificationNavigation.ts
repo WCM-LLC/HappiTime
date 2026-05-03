@@ -1,8 +1,6 @@
 // src/hooks/useNotificationNavigation.ts
 import { useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
-import { useNavigation } from "@react-navigation/native";
-import type { RootStackParamList } from "../navigation/types";
 
 /**
  * Handles notification deep linking.

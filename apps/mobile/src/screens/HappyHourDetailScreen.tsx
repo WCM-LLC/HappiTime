@@ -20,8 +20,7 @@ import { useHappyHours } from "../hooks/useHappyHours";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useUserLists } from "../hooks/useUserLists";
 import { useVenueMenus } from "../hooks/useVenueMenus";
-import { useVenueCovers } from "../hooks/useVenueCovers";
-import { useVenueMedia } from "../hooks/useVenueMedia";
+import { useVenueMediaGalleries } from "../hooks/useVenueCovers";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
@@ -74,8 +73,14 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
   const venue = window?.venue ?? null;
   const venueId = window?.venue_id ?? null;
   const saved = isFollowing(venueId);
-  const venueCovers = useVenueCovers(venueId ? [venueId] : []);
-  const coverUrl = venueId ? venueCovers[venueId] ?? null : null;
+  const venueGalleries = useVenueMediaGalleries(venueId ? [venueId] : []);
+  const coverUrl = venueId ? venueGalleries[venueId]?.[0] ?? null : null;
+  const heroImages = useMemo(() => {
+    const urls = [...(venueId ? venueGalleries[venueId] ?? [] : []), coverUrl]
+      .filter((url): url is string => typeof url === "string" && url.length > 0);
+    return Array.from(new Set(urls));
+  }, [coverUrl, venueGalleries, venueId]);
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
   const { titleText, subtitleText } = getHappyHourDisplayNames(window);
 
   const {
@@ -85,7 +90,12 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
   } = useVenueMenus(venueId);
 
   const heroWidth = Math.max(1, width - spacing.lg * 2);
-  const heroSlides = [0, 1, 2];
+
+  React.useEffect(() => {
+    if (activeHeroIndex >= heroImages.length) {
+      setActiveHeroIndex(0);
+    }
+  }, [activeHeroIndex, heroImages.length]);
 
   const distance = useMemo(() => {
     if (!coords || !venue) return null;
@@ -129,13 +139,38 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
 
   const relatedWindows = useMemo(() => {
     if (!venue?.city) return [];
-    return data
-      .filter(
-        (item) =>
-          item.id !== windowId && item.venue?.city === venue.city
-      )
+    const seenVenueIds = new Set<string>();
+    const candidates = data.filter((item) => {
+      const relatedVenueId = item.venue_id ?? item.venue?.id ?? null;
+      if (!relatedVenueId || relatedVenueId === venueId || seenVenueIds.has(relatedVenueId)) {
+        return false;
+      }
+      if (item.id === windowId || item.venue?.city !== venue.city) {
+        return false;
+      }
+      seenVenueIds.add(relatedVenueId);
+      return true;
+    });
+
+    return candidates
+      .sort((a, b) => {
+        if (venue.lat == null || venue.lng == null) return 0;
+        const aLat = a.venue?.lat ?? null;
+        const aLng = a.venue?.lng ?? null;
+        const bLat = b.venue?.lat ?? null;
+        const bLng = b.venue?.lng ?? null;
+        const aDistance =
+          aLat != null && aLng != null
+            ? distanceMiles(venue.lat, venue.lng, aLat, aLng)
+            : Number.POSITIVE_INFINITY;
+        const bDistance =
+          bLat != null && bLng != null
+            ? distanceMiles(venue.lat, venue.lng, bLat, bLng)
+            : Number.POSITIVE_INFINITY;
+        return aDistance - bDistance;
+      })
       .slice(0, 4);
-  }, [data, venue?.city, windowId]);
+  }, [data, venue, venueId, windowId]);
 
   if (windowsLoading && !window) {
     return (
@@ -221,35 +256,52 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.heroWrap}>
           <View style={[styles.heroCard, { width: heroWidth }]}>
-            {coverUrl ? (
-              <Image
-                source={{ uri: coverUrl }}
-                style={StyleSheet.absoluteFillObject}
-                resizeMode="cover"
-              />
+            {heroImages.length > 0 ? (
+              <ScrollView
+                horizontal
+                pagingEnabled
+                nestedScrollEnabled
+                directionalLockEnabled
+                disableIntervalMomentum
+                showsHorizontalScrollIndicator={false}
+                style={[styles.heroScroll, { width: heroWidth }]}
+                onMomentumScrollEnd={(event) => {
+                  const nextIndex = Math.round(event.nativeEvent.contentOffset.x / heroWidth);
+                  setActiveHeroIndex(Math.max(0, Math.min(nextIndex, heroImages.length - 1)));
+                }}
+              >
+                {heroImages.map((url, index) => (
+                  <Image
+                    key={`${url}-${index}`}
+                    source={{ uri: url }}
+                    style={[styles.heroImage, { width: heroWidth }]}
+                    resizeMode="cover"
+                  />
+                ))}
+              </ScrollView>
+            ) : (
+              <View style={styles.heroPlaceholder}>
+                <Text style={styles.heroPlaceholderInitial}>
+                  {titleText.charAt(0).toUpperCase()}
+                </Text>
+                <Text style={styles.heroPlaceholderText}>
+                  Photos coming soon
+                </Text>
+              </View>
+            )}
+            {heroImages.length > 1 ? (
+              <View style={styles.heroDots}>
+                {heroImages.map((url, index) => (
+                  <View
+                    key={`${url}-dot`}
+                    style={[
+                      styles.heroDot,
+                      index === activeHeroIndex && styles.heroDotActive,
+                    ]}
+                  />
+                ))}
+              </View>
             ) : null}
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              style={[styles.heroScroll, { width: heroWidth }]}
-              contentContainerStyle={[
-                styles.heroContent,
-                { width: heroWidth * heroSlides.length }
-              ]}
-            >
-              {heroSlides.map((slide) => (
-                <View
-                  key={slide}
-                  style={[styles.heroSlide, { width: heroWidth }, coverUrl ? styles.heroSlideTransparent : null]}
-                />
-              ))}
-            </ScrollView>
-            <View style={styles.heroDots}>
-              <View style={[styles.heroDot, styles.heroDotActive]} />
-              <View style={styles.heroDot} />
-              <View style={styles.heroDot} />
-            </View>
           </View>
           <View style={styles.heroButtons}>
             <Pressable
@@ -422,14 +474,31 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
           <View style={styles.relatedSection}>
             <Text style={styles.sectionTitle}>Nearby venues</Text>
             {relatedWindows.map((item, index) => {
-              const name =
-                item.venue?.app_name_preference ??
-                item.venue?.name ??
-                item.venue_name ??
-                "Venue";
+              const displayNames = getHappyHourDisplayNames(item);
+              const name = displayNames.venueName ?? displayNames.titleText;
+              const subtitle =
+                displayNames.orgName && displayNames.orgName !== name
+                  ? displayNames.orgName
+                  : [item.venue?.neighborhood, item.venue?.city]
+                      .filter(Boolean)
+                      .join(" · ");
               const price = formatPriceTier(item.venue?.price_tier) ?? "$$";
+              const relatedDistance =
+                venue.lat != null &&
+                venue.lng != null &&
+                item.venue?.lat != null &&
+                item.venue?.lng != null
+                  ? distanceMiles(venue.lat, venue.lng, item.venue.lat, item.venue.lng)
+                  : null;
               return (
-                <View key={item.id} style={styles.relatedRow}>
+                <Pressable
+                  key={item.id}
+                  onPress={() => navigation.push("HappyHourDetail", { windowId: item.id })}
+                  style={({ pressed }) => [
+                    styles.relatedRow,
+                    pressed && styles.relatedRowPressed,
+                  ]}
+                >
                   <View
                     style={[
                       styles.menuDot,
@@ -438,10 +507,22 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
                         : styles.menuDotInactive
                     ]}
                   />
-                  <Text style={styles.relatedText}>
-                    {name} - {price}
+                  <View style={styles.relatedCopy}>
+                    <Text style={styles.relatedName} numberOfLines={1}>
+                      {name}
+                    </Text>
+                    {subtitle ? (
+                      <Text style={styles.relatedSubtitle} numberOfLines={1}>
+                        {subtitle}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Text style={styles.relatedMeta}>
+                    {[price, relatedDistance == null ? null : `${relatedDistance.toFixed(1)} mi`]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </Text>
-                </View>
+                </Pressable>
               );
             })}
           </View>
@@ -547,11 +628,21 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
                 disabled={!newListName.trim() || creatingList}
                 onPress={async () => {
                   setCreatingList(true);
-                  const { error } = await createList(newListName, newListDesc || undefined);
+                  const { error, listId } = await createList(newListName, newListDesc || undefined);
+                  let addError: Error | null = null;
+                  if (!error && listId && venueId) {
+                    const result = await addVenue(listId, venueId);
+                    addError = result.error;
+                  }
                   setCreatingList(false);
                   if (error) {
                     Alert.alert("Error", error.message);
+                  } else if (addError) {
+                    Alert.alert("Itinerary created", `Couldn't add this venue yet: ${addError.message}`);
                   } else {
+                    if (listId) {
+                      setAddedToIds((prev) => new Set(prev).add(listId));
+                    }
                     setNewListName("");
                     setNewListDesc("");
                     setNewListVisibility("private");
@@ -656,15 +747,25 @@ const styles = StyleSheet.create({
   heroScroll: {
     flex: 1
   },
-  heroContent: {
+  heroImage: {
     height: "100%"
   },
-  heroSlide: {
-    height: "100%",
-    backgroundColor: colors.brandSubtle
+  heroPlaceholder: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  heroSlideTransparent: {
-    backgroundColor: "transparent"
+  heroPlaceholderInitial: {
+    color: colors.primary,
+    fontSize: 56,
+    fontWeight: "900",
+    opacity: 0.22,
+  },
+  heroPlaceholderText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: spacing.xs,
   },
   heroDots: {
     position: "absolute",
@@ -950,11 +1051,41 @@ const styles = StyleSheet.create({
   relatedRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: spacing.sm
+    marginBottom: spacing.sm,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    shadowColor: colors.shadowSoft,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  relatedText: {
+  relatedRowPressed: {
+    opacity: 0.8,
+  },
+  relatedCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  relatedName: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  relatedSubtitle: {
     color: colors.textMuted,
-    fontSize: 13
+    fontSize: 12,
+    marginTop: 2,
+  },
+  relatedMeta: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "700",
+    marginLeft: spacing.sm,
   },
   actions: {
     paddingHorizontal: spacing.lg

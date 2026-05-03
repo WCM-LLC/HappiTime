@@ -6,6 +6,7 @@ export type ActivityItem = {
   id: string;
   userId: string;
   userName: string;
+  userHandle: string | null;
   userAvatar: string | null;
   venueName: string;
   venueId: string;
@@ -143,6 +144,7 @@ export function useFriendActivity() {
         id: v.id,
         userId: v.user_id,
         userName: displayName,
+        userHandle: isPrivate ? null : (profile?.handle ?? null),
         userAvatar: isPrivate ? null : (profile?.avatar_url ?? null),
         venueName: isPrivate ? "a venue" : (v.venue?.name ?? "Venue"),
         venueId: v.venue_id,

@@ -1,5 +1,5 @@
 // src/screens/ActivityScreen.tsx
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Image,
   Pressable,
   ActivityIndicator,
+  TextInput,
 } from "react-native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity";
@@ -15,7 +16,6 @@ import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendS
 import { useDiscoverFeed, type DiscoverFeedItem } from "../hooks/useDiscoverFeed";
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
-import { useUserPreferences } from "../hooks/useUserPreferences";
 import { isFeatureEnabled } from "../lib/featureFlags";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
@@ -37,6 +37,9 @@ const formatDate = (iso: string) => {
   const d = new Date(iso);
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
+
+const normalizeHandleSearch = (value?: string | null) =>
+  (value ?? "").trim().replace(/^@/, "").toLowerCase();
 
 const RatingStars: React.FC<{ rating: number }> = ({ rating }) => {
   const stars = [];
@@ -283,10 +286,16 @@ export const ActivityScreen: React.FC = () => {
     refresh: refreshCheckins,
     togglePrivacy,
   } = useUserCheckins();
-  const { preferences, savePreferences } = useUserPreferences();
-
   const [requestedUsers, setRequestedUsers] = useState<Record<string, boolean>>({});
+  const [friendHandleQuery, setFriendHandleQuery] = useState("");
   const useDiscoverFeedSource = isFeatureEnabled("discoverFeedFromUserEvents");
+  const friendHandleSearch = normalizeHandleSearch(friendHandleQuery);
+  const filteredActivities = useMemo(() => {
+    if (!friendHandleSearch) return activities;
+    return activities.filter((item) =>
+      normalizeHandleSearch(item.userHandle).includes(friendHandleSearch)
+    );
+  }, [activities, friendHandleSearch]);
   const discoverListData: DiscoverListItem[] = useDiscoverFeedSource
     ? discoverFeed.map((item) => ({ kind: "feed" as const, id: item.id, item }))
     : suggestions.map((item) => ({ kind: "suggestion" as const, id: item.user_id, item }));
@@ -328,41 +337,69 @@ export const ActivityScreen: React.FC = () => {
         </View>
       ) : tab === "friends" ? (
         <FlatList
-          data={activities}
+          data={filteredActivities}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           onRefresh={refreshActivity}
           refreshing={activityLoading}
           ListHeaderComponent={
-            pendingRequests.length > 0 ? (
-              <View style={styles.pendingSection}>
-                <Text style={styles.sectionTitle}>Follow Requests</Text>
-                {pendingRequests.map((req) => {
-                  const name =
-                    req.profile?.display_name ??
-                    req.profile?.handle ??
-                    req.follower_id.slice(0, 8);
-                  return (
-                    <PendingRequestCard
-                      key={req.follower_id}
-                      id={req.follower_id}
-                      name={name}
-                      avatarUrl={req.profile?.avatar_url ?? null}
-                      onApprove={handleApprove}
-                      onReject={handleReject}
-                    />
-                  );
-                })}
-                <View style={styles.sectionDivider} />
+            <View>
+              <View style={styles.friendSearchWrap}>
+                <TextInput
+                  value={friendHandleQuery}
+                  onChangeText={setFriendHandleQuery}
+                  placeholder="Search friends by @handle"
+                  placeholderTextColor={colors.textMutedLight}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={styles.friendSearchInput}
+                />
+                {friendHandleQuery.length > 0 ? (
+                  <Pressable
+                    onPress={() => setFriendHandleQuery("")}
+                    style={({ pressed }) => [
+                      styles.friendSearchClear,
+                      pressed && styles.buttonPressed,
+                    ]}
+                  >
+                    <Text style={styles.friendSearchClearText}>Clear</Text>
+                  </Pressable>
+                ) : null}
               </View>
-            ) : null
+              {pendingRequests.length > 0 ? (
+                <View style={styles.pendingSection}>
+                  <Text style={styles.sectionTitle}>Follow Requests</Text>
+                  {pendingRequests.map((req) => {
+                    const name =
+                      req.profile?.display_name ??
+                      req.profile?.handle ??
+                      req.follower_id.slice(0, 8);
+                    return (
+                      <PendingRequestCard
+                        key={req.follower_id}
+                        id={req.follower_id}
+                        name={name}
+                        avatarUrl={req.profile?.avatar_url ?? null}
+                        onApprove={handleApprove}
+                        onReject={handleReject}
+                      />
+                    );
+                  })}
+                  <View style={styles.sectionDivider} />
+                </View>
+              ) : null}
+            </View>
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>No friend activity yet</Text>
+              <Text style={styles.emptyTitle}>
+                {friendHandleSearch ? "No activity for that handle" : "No friend activity yet"}
+              </Text>
               <Text style={styles.emptyText}>
-                Follow friends to see where they're going!
+                {friendHandleSearch
+                  ? "Try another handle or clear the search."
+                  : "Follow friends to see where they're going!"}
               </Text>
             </View>
           }
@@ -442,25 +479,6 @@ export const ActivityScreen: React.FC = () => {
               <Text style={styles.privacyNoteText}>
                 Tap 👁 to make a check-in visible to friends, or 🔒 to keep it private.
               </Text>
-              {!preferences.checkin_default_privacy ? (
-                <View style={styles.privacyChoiceWrap}>
-                  <Text style={styles.privacyChoiceTitle}>Default check-in privacy</Text>
-                  <View style={styles.privacyChoiceRow}>
-                    <Pressable
-                      style={styles.privacyChoiceBtn}
-                      onPress={() => void savePreferences({ checkin_default_privacy: "private" })}
-                    >
-                      <Text style={styles.privacyChoiceBtnText}>Keep Private</Text>
-                    </Pressable>
-                    <Pressable
-                      style={[styles.privacyChoiceBtn, styles.privacyChoiceBtnAlt]}
-                      onPress={() => void savePreferences({ checkin_default_privacy: "public" })}
-                    >
-                      <Text style={[styles.privacyChoiceBtnText, styles.privacyChoiceBtnTextAlt]}>Share with Friends</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ) : null}
             </View>
           }
           ListEmptyComponent={
@@ -620,6 +638,36 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,
     marginLeft: 56,
+  },
+  friendSearchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  friendSearchInput: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.inputBackground,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    color: colors.text,
+    fontSize: 14,
+  },
+  friendSearchClear: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  friendSearchClearText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: "700",
   },
 
   /* ── Pending requests section ── */

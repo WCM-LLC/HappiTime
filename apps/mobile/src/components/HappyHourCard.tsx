@@ -11,12 +11,14 @@ import { timeAgo } from "../utils/time";
 type HappyHourCardProps = {
   window: any;
   coverUrl?: string | null;
+  imageUrls?: string[];
   onPress?: () => void;
 };
 
 export const HappyHourCard: React.FC<HappyHourCardProps> = ({
   window,
   coverUrl,
+  imageUrls,
   onPress
 }) => {
   const venue = window.venue ?? null;
@@ -25,7 +27,18 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
   const showLabelPill = !!label && label !== titleText;
   const { width } = useWindowDimensions();
   const heroWidth = Math.max(1, width - spacing.lg * 2);
-  const heroSlides = [0, 1, 2];
+  const [activeHeroIndex, setActiveHeroIndex] = React.useState(0);
+  const heroImages = React.useMemo(() => {
+    const urls = [...(imageUrls ?? []), coverUrl]
+      .filter((url): url is string => typeof url === "string" && url.length > 0);
+    return Array.from(new Set(urls));
+  }, [coverUrl, imageUrls]);
+
+  React.useEffect(() => {
+    if (activeHeroIndex >= heroImages.length) {
+      setActiveHeroIndex(0);
+    }
+  }, [activeHeroIndex, heroImages.length]);
 
   const distance: number | null =
     typeof window.distance === "number"
@@ -76,20 +89,31 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
     null;
 
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        pressed && styles.cardPressed
-      ]}
-    >
+    <View style={styles.card}>
       <View style={styles.hero}>
-        {coverUrl ? (
-          <Image
-            source={{ uri: coverUrl }}
-            style={StyleSheet.absoluteFillObject}
-            resizeMode="cover"
-          />
+        {heroImages.length > 0 ? (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            nestedScrollEnabled
+            directionalLockEnabled
+            disableIntervalMomentum
+            showsHorizontalScrollIndicator={false}
+            style={[styles.heroScroll, { width: heroWidth }]}
+            onMomentumScrollEnd={(event) => {
+              const nextIndex = Math.round(event.nativeEvent.contentOffset.x / heroWidth);
+              setActiveHeroIndex(Math.max(0, Math.min(nextIndex, heroImages.length - 1)));
+            }}
+          >
+            {heroImages.map((url, index) => (
+              <Image
+                key={`${url}-${index}`}
+                source={{ uri: url }}
+                style={[styles.heroImage, { width: heroWidth }]}
+                resizeMode="cover"
+              />
+            ))}
+          </ScrollView>
         ) : (
           <View style={styles.heroPlaceholder}>
             <Text style={styles.heroPlaceholderText}>
@@ -97,31 +121,23 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
             </Text>
           </View>
         )}
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          style={[styles.heroScroll, { width: heroWidth }]}
-          contentContainerStyle={[
-            styles.heroContent,
-            { width: heroWidth * heroSlides.length }
-          ]}
-        >
-          {heroSlides.map((slide) => (
-            <View
-              key={slide}
-              style={[styles.heroSlide, { width: heroWidth }, coverUrl ? styles.heroSlideTransparent : null]}
-            />
-          ))}
-        </ScrollView>
-        <View style={styles.heroDots}>
-          <View style={[styles.heroDot, styles.heroDotActive]} />
-          <View style={styles.heroDot} />
-          <View style={styles.heroDot} />
-        </View>
+        {heroImages.length > 1 ? (
+          <View style={styles.heroDots}>
+            {heroImages.map((url, index) => (
+              <View
+                key={`${url}-dot`}
+                style={[styles.heroDot, index === activeHeroIndex && styles.heroDotActive]}
+              />
+            ))}
+          </View>
+        ) : null}
       </View>
 
-      <View style={styles.cardBody}>
+      <Pressable
+        onPress={onPress}
+        disabled={!onPress}
+        style={({ pressed }) => [styles.cardBody, pressed && styles.cardBodyPressed]}
+      >
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
             <Text style={[styles.venueName, subtitleText && styles.venueNameTight]}>
@@ -209,8 +225,8 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
             </Text>
           )}
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 };
 
@@ -228,9 +244,8 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  cardPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.99 }],
+  cardBodyPressed: {
+    opacity: 0.88,
   },
   hero: {
     height: 190,
@@ -249,17 +264,10 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   heroScroll: {
-    flex: 1
-  },
-  heroContent: {
     height: "100%"
   },
-  heroSlide: {
-    height: "100%",
-    backgroundColor: "transparent"
-  },
-  heroSlideTransparent: {
-    backgroundColor: "transparent"
+  heroImage: {
+    height: "100%"
   },
   heroDots: {
     position: "absolute",

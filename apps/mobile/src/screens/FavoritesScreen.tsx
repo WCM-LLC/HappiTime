@@ -1,9 +1,7 @@
 // src/screens/FavoritesScreen.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, FlatList, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView, Share } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "../navigation/types";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { HappyHourCard } from "../components/HappyHourCard";
@@ -14,13 +12,13 @@ import { useUserHistory, type HistoryEntry } from "../hooks/useUserHistory";
 import { useUserLists, type UserList } from "../hooks/useUserLists";
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserLocation } from "../hooks/useUserLocation";
-import { useVenueCovers } from "../hooks/useVenueCovers";
+import { useVenueMediaGalleries } from "../hooks/useVenueCovers";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { distanceMiles } from "../utils/location";
 
 export const FavoritesScreen: React.FC = () => {
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const [tab, setTab] = useState<"favorites" | "history" | "lists">(
     "favorites"
@@ -30,10 +28,32 @@ export const FavoritesScreen: React.FC = () => {
   const { venueIds: followedVenueIds, loading: followedLoading } =
     useUserFollowedVenues();
   const { entries: historyEntries, loading: historyLoading } = useUserHistory();
-  const { lists, loading: listsLoading, createList, updateList, deleteList, shareWithFriend } = useUserLists();
+  const {
+    lists,
+    loading: listsLoading,
+    createList,
+    updateList,
+    deleteList,
+    shareWithFriend,
+    refresh: refreshLists,
+  } = useUserLists();
   const { followers } = useUserFollowers();
   const [editingList, setEditingList] = useState<UserList | null>(null);
   const [showNewListForm, setShowNewListForm] = useState(false);
+
+  useEffect(() => {
+    const requestedTab = route?.params?.tab as "favorites" | "history" | "lists" | undefined;
+    if (requestedTab) {
+      setTab(requestedTab);
+      navigation.setParams({ tab: undefined } as any);
+    }
+  }, [navigation, route?.params?.tab]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      void refreshLists();
+    }, [refreshLists])
+  );
 
   useEffect(() => {
     const openListId = route?.params?.openListId as string | undefined;
@@ -79,7 +99,7 @@ export const FavoritesScreen: React.FC = () => {
     () => favoriteOnly.map((w) => w.venue?.id).filter((id): id is string => !!id),
     [favoriteOnly]
   );
-  const venueCovers = useVenueCovers(favoriteVenueIds);
+  const venueGalleries = useVenueMediaGalleries(favoriteVenueIds, 4);
 
   const nearbyPlaces = useMemo(() => {
     const withDistance = favoriteOnly.filter(
@@ -128,7 +148,8 @@ export const FavoritesScreen: React.FC = () => {
           renderItem={({ item }) => (
             <HappyHourCard
               window={item}
-              coverUrl={item.venue?.id ? venueCovers[item.venue.id] ?? null : null}
+              coverUrl={item.venue?.id ? venueGalleries[item.venue.id]?.[0] ?? null : null}
+              imageUrls={item.venue?.id ? venueGalleries[item.venue.id] ?? [] : []}
               onPress={() => navigation.navigate("HappyHourDetail", { windowId: item.id })}
             />
           )}
@@ -157,6 +178,7 @@ export const FavoritesScreen: React.FC = () => {
       {tab === "lists" && (
         <>
           <View style={styles.itineraryHeader}>
+            <Text style={styles.itineraryTitle}>Itineraries</Text>
             <Pressable
               style={({ pressed }) => [
                 styles.newListButton,
@@ -221,6 +243,41 @@ export const FavoritesScreen: React.FC = () => {
           const { error } = await shareWithFriend(listId, userId);
           if (error) Alert.alert("Couldn't share", error.message);
         }}
+        onShowVenueCard={(venueId) => {
+          setEditingList(null);
+          navigation.navigate("VenuePreview", { venueId });
+        }}
+        onShowOnMap={(list) => {
+          const venueIds = list.items.map((item) => item.venue_id);
+          const itineraryVenues = list.items.flatMap((item) =>
+            item.venue ? [item.venue] : []
+          );
+          const mappableVenues = itineraryVenues.filter(
+            (venue) =>
+              venue.lat != null &&
+              venue.lng != null &&
+              Number.isFinite(Number(venue.lat)) &&
+              Number.isFinite(Number(venue.lng))
+          );
+          if (venueIds.length === 0) {
+            Alert.alert("No venues yet", "Add venues to this itinerary before viewing it on the map.");
+            return;
+          }
+          if (mappableVenues.length === 0) {
+            Alert.alert(
+              "No map pins yet",
+              "The venues in this itinerary do not have map coordinates yet."
+            );
+            return;
+          }
+          setEditingList(null);
+          navigation.navigate("Map", {
+            itineraryVenueIds: venueIds,
+            itineraryVenues,
+            itineraryName: list.name,
+            itineraryRequestId: Date.now(),
+          });
+        }}
       />
     </View>
   );
@@ -262,6 +319,9 @@ const formatHistoryDate = (iso: string) => {
   return `${diffDays}d ago`;
 };
 
+const normalizeHandleSearch = (value?: string | null) =>
+  (value ?? "").trim().replace(/^@/, "").toLowerCase();
+
 type HistoryRowProps = { entry: HistoryEntry };
 
 const HistoryRow: React.FC<HistoryRowProps> = ({ entry }) => {
@@ -293,27 +353,47 @@ const HistoryRow: React.FC<HistoryRowProps> = ({ entry }) => {
 
 type ListRowProps = { list: UserList; onEdit: () => void };
 
-const ListRow: React.FC<ListRowProps> = ({ list, onEdit }) => (
-  <Pressable
-    onPress={onEdit}
-    style={({ pressed }) => [styles.historyRow, pressed && { opacity: 0.75 }]}
-  >
-    <View style={styles.historyText}>
-      <Text style={styles.historyVenue}>{list.name}</Text>
-      {list.description ? (
-        <Text style={styles.historyMeta}>{list.description}</Text>
-      ) : null}
-    </View>
-    <View style={styles.historyTrailing}>
-      <Text style={styles.historyLabel}>
-        {list.item_count} {list.item_count === 1 ? "venue" : "venues"}
-      </Text>
-      <Text style={styles.historyWhen}>
-        {list.visibility === "public" ? "Public" : "Private"}
-      </Text>
-    </View>
-  </Pressable>
-);
+const ListRow: React.FC<ListRowProps> = ({ list, onEdit }) => {
+  const previewNames = list.item_preview.map((item) => item.venue_name);
+  const remainingCount = Math.max(list.item_count - previewNames.length, 0);
+  const previewText =
+    previewNames.length > 0
+      ? `${previewNames.join(" | ")}${remainingCount > 0 ? ` +${remainingCount} more` : ""}`
+      : null;
+
+  return (
+    <Pressable
+      onPress={onEdit}
+      style={({ pressed }) => [styles.historyRow, pressed && { opacity: 0.75 }]}
+    >
+      <View style={styles.historyText}>
+        <Text style={styles.historyVenue}>{list.name}</Text>
+        {previewText ? (
+          <Text style={styles.itineraryPreview} numberOfLines={1}>
+            {previewText}
+          </Text>
+        ) : list.description ? (
+          <Text style={styles.historyMeta} numberOfLines={1}>
+            {list.description}
+          </Text>
+        ) : null}
+        {previewText && list.description ? (
+          <Text style={styles.historyMeta} numberOfLines={1}>
+            {list.description}
+          </Text>
+        ) : null}
+      </View>
+      <View style={styles.historyTrailing}>
+        <Text style={styles.historyLabel}>
+          {list.item_count} {list.item_count === 1 ? "venue" : "venues"}
+        </Text>
+        <Text style={styles.historyWhen}>
+          {list.visibility === "public" ? "Public" : "Private"}
+        </Text>
+      </View>
+    </Pressable>
+  );
+};
 
 // ── New List Modal ──────────────────────────────────────────────────────────
 
@@ -379,7 +459,7 @@ const NewListModal: React.FC<NewListModalProps> = ({ visible, onClose, onCreate 
       >
         <View style={editStyles.sheet}>
           <View style={editStyles.handle} />
-          <Text style={editStyles.title}>New Itinerary</Text>
+          <Text style={[editStyles.title, editStyles.titleStandalone]}>New Itinerary</Text>
           <Text style={newListStyles.subtitle}>
             Give your itinerary a name to get started.
           </Text>
@@ -434,6 +514,8 @@ type EditListModalProps = {
   onSave: (id: string, updates: { name: string; description: string | null; visibility: string }) => Promise<void>;
   onDelete: (id: string) => void;
   onShareWithFriend: (listId: string, userId: string) => Promise<void>;
+  onShowVenueCard: (venueId: string) => void;
+  onShowOnMap: (list: UserList) => void;
 };
 
 const HAPPITIME_APP_STORE_URL = "https://apps.apple.com/app/happitime";
@@ -446,24 +528,36 @@ const EditListModal: React.FC<EditListModalProps> = ({
   onSave,
   onDelete,
   onShareWithFriend,
+  onShowVenueCard,
+  onShowOnMap,
 }) => {
+  const [mode, setMode] = useState<"details" | "edit" | "share">("details");
   const [name, setName] = useState(list?.name ?? "");
   const [description, setDescription] = useState(list?.description ?? "");
   const [isPublic, setIsPublic] = useState(list?.visibility === "public");
   const [saving, setSaving] = useState(false);
-  const [showShare, setShowShare] = useState(false);
   const [sharedIds, setSharedIds] = useState<Set<string>>(new Set());
   const [sharingId, setSharingId] = useState<string | null>(null);
+  const [friendQuery, setFriendQuery] = useState("");
 
   React.useEffect(() => {
     if (list) {
       setName(list.name);
       setDescription(list.description ?? "");
       setIsPublic(list.visibility === "public");
-      setShowShare(false);
+      setMode("details");
       setSharedIds(new Set());
+      setFriendQuery("");
     }
   }, [list]);
+
+  const friendHandleSearch = normalizeHandleSearch(friendQuery);
+  const filteredFollowers = useMemo(() => {
+    if (!friendHandleSearch) return followers;
+    return followers.filter((f) =>
+      normalizeHandleSearch(f.profile?.handle).includes(friendHandleSearch)
+    );
+  }, [followers, friendHandleSearch]);
 
   if (!list) return null;
 
@@ -512,18 +606,85 @@ const EditListModal: React.FC<EditListModalProps> = ({
           <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
             <View style={editStyles.titleRow}>
-              <Text style={editStyles.title}>Edit Itinerary</Text>
-              <Pressable
-                onPress={() => setShowShare((v) => !v)}
-                style={({ pressed }) => [editStyles.shareToggle, pressed && { opacity: 0.7 }]}
-              >
-                <Text style={editStyles.shareToggleText}>
-                  {showShare ? "\u2190 Edit" : "Share"}
-                </Text>
-              </Pressable>
+              <Text style={editStyles.title} numberOfLines={1}>
+                {mode === "details"
+                  ? list.name
+                  : mode === "edit"
+                  ? "Edit Itinerary"
+                  : "Share Itinerary"}
+              </Text>
+              <View style={editStyles.titleActions}>
+                {mode === "details" ? (
+                  <>
+                    <Pressable
+                      onPress={() => setMode("edit")}
+                      style={({ pressed }) => [editStyles.shareToggle, pressed && { opacity: 0.7 }]}
+                    >
+                      <Text style={editStyles.shareToggleText}>Edit</Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => setMode("share")}
+                      style={({ pressed }) => [editStyles.shareToggle, pressed && { opacity: 0.7 }]}
+                    >
+                      <Text style={editStyles.shareToggleText}>Share</Text>
+                    </Pressable>
+                  </>
+                ) : (
+                  <Pressable
+                    onPress={() => setMode("details")}
+                    style={({ pressed }) => [editStyles.shareToggle, pressed && { opacity: 0.7 }]}
+                  >
+                    <Text style={editStyles.shareToggleText}>List</Text>
+                  </Pressable>
+                )}
+              </View>
             </View>
 
-            {!showShare ? (
+            {mode === "details" ? (
+              <>
+                {list.description ? (
+                  <Text style={editStyles.detailDescription}>{list.description}</Text>
+                ) : null}
+                <Text style={editStyles.shareSection}>
+                  {list.item_count} {list.item_count === 1 ? "venue" : "venues"}
+                </Text>
+                {list.items.length === 0 ? (
+                  <Text style={editStyles.shareEmpty}>
+                    Add venues to this itinerary from a venue detail screen.
+                  </Text>
+                ) : (
+                  <View style={editStyles.itineraryVenueList}>
+                    {list.items.map((item) => (
+                      <View key={item.id} style={editStyles.itineraryVenueRow}>
+                        <Text style={editStyles.itineraryVenueName} numberOfLines={1}>
+                          {item.venue_name}
+                        </Text>
+                        <Pressable
+                          onPress={() => onShowVenueCard(item.venue_id)}
+                          style={({ pressed }) => [
+                            editStyles.venueCardButton,
+                            pressed && { opacity: 0.75 },
+                          ]}
+                        >
+                          <Text style={editStyles.venueCardButtonText}>Card</Text>
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                )}
+                <Pressable
+                  style={({ pressed }) => [
+                    editStyles.saveButton,
+                    list.items.length === 0 && editStyles.saveButtonDisabled,
+                    pressed && list.items.length > 0 && { opacity: 0.85 },
+                  ]}
+                  onPress={() => onShowOnMap(list)}
+                  disabled={list.items.length === 0}
+                >
+                  <Text style={editStyles.saveButtonText}>Show on the Map</Text>
+                </Pressable>
+              </>
+            ) : mode === "edit" ? (
               <>
                 <Text style={editStyles.label}>Itinerary name *</Text>
                 <TextInput
@@ -588,14 +749,28 @@ const EditListModal: React.FC<EditListModalProps> = ({
             ) : (
               <>
                 <Text style={editStyles.shareSection}>Share with friends</Text>
+                <TextInput
+                  value={friendQuery}
+                  onChangeText={setFriendQuery}
+                  placeholder="Search by @handle"
+                  placeholderTextColor={colors.textMutedLight}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  style={editStyles.friendSearchInput}
+                />
                 {followers.length === 0 ? (
                   <Text style={editStyles.shareEmpty}>
                     You don't have any followers yet.
                   </Text>
+                ) : filteredFollowers.length === 0 ? (
+                  <Text style={editStyles.shareEmpty}>
+                    No friends match that handle.
+                  </Text>
                 ) : (
-                  followers.map((f) => {
+                  filteredFollowers.map((f) => {
                     const displayName =
                       f.profile?.display_name ?? f.profile?.handle ?? f.follower_id.slice(0, 8);
+                    const handle = f.profile?.handle ?? null;
                     const alreadyShared = sharedIds.has(f.follower_id);
                     const isSending = sharingId === f.follower_id;
                     return (
@@ -605,7 +780,16 @@ const EditListModal: React.FC<EditListModalProps> = ({
                             {displayName.charAt(0).toUpperCase()}
                           </Text>
                         </View>
-                        <Text style={editStyles.friendName}>{displayName}</Text>
+                        <View style={editStyles.friendIdentity}>
+                          <Text style={editStyles.friendName} numberOfLines={1}>
+                            {displayName}
+                          </Text>
+                          {handle ? (
+                            <Text style={editStyles.friendHandle} numberOfLines={1}>
+                              @{handle}
+                            </Text>
+                          ) : null}
+                        </View>
                         <Pressable
                           onPress={() => handleShareFriend(f.follower_id)}
                           disabled={alreadyShared || isSending}
@@ -794,6 +978,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 2
   },
+  itineraryPreview: {
+    color: colors.text,
+    fontSize: 12,
+    marginTop: 3,
+  },
   historyTrailing: {
     alignItems: "flex-end",
     marginLeft: spacing.sm
@@ -814,8 +1003,14 @@ const styles = StyleSheet.create({
   },
   itineraryHeader: {
     flexDirection: "row",
-    justifyContent: "flex-end",
+    alignItems: "center",
     paddingTop: spacing.sm,
+    gap: spacing.sm,
+  },
+  itineraryTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "800",
   },
   newListButton: {
     width: 36,
@@ -875,10 +1070,13 @@ const editStyles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   title: {
+    flex: 1,
     color: colors.text,
     fontSize: 18,
     fontWeight: "700",
-    marginBottom: spacing.lg,
+  },
+  titleStandalone: {
+    marginBottom: spacing.sm,
   },
   label: {
     color: colors.textMuted,
@@ -974,6 +1172,12 @@ const editStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  titleActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
   },
   shareToggle: {
     paddingHorizontal: spacing.md,
@@ -994,6 +1198,42 @@ const editStyles = StyleSheet.create({
     fontWeight: "600",
     marginBottom: spacing.sm,
   },
+  detailDescription: {
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: spacing.md,
+  },
+  itineraryVenueList: {
+    borderTopWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
+  },
+  itineraryVenueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderColor: colors.border,
+  },
+  itineraryVenueName: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  venueCardButton: {
+    borderRadius: 999,
+    backgroundColor: colors.dark,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  venueCardButtonText: {
+    color: colors.pillActiveText,
+    fontSize: 13,
+    fontWeight: "800",
+  },
   shareEmpty: {
     color: colors.textMuted,
     fontSize: 13,
@@ -1002,6 +1242,17 @@ const editStyles = StyleSheet.create({
   shareHint: {
     color: colors.textMuted,
     fontSize: 13,
+    marginBottom: spacing.md,
+  },
+  friendSearchInput: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.inputBackground,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    color: colors.text,
+    fontSize: 14,
     marginBottom: spacing.md,
   },
   divider: {
@@ -1030,10 +1281,19 @@ const editStyles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 14,
   },
-  friendName: {
+  friendIdentity: {
     flex: 1,
+    marginRight: spacing.sm,
+  },
+  friendName: {
     color: colors.text,
     fontSize: 14,
+    fontWeight: "600",
+  },
+  friendHandle: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
   },
   friendShareBtn: {
     paddingHorizontal: spacing.md,

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Modal, Pressable, Text, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { IconSymbol } from "./components/ui/icon-symbol";
 import LoadingView from "./src/components/LoadingView";
 import { VisitRatingModal } from "./src/components/VisitRatingModal";
 import { supabase } from "./src/api/supabaseClient";
@@ -10,6 +11,8 @@ import { useVisitRating } from "./src/hooks/useVisitRating";
 import { useVisitTracker, type VenuePoint } from "./src/hooks/useVisitTracker";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { AuthScreen } from "./src/screens/AuthScreen";
+import { colors } from "./src/theme/colors";
+import { spacing } from "./src/theme/spacing";
 
 function AuthenticatedApp({ session }: { session: any }) {
   useConfigPushNotifications(session);
@@ -54,6 +57,8 @@ function AuthenticatedApp({ session }: { session: any }) {
 
   const { startTracking, setOnVisitDetected } = useVisitTracker(venues);
   const [showCheckinPrivacyPrompt, setShowCheckinPrivacyPrompt] = useState(false);
+  const [checkinPrivacySaving, setCheckinPrivacySaving] = useState(false);
+  const [checkinPrivacyError, setCheckinPrivacyError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -68,6 +73,7 @@ function AuthenticatedApp({ session }: { session: any }) {
       if (!mounted) return;
       const value = data?.default_checkin_privacy;
       setShowCheckinPrivacyPrompt(value !== "private" && value !== "friends");
+      setCheckinPrivacyError(null);
     };
     void loadPreference();
     return () => {
@@ -79,9 +85,18 @@ function AuthenticatedApp({ session }: { session: any }) {
     async (value: "private" | "friends") => {
       const userId = session?.user?.id;
       if (!userId) return;
-      await (supabase as any)
+      setCheckinPrivacySaving(true);
+      setCheckinPrivacyError(null);
+      const { error } = await (supabase as any)
         .from("user_preferences")
         .upsert({ user_id: userId, default_checkin_privacy: value }, { onConflict: "user_id" });
+      setCheckinPrivacySaving(false);
+
+      if (error) {
+        setCheckinPrivacyError("Could not save that choice. Please try again.");
+        return;
+      }
+
       setShowCheckinPrivacyPrompt(false);
     },
     [session?.user?.id]
@@ -105,34 +120,41 @@ function AuthenticatedApp({ session }: { session: any }) {
     <>
       <AppNavigator />
       <Modal transparent visible={showCheckinPrivacyPrompt} animationType="fade">
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.55)",
-            justifyContent: "center",
-            padding: 20,
-          }}
-        >
-          <View style={{ backgroundColor: "white", borderRadius: 16, padding: 16, gap: 12 }}>
-            <Text style={{ fontSize: 18, fontWeight: "700" }}>Check-in privacy</Text>
-            <Text style={{ fontSize: 15, lineHeight: 20 }}>
-              Choose your default: share check-ins with friends, or keep check-ins private.
+        <View style={styles.privacyBackdrop}>
+          <View style={styles.privacyCard}>
+            <View style={styles.privacyIcon}>
+              <IconSymbol name="checkmark.seal.fill" size={24} color={colors.primary} />
+            </View>
+            <Text style={styles.privacyTitle}>Check-in privacy</Text>
+            <Text style={styles.privacyBody}>
+              Pick how automatic check-ins should appear. You can still change each check-in later.
             </Text>
+            {checkinPrivacyError ? (
+              <Text style={styles.privacyError}>{checkinPrivacyError}</Text>
+            ) : null}
             <Pressable
+              disabled={checkinPrivacySaving}
+              style={({ pressed }) => [
+                styles.privacyPrimaryButton,
+                pressed && !checkinPrivacySaving && styles.privacyButtonPressed,
+                checkinPrivacySaving && styles.privacyButtonDisabled,
+              ]}
               onPress={() => void saveDefaultCheckinPrivacy("friends")}
-              style={{ backgroundColor: "#4F46E5", borderRadius: 12, padding: 12 }}
             >
-              <Text style={{ color: "white", textAlign: "center", fontWeight: "600" }}>
-                Share my check-ins with friends
-              </Text>
+              <Text style={styles.privacyPrimaryButtonText}>Share with friends</Text>
+              <Text style={styles.privacyPrimaryButtonSubtext}>Your friends can see where you checked in.</Text>
             </Pressable>
             <Pressable
+              disabled={checkinPrivacySaving}
+              style={({ pressed }) => [
+                styles.privacySecondaryButton,
+                pressed && !checkinPrivacySaving && styles.privacyButtonPressed,
+                checkinPrivacySaving && styles.privacyButtonDisabled,
+              ]}
               onPress={() => void saveDefaultCheckinPrivacy("private")}
-              style={{ backgroundColor: "#111827", borderRadius: 12, padding: 12 }}
             >
-              <Text style={{ color: "white", textAlign: "center", fontWeight: "600" }}>
-                Keep my check-ins private
-              </Text>
+              <Text style={styles.privacySecondaryButtonText}>Keep private</Text>
+              <Text style={styles.privacySecondaryButtonSubtext}>Only you can see automatic check-ins.</Text>
             </Pressable>
           </View>
         </View>
@@ -196,3 +218,112 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
 
   return <AuthenticatedApp session={session} />;
 }
+
+const styles = StyleSheet.create({
+  privacyBackdrop: {
+    alignItems: "center",
+    backgroundColor: "rgba(26, 26, 26, 0.48)",
+    flex: 1,
+    justifyContent: "center",
+    padding: spacing.xl,
+  },
+  privacyCard: {
+    alignItems: "stretch",
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: spacing.md,
+    maxWidth: 380,
+    padding: spacing.xl,
+    shadowColor: colors.shadowMedium,
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 1,
+    shadowRadius: 32,
+    width: "100%",
+  },
+  privacyIcon: {
+    alignItems: "center",
+    alignSelf: "center",
+    backgroundColor: colors.brandSubtle,
+    borderColor: colors.brandLight,
+    borderRadius: 18,
+    borderWidth: 1,
+    height: 56,
+    justifyContent: "center",
+    marginBottom: spacing.xs,
+    width: 56,
+  },
+  privacyTitle: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: 0,
+    textAlign: "center",
+  },
+  privacyBody: {
+    color: colors.textMuted,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: "center",
+  },
+  privacyError: {
+    backgroundColor: colors.errorLight,
+    borderColor: colors.error,
+    borderRadius: 12,
+    borderWidth: 1,
+    color: colors.error,
+    fontSize: 13,
+    lineHeight: 18,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    textAlign: "center",
+  },
+  privacyPrimaryButton: {
+    backgroundColor: colors.text,
+    borderRadius: 16,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  privacyPrimaryButtonText: {
+    color: colors.pillActiveText,
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: 0,
+    textAlign: "center",
+  },
+  privacyPrimaryButtonSubtext: {
+    color: colors.darkMuted,
+    fontSize: 12,
+    marginTop: 2,
+    textAlign: "center",
+  },
+  privacySecondaryButton: {
+    backgroundColor: colors.brandSubtle,
+    borderColor: colors.brandLight,
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  privacySecondaryButtonText: {
+    color: colors.brandDark,
+    fontSize: 16,
+    fontWeight: "800",
+    letterSpacing: 0,
+    textAlign: "center",
+  },
+  privacySecondaryButtonSubtext: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 2,
+    textAlign: "center",
+  },
+  privacyButtonPressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.99 }],
+  },
+  privacyButtonDisabled: {
+    opacity: 0.62,
+  },
+});

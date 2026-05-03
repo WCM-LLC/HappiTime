@@ -1,6 +1,7 @@
 // src/screens/HomeScreen.tsx
 import React, { useMemo, useRef, useState } from "react";
 import {
+  FlatList,
   View,
   Text,
   StyleSheet,
@@ -15,6 +16,7 @@ import {
   Platform,
   KeyboardAvoidingView
 } from "react-native";
+import type { ViewToken } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
@@ -22,10 +24,11 @@ import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
-import { useVenueCovers } from "../hooks/useVenueCovers";
+import { useVenueCovers, useVenueMediaGalleries } from "../hooks/useVenueCovers";
 import { getHappyHourDisplayNames } from "../utils/happyHourDisplay";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
+import { SearchableOptionSheet } from "../components/SearchableOptionSheet";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
@@ -66,6 +69,9 @@ const getVenueName = (window: HappyHourWindow) => {
   const { titleText } = getHappyHourDisplayNames(window);
   return titleText;
 };
+
+const getVenueId = (window: HappyHourWindow) =>
+  window.venue_id ?? window.venue?.id ?? null;
 
 const getVenueSubtitle = (window: HappyHourWindow): string | null => {
   const { subtitleText } = getHappyHourDisplayNames(window);
@@ -111,6 +117,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [selectedPrice, setSelectedPrice] = useState<number | "all">("all");
   const [cityPickerVisible, setCityPickerVisible] = useState(false);
   const [cityDraft, setCityDraft] = useState("");
+  const [venueCarouselScrollEnabled, setVenueCarouselScrollEnabled] = useState(true);
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
 
   // GPS coords with fallback to saved home location for sorting/centering
   const effectiveCoords = React.useMemo(() => {
@@ -184,7 +192,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     const cuisines = Array.from(cuisineSet).sort((a, b) => a.localeCompare(b));
     return {
       mode: "tags" as CuisineMode,
-      options: cuisines.length > 0 ? ["all", ...cuisines.slice(0, 8)] : ["all"]
+      options: cuisines.length > 0 ? ["all", ...cuisines] : ["all"]
     };
   }, [dedupedByVenue]);
 
@@ -198,6 +206,10 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
     return ["all", ...Array.from(tiers).sort((a, b) => a - b)];
   }, [dedupedByVenue]);
+  const priceFilterOptions = useMemo(
+    () => priceOptions.map((option) => String(option)),
+    [priceOptions]
+  );
 
   const filtered = useMemo(() => {
     let list = withDistance;
@@ -247,10 +259,51 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   }, [withDistance, query, selectedCuisine, selectedPrice]);
 
   const filteredVenueIds = useMemo(
-    () => filtered.map((p) => p.venue?.id).filter((id): id is string => !!id),
+    () => filtered.map(getVenueId).filter((id): id is string => !!id),
     [filtered]
   );
+  const filteredVenueIdsKey = useMemo(
+    () => filteredVenueIds.join(","),
+    [filteredVenueIds]
+  );
+  const [activeGalleryVenueIds, setActiveGalleryVenueIds] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    setActiveGalleryVenueIds(filteredVenueIds.slice(0, 6));
+  }, [filteredVenueIds, filteredVenueIdsKey]);
+
+  const galleryVenueIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const id of filteredVenueIds.slice(0, 6)) ids.add(id);
+    for (const id of activeGalleryVenueIds) ids.add(id);
+    return Array.from(ids).slice(0, 12);
+  }, [activeGalleryVenueIds, filteredVenueIds]);
+
   const venueCovers = useVenueCovers(filteredVenueIds);
+  const venueGalleries = useVenueMediaGalleries(galleryVenueIds, 4);
+  const venueViewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 35,
+  });
+  const onVenueViewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      const visibleIds = viewableItems
+        .map(({ item }) => getVenueId(item as HappyHourWindow))
+        .filter((id): id is string => Boolean(id));
+
+      if (visibleIds.length === 0) return;
+
+      setActiveGalleryVenueIds((current) => {
+        const next = Array.from(new Set([...visibleIds, ...current])).slice(0, 12);
+        if (
+          next.length === current.length &&
+          next.every((id, index) => id === current[index])
+        ) {
+          return current;
+        }
+        return next;
+      });
+    }
+  );
 
   const cityForMap = useMemo(() => {
     const cityPlace = dedupedByVenue.find((place) => place.venue?.city);
@@ -269,21 +322,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
     return coords ? "Nearby" : "Set your city";
   }, [cityForMap, coords, preferences.home_city, preferences.home_state]);
-
-  const summaryText = useMemo(() => {
-    const parts: string[] = ["All Venues"];
-    const priceLabel =
-      selectedPrice === "all" ? null : formatPriceTier(selectedPrice);
-    const cuisineLabel =
-      selectedCuisine === "all"
-        ? null
-        : formatCuisineLabel(selectedCuisine, cuisineMeta.mode);
-    if (priceLabel) parts.push(priceLabel);
-    if (cuisineLabel) parts.push(cuisineLabel);
-    if (query.trim()) parts.push(`"${query.trim()}"`);
-    return parts.join(" · ");
-  }, [selectedPrice, selectedCuisine, cuisineMeta.mode, query]);
-
 
   const openCityPicker = () => {
     if (Platform.OS === "ios") {
@@ -337,6 +375,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     <View style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
+        scrollEnabled={!filterDropdownOpen}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -351,72 +390,61 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             Find happy hours near you.
           </Text>
 
-          <Pressable
-            onPress={openCityPicker}
-            style={({ pressed }) => [styles.searchSummary, pressed && { opacity: 0.75 }]}
-          >
-            <View style={styles.searchIcon}>
-              <View style={styles.searchIconCircle} />
-              <View style={styles.searchIconHandle} />
-            </View>
-            <View style={styles.searchText}>
-              <Text style={styles.cityText}>{cityLabel}</Text>
-              <Text style={styles.summaryText} numberOfLines={1}>
-                {summaryText}
-              </Text>
-            </View>
-            <View style={styles.editButton}>
-              <View style={styles.editIcon} />
-            </View>
-          </Pressable>
-
           <View style={styles.queryRow}>
             <IconSymbol name="magnifyingglass" size={14} color={colors.textMutedLight} style={styles.searchInputIcon} />
             <TextInput
               value={query}
               onChangeText={setQuery}
-              placeholder="Search bars &amp; restaurants"
+              placeholder="Search bars & restaurants"
               placeholderTextColor={colors.textMutedLight}
               style={styles.searchInput}
               autoCapitalize="none"
             />
           </View>
 
-          <Text style={styles.filterLabel}>Cuisine</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterRow}
-          >
-            {cuisineMeta.options.map((option) => (
-              <FilterChip
-                key={`cuisine-${option}`}
-                label={formatCuisineLabel(option, cuisineMeta.mode)}
-                selected={selectedCuisine === option}
-                onPress={() => setSelectedCuisine(option)}
-              />
-            ))}
-          </ScrollView>
-
-          <Text style={styles.filterLabel}>Price</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterRow}
-          >
-            {priceOptions.map((option) => {
-              const label =
-                option === "all" ? "All" : formatPriceTier(option as number);
-              return (
-                <FilterChip
-                  key={`price-${option}`}
-                  label={label ?? "All"}
-                  selected={selectedPrice === option}
-                  onPress={() => setSelectedPrice(option as number | "all")}
-                />
-              );
-            })}
-          </ScrollView>
+          <View style={styles.filterRail}>
+            <Pressable
+              onPress={openCityPicker}
+              style={({ pressed }) => [
+                styles.filterActionButton,
+                pressed && styles.chipPressed,
+              ]}
+            >
+              <View style={styles.filterActionTextWrap}>
+                <Text style={styles.filterActionLabel} numberOfLines={1}>
+                  City
+                </Text>
+                <Text style={styles.filterActionValue} numberOfLines={1}>
+                  {cityLabel}
+                </Text>
+              </View>
+              <IconSymbol name="chevron.down" size={18} color={colors.primary} />
+            </Pressable>
+            <SearchableOptionSheet
+              label="Cuisine"
+              value={selectedCuisine}
+              options={cuisineMeta.options}
+              onChange={setSelectedCuisine}
+              formatOptionLabel={(option) => formatCuisineLabel(option, cuisineMeta.mode)}
+              searchPlaceholder="Search cuisines"
+              style={styles.filterRailControl}
+              onOpenChange={setFilterDropdownOpen}
+            />
+            <SearchableOptionSheet
+              label="Price"
+              value={String(selectedPrice)}
+              options={priceFilterOptions}
+              onChange={(option) =>
+                setSelectedPrice(option === "all" ? "all" : Number(option))
+              }
+              formatOptionLabel={(option) =>
+                option === "all" ? "All" : formatPriceTier(Number(option)) ?? "All"
+              }
+              searchPlaceholder="Search prices"
+              style={styles.filterRailControl}
+              onOpenChange={setFilterDropdownOpen}
+            />
+          </View>
 
           {locationError && (
             <Text style={styles.locationHint}>
@@ -521,29 +549,43 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             message="Try another cuisine or price tier."
           />
         ) : (
-          <ScrollView
+          <FlatList
             horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.carouselContent}
-          >
-            {filtered.map((item) => {
-              const venueId = item.venue_id ?? item.venue?.id ?? null;
+            data={filtered}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => {
+              const venueId = getVenueId(item);
+              const coverUrl = venueId ? venueCovers[venueId] ?? null : null;
+              const galleryUrls = venueId ? venueGalleries[venueId] ?? [] : [];
+
               return (
                 <VenueCard
-                  key={item.id}
                   place={item}
                   width={cardWidth}
-                  coverUrl={item.venue?.id ? venueCovers[item.venue.id] ?? null : null}
+                  coverUrl={coverUrl}
+                  imageUrls={galleryUrls.length > 0 ? galleryUrls : coverUrl ? [coverUrl] : []}
                   isFavorite={isFollowing(venueId)}
                   savingFavorite={savingVenueId === venueId}
                   onToggleFavorite={() => venueId ? toggleFollow(venueId) : undefined}
+                  onImageSwipeStart={() => setVenueCarouselScrollEnabled(false)}
+                  onImageSwipeEnd={() => setVenueCarouselScrollEnabled(true)}
                   onSelect={() =>
                     navigation.navigate("HappyHourDetail", { windowId: item.id })
                   }
                 />
               );
-            })}
-          </ScrollView>
+            }}
+            scrollEnabled={venueCarouselScrollEnabled}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.carouselContent}
+            initialNumToRender={4}
+            maxToRenderPerBatch={4}
+            updateCellsBatchingPeriod={80}
+            windowSize={5}
+            removeClippedSubviews
+            viewabilityConfig={venueViewabilityConfig.current}
+            onViewableItemsChanged={onVenueViewableItemsChanged.current}
+          />
         )}
       </ScrollView>
 
@@ -598,34 +640,16 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   );
 };
 
-type ChipProps = {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-};
-
-const FilterChip: React.FC<ChipProps> = ({ label, selected, onPress }) => (
-  <Pressable
-    onPress={onPress}
-    style={({ pressed }) => [
-      styles.chip,
-      selected && styles.chipSelected,
-      pressed && styles.chipPressed
-    ]}
-  >
-    <Text style={selected ? styles.chipTextSelected : styles.chipTextUnselected}>
-      {label}
-    </Text>
-  </Pressable>
-);
-
 type VenueCardProps = {
   place: HappyHourWindow;
   width: number;
   coverUrl?: string | null;
+  imageUrls?: string[];
   isFavorite?: boolean;
   savingFavorite?: boolean;
   onToggleFavorite?: () => void;
+  onImageSwipeStart?: () => void;
+  onImageSwipeEnd?: () => void;
   onSelect?: () => void;
 };
 
@@ -633,9 +657,12 @@ const VenueCard: React.FC<VenueCardProps> = ({
   place,
   width,
   coverUrl,
+  imageUrls,
   isFavorite,
   savingFavorite,
   onToggleFavorite,
+  onImageSwipeStart,
+  onImageSwipeEnd,
   onSelect,
 }) => {
   const name = getVenueName(place);
@@ -643,6 +670,18 @@ const VenueCard: React.FC<VenueCardProps> = ({
   const priceTier = formatPriceTier(getPriceTier(place));
   const promoTier = getPromoTier(place);
   const isPromoted = promoTier != null;
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const imageSources = useMemo(() => {
+    const urls = [...(imageUrls ?? []), coverUrl]
+      .filter((url): url is string => typeof url === "string" && url.length > 0);
+    return Array.from(new Set(urls));
+  }, [coverUrl, imageUrls]);
+
+  React.useEffect(() => {
+    if (activeImageIndex >= imageSources.length) {
+      setActiveImageIndex(0);
+    }
+  }, [activeImageIndex, imageSources.length]);
 
   const ratingRaw = place.venue?.rating ?? null;
   const reviewCountRaw = place.venue?.review_count ?? null;
@@ -663,10 +702,8 @@ const VenueCard: React.FC<VenueCardProps> = ({
         : `${distance.toFixed(1)} mi`;
 
   return (
-    <Pressable
-      onPress={onSelect}
-      disabled={!onSelect}
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.card,
         { width },
         isPromoted && (
@@ -674,17 +711,46 @@ const VenueCard: React.FC<VenueCardProps> = ({
           : promoTier === "premium" ? styles.cardPromoPremium
           : styles.cardPromoBasic
         ),
-        pressed && styles.cardPressed
       ]}
     >
       <View style={styles.cardHero}>
-        {coverUrl ? (
-          <Image
-            source={{ uri: coverUrl }}
-            style={StyleSheet.absoluteFillObject}
-            resizeMode="cover"
-          />
-        ) : null}
+        {imageSources.length > 0 ? (
+          <ScrollView
+            horizontal
+            pagingEnabled
+            nestedScrollEnabled
+            directionalLockEnabled
+            disableIntervalMomentum
+            scrollEventThrottle={16}
+            showsHorizontalScrollIndicator={false}
+            style={[styles.cardImageScroll, { width }]}
+            onTouchStart={onImageSwipeStart}
+            onTouchEnd={onImageSwipeEnd}
+            onTouchCancel={onImageSwipeEnd}
+            onScrollBeginDrag={onImageSwipeStart}
+            onScrollEndDrag={onImageSwipeEnd}
+            onMomentumScrollEnd={(event) => {
+              const nextIndex = Math.round(event.nativeEvent.contentOffset.x / width);
+              setActiveImageIndex(Math.max(0, Math.min(nextIndex, imageSources.length - 1)));
+              onImageSwipeEnd?.();
+            }}
+          >
+            {imageSources.map((url, index) => (
+              <Image
+                key={`${url}-${index}`}
+                source={{ uri: url }}
+                style={[styles.cardHeroImage, { width }]}
+                resizeMode="cover"
+              />
+            ))}
+          </ScrollView>
+        ) : (
+          <View style={styles.cardHeroPlaceholder}>
+            <Text style={styles.cardHeroPlaceholderInitial}>
+              {name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
         {isPromoted && (
           <View style={[
             styles.cardPromoBadge,
@@ -700,13 +766,25 @@ const VenueCard: React.FC<VenueCardProps> = ({
             <Text style={styles.cardPriceBadgeText}>{priceTier}</Text>
           </View>
         )}
-        <View style={styles.cardHeroDots}>
-          <View style={[styles.cardHeroDot, styles.cardHeroDotActive]} />
-          <View style={styles.cardHeroDot} />
-          <View style={styles.cardHeroDot} />
-        </View>
+        {imageSources.length > 1 ? (
+          <View style={styles.cardHeroDots}>
+            {imageSources.map((url, index) => (
+              <View
+                key={`${url}-dot`}
+                style={[
+                  styles.cardHeroDot,
+                  index === activeImageIndex && styles.cardHeroDotActive,
+                ]}
+              />
+            ))}
+          </View>
+        ) : null}
       </View>
-      <View style={styles.cardBody}>
+      <Pressable
+        onPress={onSelect}
+        disabled={!onSelect}
+        style={({ pressed }) => [styles.cardBody, pressed && styles.cardBodyPressed]}
+      >
         <Text style={styles.cardTitle} numberOfLines={1}>
           {name}
         </Text>
@@ -758,8 +836,8 @@ const VenueCard: React.FC<VenueCardProps> = ({
             />
           </Pressable>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+    </View>
   );
 };
 
@@ -800,75 +878,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: spacing.lg
   },
-  searchSummary: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 14,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    shadowColor: colors.shadowSoft,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  searchIcon: {
-    width: 18,
-    height: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: spacing.sm
-  },
-  searchIconCircle: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: colors.textMuted
-  },
-  searchIconHandle: {
-    position: "absolute",
-    width: 7,
-    height: 2,
-    backgroundColor: colors.textMuted,
-    right: -1,
-    bottom: 0,
-    transform: [{ rotate: "45deg" }]
-  },
-  searchText: {
-    flex: 1
-  },
-  cityText: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: "600"
-  },
-  summaryText: {
-    color: colors.textMuted,
-    fontSize: 12,
-    marginTop: 2
-  },
-  editButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  editIcon: {
-    width: 14,
-    height: 14,
-    borderWidth: 2,
-    borderColor: colors.textMuted,
-    borderRadius: 3
-  },
   queryRow: {
-    marginTop: spacing.md,
     marginBottom: spacing.md,
     borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
@@ -889,42 +899,53 @@ const styles = StyleSheet.create({
     fontSize: 14,
     paddingVertical: 0
   },
-  filterLabel: {
-    color: colors.text,
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.4,
-    marginBottom: spacing.sm,
+  filterRail: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+    zIndex: 30,
   },
-  filterRow: {
-    paddingBottom: spacing.sm,
-    paddingRight: spacing.lg
+  filterRailControl: {
+    flex: 1,
   },
-  chip: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: 999,
+  filterActionButton: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 48,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.background,
-    marginRight: spacing.sm
+    backgroundColor: "rgba(255,255,255,0.94)",
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    shadowColor: colors.shadowSoft,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  chipSelected: {
-    backgroundColor: colors.pillActiveBg,
-    borderColor: colors.pillActiveBg
+  filterActionTextWrap: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: spacing.xs,
+  },
+  filterActionLabel: {
+    color: colors.textMuted,
+    fontSize: 10,
+    fontWeight: "800",
+    textTransform: "uppercase",
+  },
+  filterActionValue: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "800",
+    marginTop: 2,
   },
   chipPressed: {
     opacity: 0.8
-  },
-  chipTextSelected: {
-    color: colors.pillActiveText,
-    fontSize: 13,
-    fontWeight: "600"
-  },
-  chipTextUnselected: {
-    color: colors.text,
-    fontSize: 13,
-    fontWeight: "500"
   },
   locationHint: {
     color: colors.textMuted,
@@ -1058,10 +1079,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: "uppercase",
   },
-  cardPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.98 }],
-  },
   cardHero: {
     height: 150,
     backgroundColor: colors.brandSubtle,
@@ -1069,6 +1086,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingBottom: spacing.sm,
     position: "relative"
+  },
+  cardImageScroll: {
+    ...StyleSheet.absoluteFillObject,
+    height: "100%",
+  },
+  cardHeroImage: {
+    height: "100%",
+  },
+  cardHeroPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardHeroPlaceholderInitial: {
+    color: colors.primary,
+    fontSize: 42,
+    fontWeight: "900",
+    opacity: 0.25,
   },
   cardPriceBadge: {
     position: "absolute",
@@ -1102,6 +1137,9 @@ const styles = StyleSheet.create({
   cardBody: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md
+  },
+  cardBodyPressed: {
+    opacity: 0.85,
   },
   cardTitle: {
     color: colors.text,
@@ -1254,8 +1292,3 @@ const styles = StyleSheet.create({
     fontWeight: "700"
   }
 });
-
-
-
-
-
