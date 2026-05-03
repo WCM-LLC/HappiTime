@@ -49,7 +49,7 @@ let _notifiedVenues = new Map<string, number>(); // venueId → last-notified ti
 let _autoCheckedInVenues = new Map<string, number>(); // venueId → last auto check-in timestamp
 let _notificationBlocks = new Set<string>(); // venueId
 let _blocksLoadedFor: string | null = null;
-let _defaultCheckinPrivacy: "private" | "friends" = "private";
+let _defaultCheckinPrivacy: "private" | "public" = "private";
 
 /* ── Helpers ──────────────────────────────────────────────────── */
 
@@ -123,7 +123,7 @@ async function registerAutoCheckIn(userId: string, venueId: string, venueName: s
       venue_id: venueId,
       entered_at: new Date().toISOString(),
       source: "auto_proximity",
-      is_private: _defaultCheckinPrivacy !== "friends",
+      is_private: _defaultCheckinPrivacy !== "public",
     });
 
   if (error) {
@@ -141,7 +141,7 @@ async function registerVisit(userId: string, venueId: string, venueName: string)
       venue_id: venueId,
       entered_at: new Date().toISOString(),
       source: "dwell",
-      is_private: _defaultCheckinPrivacy !== "friends",
+      is_private: _defaultCheckinPrivacy !== "public",
     })
     .select("id")
     .single();
@@ -274,10 +274,13 @@ export function useVisitTracker(venues: VenuePoint[]) {
     void (async () => {
       const { data } = await (supabase as any)
         .from("user_preferences")
-        .select("default_checkin_privacy")
+        .select("checkin_default_privacy, default_checkin_privacy")
         .eq("user_id", userId)
         .maybeSingle();
-      _defaultCheckinPrivacy = data?.default_checkin_privacy === "friends" ? "friends" : "private";
+      _defaultCheckinPrivacy =
+        data?.checkin_default_privacy === "public" || data?.default_checkin_privacy === "friends"
+          ? "public"
+          : "private";
     })();
   }, [user?.id]);
 
