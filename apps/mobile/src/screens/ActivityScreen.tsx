@@ -1,8 +1,5 @@
 // src/screens/ActivityScreen.tsx
 import React, { useState } from "react";
-import { useNavigation } from "@react-navigation/native";
-import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { RootStackParamList } from "../navigation/types";
 import {
   View,
   Text,
@@ -18,9 +15,9 @@ import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendS
 import { useDiscoverFeed, type DiscoverFeedItem } from "../hooks/useDiscoverFeed";
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 import { isFeatureEnabled } from "../lib/featureFlags";
 import { colors } from "../theme/colors";
-import { SuggestionCard } from "../components/SuggestionCard";
 import { spacing } from "../theme/spacing";
 
 /* ── Helpers ── */
@@ -134,28 +131,59 @@ const ActivityCard: React.FC<{ item: ActivityItem }> = ({ item }) => (
   </View>
 );
 
-/* ── Discover Card ── */
+/* ── Suggestion Card ── */
 
-const DiscoverCard: React.FC<{ item: DiscoverActivityItem; onPress: (listId: string) => void }> = ({ item, onPress }) => (
-  <Pressable onPress={() => onPress(item.itineraryId)} style={styles.row}>
-    <View style={styles.avatarWrap}>
-      {item.actorAvatar ? (
-        <Image source={{ uri: item.actorAvatar }} style={styles.avatar} />
-      ) : (
-        <View style={styles.avatarPlaceholder}>
-          <Text style={styles.avatarInitial}>{item.actorHandle.charAt(0).toUpperCase()}</Text>
-        </View>
-      )}
-    </View>
-    <View style={styles.textContainer}>
-      <View style={styles.nameRow}>
-        <Text style={styles.actor}>@{item.actorHandle}</Text>
-        <Text style={styles.when}>{timeAgo(item.createdAt)}</Text>
+const SuggestionCard: React.FC<{
+  suggestion: FriendSuggestion;
+  onFollow: (userId: string) => void;
+  following: boolean;
+}> = ({ suggestion, onFollow, following }) => {
+  const name =
+    suggestion.display_name ?? suggestion.handle ?? suggestion.user_id.slice(0, 8);
+
+  return (
+    <View style={styles.row}>
+      <View style={styles.avatarWrap}>
+        {suggestion.avatar_url ? (
+          <Image source={{ uri: suggestion.avatar_url }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarInitial}>
+              {name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
       </View>
-      <Text style={styles.message}>{item.message}</Text>
+      <View style={styles.textContainer}>
+        <Text style={styles.actor}>{name}</Text>
+        {suggestion.handle ? (
+          <Text style={styles.handle}>@{suggestion.handle}</Text>
+        ) : null}
+        <Text style={styles.message}>
+          You both visited{" "}
+          <Text style={styles.venueName}>{suggestion.shared_venue_name}</Text>
+        </Text>
+      </View>
+      <View style={styles.trailing}>
+        <Pressable
+          onPress={() => onFollow(suggestion.user_id)}
+          disabled={following}
+          style={({ pressed }) => [
+            styles.followButton,
+            following && styles.followButtonActive,
+            pressed && styles.followButtonPressed,
+          ]}
+        >
+          <Text
+            style={[styles.followText, following && styles.followTextActive]}
+          >
+            {following ? "Requested" : "Follow"}
+          </Text>
+        </Pressable>
+      </View>
     </View>
-  </Pressable>
-);
+  );
+};
 
 const DiscoverFeedCard: React.FC<{ item: DiscoverFeedItem }> = ({ item }) => {
   const actor = item.userHandle ? `@${item.userHandle}` : item.userDisplayName ?? "a HappiTime user";
@@ -238,12 +266,12 @@ export const ActivityScreen: React.FC = () => {
   const {
     pendingRequests,
     loading: followersLoading,
+    sendFollowRequest,
     approveFollowRequest,
     rejectFollowRequest,
   } = useUserFollowers();
   const { activities, loading: activityLoading, refresh: refreshActivity } = useFriendActivity();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { items: discoverItems, loading: suggestionsLoading, refresh: refreshSuggestions } = useDiscoverActivity();
+  const { suggestions, loading: suggestionsLoading, refresh: refreshSuggestions } = useFriendSuggestions();
   const {
     feed: discoverFeed,
     loading: discoverLoading,
@@ -263,16 +291,17 @@ export const ActivityScreen: React.FC = () => {
     ? discoverFeed.map((item) => ({ kind: "feed" as const, id: item.id, item }))
     : suggestions.map((item) => ({ kind: "suggestion" as const, id: item.user_id, item }));
 
-  const handleDiscoverPress = (listId: string) => {
-    navigation.navigate("AppTabs", { screen: "Favorites", params: { openListId: listId } } as any);
-  };
-
   const handleApprove = (followId: string) => {
     void approveFollowRequest(followId);
   };
 
   const handleReject = (followId: string) => {
     void rejectFollowRequest(followId);
+  };
+
+  const handleFollow = (userId: string) => {
+    setRequestedUsers((prev) => ({ ...prev, [userId]: true }));
+    void sendFollowRequest(userId);
   };
 
   const isLoading =
