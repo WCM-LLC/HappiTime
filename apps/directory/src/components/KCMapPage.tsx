@@ -904,6 +904,7 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
       className="overflow-y-auto bg-background"
       style={{
         width: isMobile ? "100%" : 332,
+        height: isMobile ? "100%" : undefined,
         flexShrink: 0,
         borderRight: isMobile ? "none" : "1px solid #E8E5E0",
       }}
