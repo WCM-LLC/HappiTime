@@ -1,6 +1,7 @@
 // src/screens/ProfileScreen.tsx
 import React, { useEffect, useState } from "react";
 import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../api/supabaseClient";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { VenueSuggestionForm } from "./AddScreen";
@@ -13,6 +14,7 @@ import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
 export const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation<any>();
   const [showSuggestVenue, setShowSuggestVenue] = useState(false);
   const { user, loading: userLoading } = useCurrentUser();
   const {
@@ -60,6 +62,52 @@ export const ProfileScreen: React.FC = () => {
     ]);
   };
 
+  const handleDeleteAccount = () => {
+    if (!user) return;
+    Alert.alert("Delete account", "Do you want to permanently delete your account?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete account",
+        style: "destructive",
+        onPress: () => {
+          Alert.prompt(
+            "Final confirmation",
+            "Type DELETE to confirm account deletion.",
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Delete",
+                style: "destructive",
+                onPress: async (value?: string) => {
+                  if ((value ?? "").trim() !== "DELETE") {
+                    Alert.alert("Deletion canceled", "You must type DELETE exactly.");
+                    return;
+                  }
+
+                  const { error: profileError } = await supabase
+                    .from("user_profiles")
+                    .delete()
+                    .eq("user_id", user.id);
+                  if (profileError) {
+                    Alert.alert("Unable to delete account", profileError.message);
+                    return;
+                  }
+
+                  await supabase.auth.signOut();
+                  Alert.alert(
+                    "Account data deleted",
+                    "Your profile data was removed and you were signed out."
+                  );
+                },
+              },
+            ],
+            "plain-text"
+          );
+        },
+      },
+    ]);
+  };
+
   useEffect(() => {
     if (!profile) return;
     setDisplayName(profile.display_name ?? "");
@@ -97,6 +145,25 @@ export const ProfileScreen: React.FC = () => {
     return (
       <View style={styles.container}>
         <LoadingSpinner />
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <View style={[styles.card, { margin: spacing.lg }]}>
+          <Text style={styles.sectionTitle}>Profile</Text>
+          <Text style={styles.value}>
+            You can browse HappiTime without an account. Sign in to save favorites, activity, and profile settings.
+          </Text>
+          <Pressable
+            style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
+            onPress={() => navigation.navigate("Auth")}
+          >
+            <Text style={styles.primaryButtonText}>Create Account / Sign In</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
@@ -186,6 +253,16 @@ export const ProfileScreen: React.FC = () => {
         {statusMessage ? (
           <Text style={styles.statusMessage}>{statusMessage}</Text>
         ) : null}
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.dangerButton,
+            pressed && styles.primaryButtonPressed
+          ]}
+          onPress={handleDeleteAccount}
+        >
+          <Text style={styles.dangerButtonText}>Delete account</Text>
+        </Pressable>
       </View>
 
       <View style={styles.card}>
@@ -472,6 +549,22 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     color: colors.textMuted,
     fontSize: 12
+  },
+  dangerButton: {
+    marginTop: spacing.md,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.error,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface ?? colors.background,
+  },
+  dangerButtonText: {
+    color: colors.error,
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   cityRow: {
     flexDirection: "row",
