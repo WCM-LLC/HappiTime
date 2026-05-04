@@ -4,6 +4,7 @@ import UserBar from '@/components/layout/UserBar';
 import { createClient } from '@/utils/supabase/server';
 import { createOrganization, deleteOrganization, updateOrganization } from '../../actions/dashboard-actions';
 import ConfirmDeleteForm from '@/components/ConfirmDeleteForm';
+import { deleteMyAccount } from '@/actions/account-actions';
 
 type MembershipRow = {
   role: string;
@@ -16,6 +17,9 @@ const DASHBOARD_ERROR_MESSAGES: Record<string, string> = {
   slug_taken: 'That organization slug is already in use. Choose a different slug.',
   missing_org_name: 'Enter an organization name.',
   not_org_owner: 'You must be an organization owner to make that change.',
+  confirm_delete_account: 'Type DELETE to confirm account deletion.',
+  account_delete_failed: 'We could not delete your account. Please try again.',
+  account_delete_unavailable: 'Account deletion is temporarily unavailable.',
 };
 
 export default async function DashboardPage({
@@ -205,6 +209,37 @@ export default async function DashboardPage({
               ))}
             </div>
           )}
+        </div>
+
+        <div className="rounded-lg border border-error/40 bg-error-light/40 p-6 mt-10">
+          <h2 className="text-heading-sm font-semibold text-foreground">Delete account</h2>
+          <p className="text-body-sm text-muted mt-1">
+            This permanently removes your account and cannot be undone.
+          </p>
+          <ConfirmDeleteForm
+            action={deleteMyAccount}
+            message="Delete your account permanently? This action cannot be undone."
+            className="mt-4 flex flex-col sm:flex-row items-start sm:items-end gap-3"
+          >
+            <div className="w-full sm:max-w-[240px]">
+              <label htmlFor="delete-confirmation" className="text-caption font-medium text-muted block mb-1">
+                Type DELETE to confirm
+              </label>
+              <input
+                id="delete-confirmation"
+                name="confirmation"
+                required
+                placeholder="DELETE"
+                className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+              />
+            </div>
+            <button
+              type="submit"
+              className="inline-flex items-center justify-center h-10 px-4 rounded-md text-body-sm font-medium text-error hover:bg-error-light border border-border transition-colors cursor-pointer"
+            >
+              Delete my account
+            </button>
+          </ConfirmDeleteForm>
         </div>
       </main>
     </div>

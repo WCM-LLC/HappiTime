@@ -178,6 +178,7 @@ export default function App() {
 
   const [booting, setBooting] = useState(true);
   const [session, setSession] = useState<any>(null);
+  const [guestChoice, setGuestChoice] = useState<"prompt" | "skip" | "signin">("prompt");
   useMagicLinkListener();
   console.log("App render");
 
@@ -214,12 +215,102 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
     return <LoadingView message={"Restoring session..."} />;
   }
 
-  if (!session) return <AuthScreen />;
+  if (!session) {
+    if (guestChoice === "signin") {
+      return <AuthScreen />;
+    }
+
+    if (guestChoice === "skip") {
+      return <AppNavigator initialTab="Map" />;
+    }
+
+    return (
+      <View style={styles.authPromptContainer}>
+        <View style={styles.authPromptCard}>
+          <Text style={styles.authPromptTitle}>Welcome to HappiTime</Text>
+          <Text style={styles.authPromptBody}>
+            Sign in to save venues, build itineraries, and interact with the community.
+          </Text>
+          <Pressable
+            style={({ pressed }) => [
+              styles.authPromptPrimaryButton,
+              pressed && styles.privacyButtonPressed,
+            ]}
+            onPress={() => setGuestChoice("signin")}
+          >
+            <Text style={styles.authPromptPrimaryButtonText}>Create Account / Sign In</Text>
+          </Pressable>
+          <Pressable
+            style={({ pressed }) => [
+              styles.authPromptSecondaryButton,
+              pressed && styles.privacyButtonPressed,
+            ]}
+            onPress={() => setGuestChoice("skip")}
+          >
+            <Text style={styles.authPromptSecondaryButtonText}>Skip for now</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
 
   return <AuthenticatedApp session={session} />;
 }
 
 const styles = StyleSheet.create({
+  authPromptContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: spacing.xl,
+  },
+  authPromptCard: {
+    width: "100%",
+    maxWidth: 420,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    padding: spacing.xl,
+    gap: spacing.md,
+  },
+  authPromptTitle: {
+    color: colors.text,
+    fontSize: 24,
+    fontWeight: "800",
+  },
+  authPromptBody: {
+    color: colors.textMuted,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  authPromptPrimaryButton: {
+    borderRadius: 999,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.md,
+  },
+  authPromptPrimaryButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  authPromptSecondaryButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
+  },
+  authPromptSecondaryButtonText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "600",
+  },
   privacyBackdrop: {
     alignItems: "center",
     backgroundColor: "rgba(26, 26, 26, 0.48)",

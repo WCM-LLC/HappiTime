@@ -2,10 +2,15 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getPublicSupabaseEnv } from "@happitime/shared-env";
 
-const PUBLIC_PATHS = ["/login", "/auth", "/forgot-password", "/reset-password"];
+const PUBLIC_PATHS = ["/", "/login", "/auth", "/forgot-password", "/reset-password", "/invite"];
+const PROTECTED_PATHS = ["/dashboard", "/admin", "/orgs", "/change-password"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
+function isProtectedPath(pathname: string) {
+  return PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
 export async function middleware(request: NextRequest) {
@@ -56,7 +61,7 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  if (!user && !isPublicPath(pathname)) {
+  if (!user && isProtectedPath(pathname)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.search = "";

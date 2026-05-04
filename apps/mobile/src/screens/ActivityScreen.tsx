@@ -17,6 +17,7 @@ import { useDiscoverFeed, type DiscoverFeedItem } from "../hooks/useDiscoverFeed
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
 import { isFeatureEnabled } from "../lib/featureFlags";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -188,8 +189,12 @@ const SuggestionCard: React.FC<{
   );
 };
 
-const DiscoverFeedCard: React.FC<{ item: DiscoverFeedItem }> = ({ item }) => {
-  const actor = item.userHandle ? `@${item.userHandle}` : item.userDisplayName ?? "a HappiTime user";
+const DiscoverFeedCard: React.FC<{ item: DiscoverFeedItem; anonymous?: boolean }> = ({ item, anonymous }) => {
+  const actor = anonymous
+    ? "A HappiTime user"
+    : item.userHandle
+      ? `@${item.userHandle}`
+      : item.userDisplayName ?? "a HappiTime user";
   const message = (() => {
     if (item.eventType === "itinerary_share") {
       const itineraryName = item.itineraryName ?? "an itinerary";
@@ -265,6 +270,8 @@ type DiscoverListItem =
   | { kind: "suggestion"; id: string; item: FriendSuggestion };
 
 export const ActivityScreen: React.FC = () => {
+  const { user } = useCurrentUser();
+  const isGuest = !user;
   const [tab, setTab] = useState<Tab>("friends");
   const {
     pendingRequests,
@@ -288,7 +295,7 @@ export const ActivityScreen: React.FC = () => {
   } = useUserCheckins();
   const [requestedUsers, setRequestedUsers] = useState<Record<string, boolean>>({});
   const [friendHandleQuery, setFriendHandleQuery] = useState("");
-  const useDiscoverFeedSource = isFeatureEnabled("discoverFeedFromUserEvents");
+  const useDiscoverFeedSource = true;
   const friendHandleSearch = normalizeHandleSearch(friendHandleQuery);
   const filteredActivities = useMemo(() => {
     if (!friendHandleSearch) return activities;
@@ -317,6 +324,29 @@ export const ActivityScreen: React.FC = () => {
     tab === "friends" ? followersLoading || activityLoading
     : tab === "discover" ? (useDiscoverFeedSource ? discoverLoading : suggestionsLoading)
     : checkinsLoading;
+
+  if (isGuest) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Discovery</Text>
+        <Text style={styles.emptyState}>See what people are doing around you.</Text>
+        {discoverLoading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator color={colors.primary} size="small" />
+          </View>
+        ) : null}
+        <FlatList
+          data={discoverFeed}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          renderItem={({ item }) => <DiscoverFeedCard item={item} anonymous />}
+          ListEmptyComponent={<Text style={styles.emptyState}>No discovery activity yet.</Text>}
+          onRefresh={refreshDiscoverFeed}
+          refreshing={discoverLoading}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

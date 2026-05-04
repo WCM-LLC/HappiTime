@@ -27,6 +27,7 @@ export const FavoritesScreen: React.FC = () => {
   const { coords } = useUserLocation();
   const { venueIds: followedVenueIds, loading: followedLoading } =
     useUserFollowedVenues();
+  const { user, loading: authLoading } = useCurrentUser();
   const { entries: historyEntries, loading: historyLoading } = useUserHistory();
   const {
     lists,
@@ -109,6 +110,27 @@ export const FavoritesScreen: React.FC = () => {
       .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0))
       .slice(0, 4);
   }, [favoriteOnly]);
+
+  if (authLoading) {
+    return (
+      <View style={styles.container}>
+        <LoadingSpinner />
+      </View>
+    );
+  }
+
+  if (!user) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.pageTitle}>Saved</Text>
+        <Text style={styles.pageSubtitle}>Sign in to save venues, history, and itineraries.</Text>
+        <EmptyState
+          title="Sign in required"
+          message="Saving and sharing venues or itineraries requires an account."
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

@@ -5,7 +5,9 @@ import React, { useRef } from "react";
 import { StyleSheet } from "react-native";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { useNotificationNavigation } from "../hooks/useNotificationNavigation";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 import { ActivityScreen } from "../screens/ActivityScreen";
+import { AuthScreen } from "../screens/AuthScreen";
 import { FavoritesScreen } from "../screens/FavoritesScreen";
 import { HappyHourDetailScreen } from "../screens/HappyHourDetailScreen";
 import { HomeScreen } from "../screens/HomeScreen";
@@ -30,9 +32,12 @@ const navTheme: typeof DefaultTheme = {
   }
 };
 
-function AppTabs() {
+function AppTabs({ initialRouteName }: { initialRouteName?: keyof MainTabParamList }) {
+  const { user } = useCurrentUser();
+  const isGuest = !user;
   return (
     <Tab.Navigator
+      initialRouteName={initialRouteName}
       screenOptions={({ route }: { route: { name: keyof MainTabParamList } }) => ({
         headerShown: false,
         tabBarShowLabel: true,
@@ -82,9 +87,9 @@ function AppTabs() {
         }
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Map" component={MapScreen} />
-      <Tab.Screen name="Favorites" component={FavoritesScreen} />
+      {!isGuest ? <Tab.Screen name="Home" component={HomeScreen} /> : null}
+      {!isGuest ? <Tab.Screen name="Favorites" component={FavoritesScreen} /> : null}
       <Tab.Screen
         name="Activity"
         component={ActivityScreen}
@@ -94,7 +99,7 @@ function AppTabs() {
   );
 }
 
-export function AppNavigator() {
+export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamList } = {}) {
   const navigationRef = useRef<any>(null);
   useNotificationNavigation(navigationRef);
 
@@ -103,8 +108,13 @@ export function AppNavigator() {
       <Stack.Navigator>
         <Stack.Screen
           name="AppTabs"
-          component={AppTabs}
+          children={() => <AppTabs initialRouteName={initialTab} />}
           options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Auth"
+          component={AuthScreen}
+          options={{ title: "Sign in" }}
         />
         <Stack.Screen
           name="HappyHourDetail"
