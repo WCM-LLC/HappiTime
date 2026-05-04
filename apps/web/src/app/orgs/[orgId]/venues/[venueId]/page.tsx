@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
+import MenuSectionItemAdder from '@/components/MenuSectionItemAdder';
 import VenueMediaUploader from '@/components/VenueMediaUploader';
 import type { SubscriptionPlan } from '@/utils/stripe';
 import { PLAN_LABEL } from '@/utils/subscription-features';
@@ -8,6 +9,8 @@ import { isAdminEmail } from '@/utils/admin-emails';
 import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
 import {
   updateVenue,
+  publishVenue,
+  unpublishVenue,
   updateVenueRatingSettings,
   addHappyHour,
   updateHappyHour,
@@ -16,15 +19,13 @@ import {
   unpublishHappyHour,
   updateHappyHourMenus,
   createMenu,
-  updateMenu,
+  saveMenu,
   deleteMenu,
   publishMenu,
   unpublishMenu,
   createSection,
-  updateSection,
   deleteSection,
   createItem,
-  updateItem,
   deleteItem,
 } from '../../../../../actions/venue-actions';
 import {
@@ -185,6 +186,8 @@ export default async function VenuePage({
     not_authorized: "You don't have permission to make that change.",
     venue_not_found: "We couldn't find that venue.",
     venue_update_failed: 'Saving venue details failed. Try again.',
+    venue_publish_failed: 'Publishing the venue failed.',
+    venue_unpublish_failed: 'Unpublishing the venue failed.',
     missing_venue_name: 'Venue name is required.',
     cuisine_update_failed: 'Updating the cuisine type failed.',
     tags_update_failed: 'Updating venue tags failed.',
@@ -360,6 +363,10 @@ export default async function VenuePage({
   const displayName = v?.org_name?.trim() || v?.name || 'Venue';
   const locationLabel = v?.org_name?.trim() && v.org_name !== v?.name ? v.name : null;
   const backHref = fromAdmin ? `/orgs/${orgId}?from=admin` : `/orgs/${orgId}`;
+  const venuePublished = (v?.status ?? '').toLowerCase() === HH_STATUS_PUBLISHED;
+  const venueStatusColor = venuePublished
+    ? 'bg-success-light text-success'
+    : 'bg-warning-light text-warning';
 
   /* ── Shared input class ── */
   const inputCls =
@@ -400,6 +407,22 @@ export default async function VenuePage({
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {canManageVenue ? (
+              <form className="flex items-center gap-2">
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${venueStatusColor}`}>
+                  {venuePublished ? 'Published' : 'Draft'}
+                </span>
+                {venuePublished ? (
+                  <button className={btnSecondary} formAction={unpublishVenue.bind(null, orgId, venueId)}>
+                    Unpublish venue
+                  </button>
+                ) : (
+                  <button className={btnPrimary} formAction={publishVenue.bind(null, orgId, venueId)}>
+                    Publish venue
+                  </button>
+                )}
+              </form>
+            ) : null}
             <Link href={previewHref} target="_blank" rel="noopener noreferrer">
               <span className={btnDark}>Preview in App</span>
             </Link>
@@ -658,7 +681,10 @@ export default async function VenuePage({
                         <div className="border-t border-border mt-4 pt-4">
                           <p className="text-body-sm font-medium text-foreground mb-2">Menus available in this window</p>
                           {menuList.length ? (
-                            <form className="flex flex-col gap-3">
+                            <form
+                              action={updateHappyHourMenus.bind(null, orgId, venueId)}
+                              className="flex flex-col gap-3"
+                            >
                               <input type="hidden" name="hh_id" value={h.id} />
                               <div className="flex flex-wrap gap-x-4 gap-y-2">
                                 {menuList.map((menu) => (
@@ -675,7 +701,7 @@ export default async function VenuePage({
                                 ))}
                               </div>
                               <div>
-                                <button className={btnSecondary} formAction={updateHappyHourMenus.bind(null, orgId, venueId)}>
+                                <button type="submit" className={btnSecondary}>
                                   Save menus
                                 </button>
                               </div>
@@ -765,7 +791,7 @@ export default async function VenuePage({
                 <input name="menu_name" placeholder="e.g., Happy Hour Drinks" required className={inputCls} />
               </div>
               <button formAction={createMenu.bind(null, orgId, venueId)} className={btnPrimary + ' shrink-0'}>
-                Create menu
+                Add menu
               </button>
             </form>
           ) : null}
@@ -777,203 +803,257 @@ export default async function VenuePage({
                 const menuStatusColor = menuPublished
                   ? 'bg-success-light text-success'
                   : 'bg-warning-light text-warning';
+                const menuFormId = `menu-save-form-${m.id}`;
+                const publishMenuFormId = `menu-publish-form-${m.id}`;
+                const deleteMenuFormId = `menu-delete-form-${m.id}`;
 
                 return (
                   <div key={m.id} className="rounded-lg border border-border bg-background">
+                    {canEditMenuItems ? (
+                      <form id={menuFormId} action={saveMenu.bind(null, orgId, venueId)} />
+                    ) : null}
+                    {canManageVenue ? (
+                      <>
+                        <form id={publishMenuFormId}>
+                          <input type="hidden" name="menu_id" value={m.id} />
+                        </form>
+                        <form id={deleteMenuFormId}>
+                          <input type="hidden" name="menu_id" value={m.id} />
+                        </form>
+                      </>
+                    ) : null}
+
                     {/* ── Menu header ── */}
                     <div className="p-5 border-b border-border">
+                      {canEditMenuItems ? (
+                        <input form={menuFormId} type="hidden" name="menu_id" value={m.id} />
+                      ) : null}
                       {canManageVenue ? (
-                        <form className="flex flex-col gap-3">
-                          <input type="hidden" name="menu_id" value={m.id} />
-
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 flex flex-col gap-3 sm:flex-row sm:items-center">
-                              <input name="menu_name" defaultValue={m.name} required className={inputCls + ' sm:max-w-xs'} />
-                              <label className="flex items-center gap-2 text-body-sm text-muted cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  name="menu_is_active"
-                                  defaultChecked={m.is_active}
-                                  className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
-                                />
-                                Active
-                              </label>
-                            </div>
-
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${menuStatusColor}`}>
-                                {menuPublished ? 'Published' : 'Draft'}
-                              </span>
-                              {menuPublished ? (
-                                <button className={btnSecondary} formAction={unpublishMenu.bind(null, orgId, venueId)}>
-                                  Unpublish
-                                </button>
-                              ) : (
-                                <button className={btnPrimary} formAction={publishMenu.bind(null, orgId, venueId)}>
-                                  Publish
-                                </button>
-                              )}
-                            </div>
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+                            <input
+                              form={menuFormId}
+                              name="menu_name"
+                              defaultValue={m.name}
+                              required
+                              className={inputCls + ' sm:max-w-xs'}
+                            />
+                            <label className="flex items-center gap-2 text-body-sm text-muted cursor-pointer">
+                              <input
+                                form={menuFormId}
+                                type="checkbox"
+                                name="menu_is_active"
+                                defaultChecked={m.is_active}
+                                className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                              />
+                              Active
+                            </label>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <button className={btnSecondary} formAction={updateMenu.bind(null, orgId, venueId)}>
-                              Save
+                          <div className="flex flex-wrap items-center gap-2 shrink-0">
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${menuStatusColor}`}>
+                              {menuPublished ? 'Published' : 'Draft'}
+                            </span>
+                            <button type="submit" form={menuFormId} className={btnSecondary}>
+                              Save menu
                             </button>
-                            <button className={btnDanger} formAction={deleteMenu.bind(null, orgId, venueId)}>
-                              Delete
+                            {menuPublished ? (
+                              <button
+                                className={btnPrimary}
+                                form={publishMenuFormId}
+                                formAction={unpublishMenu.bind(null, orgId, venueId)}
+                              >
+                                Unpublish menu
+                              </button>
+                            ) : (
+                              <button
+                                className={btnPrimary}
+                                form={publishMenuFormId}
+                                formAction={publishMenu.bind(null, orgId, venueId)}
+                              >
+                                Publish menu
+                              </button>
+                            )}
+                            <button
+                              className={btnDanger}
+                              form={deleteMenuFormId}
+                              formAction={deleteMenu.bind(null, orgId, venueId)}
+                              formNoValidate
+                            >
+                              Delete menu
                             </button>
                           </div>
-                        </form>
+                        </div>
                       ) : (
-                        <div className="flex items-center justify-between">
+                        <div className="flex items-start justify-between gap-3">
                           <div>
                             <h3 className="text-body-md font-semibold text-foreground">{m.name}</h3>
                             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium mt-1 ${menuStatusColor}`}>
                               {menuPublished ? 'Published' : 'Draft'}
                             </span>
                           </div>
+                          {canEditMenuItems ? (
+                            <button type="submit" form={menuFormId} className={btnSecondary}>
+                              Save menu
+                            </button>
+                          ) : null}
                         </div>
                       )}
                     </div>
 
                     {/* ── Sections ── */}
                     <div className="p-5">
-                      {/* Add section */}
-                      {canManageVenue ? (
-                        <form className="flex gap-3 items-end mb-5">
-                          <input type="hidden" name="menu_id" value={m.id} />
-                          <div className="flex-1">
-                            <label className="text-caption font-medium text-muted block mb-1">New section</label>
-                            <input name="section_name" placeholder="e.g., Cocktails" required className={inputCls} />
-                          </div>
-                          <button className={btnSecondary + ' shrink-0'} formAction={createSection.bind(null, orgId, venueId)}>
-                            Add section
-                          </button>
-                        </form>
-                      ) : null}
+	                      {/* Add section */}
+	                      {canManageVenue ? (
+	                        <form className="flex gap-3 items-end mb-5">
+	                          <input type="hidden" name="menu_id" value={m.id} />
+	                          <div className="flex-1">
+	                            <label className="text-caption font-medium text-muted block mb-1">New menu section</label>
+	                            <input name="section_name" placeholder="e.g., Cocktails" required className={inputCls} />
+	                          </div>
+	                          <button className={btnSecondary + ' shrink-0'} formAction={createSection.bind(null, orgId, venueId)}>
+	                            Add menu section
+	                          </button>
+	                        </form>
+	                      ) : null}
 
                       {(m.menu_sections ?? []).length ? (
                         <div className="flex flex-col gap-5">
-                          {(m.menu_sections ?? []).map((s) => (
-                            <div key={s.id} className="rounded-md border border-border bg-surface p-4">
-                              {/* Section header */}
-                              {canManageVenue ? (
-                                <form className="flex items-center gap-3 mb-4">
-                                  <input type="hidden" name="section_id" value={s.id} />
-                                  <input name="section_name" defaultValue={s.name} required className={inputCls + ' flex-1'} />
-                                  <button className={btnSecondary} formAction={updateSection.bind(null, orgId, venueId)}>
-                                    Save
-                                  </button>
-                                  <button className={btnDanger} formAction={deleteSection.bind(null, orgId, venueId)}>
-                                    Delete
-                                  </button>
-                                </form>
-                              ) : (
-                                <h4 className="text-body-sm font-semibold text-foreground mb-4">{s.name}</h4>
+  	                          {(m.menu_sections ?? []).map((s) => {
+	                            const deleteSectionFormId = `section-delete-form-${s.id}`;
+
+	                            return (
+	                            <div key={s.id} className="rounded-md border border-border bg-surface p-4">
+	                              {canManageVenue ? (
+	                                <form id={deleteSectionFormId}>
+	                                  <input type="hidden" name="section_id" value={s.id} />
+	                                </form>
+	                              ) : null}
+
+	                              {/* Section header */}
+	                              {canManageVenue ? (
+	                                <div className="flex items-center gap-3 mb-4">
+	                                  <input form={menuFormId} type="hidden" name="section_ids" value={s.id} />
+	                                  <input
+	                                    form={menuFormId}
+	                                    name={`section_name_${s.id}`}
+	                                    defaultValue={s.name}
+	                                    required
+	                                    className={inputCls + ' flex-1'}
+	                                  />
+	                                  <button
+	                                    className={btnDanger}
+	                                    form={deleteSectionFormId}
+	                                    formAction={deleteSection.bind(null, orgId, venueId)}
+	                                    formNoValidate
+	                                  >
+	                                    Delete menu section
+	                                  </button>
+	                                </div>
+	                              ) : (
+	                                <h4 className="text-body-sm font-semibold text-foreground mb-4">{s.name}</h4>
                               )}
 
-                              {/* Add item */}
-                              {canEditMenuItems ? (
-                                <form className="rounded-md border border-dashed border-border-strong bg-background/50 p-4 mb-4">
-                                  <input type="hidden" name="section_id" value={s.id} />
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                                    <div>
-                                      <label className="text-caption font-medium text-muted block mb-1">Item name</label>
-                                      <input name="item_name" placeholder="Item name" required className={inputCls} />
-                                    </div>
-                                    <div>
-                                      <label className="text-caption font-medium text-muted block mb-1">Price</label>
-                                      <input name="item_price" type="number" step="0.01" placeholder="Optional" className={inputCls} />
-                                    </div>
-                                  </div>
-                                  <div className="mb-3">
-                                    <label className="text-caption font-medium text-muted block mb-1">Description</label>
-                                    <textarea name="item_description" placeholder="Optional description" rows={2} className={inputCls + ' h-auto py-2'} />
-                                  </div>
-                                  <div className="flex items-center justify-between">
-                                    <label className="flex items-center gap-2 text-body-sm text-muted cursor-pointer">
-                                      <input
-                                        type="checkbox"
-                                        name="item_is_happy_hour"
-                                        className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
-                                      />
-                                      Happy hour item
-                                    </label>
-                                    <button className={btnSecondary} formAction={createItem.bind(null, orgId, venueId)}>
-                                      Add item
-                                    </button>
-                                  </div>
-                                </form>
-                              ) : (
+	                              {canEditMenuItems ? null : (
                                 <p className="text-caption text-muted mb-4">Menu items are read-only for your role.</p>
                               )}
 
                               {/* Item list */}
                               {(s.menu_items ?? []).length ? (
                                 <div className="flex flex-col gap-3">
-                                  {(s.menu_items ?? []).map((it) => (
-                                    <div key={it.id} className="rounded-md border border-border bg-background p-4">
-                                      {canEditMenuItems ? (
-                                        <form className="flex flex-col gap-3">
-                                          <input type="hidden" name="item_id" value={it.id} />
-                                          <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
-                                            <input name="item_name" defaultValue={it.name} required className={inputCls} />
-                                            <input
-                                              name="item_price"
-                                              type="number"
-                                              step="0.01"
-                                              defaultValue={it.price ?? ''}
+	                                  {(s.menu_items ?? []).map((it) => {
+	                                    const deleteItemFormId = `item-delete-form-${it.id}`;
+
+	                                    return (
+	                                    <div key={it.id} className="rounded-md border border-border bg-background p-4">
+	                                      {canEditMenuItems ? (
+	                                        <form id={deleteItemFormId}>
+	                                          <input type="hidden" name="item_id" value={it.id} />
+	                                        </form>
+	                                      ) : null}
+	                                      {canEditMenuItems ? (
+	                                        <div className="flex flex-col gap-3">
+	                                          <input form={menuFormId} type="hidden" name="item_ids" value={it.id} />
+	                                          <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
+	                                            <input
+	                                              form={menuFormId}
+	                                              name={`item_name_${it.id}`}
+	                                              defaultValue={it.name}
+	                                              required
+	                                              className={inputCls}
+	                                            />
+	                                            <input
+	                                              form={menuFormId}
+	                                              name={`item_price_${it.id}`}
+	                                              type="number"
+	                                              step="0.01"
+	                                              defaultValue={it.price ?? ''}
                                               placeholder="Price"
                                               className={inputCls}
-                                            />
-                                          </div>
-                                          <textarea
-                                            name="item_description"
-                                            defaultValue={it.description ?? ''}
-                                            placeholder="Description (optional)"
-                                            rows={2}
+	                                            />
+	                                          </div>
+	                                          <textarea
+	                                            form={menuFormId}
+	                                            name={`item_description_${it.id}`}
+	                                            defaultValue={it.description ?? ''}
+	                                            placeholder="Description (optional)"
+	                                            rows={2}
                                             className={inputCls + ' h-auto py-2'}
                                           />
                                           <div className="flex items-center justify-between">
                                             <label className="flex items-center gap-2 text-body-sm text-muted cursor-pointer">
-                                              <input
-                                                type="checkbox"
-                                                name="item_is_happy_hour"
-                                                defaultChecked={!!it.is_happy_hour}
-                                                className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
-                                              />
-                                              Happy hour item
-                                            </label>
-                                            <div className="flex items-center gap-2">
-                                              <button className={btnSecondary} formAction={updateItem.bind(null, orgId, venueId)}>
-                                                Save
-                                              </button>
-                                              <button className={btnDanger} formAction={deleteItem.bind(null, orgId, venueId)}>
-                                                Delete
-                                              </button>
-                                            </div>
-                                          </div>
-                                        </form>
-                                      ) : (
-                                        <div>
-                                          <div className="flex items-center justify-between">
+	                                              <input
+	                                                form={menuFormId}
+	                                                type="checkbox"
+	                                                name={`item_is_happy_hour_${it.id}`}
+	                                                defaultChecked={!!it.is_happy_hour}
+	                                                className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+	                                              />
+	                                              Happy hour item
+	                                            </label>
+	                                            <div className="flex items-center gap-2">
+	                                              <button
+	                                                className={btnDanger}
+	                                                form={deleteItemFormId}
+	                                                formAction={deleteItem.bind(null, orgId, venueId)}
+	                                                formNoValidate
+	                                              >
+	                                                Delete section item
+	                                              </button>
+	                                            </div>
+	                                          </div>
+	                                        </div>
+	                                      ) : (
+	                                        <div>
+	                                          <div className="flex items-center justify-between">
                                             <h5 className="text-body-sm font-semibold text-foreground">{it.name}</h5>
                                             {it.price != null ? (
                                               <span className="text-body-sm font-medium text-foreground">${Number(it.price).toFixed(2)}</span>
                                             ) : null}
                                           </div>
                                           <p className="text-caption text-muted mt-0.5">{it.description ?? 'No description'}</p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
+	                                        </div>
+	                                      )}
+	                                    </div>
+	                                    );
+	                                  })}
                                 </div>
-                              ) : (
-                                <p className="text-caption text-muted text-center py-2">No items yet.</p>
-                              )}
-                            </div>
-                          ))}
+	                              ) : (
+	                                <p className="text-caption text-muted text-center py-2">No items yet.</p>
+	                              )}
+                                {canEditMenuItems ? (
+                                  <MenuSectionItemAdder
+                                    sectionId={s.id}
+                                    createItemAction={createItem.bind(null, orgId, venueId)}
+                                    addButtonClassName={btnSecondary}
+                                    okButtonClassName={btnSecondary}
+                                    deleteButtonClassName={btnDanger}
+                                    inputClassName={inputCls}
+                                  />
+                                ) : null}
+	                            </div>
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-caption text-muted">No sections yet. Add one above.</p>

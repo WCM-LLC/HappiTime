@@ -1,7 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
-import { fetchVenueMenus, Menu } from "../api/menus";
+import { fetchVenueMenus, fetchWindowMenus, Menu } from "../api/menus";
 
-export function useVenueMenus(venueId: string | null | undefined) {
+export function useVenueMenus(
+  venueId: string | null | undefined,
+  windowId?: string | null
+) {
   const [data, setData] = useState<Menu[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -11,14 +14,16 @@ export function useVenueMenus(venueId: string | null | undefined) {
     setLoading(true);
     setError(null);
     try {
-      const menus = await fetchVenueMenus(venueId);
+      const menus = windowId
+        ? await fetchWindowMenus(windowId, venueId)
+        : await fetchVenueMenus(venueId);
       setData(menus);
     } catch (err) {
       setError(err as Error);
     } finally {
       setLoading(false);
     }
-  }, [venueId]);
+  }, [venueId, windowId]);
 
   useEffect(() => {
     void load();

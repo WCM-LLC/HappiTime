@@ -1,8 +1,11 @@
 import Link from 'next/link';
-import { fetchVenueWithWindows } from '@happitime/shared-api';
-import type { HappyHourWindow } from '@happitime/shared-types';
+import { fetchVenueEvents, fetchVenueWithWindows, fetchWindowMenus } from '@happitime/shared-api';
+import type { HappyHourWindow, Menu } from '@happitime/shared-types';
 import { createClient } from '@/utils/supabase/server';
+import ScheduledEventsPopout, { type ScheduledPreviewEvent } from './ScheduledEventsPopout';
 import styles from './preview.module.css';
+
+export const dynamic = 'force-dynamic';
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -34,7 +37,7 @@ function formatTimeRange(start: string, end: string): string {
 
 function formatDays(dow: number[]): string {
   if (!dow || dow.length === 0) return 'No days set';
-  return dow.map((d) => DOW[d] ?? `D${d}`).join(', ');
+  return dow.map((d) => DOW[d] ?? `D${d}`).join(' · ');
 }
 
 function timeAgo(iso: string | null | undefined): string | null {
@@ -55,9 +58,11 @@ function timeAgo(iso: string | null | undefined): string | null {
   return months === 1 ? '1 month ago' : `${months} months ago`;
 }
 
-function formatPrice(cents: number | null | undefined): string | null {
-  if (cents == null) return null;
-  return `$${(cents / 100).toFixed(2)}`;
+function formatPrice(amount: number | string | null | undefined): string | null {
+  if (amount == null) return null;
+  const value = Number(amount);
+  if (!Number.isFinite(value)) return null;
+  return `$${value.toFixed(2)}`;
 }
 
 function priceTierDollars(tier: number | null | undefined): string | null {
@@ -65,7 +70,36 @@ function priceTierDollars(tier: number | null | undefined): string | null {
   return '$'.repeat(tier);
 }
 
-type OfferRow = { id: string; name: string; description: string | null; price: number | null };
+function getDowValues(window: { dow?: unknown }) {
+  if (!Array.isArray(window.dow)) return [];
+  return window.dow.map((value: unknown) => Number(value)).filter((value) => Number.isFinite(value));
+}
+
+function formatAddress(venue: Record<string, any> | null | undefined): string | null {
+  if (!venue?.address) return null;
+  const address = String(venue.address);
+  if (venue.city && address.toLowerCase().includes(String(venue.city).toLowerCase())) {
+    return address;
+  }
+
+  return [address, venue.city, venue.state, venue.zip].filter(Boolean).join(', ');
+}
+
+type PreviewMenu = Pick<Menu, 'id' | 'name' | 'status' | 'is_active'> & {
+  sections: {
+    id: string;
+    name: string;
+    sort_order: number;
+    items: {
+      id: string;
+      name: string;
+      description: string | null;
+      price: number | string | null;
+      is_happy_hour?: boolean | null;
+      sort_order: number;
+    }[];
+  }[];
+};
 
 export default async function AppPreviewVenuePage({
   params,
@@ -103,22 +137,44 @@ export default async function AppPreviewVenuePage({
         .getPublicUrl(coverRow.storage_path).data?.publicUrl ?? null
     : null;
 
-  // Fetch happy hour offers for all windows
-  const windowIds = (windows ?? []).map((w) => w.id);
-  const { data: allOffers } = windowIds.length > 0
-    ? await supabase
-        .from('happy_hour_offers')
-        .select('id, name, description, price, window_id')
-        .in('window_id', windowIds)
-        .eq('status', 'published')
-        .order('sort_order', { ascending: true })
-    : { data: [] };
+  let scheduledEvents: ScheduledPreviewEvent[] = [];
+  try {
+    const events = await fetchVenueEvents(venueId, { supabase, limit: 12 });
+    scheduledEvents = events.map((event: any) => ({
+      id: event.id,
+      title: event.title,
+      description: event.description ?? null,
+      event_type: event.event_type ?? 'event',
+      starts_at: event.starts_at,
+      ends_at: event.ends_at ?? null,
+      is_recurring: event.is_recurring ?? false,
+      recurrence_rule: event.recurrence_rule ?? null,
+      price_info: event.price_info ?? null,
+      external_url: event.external_url ?? null,
+      ticket_url: event.ticket_url ?? null,
+    }));
+  } catch (error) {
+    console.error('[app-preview] scheduled events load failed', error);
+  }
 
-  const offersByWindow = (allOffers ?? []).reduce<Record<string, OfferRow[]>>((acc, o: any) => {
-    if (!acc[o.window_id]) acc[o.window_id] = [];
-    acc[o.window_id].push({ id: o.id, name: o.name, description: o.description, price: o.price });
-    return acc;
-  }, {});
+  // Fetch the menus attached to each happy hour window. This mirrors the
+  // public app and directory data path: window -> linked menus -> items.
+  const windowIds = (windows ?? []).map((w) => w.id);
+  const menuItemsByWindowEntries = await Promise.all(
+    windowIds.map(async (windowId) => {
+      const menus = await fetchWindowMenus(windowId, venueId, {
+        supabase,
+        status: null,
+        isActive: null,
+        happyHourOnly: false,
+        includeEmptyMenus: true,
+      });
+
+      return [windowId, menus] as const;
+    })
+  );
+
+  const menusByWindow = Object.fromEntries(menuItemsByWindowEntries) as Record<string, PreviewMenu[]>;
 
   const v = venue;
   const windowsForVenue: HappyHourWindow[] = windows ?? [];
@@ -129,6 +185,9 @@ export default async function AppPreviewVenuePage({
 
   const rating = (v as any)?.rating ?? null;
   const priceTier = (v as any)?.price_tier ?? null;
+  const reviewCount = (v as any)?.review_count ?? null;
+  const tags = Array.isArray((v as any)?.tags) ? ((v as any).tags as string[]) : [];
+  const addressDisplay = formatAddress(v as Record<string, any> | null);
 
   return (
     <main className={styles.preview}>
@@ -160,114 +219,163 @@ export default async function AppPreviewVenuePage({
 
             {windowsForVenue.length > 0 ? (
               <>
-                {/* Hero cover */}
-                {coverUrl ? (
-                  <div className={styles.heroContainer}>
-                    <img
-                      src={coverUrl}
-                      alt={`${primaryName} cover`}
-                      className={styles.heroCover}
-                    />
-                    <div className={styles.heroOverlay}>
-                      <h1 className={styles.heroTitle}>{primaryName}</h1>
-                      {venueSubtitle ? (
-                        <p className={styles.heroSubtitle}>{venueSubtitle}</p>
-                      ) : null}
-                    </div>
+                <div className={styles.heroWrap}>
+                  <div className={styles.heroCard}>
+                    {coverUrl ? (
+                      <img
+                        src={coverUrl}
+                        alt={`${primaryName} cover`}
+                        className={styles.heroCover}
+                      />
+                    ) : (
+                      <div className={styles.heroPlaceholder}>
+                        <div className={styles.heroInitial}>{primaryName.charAt(0).toUpperCase()}</div>
+                        <div className={styles.heroPlaceholderText}>Photos coming soon</div>
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className={styles.heroPlaceholder}>
-                    <h1 className={styles.title}>{primaryName}</h1>
-                    {venueSubtitle ? (
-                      <p className={styles.venueSubtitleBelow}>{venueSubtitle}</p>
-                    ) : null}
+                  <div className={styles.heroButtons}>
+                    <Link className={styles.backButton} href={`/orgs/${orgId}/venues/${venueId}`}>
+                      Back
+                    </Link>
+                    <span className={styles.goButton}>Let&apos;s Go!</span>
                   </div>
-                )}
+                </div>
 
-                {/* Venue meta row */}
-                {(rating != null || priceTier != null || v?.city) ? (
+                <section className={styles.infoSection}>
+                  <div className={styles.titleRow}>
+                    <h1 className={styles.title}>{primaryName}</h1>
+                    <span className={styles.heartButton}>♡</span>
+                  </div>
+                  {venueSubtitle ? (
+                    <p className={styles.subtitle}>{venueSubtitle}</p>
+                  ) : null}
                   <div className={styles.metaRow}>
                     {rating != null ? (
-                      <span className={styles.metaChip}>⭐ {Number(rating).toFixed(1)}</span>
+                      <span className={styles.ratingPill}>
+                        <span className={styles.ratingStar}>★</span>
+                        {Number(rating).toFixed(1)}
+                        {reviewCount != null ? (
+                          <span className={styles.ratingCount}>({Number(reviewCount).toFixed(0)})</span>
+                        ) : null}
+                      </span>
                     ) : null}
                     {priceTier != null ? (
-                      <span className={styles.metaChip}>{priceTierDollars(priceTier)}</span>
+                      <span className={styles.metaSubtext}>{priceTierDollars(priceTier)}</span>
                     ) : null}
                     {v?.city ? (
-                      <span className={styles.metaChip}>{v.city}{v.state ? `, ${v.state}` : ''}</span>
+                      <span className={styles.metaSubtext}>{v.city}{v.state ? `, ${v.state}` : ''}</span>
                     ) : null}
                   </div>
-                ) : null}
+                  {addressDisplay ? (
+                    <p className={styles.address}>{addressDisplay}</p>
+                  ) : null}
+                  {scheduledEvents.length > 0 ? (
+                    <ScheduledEventsPopout events={scheduledEvents} />
+                  ) : null}
+                  {tags.length > 0 ? (
+                    <div className={styles.tagsRow}>
+                      {tags.slice(0, 4).map((tag) => (
+                        <span key={tag} className={styles.tagPill}>{tag}</span>
+                      ))}
+                    </div>
+                  ) : null}
+                </section>
 
                 <div className={styles.list}>
                   {windowsForVenue.map((window) => {
-                    const windowVenue = v;
                     const label = window.label?.trim() ?? '';
                     const lastConfirmedRaw =
                       window.last_confirmed_at ??
-                      windowVenue?.last_confirmed_at ??
+                      v?.last_confirmed_at ??
                       window.updated_at ??
-                      windowVenue?.updated_at ??
+                      v?.updated_at ??
                       null;
                     const lastConfirmedText = timeAgo(lastConfirmedRaw);
                     const timeLabel = formatTimeRange(window.start_time, window.end_time);
-                    const timezoneLabel = window.timezone ? ` (${window.timezone})` : '';
-                    const offers = offersByWindow[window.id] ?? [];
+                    const menus = menusByWindow[window.id] ?? [];
+                    const isToday = getDowValues(window).includes(new Date().getDay());
 
                     return (
-                      <div key={window.id} className={styles.card}>
-                        <div className={styles.cardHeaderRow}>
+                      <section key={window.id} className={styles.windowBlock}>
+                        <div className={styles.windowHeader}>
                           <div>
-                            <div className={styles.venueName}>{primaryName}</div>
-                            {venueSubtitle ? (
-                              <div className={styles.venueSubtitle}>{venueSubtitle}</div>
-                            ) : null}
-                            {windowVenue?.address ? (
-                              <div className={styles.address}>{windowVenue.address}</div>
+                            <div className={styles.windowTitle}>{label || 'Happy Hour'}</div>
+                            {isToday ? (
+                              <div className={styles.todayText}>Active today</div>
                             ) : null}
                           </div>
-                          <div className={styles.cardHeaderMeta}>
-                            {label ? (
-                              <div className={styles.labelPill}>
-                                <span className={styles.labelText}>{label}</span>
-                              </div>
-                            ) : null}
+                          <span className={styles.windowBadge}>HH</span>
+                        </div>
+
+                        <div className={styles.detailRow}>
+                          <div className={styles.detailCard}>
+                            <div className={styles.detailLabel}>When</div>
+                            <div className={styles.detailValue}>{timeLabel}</div>
+                          </div>
+                          <div className={styles.detailCard}>
+                            <div className={styles.detailLabel}>Days</div>
+                            <div className={styles.detailValue}>{formatDays(window.dow ?? [])}</div>
                           </div>
                         </div>
 
-                        <div className={styles.row}>
-                          <span className={styles.rowLabel}>When</span>
-                          <span className={styles.rowValue}>
-                            {timeLabel}
-                            {timezoneLabel}
-                          </span>
-                        </div>
-
-                        <div className={styles.row}>
-                          <span className={styles.rowLabel}>Days</span>
-                          <span className={styles.rowValue}>{formatDays(window.dow ?? [])}</span>
-                        </div>
-
-                        {/* Offers / menu items */}
-                        {offers.length > 0 ? (
-                          <div className={styles.offersSection}>
-                            <div className={styles.offersSectionLabel}>Specials</div>
-                            {offers.map((offer) => (
-                              <div key={offer.id} className={styles.offerRow}>
-                                <div className={styles.offerAccentBar} />
-                                <div className={styles.offerContent}>
-                                  <span className={styles.offerName}>{offer.name}</span>
-                                  {offer.description ? (
-                                    <span className={styles.offerDesc}>{offer.description}</span>
+                        <div className={styles.menuSection}>
+                          <div className={styles.sectionTitle}>Menu Preview</div>
+                          {menus.length > 0 ? (
+                            <div className={styles.menuList}>
+                              {menus.map((menu) => (
+                                <div key={menu.id} className={styles.menuBlock}>
+                                  {menus.length > 1 || menu.sections.length === 0 ? (
+                                    <div className={styles.menuName}>{menu.name}</div>
                                   ) : null}
+                                  {menu.sections.length > 0 ? (
+                                    menu.sections.map((section) => (
+                                      <div key={section.id} className={styles.menuSectionBlock}>
+                                        {menu.sections.length > 1 || section.items.length === 0 ? (
+                                          <div className={styles.menuSectionName}>{section.name}</div>
+                                        ) : null}
+                                        {section.items.length > 0 ? (
+                                          section.items.map((item, itemIndex) => (
+                                            <div key={item.id} className={styles.menuRow}>
+                                              <div
+                                                className={
+                                                  itemIndex === 0
+                                                    ? `${styles.menuDot} ${styles.menuDotActive}`
+                                                    : `${styles.menuDot} ${styles.menuDotInactive}`
+                                                }
+                                              />
+                                              <div className={styles.menuTextWrap}>
+                                                <div className={styles.menuItemLine}>
+                                                  <span className={styles.menuItemText}>{item.name}</span>
+                                                  {item.price != null ? (
+                                                    <span className={styles.menuItemPrice}>
+                                                      {formatPrice(item.price)}
+                                                    </span>
+                                                  ) : null}
+                                                </div>
+                                                {item.description ? (
+                                                  <div className={styles.menuItemDescription}>
+                                                    {item.description}
+                                                  </div>
+                                                ) : null}
+                                              </div>
+                                            </div>
+                                          ))
+                                        ) : (
+                                          <div className={styles.menuEmpty}>No items in this section yet.</div>
+                                        )}
+                                      </div>
+                                    ))
+                                  ) : (
+                                    <div className={styles.menuEmpty}>No sections or items added yet.</div>
+                                  )}
                                 </div>
-                                {offer.price != null ? (
-                                  <span className={styles.offerPrice}>{formatPrice(offer.price)}</span>
-                                ) : null}
-                              </div>
-                            ))}
-                          </div>
-                        ) : null}
+                              ))}
+                            </div>
+                          ) : (
+                            <div className={styles.menuEmpty}>Menu coming soon.</div>
+                          )}
+                        </div>
 
                         <div className={styles.footerRow}>
                           {lastConfirmedText ? (
@@ -278,7 +386,7 @@ export default async function AppPreviewVenuePage({
                             </span>
                           )}
                         </div>
-                      </div>
+                      </section>
                     );
                   })}
                 </div>

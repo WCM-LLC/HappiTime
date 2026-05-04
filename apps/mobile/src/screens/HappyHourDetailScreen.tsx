@@ -87,7 +87,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
     data: menus,
     loading: menusLoading,
     error: menusError
-  } = useVenueMenus(venueId);
+  } = useVenueMenus(venueId, windowId);
 
   const heroWidth = Math.max(1, width - spacing.lg * 2);
 
@@ -420,43 +420,55 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
             <View style={styles.menuList}>
               {menus.map((menu) => (
                 <View key={menu.id} style={styles.menuBlock}>
-                  {menus.length > 1 && (
+                  {(menus.length > 1 || menu.sections.length === 0) && (
                     <Text style={styles.menuName}>{menu.name}</Text>
                   )}
-                  {menu.sections.map((section) => (
-                    <View key={section.id} style={styles.menuSectionBlock}>
-                      {menu.sections.length > 1 && (
-                        <Text style={styles.menuSectionName}>
-                          {section.name}
-                        </Text>
-                      )}
-                      {section.items.map((item, index) => (
-                        <View key={item.id} style={styles.menuRow}>
-                          <View
-                            style={[
-                              styles.menuDot,
-                              index === 0
-                                ? styles.menuDotActive
-                                : styles.menuDotInactive
-                            ]}
-                          />
-                          <View style={styles.menuTextWrap}>
-                            <Text style={styles.menuItemText}>
-                              {item.name}
-                              {item.price != null
-                                ? ` - $${Number(item.price).toFixed(2)}`
-                                : ""}
-                            </Text>
-                            {item.description && (
-                              <Text style={styles.menuItemDescription}>
-                                {item.description}
-                              </Text>
-                            )}
-                          </View>
-                        </View>
-                      ))}
-                    </View>
-                  ))}
+                  {menu.sections.length > 0 ? (
+                    menu.sections.map((section) => (
+                      <View key={section.id} style={styles.menuSectionBlock}>
+                        {(menu.sections.length > 1 || section.items.length === 0) && (
+                          <Text style={styles.menuSectionName}>
+                            {section.name}
+                          </Text>
+                        )}
+                        {section.items.length > 0 ? (
+                          section.items.map((item, index) => (
+                            <View key={item.id} style={styles.menuRow}>
+                              <View
+                                style={[
+                                  styles.menuDot,
+                                  index === 0
+                                    ? styles.menuDotActive
+                                    : styles.menuDotInactive
+                                ]}
+                              />
+                              <View style={styles.menuTextWrap}>
+                                <Text style={styles.menuItemText}>
+                                  {item.name}
+                                  {item.price != null
+                                    ? ` - $${Number(item.price).toFixed(2)}`
+                                    : ""}
+                                </Text>
+                                {item.description && (
+                                  <Text style={styles.menuItemDescription}>
+                                    {item.description}
+                                  </Text>
+                                )}
+                              </View>
+                            </View>
+                          ))
+                        ) : (
+                          <Text style={styles.menuEmpty}>
+                            No items in this section yet.
+                          </Text>
+                        )}
+                      </View>
+                    ))
+                  ) : (
+                    <Text style={styles.menuEmpty}>
+                      No sections or items added yet.
+                    </Text>
+                  )}
                 </View>
               ))}
             </View>

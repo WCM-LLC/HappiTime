@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
+import MenuSectionItemAdder from '@/components/MenuSectionItemAdder';
 import VenueMediaUploader from '@/components/VenueMediaUploader';
 import { createClient } from '@/utils/supabase/server';
 import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
@@ -11,13 +12,11 @@ import {
   publishHappyHour,
   unpublishHappyHour,
   createMenu,
-  updateMenu,
+  saveMenu,
   deleteMenu,
   createSection,
-  updateSection,
   deleteSection,
   createItem,
-  updateItem,
   deleteItem,
   publishMenu,
   unpublishMenu,
@@ -354,166 +353,173 @@ export default async function VenuePage({
 
           <form className="row" style={{ marginBottom: 12 }}>
             <input name="menu_name" placeholder="New menu name (e.g., Happy Hour Drinks)" required />
-            <button formAction={createMenu.bind(null, orgId, venueId)}>Create menu</button>
+            <button formAction={createMenu.bind(null, orgId, venueId)}>Add menu</button>
           </form>
 
           {(menus as Menu[] | null)?.length ? (
             <div className="col" style={{ gap: 12 }}>
-              {(menus as Menu[]).map((m) => (
-                <div key={m.id} className="card" style={{ background: 'var(--surface)' }}>
-                  {/* Menu edit/delete */}
-                  <form className="row" style={{ justifyContent: 'space-between', gap: 10 }}>
-                    <input type="hidden" name="menu_id" value={m.id} />
+              {(menus as Menu[]).map((m) => {
+                const menuPublished = (m.status ?? 'draft') === HH_STATUS_PUBLISHED;
+                const menuFormId = `legacy-menu-save-${m.id}`;
+                const publishMenuFormId = `legacy-menu-publish-${m.id}`;
+                const deleteMenuFormId = `legacy-menu-delete-${m.id}`;
 
-                    <div className="col" style={{ gap: 6, flex: 1 }}>
-                      <input name="menu_name" defaultValue={m.name} required />
-                      <label className="row" style={{ gap: 8, alignItems: 'center' }}>
-                        <input type="checkbox" name="menu_is_active" defaultChecked={m.is_active} />
-                        <span className="muted">Active</span>
-                      </label>
-                    </div>
-
-                    <div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
-                      <button className="secondary" formAction={updateMenu.bind(null, orgId, venueId)}>
-                        Save
-                      </button>
-                      <button className="secondary" formAction={deleteMenu.bind(null, orgId, venueId)}>
-                        Delete
-                      </button>
-                    </div>
-<div className="row" style={{ gap: 8, alignItems: 'center' }}>
-  <span className="muted">Status:</span>
-  <strong>{m.status ?? 'draft'}</strong>
-</div>
-
-<div className="row" style={{ gap: 8, alignItems: 'flex-start' }}>
-  <button className="secondary" formAction={updateMenu.bind(null, orgId, venueId)}>
-    Save
-  </button>
-
-  {(m.status ?? 'draft') === 'published' ? (
-    <button className="secondary" formAction={unpublishMenu.bind(null, orgId, venueId)}>
-      Unpublish
-    </button>
-  ) : (
-    <button className="secondary" formAction={publishMenu.bind(null, orgId, venueId)}>
-      Publish
-    </button>
-  )}
-
-  <button className="secondary" formAction={deleteMenu.bind(null, orgId, venueId)}>
-    Delete
-  </button>
-</div>
-
-
-                  </form>
-
-                  <div className="col" style={{ gap: 10, marginTop: 10 }}>
-                    {/* Create section */}
-                    <form className="row">
+                return (
+                  <div key={m.id} className="card" style={{ background: 'var(--surface)' }}>
+                    <form id={menuFormId} action={saveMenu.bind(null, orgId, venueId)} />
+                    <form id={publishMenuFormId}>
                       <input type="hidden" name="menu_id" value={m.id} />
-                      <input name="section_name" placeholder="New section (e.g., Cocktails)" required />
-                      <button className="secondary" formAction={createSection.bind(null, orgId, venueId)}>
-                        Add section
-                      </button>
+                    </form>
+                    <form id={deleteMenuFormId}>
+                      <input type="hidden" name="menu_id" value={m.id} />
                     </form>
 
-                    {(m.menu_sections ?? []).length ? (
-                      (m.menu_sections ?? []).map((s) => (
-                        <div key={s.id} className="card">
-                          {/* Section edit/delete */}
-                          <form className="row" style={{ justifyContent: 'space-between', gap: 10 }}>
-                            <input type="hidden" name="section_id" value={s.id} />
-                            <input name="section_name" defaultValue={s.name} required style={{ flex: 1 }} />
-                            <div className="row" style={{ gap: 8 }}>
-                              <button className="secondary" formAction={updateSection.bind(null, orgId, venueId)}>
-                                Save
-                              </button>
-                              <button className="secondary" formAction={deleteSection.bind(null, orgId, venueId)}>
-                                Delete
-                              </button>
-                            </div>
-                          </form>
-
-                          <div className="col" style={{ gap: 8, marginTop: 10 }}>
-                            {/* Create item */}
-                            <form className="col" style={{ gap: 8 }}>
-                              <input type="hidden" name="section_id" value={s.id} />
-                              <div className="row">
-                                <input name="item_name" placeholder="Item name" required />
-                                <input name="item_price" type="number" step="0.01" placeholder="Price (optional)" />
-                              </div>
-                              <textarea name="item_description" placeholder="Description (optional)" rows={2} />
-                              <label className="row" style={{ gap: 8, alignItems: 'center' }}>
-                                <input type="checkbox" name="item_is_happy_hour" />
-                                <span className="muted">Happy hour item</span>
-                              </label>
-                              <button className="secondary" formAction={createItem.bind(null, orgId, venueId)}>
-                                Add item
-                              </button>
-                            </form>
-
-                            {(s.menu_items ?? []).length ? (
-                              <div className="col" style={{ gap: 10 }}>
-                                {(s.menu_items ?? []).map((it) => (
-                                  <div key={it.id} className="card" >
-                                    {/* Item edit/delete */}
-                                    <form className="col" style={{ gap: 8 }}>
-                                      <input type="hidden" name="item_id" value={it.id} />
-                                      <div className="row" style={{ gap: 10 }}>
-                                        <input name="item_name" defaultValue={it.name} required style={{ flex: 1 }} />
-                                        <input
-                                          name="item_price"
-                                          type="number"
-                                          step="0.01"
-                                          defaultValue={it.price ?? ''}
-                                          placeholder="Price"
-                                          style={{ width: 160 }}
-                                        />
-                                      </div>
-                                      <textarea
-                                        name="item_description"
-                                        defaultValue={it.description ?? ''}
-                                        placeholder="Description (optional)"
-                                        rows={2}
-                                      />
-                                      <label className="row" style={{ gap: 8, alignItems: 'center' }}>
-                                        <input
-                                          type="checkbox"
-                                          name="item_is_happy_hour"
-                                          defaultChecked={!!it.is_happy_hour}
-                                        />
-                                        <span className="muted">Happy hour item</span>
-                                      </label>
-
-                                      <div className="row" style={{ gap: 8 }}>
-                                        <button className="secondary" formAction={updateItem.bind(null, orgId, venueId)}>
-                                          Save
-                                        </button>
-                                        <button
-                                          className="secondary"
-                                          formAction={deleteItem.bind(null, orgId, venueId)}
-                                        >
-                                          Delete
-                                        </button>
-                                      </div>
-                                    </form>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="muted">No items yet.</span>
-                            )}
-                          </div>
+                    <input form={menuFormId} type="hidden" name="menu_id" value={m.id} />
+                    <div className="row" style={{ justifyContent: 'space-between', gap: 10, alignItems: 'flex-start' }}>
+                      <div className="col" style={{ gap: 6, flex: 1 }}>
+                        <input form={menuFormId} name="menu_name" defaultValue={m.name} required />
+                        <label className="row" style={{ gap: 8, alignItems: 'center' }}>
+                          <input form={menuFormId} type="checkbox" name="menu_is_active" defaultChecked={m.is_active} />
+                          <span className="muted">Active</span>
+                        </label>
+                        <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+                          <span className="muted">Status:</span>
+                          <strong>{m.status ?? 'draft'}</strong>
                         </div>
-                      ))
-                    ) : (
-                      <span className="muted">No sections yet.</span>
-                    )}
+                      </div>
+
+                      <div className="row" style={{ gap: 8, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                        <button className="secondary" type="submit" form={menuFormId}>
+                          Save menu
+                        </button>
+                        {menuPublished ? (
+                          <button className="secondary" form={publishMenuFormId} formAction={unpublishMenu.bind(null, orgId, venueId)}>
+                            Unpublish menu
+                          </button>
+                        ) : (
+                          <button className="secondary" form={publishMenuFormId} formAction={publishMenu.bind(null, orgId, venueId)}>
+                            Publish menu
+                          </button>
+                        )}
+                        <button className="secondary" form={deleteMenuFormId} formAction={deleteMenu.bind(null, orgId, venueId)}>
+                          Delete menu
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="col" style={{ gap: 10, marginTop: 10 }}>
+                      <form className="row">
+                        <input type="hidden" name="menu_id" value={m.id} />
+                        <input name="section_name" placeholder="New menu section (e.g., Cocktails)" required />
+                        <button className="secondary" formAction={createSection.bind(null, orgId, venueId)}>
+                          Add menu section
+                        </button>
+                      </form>
+
+                      {(m.menu_sections ?? []).length ? (
+                        (m.menu_sections ?? []).map((s) => {
+                          const deleteSectionFormId = `legacy-section-delete-${s.id}`;
+
+                          return (
+                            <div key={s.id} className="card">
+                              <form id={deleteSectionFormId}>
+                                <input type="hidden" name="section_id" value={s.id} />
+                              </form>
+
+                              <div className="row" style={{ justifyContent: 'space-between', gap: 10 }}>
+                                <input form={menuFormId} type="hidden" name="section_ids" value={s.id} />
+                                <input
+                                  form={menuFormId}
+                                  name={`section_name_${s.id}`}
+                                  defaultValue={s.name}
+                                  required
+                                  style={{ flex: 1 }}
+                                />
+                                <button className="secondary" form={deleteSectionFormId} formAction={deleteSection.bind(null, orgId, venueId)}>
+                                  Delete menu section
+                                </button>
+	                              </div>
+
+	                              <div className="col" style={{ gap: 8, marginTop: 10 }}>
+	                                {(s.menu_items ?? []).length ? (
+	                                  <div className="col" style={{ gap: 10 }}>
+                                    {(s.menu_items ?? []).map((it) => {
+                                      const deleteItemFormId = `legacy-item-delete-${it.id}`;
+
+                                      return (
+                                        <div key={it.id} className="card">
+                                          <form id={deleteItemFormId}>
+                                            <input type="hidden" name="item_id" value={it.id} />
+                                          </form>
+
+                                          <div className="col" style={{ gap: 8 }}>
+                                            <input form={menuFormId} type="hidden" name="item_ids" value={it.id} />
+                                            <div className="row" style={{ gap: 10 }}>
+                                              <input
+                                                form={menuFormId}
+                                                name={`item_name_${it.id}`}
+                                                defaultValue={it.name}
+                                                required
+                                                style={{ flex: 1 }}
+                                              />
+                                              <input
+                                                form={menuFormId}
+                                                name={`item_price_${it.id}`}
+                                                type="number"
+                                                step="0.01"
+                                                defaultValue={it.price ?? ''}
+                                                placeholder="Price"
+                                                style={{ width: 160 }}
+                                              />
+                                            </div>
+                                            <textarea
+                                              form={menuFormId}
+                                              name={`item_description_${it.id}`}
+                                              defaultValue={it.description ?? ''}
+                                              placeholder="Description (optional)"
+                                              rows={2}
+                                            />
+                                            <div className="row" style={{ justifyContent: 'space-between', gap: 8 }}>
+                                              <label className="row" style={{ gap: 8, alignItems: 'center' }}>
+                                                <input
+                                                  form={menuFormId}
+                                                  type="checkbox"
+                                                  name={`item_is_happy_hour_${it.id}`}
+                                                  defaultChecked={!!it.is_happy_hour}
+                                                />
+                                                <span className="muted">Happy hour item</span>
+                                              </label>
+                                              <button className="secondary" form={deleteItemFormId} formAction={deleteItem.bind(null, orgId, venueId)}>
+                                                Delete section item
+                                              </button>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+	                                ) : (
+	                                  <span className="muted">No items yet.</span>
+	                                )}
+                                  <MenuSectionItemAdder
+                                    sectionId={s.id}
+                                    createItemAction={createItem.bind(null, orgId, venueId)}
+                                    addButtonClassName="secondary"
+                                    okButtonClassName="secondary"
+                                    deleteButtonClassName="secondary"
+                                    variant="legacy"
+                                  />
+	                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <span className="muted">No sections yet.</span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <p className="muted">No menus yet.</p>

@@ -174,9 +174,9 @@ async function fetchMenuItemsByWindowIds(
   const { data, error } = await supabase
     .from("happy_hour_window_menus")
     .select(
-      `window_id, menus:menu_id(menu_sections(menu_items(id, name, description, price)))`
+      `happy_hour_window_id, menus:menu_id(menu_sections(menu_items(id, name, description, price)))`
     )
-    .in("window_id", windowIds);
+    .in("happy_hour_window_id", windowIds);
 
   if (error) {
     console.error("[directory] menu items query failed:", error.message);
@@ -186,7 +186,7 @@ async function fetchMenuItemsByWindowIds(
   const result: Record<string, MenuItem[]> = {};
 
   for (const row of data ?? []) {
-    const wId = (row as any).window_id as string;
+    const wId = (row as any).happy_hour_window_id as string;
     if (!result[wId]) result[wId] = [];
 
     const menu = (row as any).menus;

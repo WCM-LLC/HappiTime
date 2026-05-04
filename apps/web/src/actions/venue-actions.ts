@@ -2,11 +2,14 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createServiceClient } from '@/utils/supabase/server';
+import { isAdminEmail } from '@/utils/admin-emails';
 import { toStr, toNullableStr, toNumberOrNull, redirectWithError, requireField } from '@/utils/form';
 
 const HH_STATUS_DRAFT = 'draft';
 const HH_STATUS_PUBLISHED = 'published';
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+const VENUE_MANAGER_ROLES = new Set(['owner', 'manager', 'admin', 'editor']);
 
 /** Parses the 'dow' field from FormData. Supports both multi-checkbox and single-select inputs. */
 function parseDowArray(formData: FormData): number[] {
@@ -29,7 +32,7 @@ async function requireAuth() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect('/login');
-  return { supabase, userId: auth.user.id };
+  return { supabase, user: auth.user, userId: auth.user.id };
 }
 
 /**
@@ -60,9 +63,146 @@ async function requireVenueAccess(orgId: string, venueId: string) {
   return { supabase, userId };
 }
 
+async function requireVenueManagementAccess(orgId: string, venueId: string) {
+  const { supabase, user } = await requireAuth();
+  const isPlatformAdmin = await isAdminEmail(user.email);
+  let writeSupabase: SupabaseServerClient = supabase;
+
+  try {
+    writeSupabase = createServiceClient() as SupabaseServerClient;
+  } catch {
+    // Fall back to the request-scoped client. RLS will still enforce access.
+  }
+
+  const { data: membership } = await writeSupabase
+    .from('org_members')
+    .select('role')
+    .eq('org_id', orgId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const role = String(membership?.role ?? '');
+  if (!isPlatformAdmin && !VENUE_MANAGER_ROLES.has(role)) {
+    redirectWithError(orgId, venueId, 'not_authorized');
+  }
+
+  const { data: venue } = await writeSupabase
+    .from('venues')
+    .select('id')
+    .eq('id', venueId)
+    .eq('org_id', orgId)
+    .maybeSingle();
+
+  if (!venue) redirectWithError(orgId, venueId, 'not_authorized');
+
+  return { supabase, writeSupabase };
+}
+
 /** Invalidates the Next.js cache for the venue management page. */
 function revalidateVenue(orgId: string, venueId: string) {
   revalidatePath(`/orgs/${orgId}/venues/${venueId}`);
+  revalidatePath(`/app-preview/orgs/${orgId}/venues/${venueId}`);
+}
+
+function assertMutationRows(
+  operation: string,
+  rows: { id: string }[] | null | undefined,
+  error: unknown,
+  orgId: string,
+  venueId: string,
+  failureCode: string,
+) {
+  if (error) {
+    console.error(`[${operation}] write failed`, error);
+    redirectWithError(orgId, venueId, failureCode);
+  }
+
+  if (!rows || rows.length === 0) {
+    console.warn(`[${operation}] zero rows affected`, { orgId, venueId });
+    redirectWithError(orgId, venueId, 'not_authorized');
+  }
+}
+
+async function setVenueStatus(
+  supabase: SupabaseServerClient,
+  orgId: string,
+  venueId: string,
+  status: typeof HH_STATUS_DRAFT | typeof HH_STATUS_PUBLISHED,
+  failureCode: string,
+) {
+  const { data: updated, error } = await supabase
+    .from('venues')
+    .update({ status })
+    .eq('id', venueId)
+    .eq('org_id', orgId)
+    .select('id');
+
+  assertMutationRows('setVenueStatus', updated, error, orgId, venueId, failureCode);
+}
+
+async function ensureVenuePublished(
+  supabase: SupabaseServerClient,
+  orgId: string,
+  venueId: string,
+) {
+  await setVenueStatus(supabase, orgId, venueId, HH_STATUS_PUBLISHED, 'venue_publish_failed');
+}
+
+async function publishMenusByIds(
+  supabase: SupabaseServerClient,
+  orgId: string,
+  venueId: string,
+  menuIds: string[],
+  failureCode: string,
+) {
+  const uniqueMenuIds = Array.from(new Set(menuIds)).filter(Boolean);
+  if (!uniqueMenuIds.length) return;
+
+  const { data: updated, error } = await supabase
+    .from('menus')
+    .update({ status: HH_STATUS_PUBLISHED, is_active: true })
+    .eq('venue_id', venueId)
+    .in('id', uniqueMenuIds)
+    .select('id');
+
+  assertMutationRows('publishMenusByIds', updated, error, orgId, venueId, failureCode);
+
+  const updatedCount = updated?.length ?? 0;
+  if (updatedCount !== uniqueMenuIds.length) {
+    console.warn('[publishMenusByIds] fewer rows updated than requested', {
+      orgId,
+      venueId,
+      expected: uniqueMenuIds.length,
+      actual: updatedCount,
+    });
+    redirectWithError(orgId, venueId, failureCode);
+  }
+}
+
+async function publishMenusForWindow(
+  supabase: SupabaseServerClient,
+  orgId: string,
+  venueId: string,
+  windowId: string,
+  failureCode: string,
+) {
+  const { data: links, error } = await supabase
+    .from('happy_hour_window_menus')
+    .select('menu_id')
+    .eq('happy_hour_window_id', windowId);
+
+  if (error) {
+    console.error('[publishMenusForWindow] link lookup failed', error);
+    redirectWithError(orgId, venueId, failureCode);
+  }
+
+  await publishMenusByIds(
+    supabase,
+    orgId,
+    venueId,
+    (links ?? []).map((link: any) => link.menu_id).filter(Boolean),
+    failureCode,
+  );
 }
 
 /**
@@ -139,6 +279,17 @@ export async function updateVenue(orgId: string, venueId: string, formData: Form
   revalidateVenue(orgId, venueId);
 }
 
+export async function publishVenue(orgId: string, venueId: string, _formData?: FormData) {
+  const { supabase } = await requireVenueAccess(orgId, venueId);
+  await setVenueStatus(supabase, orgId, venueId, HH_STATUS_PUBLISHED, 'venue_publish_failed');
+  revalidateVenue(orgId, venueId);
+}
+
+export async function unpublishVenue(orgId: string, venueId: string, _formData?: FormData) {
+  const { supabase } = await requireVenueAccess(orgId, venueId);
+  await setVenueStatus(supabase, orgId, venueId, HH_STATUS_DRAFT, 'venue_unpublish_failed');
+  revalidateVenue(orgId, venueId);
+}
 
 export async function updateVenueRatingSettings(orgId: string, venueId: string, formData: FormData) {
   const { supabase } = await requireAuth();
@@ -148,19 +299,24 @@ export async function updateVenueRatingSettings(orgId: string, venueId: string, 
     .map((v) => String(v).trim())
     .filter(Boolean);
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("venues")
     .update({
       post_visit_rating_enabled: enabled,
       post_visit_rating_aspects: aspects,
     } as any)
     .eq("id", venueId)
-    .eq("org_id", orgId);
+    .eq("org_id", orgId)
+    .select("id");
 
-  if (error) {
-    console.error(error);
-    redirectWithError(orgId, venueId, "venue_update_failed");
-  }
+  assertMutationRows(
+    'updateVenueRatingSettings',
+    updated,
+    error,
+    orgId,
+    venueId,
+    "venue_update_failed",
+  );
 
   revalidateVenue(orgId, venueId);
 }
@@ -189,7 +345,7 @@ export async function addHappyHour(orgId: string, venueId: string, formData: For
   if (!dow.length) redirectWithError(orgId, venueId, 'missing_dow');
   if (!start_time || !end_time) redirectWithError(orgId, venueId, 'missing_time');
 
-  const { error } = await supabase.from('happy_hour_windows').insert({
+  const { data: inserted, error } = await supabase.from('happy_hour_windows').insert({
     venue_id: venueId,
     dow,
     start_time,
@@ -197,12 +353,9 @@ export async function addHappyHour(orgId: string, venueId: string, formData: For
     timezone,
     status: HH_STATUS_DRAFT,
     label,
-  });
+  }).select('id');
 
-  if (error) {
-    console.error(error);
-    redirectWithError(orgId, venueId, 'happyhour_create_failed');
-  }
+  assertMutationRows('addHappyHour', inserted, error, orgId, venueId, 'happyhour_create_failed');
 
   revalidateVenue(orgId, venueId);
 }
@@ -220,16 +373,14 @@ export async function updateHappyHour(orgId: string, venueId: string, formData: 
   if (!dow.length) redirectWithError(orgId, venueId, 'missing_dow');
   if (!start_time || !end_time) redirectWithError(orgId, venueId, 'missing_time');
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('happy_hour_windows')
     .update({ dow, start_time, end_time, label })
     .eq('id', hh_id)
-    .eq('venue_id', venueId);
+    .eq('venue_id', venueId)
+    .select('id');
 
-  if (error) {
-    console.error(error);
-    redirectWithError(orgId, venueId, 'happyhour_update_failed');
-  }
+  assertMutationRows('updateHappyHour', updated, error, orgId, venueId, 'happyhour_update_failed');
 
   revalidateVenue(orgId, venueId);
 }
@@ -239,54 +390,50 @@ export async function deleteHappyHour(orgId: string, venueId: string, formData: 
   const { supabase } = await requireAuth();
   const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
 
-  const { error } = await supabase
+  const { data: deleted, error } = await supabase
     .from('happy_hour_windows')
     .delete()
     .eq('id', hh_id)
-    .eq('venue_id', venueId);
+    .eq('venue_id', venueId)
+    .select('id');
 
-  if (error) {
-    console.error(error);
-    redirectWithError(orgId, venueId, 'happyhour_delete_failed');
-  }
+  assertMutationRows('deleteHappyHour', deleted, error, orgId, venueId, 'happyhour_delete_failed');
 
   revalidateVenue(orgId, venueId);
 }
 
 /** Sets a happy hour window status to 'published', making it visible in the directory and mobile app. */
 export async function publishHappyHour(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { supabase } = await requireVenueAccess(orgId, venueId);
   const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('happy_hour_windows')
     .update({ status: HH_STATUS_PUBLISHED })
     .eq('id', hh_id)
-    .eq('venue_id', venueId);
+    .eq('venue_id', venueId)
+    .select('id');
 
-  if (error) {
-    console.error(error);
-    redirectWithError(orgId, venueId, 'happyhour_publish_failed');
-  }
+  assertMutationRows('publishHappyHour', updated, error, orgId, venueId, 'happyhour_publish_failed');
+  await ensureVenuePublished(supabase, orgId, venueId);
+  await publishMenusForWindow(supabase, orgId, venueId, hh_id, 'happyhour_publish_failed');
 
   revalidateVenue(orgId, venueId);
 }
 
 /** Sets a happy hour window status back to 'draft', hiding it from public views. */
 export async function unpublishHappyHour(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { supabase } = await requireVenueAccess(orgId, venueId);
   const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('happy_hour_windows')
     .update({ status: HH_STATUS_DRAFT })
     .eq('id', hh_id)
-    .eq('venue_id', venueId);
+    .eq('venue_id', venueId)
+    .select('id');
 
-  if (error) {
-    console.error(error);
-    redirectWithError(orgId, venueId, 'happyhour_unpublish_failed');
-  }
+  assertMutationRows('unpublishHappyHour', updated, error, orgId, venueId, 'happyhour_unpublish_failed');
 
   revalidateVenue(orgId, venueId);
 }
@@ -296,15 +443,15 @@ export async function unpublishHappyHour(orgId: string, venueId: string, formDat
  * Validates that submitted menu IDs belong to the venue before linking.
  */
 export async function updateHappyHourMenus(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
 
   const menuIds = formData.getAll('menu_ids').map((value) => toStr(value)).filter(Boolean);
   const uniqueMenuIds = Array.from(new Set(menuIds));
 
-  const { data: window, error: windowErr } = await supabase
+  const { data: window, error: windowErr } = await writeSupabase
     .from('happy_hour_windows')
-    .select('id,venue_id')
+    .select('id,venue_id,status')
     .eq('id', hh_id)
     .eq('venue_id', venueId)
     .single();
@@ -314,38 +461,87 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
     redirectWithError(orgId, venueId, 'happyhour_not_found');
   }
 
-  const { error: deleteErr } = await supabase
+  const { data: menus, error: menusErr } = uniqueMenuIds.length
+    ? await writeSupabase
+        .from('menus')
+        .select('id')
+        .eq('venue_id', venueId)
+        .in('id', uniqueMenuIds)
+    : { data: [], error: null };
+
+  if (menusErr) {
+    console.error('[updateHappyHourMenus] menu validation failed', menusErr);
+    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
+  }
+
+  const validMenuIds = (menus ?? []).map((menu: any) => menu.id).filter(Boolean);
+  if (validMenuIds.length !== uniqueMenuIds.length) {
+    console.warn('[updateHappyHourMenus] invalid menu selection', {
+      orgId,
+      venueId,
+      hh_id,
+      expected: uniqueMenuIds.length,
+      actual: validMenuIds.length,
+    });
+    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
+  }
+
+  const { error: deleteErr } = await writeSupabase
     .from('happy_hour_window_menus')
     .delete()
     .eq('happy_hour_window_id', hh_id);
 
   if (deleteErr) {
-    console.error(deleteErr);
+    console.error('[updateHappyHourMenus] delete failed', deleteErr);
     redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
   }
 
-  if (uniqueMenuIds.length) {
-    const { data: menus, error: menusErr } = await supabase
-      .from('menus')
-      .select('id')
-      .eq('venue_id', venueId)
-      .in('id', uniqueMenuIds);
+  if (validMenuIds.length) {
+    const payload = validMenuIds.map((menu_id) => ({ happy_hour_window_id: hh_id, menu_id }));
+    const { error: insertErr } = await writeSupabase.from('happy_hour_window_menus').insert(payload);
 
-    if (menusErr) {
-      console.error(menusErr);
+    if (insertErr) {
+      console.error('[updateHappyHourMenus] insert failed', insertErr);
       redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
     }
+  }
 
-    const validMenuIds = (menus ?? []).map((menu: any) => menu.id).filter(Boolean);
+  const { data: savedLinks, error: verifyErr } = await writeSupabase
+    .from('happy_hour_window_menus')
+    .select('menu_id')
+    .eq('happy_hour_window_id', hh_id);
 
-    if (validMenuIds.length) {
-      const payload = validMenuIds.map((menu_id) => ({ happy_hour_window_id: hh_id, menu_id }));
-      const { error: insertErr } = await supabase.from('happy_hour_window_menus').insert(payload);
-      if (insertErr) {
-        console.error(insertErr);
-        redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
-      }
-    }
+  if (verifyErr) {
+    console.error('[updateHappyHourMenus] verify failed', verifyErr);
+    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
+  }
+
+  const savedMenuIds = new Set((savedLinks ?? []).map((link: any) => link.menu_id));
+  const expectedMenuIds = new Set(validMenuIds);
+  const linksMatch =
+    savedMenuIds.size === expectedMenuIds.size &&
+    validMenuIds.every((menuId) => savedMenuIds.has(menuId));
+
+  if (!linksMatch) {
+    console.warn('[updateHappyHourMenus] saved links did not match submitted menus', {
+      orgId,
+      venueId,
+      hh_id,
+      expected: validMenuIds,
+      saved: Array.from(savedMenuIds),
+    });
+    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
+  }
+
+  if ((window.status ?? '').toLowerCase() === HH_STATUS_PUBLISHED) {
+    await ensureVenuePublished(writeSupabase, orgId, venueId);
+    await publishMenusByIds(
+      writeSupabase,
+      orgId,
+      venueId,
+      validMenuIds,
+      'happyhour_menus_update_failed',
+    );
   }
 
   revalidateVenue(orgId, venueId);
@@ -356,39 +552,111 @@ export async function createMenu(orgId: string, venueId: string, formData: FormD
   const { supabase } = await requireAuth();
   const name = requireField(formData, 'menu_name', orgId, venueId, 'missing_menu_name');
 
-  const { error } = await supabase.from('menus').insert({
+  const { data: inserted, error } = await supabase.from('menus').insert({
     venue_id: venueId,
     name,
     status: HH_STATUS_DRAFT,
     is_active: true,
-  });
+  }).select('id');
 
-  if (error) {
-    console.error(error);
-    redirectWithError(orgId, venueId, 'menu_create_failed');
-  }
+  assertMutationRows('createMenu', inserted, error, orgId, venueId, 'menu_create_failed');
 
   revalidateVenue(orgId, venueId);
 }
 
-/** Updates a menu's name and active state. */
-export async function updateMenu(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+/** Saves editable fields for a menu, including its existing sections and items. */
+export async function saveMenu(orgId: string, venueId: string, formData: FormData) {
+  const { supabase } = await requireVenueAccess(orgId, venueId);
   const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
-  const name = toStr(formData.get('menu_name'));
-  const is_active = formData.get('menu_is_active') === 'on';
 
-  if (!name) redirectWithError(orgId, venueId, 'missing_menu_name');
-
-  const { error } = await supabase
+  const { data: menu, error: menuLookupError } = await supabase
     .from('menus')
-    .update({ name, is_active })
+    .select('id')
     .eq('id', menu_id)
-    .eq('venue_id', venueId);
+    .eq('venue_id', venueId)
+    .maybeSingle();
 
-  if (error) {
-    console.error(error);
+  if (menuLookupError) {
+    console.error('[saveMenu] menu lookup failed', menuLookupError);
     redirectWithError(orgId, venueId, 'menu_update_failed');
+  }
+
+  if (!menu) redirectWithError(orgId, venueId, 'not_authorized');
+
+  if (formData.has('menu_name')) {
+    const name = toStr(formData.get('menu_name'));
+    const is_active = formData.get('menu_is_active') === 'on';
+
+    if (!name) redirectWithError(orgId, venueId, 'missing_menu_name');
+
+    const { data: updatedMenu, error: menuError } = await supabase
+      .from('menus')
+      .update({ name, is_active })
+      .eq('id', menu_id)
+      .eq('venue_id', venueId)
+      .select('id');
+
+    assertMutationRows('saveMenu:menu', updatedMenu, menuError, orgId, venueId, 'menu_update_failed');
+  }
+
+  const sectionIds = Array.from(new Set(
+    formData.getAll('section_ids').map((value) => toStr(value)).filter(Boolean),
+  ));
+
+  for (const sectionId of sectionIds) {
+    const sectionName = requireField(
+      formData,
+      `section_name_${sectionId}`,
+      orgId,
+      venueId,
+      'missing_section_fields',
+    );
+
+    const { data: updatedSection, error: sectionError } = await supabase
+      .from('menu_sections')
+      .update({ name: sectionName })
+      .eq('id', sectionId)
+      .eq('menu_id', menu_id)
+      .select('id');
+
+    assertMutationRows(
+      'saveMenu:section',
+      updatedSection,
+      sectionError,
+      orgId,
+      venueId,
+      'section_update_failed',
+    );
+  }
+
+  const itemIds = Array.from(new Set(
+    formData.getAll('item_ids').map((value) => toStr(value)).filter(Boolean),
+  ));
+
+  for (const itemId of itemIds) {
+    const itemName = toStr(formData.get(`item_name_${itemId}`));
+    const description = toNullableStr(formData.get(`item_description_${itemId}`));
+    const price = toNumberOrNull(formData.get(`item_price_${itemId}`));
+    const is_happy_hour = formData.get(`item_is_happy_hour_${itemId}`) === 'on';
+
+    if (!itemName) redirectWithError(orgId, venueId, 'missing_item_fields');
+
+    const { data: item } = await supabase
+      .from('menu_items')
+      .select('id, menu_sections!inner(menu_id)')
+      .eq('id', itemId)
+      .eq('menu_sections.menu_id', menu_id)
+      .maybeSingle();
+
+    if (!item) redirectWithError(orgId, venueId, 'not_authorized');
+
+    const { data: updatedItem, error: itemError } = await supabase
+      .from('menu_items')
+      .update({ name: itemName, description, price, is_happy_hour })
+      .eq('id', itemId)
+      .select('id');
+
+    assertMutationRows('saveMenu:item', updatedItem, itemError, orgId, venueId, 'item_update_failed');
   }
 
   revalidateVenue(orgId, venueId);
@@ -396,38 +664,35 @@ export async function updateMenu(orgId: string, venueId: string, formData: FormD
 
 /** Sets a menu's status to 'published'. */
 export async function publishMenu(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { supabase } = await requireVenueAccess(orgId, venueId);
   const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('menus')
     .update({ status: HH_STATUS_PUBLISHED })
     .eq('id', menu_id)
-    .eq('venue_id', venueId);
+    .eq('venue_id', venueId)
+    .select('id');
 
-  if (error) {
-    console.error(error);
-    redirectWithError(orgId, venueId, 'menu_publish_failed');
-  }
+  assertMutationRows('publishMenu', updated, error, orgId, venueId, 'menu_publish_failed');
+  await ensureVenuePublished(supabase, orgId, venueId);
 
   revalidateVenue(orgId, venueId);
 }
 
 /** Sets a menu's status back to 'draft'. */
 export async function unpublishMenu(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { supabase } = await requireVenueAccess(orgId, venueId);
   const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from('menus')
     .update({ status: HH_STATUS_DRAFT })
     .eq('id', menu_id)
-    .eq('venue_id', venueId);
+    .eq('venue_id', venueId)
+    .select('id');
 
-  if (error) {
-    console.error(error);
-    redirectWithError(orgId, venueId, 'menu_unpublish_failed');
-  }
+  assertMutationRows('unpublishMenu', updated, error, orgId, venueId, 'menu_unpublish_failed');
 
   revalidateVenue(orgId, venueId);
 }
@@ -451,16 +716,14 @@ export async function deleteMenu(orgId: string, venueId: string, formData: FormD
   }
   await supabase.from('menu_sections').delete().eq('menu_id', menu_id);
 
-  const { error } = await supabase
+  const { data: deleted, error } = await supabase
     .from('menus')
     .delete()
     .eq('id', menu_id)
-    .eq('venue_id', venueId);
+    .eq('venue_id', venueId)
+    .select('id');
 
-  if (error) {
-    console.error(error);
-    redirectWithError(orgId, venueId, 'menu_delete_failed');
-  }
+  assertMutationRows('deleteMenu', deleted, error, orgId, venueId, 'menu_delete_failed');
 
   revalidateVenue(orgId, venueId);
 }
@@ -476,33 +739,6 @@ export async function createSection(orgId: string, venueId: string, formData: Fo
   if (error) {
     console.error(error);
     redirectWithError(orgId, venueId, 'section_create_failed');
-  }
-
-  revalidateVenue(orgId, venueId);
-}
-
-/**
- * Updates a menu section's name.
- * Verifies the section belongs to a menu owned by this venue before updating.
- */
-export async function updateSection(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireVenueAccess(orgId, venueId);
-  const section_id = requireField(formData, 'section_id', orgId, venueId, 'missing_section_fields');
-  const name = requireField(formData, 'section_name', orgId, venueId, 'missing_section_fields');
-
-  const { data: section } = await supabase
-    .from('menu_sections')
-    .select('id, menus!inner(venue_id)')
-    .eq('id', section_id)
-    .eq('menus.venue_id', venueId)
-    .maybeSingle();
-
-  if (!section) redirectWithError(orgId, venueId, 'not_authorized');
-
-  const { error } = await supabase.from('menu_sections').update({ name }).eq('id', section_id);
-  if (error) {
-    console.error(error);
-    redirectWithError(orgId, venueId, 'section_update_failed');
   }
 
   revalidateVenue(orgId, venueId);
@@ -555,42 +791,6 @@ export async function createItem(orgId: string, venueId: string, formData: FormD
   if (error) {
     console.error(error);
     redirectWithError(orgId, venueId, 'item_create_failed');
-  }
-
-  revalidateVenue(orgId, venueId);
-}
-
-/**
- * Updates a menu item's fields.
- * Verifies the item traces back to this venue via section → menu before updating.
- */
-export async function updateItem(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireVenueAccess(orgId, venueId);
-  const item_id = requireField(formData, 'item_id', orgId, venueId, 'missing_item_fields');
-  const name = toStr(formData.get('item_name'));
-  const description = toNullableStr(formData.get('item_description'));
-  const price = toNumberOrNull(formData.get('item_price'));
-  const is_happy_hour = formData.get('item_is_happy_hour') === 'on';
-
-  if (!name) redirectWithError(orgId, venueId, 'missing_item_fields');
-
-  const { data: item } = await supabase
-    .from('menu_items')
-    .select('id, menu_sections!inner(menu_id, menus!inner(venue_id))')
-    .eq('id', item_id)
-    .eq('menu_sections.menus.venue_id', venueId)
-    .maybeSingle();
-
-  if (!item) redirectWithError(orgId, venueId, 'not_authorized');
-
-  const { error } = await supabase
-    .from('menu_items')
-    .update({ name, description, price, is_happy_hour })
-    .eq('id', item_id);
-
-  if (error) {
-    console.error(error);
-    redirectWithError(orgId, venueId, 'item_update_failed');
   }
 
   revalidateVenue(orgId, venueId);

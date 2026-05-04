@@ -21,6 +21,7 @@ export type VenueDetail = Pick<
   | "timezone"
   | "app_name_preference"
   | "cuisine_type"
+  | "status"
 >;
 
 export async function fetchVenuesByOrg(
@@ -46,7 +47,7 @@ export async function fetchVenueById(
   let query = supabase
     .from("venues")
     .select(
-      "id,org_id,name,org_name,address,city,state,zip,timezone,app_name_preference,cuisine_type"
+      "id,org_id,name,org_name,address,city,state,zip,timezone,app_name_preference,cuisine_type,status"
     )
     .eq("id", venueId);
 
