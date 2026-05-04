@@ -9,6 +9,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from "react-native";
 import type { PendingVisit } from "../hooks/useVisitRating";
 import { colors } from "../theme/colors";
@@ -62,107 +63,114 @@ export const VisitRatingModal: React.FC<Props> = ({
       transparent
       onRequestClose={onDismiss}
     >
-      <Pressable style={styles.backdrop} onPress={onDismiss} />
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.sheetWrap}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.modalRoot}
       >
+        <Pressable style={styles.backdrop} onPress={onDismiss} />
         <View style={styles.sheet}>
-          <View style={styles.handle} />
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.sheetContent}
+          >
+            <View style={styles.handle} />
 
-          <Text style={styles.title}>How was your visit?</Text>
-          <Text style={styles.venueName}>{pendingVisit.venueName}</Text>
+            <Text style={styles.title}>How was your visit?</Text>
+            <Text style={styles.venueName}>{pendingVisit.venueName}</Text>
 
-          {/* Star selector */}
-          <View style={styles.starsRow}>
-            {Array.from({ length: STAR_COUNT }, (_, i) => {
-              const starIndex = i + 1;
-              const filled = starIndex <= rating;
-              return (
-                <Pressable
-                  key={starIndex}
-                  onPress={() => setRating(starIndex)}
-                  style={styles.starTouch}
-                >
-                  <Text style={[styles.star, filled && styles.starFilled]}>
-                    {filled ? "\u2605" : "\u2606"}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-
-          {rating > 0 && (
-            <Text style={styles.ratingHint}>
-              {rating === 1 && "Not great"}
-              {rating === 2 && "It was okay"}
-              {rating === 3 && "Pretty good"}
-              {rating === 4 && "Really good"}
-              {rating === 5 && "Loved it!"}
-            </Text>
-          )}
-
-          {/* Aspect chips */}
-          {availableAspects.length > 0 && (
-            <View style={styles.chipsWrap}>
-              {availableAspects.map((aspect) => {
-                const selected = selectedAspects.includes(aspect);
+            {/* Star selector */}
+            <View style={styles.starsRow}>
+              {Array.from({ length: STAR_COUNT }, (_, i) => {
+                const starIndex = i + 1;
+                const filled = starIndex <= rating;
                 return (
                   <Pressable
-                    key={aspect}
-                    onPress={() =>
-                      setSelectedAspects((prev) =>
-                        prev.includes(aspect) ? prev.filter((a) => a !== aspect) : [...prev, aspect]
-                      )
-                    }
-                    style={[styles.chip, selected && styles.chipSelected]}
+                    key={starIndex}
+                    onPress={() => setRating(starIndex)}
+                    style={styles.starTouch}
                   >
-                    <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
-                      {ASPECT_LABELS[aspect] ?? aspect.replaceAll("_", " ")}
+                    <Text style={[styles.star, filled && styles.starFilled]}>
+                      {filled ? "\u2605" : "\u2606"}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
-          )}
 
-          {/* Comment input */}
-          <TextInput
-            style={styles.commentInput}
-            placeholder="How was it?"
-            placeholderTextColor={colors.textMuted}
-            value={comment}
-            onChangeText={setComment}
-            multiline
-            maxLength={500}
-            numberOfLines={3}
-            textAlignVertical="top"
-          />
+            {rating > 0 && (
+              <Text style={styles.ratingHint}>
+                {rating === 1 && "Not great"}
+                {rating === 2 && "It was okay"}
+                {rating === 3 && "Pretty good"}
+                {rating === 4 && "Really good"}
+                {rating === 5 && "Loved it!"}
+              </Text>
+            )}
 
-          {/* Buttons */}
-          <Pressable
-            style={({ pressed }) => [
-              styles.submitButton,
-              !canSubmit && styles.submitButtonDisabled,
-              pressed && canSubmit && styles.submitButtonPressed,
-            ]}
-            onPress={() => canSubmit && onSubmit(rating, comment || undefined, selectedAspects)}
-            disabled={!canSubmit}
-          >
-            <Text style={styles.submitButtonText}>
-              {submitting ? "Submitting..." : "Submit"}
-            </Text>
-          </Pressable>
+            {/* Aspect chips */}
+            {availableAspects.length > 0 && (
+              <View style={styles.chipsWrap}>
+                {availableAspects.map((aspect) => {
+                  const selected = selectedAspects.includes(aspect);
+                  return (
+                    <Pressable
+                      key={aspect}
+                      onPress={() =>
+                        setSelectedAspects((prev) =>
+                          prev.includes(aspect) ? prev.filter((a) => a !== aspect) : [...prev, aspect]
+                        )
+                      }
+                      style={[styles.chip, selected && styles.chipSelected]}
+                    >
+                      <Text style={[styles.chipText, selected && styles.chipTextSelected]}>
+                        {ASPECT_LABELS[aspect] ?? aspect.replaceAll("_", " ")}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.skipButton,
-              pressed && { opacity: 0.7 },
-            ]}
-            onPress={onDismiss}
-          >
-            <Text style={styles.skipButtonText}>Skip</Text>
-          </Pressable>
+            {/* Comment input */}
+            <TextInput
+              style={styles.commentInput}
+              placeholder="How was it?"
+              placeholderTextColor={colors.textMuted}
+              value={comment}
+              onChangeText={setComment}
+              multiline
+              maxLength={500}
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+
+            {/* Buttons */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.submitButton,
+                !canSubmit && styles.submitButtonDisabled,
+                pressed && canSubmit && styles.submitButtonPressed,
+              ]}
+              onPress={() => canSubmit && onSubmit(rating, comment || undefined, selectedAspects)}
+              disabled={!canSubmit}
+            >
+              <Text style={styles.submitButtonText}>
+                {submitting ? "Submitting..." : "Submit"}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.skipButton,
+                pressed && { opacity: 0.7 },
+              ]}
+              onPress={onDismiss}
+            >
+              <Text style={styles.skipButtonText}>Skip</Text>
+            </Pressable>
+          </ScrollView>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -170,15 +178,13 @@ export const VisitRatingModal: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
+  modalRoot: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
   },
-  sheetWrap: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
     backgroundColor: colors.background,
@@ -187,6 +193,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl + spacing.lg,
     paddingTop: spacing.sm,
+    alignItems: "center",
+    maxHeight: "88%",
+  },
+  sheetScroll: {
+    width: "100%",
+  },
+  sheetContent: {
     alignItems: "center",
   },
   handle: {

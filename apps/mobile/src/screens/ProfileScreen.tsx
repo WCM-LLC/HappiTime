@@ -1,6 +1,6 @@
 // src/screens/ProfileScreen.tsx
 import React, { useEffect, useState } from "react";
-import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../api/supabaseClient";
 import { LoadingSpinner } from "../components/LoadingSpinner";
@@ -12,6 +12,34 @@ import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useUserProfile } from "../hooks/useUserProfile";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
+
+const getFunctionErrorMessage = async (error: unknown) => {
+  const fallback = error instanceof Error ? error.message : "Please try again.";
+  const context = (error as { context?: unknown } | null)?.context;
+
+  if (context instanceof Response) {
+    try {
+      const payload = await context.clone().json();
+      if (typeof payload?.error === "string" && payload.error.trim()) {
+        return payload.error;
+      }
+      if (typeof payload?.message === "string" && payload.message.trim()) {
+        return payload.message;
+      }
+    } catch {
+      try {
+        const text = await context.clone().text();
+        if (text.trim()) return text.trim();
+      } catch {
+        // Keep the original Supabase client message.
+      }
+    }
+
+    return `Delete account failed (${context.status}).`;
+  }
+
+  return fallback;
+};
 
 export const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -44,6 +72,7 @@ export const ProfileScreen: React.FC = () => {
   const [bio, setBio] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const handleOpenSupport = () => {
     Linking.openURL("https://happitime.biz/contactus").catch(() => {
@@ -63,7 +92,7 @@ export const ProfileScreen: React.FC = () => {
   };
 
   const handleDeleteAccount = () => {
-    if (!user) return;
+    if (!user || deletingAccount) return;
     Alert.alert("Delete account", "Do you want to permanently delete your account?", [
       { text: "Cancel", style: "cancel" },
       {
@@ -84,20 +113,37 @@ export const ProfileScreen: React.FC = () => {
                     return;
                   }
 
-                  const { error: profileError } = await supabase
-                    .from("user_profiles")
-                    .delete()
-                    .eq("user_id", user.id);
-                  if (profileError) {
-                    Alert.alert("Unable to delete account", profileError.message);
+                  setDeletingAccount(true);
+                  setStatusMessage(null);
+
+                  const { data: sessionData, error: sessionError } =
+                    await supabase.auth.getSession();
+                  const accessToken = sessionData.session?.access_token;
+
+                  if (sessionError || !accessToken) {
+                    setDeletingAccount(false);
+                    Alert.alert(
+                      "Unable to delete account",
+                      "Your session expired. Please sign in again and retry."
+                    );
                     return;
                   }
 
-                  await supabase.auth.signOut();
-                  Alert.alert(
-                    "Account data deleted",
-                    "Your profile data was removed and you were signed out."
-                  );
+                  const { error } = await supabase.functions.invoke("delete-account", {
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                  });
+
+                  if (error) {
+                    setDeletingAccount(false);
+                    Alert.alert(
+                      "Unable to delete account",
+                      await getFunctionErrorMessage(error)
+                    );
+                    return;
+                  }
+
+                  await supabase.auth.signOut({ scope: "local" });
+                  Alert.alert("Account has been removed");
                 },
               },
             ],
@@ -169,30 +215,34 @@ export const ProfileScreen: React.FC = () => {
   }
 
   return (
-    <ScrollView
+    <KeyboardAvoidingView
       style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={styles.avatarSection}>
-        <View style={styles.avatarCircle}>
-          <Text style={styles.avatarText}>
-            {(profile?.display_name ?? user?.email ?? "U").charAt(0).toUpperCase()}
-          </Text>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.avatarSection}>
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarText}>
+              {(profile?.display_name ?? user?.email ?? "U").charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View>
+            <Text style={styles.avatarName}>
+              {profile?.display_name || user?.email?.split("@")[0] || "User"}
+            </Text>
+            <Text style={styles.avatarCity}>
+              {preferences.home_city
+                ? `${preferences.home_city}${preferences.home_state ? `, ${preferences.home_state}` : ""}`
+                : "Set your city"}
+            </Text>
+          </View>
         </View>
-        <View>
-          <Text style={styles.avatarName}>
-            {profile?.display_name || user?.email?.split("@")[0] || "User"}
-          </Text>
-          <Text style={styles.avatarCity}>
-            {preferences.home_city
-              ? `${preferences.home_city}${preferences.home_state ? `, ${preferences.home_state}` : ""}`
-              : "Set your city"}
-          </Text>
-        </View>
-      </View>
 
-      <View style={styles.card}>
+        <View style={styles.card}>
         <Text style={styles.sectionTitle}>Profile</Text>
         <Text style={styles.label}>Email</Text>
         <Text style={styles.value}>{user?.email ?? "Unknown"}</Text>
@@ -257,15 +307,19 @@ export const ProfileScreen: React.FC = () => {
         <Pressable
           style={({ pressed }) => [
             styles.dangerButton,
-            pressed && styles.primaryButtonPressed
+            pressed && !deletingAccount && styles.primaryButtonPressed,
+            deletingAccount && styles.primaryButtonDisabled,
           ]}
           onPress={handleDeleteAccount}
+          disabled={deletingAccount}
         >
-          <Text style={styles.dangerButtonText}>Delete account</Text>
+          <Text style={styles.dangerButtonText}>
+            {deletingAccount ? "Deleting account..." : "Delete account"}
+          </Text>
         </Pressable>
-      </View>
+        </View>
 
-      <View style={styles.card}>
+        <View style={styles.card}>
         <Text style={styles.sectionTitle}>Preferences</Text>
 
         <Text style={styles.label}>Home city</Text>
@@ -365,62 +419,63 @@ export const ProfileScreen: React.FC = () => {
             {prefSaving ? "Saving..." : "Save preferences"}
           </Text>
         </Pressable>
-      </View>
+        </View>
 
-      <Pressable
+        <Pressable
         style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
         onPress={() => setShowSuggestVenue(true)}
-      >
-        <Text style={styles.secondaryButtonText}>Suggest a Venue</Text>
-      </Pressable>
+        >
+          <Text style={styles.secondaryButtonText}>Suggest a Venue</Text>
+        </Pressable>
 
-      <Pressable
+        <Pressable
         style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
         onPress={handleOpenSupport}
-      >
-        <Text style={styles.secondaryButtonText}>Contact support</Text>
-      </Pressable>
+        >
+          <Text style={styles.secondaryButtonText}>Contact support</Text>
+        </Pressable>
 
-      <Modal
-        visible={showSuggestVenue}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowSuggestVenue(false)}
-      >
-        <VenueSuggestionForm onBack={() => setShowSuggestVenue(false)} />
-      </Modal>
+        <Modal
+          visible={showSuggestVenue}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setShowSuggestVenue(false)}
+        >
+          <VenueSuggestionForm onBack={() => setShowSuggestVenue(false)} />
+        </Modal>
 
-      <Pressable
+        <Pressable
         style={({ pressed }) => [styles.signOutButton, pressed && styles.signOutButtonPressed]}
         onPress={handleSignOut}
-      >
-        <Text style={styles.signOutButtonText}>Sign out</Text>
-      </Pressable>
+        >
+          <Text style={styles.signOutButtonText}>Sign out</Text>
+        </Pressable>
 
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Stats</Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statBlock}>
-            <Text style={styles.statValue}>
-              {countsLoading ? "—" : followerCount}
-            </Text>
-            <Text style={styles.statLabel}>Followers</Text>
-          </View>
-          <View style={styles.statBlock}>
-            <Text style={styles.statValue}>
-              {countsLoading ? "—" : followingCount}
-            </Text>
-            <Text style={styles.statLabel}>Following</Text>
-          </View>
-          <View style={styles.statBlock}>
-            <Text style={styles.statValue}>
-              {venuesLoading ? "—" : venueIds.length}
-            </Text>
-            <Text style={styles.statLabel}>Saved venues</Text>
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Stats</Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statBlock}>
+              <Text style={styles.statValue}>
+                {countsLoading ? "—" : followerCount}
+              </Text>
+              <Text style={styles.statLabel}>Followers</Text>
+            </View>
+            <View style={styles.statBlock}>
+              <Text style={styles.statValue}>
+                {countsLoading ? "—" : followingCount}
+              </Text>
+              <Text style={styles.statLabel}>Following</Text>
+            </View>
+            <View style={styles.statBlock}>
+              <Text style={styles.statValue}>
+                {venuesLoading ? "—" : venueIds.length}
+              </Text>
+              <Text style={styles.statLabel}>Saved venues</Text>
+            </View>
           </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 

@@ -51,6 +51,7 @@
     "android": {
       "package": "com.jwill7486.happitime.mobile",
       "versionCode": 1,
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#C8965A"

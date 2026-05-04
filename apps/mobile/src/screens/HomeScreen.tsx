@@ -597,7 +597,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         onRequestClose={() => setCityPickerVisible(false)}
       >
         <KeyboardAvoidingView
-          behavior="padding"
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalBackdrop}
         >
           <View style={styles.modalCard}>

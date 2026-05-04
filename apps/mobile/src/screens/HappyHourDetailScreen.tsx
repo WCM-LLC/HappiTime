@@ -13,6 +13,7 @@ import {
   Modal,
   FlatList,
   TextInput,
+  KeyboardAvoidingView,
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
@@ -583,150 +584,160 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
         transparent
         onRequestClose={() => setShowItineraryPicker(false)}
       >
-        <Pressable
-          style={pickerStyles.backdrop}
-          onPress={() => setShowItineraryPicker(false)}
-        />
-        <View style={pickerStyles.sheet}>
-          <View style={pickerStyles.handle} />
-          <Text style={pickerStyles.title}>Add to Itinerary</Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={pickerStyles.modalRoot}
+        >
+          <Pressable
+            style={pickerStyles.backdrop}
+            onPress={() => setShowItineraryPicker(false)}
+          />
+          <View style={pickerStyles.sheet}>
+            <View style={pickerStyles.handle} />
+            <Text style={pickerStyles.title}>Add to Itinerary</Text>
 
-          {/* Create-list form — shown when no lists OR user taps "+ New" */}
-          {(lists.length === 0 || showCreateForm) ? (
-            <View style={pickerStyles.createForm}>
-              <Text style={pickerStyles.createLabel}>Create a new itinerary</Text>
-              <TextInput
-                style={pickerStyles.input}
-                placeholder="Name (e.g. Friday Night Crawl)"
-                placeholderTextColor={colors.textMutedLight}
-                value={newListName}
-                onChangeText={setNewListName}
-                autoFocus
-              />
-              <TextInput
-                style={[pickerStyles.input, { height: 60 }]}
-                placeholder="Description (optional)"
-                placeholderTextColor={colors.textMutedLight}
-                value={newListDesc}
-                onChangeText={setNewListDesc}
-                multiline
-              />
-              <View style={pickerStyles.visRow}>
-                {(["private", "friends", "public"] as const).map((v) => (
-                  <Pressable
-                    key={v}
-                    style={[
-                      pickerStyles.visChip,
-                      newListVisibility === v && pickerStyles.visChipActive,
-                    ]}
-                    onPress={() => setNewListVisibility(v)}
-                  >
-                    <Text
-                      style={[
-                        pickerStyles.visChipText,
-                        newListVisibility === v && pickerStyles.visChipTextActive,
-                      ]}
-                    >
-                      {v === "private" ? "Private" : v === "friends" ? "Friends" : "Public"}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-              <Pressable
-                style={[
-                  pickerStyles.createBtn,
-                  (!newListName.trim() || creatingList) && { opacity: 0.5 },
-                ]}
-                disabled={!newListName.trim() || creatingList}
-                onPress={async () => {
-                  setCreatingList(true);
-                  const { error, listId } = await createList(newListName, newListDesc || undefined);
-                  let addError: Error | null = null;
-                  if (!error && listId && venueId) {
-                    const result = await addVenue(listId, venueId);
-                    addError = result.error;
-                  }
-                  setCreatingList(false);
-                  if (error) {
-                    Alert.alert("Error", error.message);
-                  } else if (addError) {
-                    Alert.alert("Itinerary created", `Couldn't add this venue yet: ${addError.message}`);
-                  } else {
-                    if (listId) {
-                      setAddedToIds((prev) => new Set(prev).add(listId));
-                    }
-                    setNewListName("");
-                    setNewListDesc("");
-                    setNewListVisibility("private");
-                    setShowCreateForm(false);
-                  }
-                }}
+            {/* Create-list form — shown when no lists OR user taps "+ New" */}
+            {(lists.length === 0 || showCreateForm) ? (
+              <ScrollView
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={pickerStyles.createForm}
               >
-                <Text style={pickerStyles.createBtnText}>
-                  {creatingList ? "Creating…" : "Create Itinerary"}
-                </Text>
-              </Pressable>
-              {lists.length > 0 && (
-                <Pressable onPress={() => setShowCreateForm(false)}>
-                  <Text style={pickerStyles.cancelText}>Cancel</Text>
-                </Pressable>
-              )}
-            </View>
-          ) : (
-            <>
-              <FlatList
-                data={lists}
-                keyExtractor={(item) => item.id}
-                ItemSeparatorComponent={() => <View style={pickerStyles.sep} />}
-                renderItem={({ item }) => {
-                  const added = addedToIds.has(item.id);
-                  const adding = addingToId === item.id;
-                  return (
+                <Text style={pickerStyles.createLabel}>Create a new itinerary</Text>
+                <TextInput
+                  style={pickerStyles.input}
+                  placeholder="Name (e.g. Friday Night Crawl)"
+                  placeholderTextColor={colors.textMutedLight}
+                  value={newListName}
+                  onChangeText={setNewListName}
+                  autoFocus
+                />
+                <TextInput
+                  style={[pickerStyles.input, { height: 60 }]}
+                  placeholder="Description (optional)"
+                  placeholderTextColor={colors.textMutedLight}
+                  value={newListDesc}
+                  onChangeText={setNewListDesc}
+                  multiline
+                />
+                <View style={pickerStyles.visRow}>
+                  {(["private", "friends", "public"] as const).map((v) => (
                     <Pressable
-                      style={({ pressed }) => [
-                        pickerStyles.row,
-                        pressed && { opacity: 0.75 },
+                      key={v}
+                      style={[
+                        pickerStyles.visChip,
+                        newListVisibility === v && pickerStyles.visChipActive,
                       ]}
-                      disabled={added || adding}
-                      onPress={async () => {
-                        if (!venueId) return;
-                        setAddingToId(item.id);
-                        const { error } = await addVenue(item.id, venueId);
-                        setAddingToId(null);
-                        if (error) {
-                          Alert.alert("Couldn't add", error.message);
-                        } else {
-                          setAddedToIds((prev) => new Set(prev).add(item.id));
-                        }
-                      }}
+                      onPress={() => setNewListVisibility(v)}
                     >
-                      <View style={pickerStyles.rowText}>
-                        <Text style={pickerStyles.rowName}>{item.name}</Text>
-                        {item.description ? (
-                          <Text style={pickerStyles.rowDesc} numberOfLines={1}>
-                            {item.description}
-                          </Text>
-                        ) : null}
-                      </View>
-                      <Text style={[
-                        pickerStyles.rowAction,
-                        added && pickerStyles.rowActionDone,
-                      ]}>
-                        {adding ? "…" : added ? "Added ✓" : "Add"}
+                      <Text
+                        style={[
+                          pickerStyles.visChipText,
+                          newListVisibility === v && pickerStyles.visChipTextActive,
+                        ]}
+                      >
+                        {v === "private" ? "Private" : v === "friends" ? "Friends" : "Public"}
                       </Text>
                     </Pressable>
-                  );
-                }}
-              />
-              <Pressable
-                style={pickerStyles.newListBtn}
-                onPress={() => setShowCreateForm(true)}
-              >
-                <Text style={pickerStyles.newListBtnText}>+ New Itinerary</Text>
-              </Pressable>
-            </>
-          )}
-        </View>
+                  ))}
+                </View>
+                <Pressable
+                  style={[
+                    pickerStyles.createBtn,
+                    (!newListName.trim() || creatingList) && { opacity: 0.5 },
+                  ]}
+                  disabled={!newListName.trim() || creatingList}
+                  onPress={async () => {
+                    setCreatingList(true);
+                    const { error, listId } = await createList(newListName, newListDesc || undefined);
+                    let addError: Error | null = null;
+                    if (!error && listId && venueId) {
+                      const result = await addVenue(listId, venueId);
+                      addError = result.error;
+                    }
+                    setCreatingList(false);
+                    if (error) {
+                      Alert.alert("Error", error.message);
+                    } else if (addError) {
+                      Alert.alert("Itinerary created", `Couldn't add this venue yet: ${addError.message}`);
+                    } else {
+                      if (listId) {
+                        setAddedToIds((prev) => new Set(prev).add(listId));
+                      }
+                      setNewListName("");
+                      setNewListDesc("");
+                      setNewListVisibility("private");
+                      setShowCreateForm(false);
+                    }
+                  }}
+                >
+                  <Text style={pickerStyles.createBtnText}>
+                    {creatingList ? "Creating…" : "Create Itinerary"}
+                  </Text>
+                </Pressable>
+                {lists.length > 0 && (
+                  <Pressable onPress={() => setShowCreateForm(false)}>
+                    <Text style={pickerStyles.cancelText}>Cancel</Text>
+                  </Pressable>
+                )}
+              </ScrollView>
+            ) : (
+              <>
+                <FlatList
+                  data={lists}
+                  keyExtractor={(item) => item.id}
+                  keyboardShouldPersistTaps="handled"
+                  ItemSeparatorComponent={() => <View style={pickerStyles.sep} />}
+                  renderItem={({ item }) => {
+                    const added = addedToIds.has(item.id);
+                    const adding = addingToId === item.id;
+                    return (
+                      <Pressable
+                        style={({ pressed }) => [
+                          pickerStyles.row,
+                          pressed && { opacity: 0.75 },
+                        ]}
+                        disabled={added || adding}
+                        onPress={async () => {
+                          if (!venueId) return;
+                          setAddingToId(item.id);
+                          const { error } = await addVenue(item.id, venueId);
+                          setAddingToId(null);
+                          if (error) {
+                            Alert.alert("Couldn't add", error.message);
+                          } else {
+                            setAddedToIds((prev) => new Set(prev).add(item.id));
+                          }
+                        }}
+                      >
+                        <View style={pickerStyles.rowText}>
+                          <Text style={pickerStyles.rowName}>{item.name}</Text>
+                          {item.description ? (
+                            <Text style={pickerStyles.rowDesc} numberOfLines={1}>
+                              {item.description}
+                            </Text>
+                          ) : null}
+                        </View>
+                        <Text style={[
+                          pickerStyles.rowAction,
+                          added && pickerStyles.rowActionDone,
+                        ]}>
+                          {adding ? "…" : added ? "Added ✓" : "Add"}
+                        </Text>
+                      </Pressable>
+                    );
+                  }}
+                />
+                <Pressable
+                  style={pickerStyles.newListBtn}
+                  onPress={() => setShowCreateForm(true)}
+                >
+                  <Text style={pickerStyles.newListBtnText}>+ New Itinerary</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -1145,15 +1156,15 @@ const styles = StyleSheet.create({
 });
 
 const pickerStyles = StyleSheet.create({
-  backdrop: {
+  modalRoot: {
     flex: 1,
+    justifyContent: "flex-end",
+  },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: colors.background,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,

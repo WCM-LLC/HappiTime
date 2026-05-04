@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   Platform,
   Pressable,
+  KeyboardAvoidingView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -95,84 +97,93 @@ export const AuthScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Top safe area spacer is handled by paddingTop */}
-      <Text style={styles.logoText}>HappiTime</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Top safe area spacer is handled by paddingTop */}
+        <Text style={styles.logoText}>HappiTime</Text>
 
-      <View style={styles.content}>
-        <Text style={styles.title}>Create an Account</Text>
-        <Text style={styles.subtitle}>
-          Enter your email to sign up for this app
-        </Text>
-
-        {/* Apple Sign In — iOS only */}
-        {Platform.OS === "ios" && (
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-            cornerRadius={999}
-            style={styles.appleButton}
-            onPress={handleAppleSignIn}
-          />
-        )}
-
-        {/* Divider */}
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>or</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        <TextInput
-          style={styles.input}
-          placeholder="email@domain.com"
-          placeholderTextColor={colors.inputPlaceholder}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={email}
-          onChangeText={setEmail}
-        />
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.primaryButton,
-            pressed && styles.primaryButtonPressed,
-            loading && styles.primaryButtonDisabled
-          ]}
-          onPress={handleEmailContinue}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color={colors.pillActiveText} />
-          ) : (
-            <Text style={styles.primaryButtonText}>Continue</Text>
-          )}
-        </Pressable>
-
-        {statusMessage ? (
-          <Text style={styles.statusMessage}>{statusMessage}</Text>
-        ) : null}
-
-        <Text style={styles.legalText}>
-          By clicking continue, you agree to our{" "}
-          <Text
-            style={styles.linkText}
-            onPress={() => Linking.openURL("https://happitime.biz/terms")}
-          >
-            Terms of Service
-          </Text>{" "}
-          and{" "}
-          <Text
-            style={styles.linkText}
-            onPress={() => Linking.openURL("https://happitime.biz/privacy")}
-          >
-            Privacy Policy
+        <View style={styles.content}>
+          <Text style={styles.title}>Create an Account</Text>
+          <Text style={styles.subtitle}>
+            Enter your email to sign up for this app
           </Text>
-          .
-        </Text>
-      </View>
-    </View>
+
+          {/* Apple Sign In — iOS only */}
+          {Platform.OS === "ios" && (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
+              cornerRadius={999}
+              style={styles.appleButton}
+              onPress={handleAppleSignIn}
+            />
+          )}
+
+          {/* Divider */}
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TextInput
+            style={styles.input}
+            placeholder="email@domain.com"
+            placeholderTextColor={colors.inputPlaceholder}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={email}
+            onChangeText={setEmail}
+          />
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.primaryButton,
+              pressed && styles.primaryButtonPressed,
+              loading && styles.primaryButtonDisabled
+            ]}
+            onPress={handleEmailContinue}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color={colors.pillActiveText} />
+            ) : (
+              <Text style={styles.primaryButtonText}>Continue</Text>
+            )}
+          </Pressable>
+
+          {statusMessage ? (
+            <Text style={styles.statusMessage}>{statusMessage}</Text>
+          ) : null}
+
+          <Text style={styles.legalText}>
+            By clicking continue, you agree to our{" "}
+            <Text
+              style={styles.linkText}
+              onPress={() => Linking.openURL("https://happitime.biz/terms")}
+            >
+              Terms of Service
+            </Text>{" "}
+            and{" "}
+            <Text
+              style={styles.linkText}
+              onPress={() => Linking.openURL("https://happitime.biz/privacy")}
+            >
+              Privacy Policy
+            </Text>
+            .
+          </Text>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 };
 
@@ -183,6 +194,9 @@ const styles = StyleSheet.create({
     paddingTop: 80,
     paddingHorizontal: spacing.lg,
     alignItems: "stretch"
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   logoText: {
     fontSize: 40,

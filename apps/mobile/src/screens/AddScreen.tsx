@@ -75,11 +75,12 @@ export const VenueSuggestionForm: React.FC<VenueSuggestionFormProps> = ({ onBack
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        contentContainerStyle={styles.scrollContent}
       >
         {onBack && (
           <Pressable onPress={onBack} style={styles.backButton}>
@@ -174,6 +175,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     paddingTop: spacing.xxl + spacing.md,
     paddingHorizontal: spacing.lg,
+  },
+  scrollContent: {
+    paddingBottom: spacing.xl,
   },
   title: {
     color: colors.text,

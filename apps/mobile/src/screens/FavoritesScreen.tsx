@@ -474,53 +474,60 @@ const NewListModal: React.FC<NewListModalProps> = ({ visible, onClose, onCreate 
 
   return (
     <Modal visible animationType="slide" transparent onRequestClose={handleClose}>
-      <Pressable style={editStyles.backdrop} onPress={handleClose} />
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={editStyles.sheetWrap}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={editStyles.modalRoot}
       >
+        <Pressable style={editStyles.backdrop} onPress={handleClose} />
         <View style={editStyles.sheet}>
-          <View style={editStyles.handle} />
-          <Text style={[editStyles.title, editStyles.titleStandalone]}>New Itinerary</Text>
-          <Text style={newListStyles.subtitle}>
-            Give your itinerary a name to get started.
-          </Text>
-
-          <Text style={editStyles.label}>Itinerary name *</Text>
-          <TextInput
-            style={editStyles.input}
-            placeholder="e.g. Sunday Brunch Crawl"
-            placeholderTextColor={colors.textMuted}
-            value={listName}
-            onChangeText={setListName}
-            returnKeyType="next"
-            autoFocus
-          />
-
-          <Text style={editStyles.label}>Description (optional)</Text>
-          <TextInput
-            style={[editStyles.input, editStyles.multilineInput]}
-            placeholder="What's this list about?"
-            placeholderTextColor={colors.textMuted}
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            returnKeyType="done"
-          />
-
-          <Pressable
-            style={({ pressed }) => [
-              editStyles.saveButton,
-              !canSubmit && editStyles.saveButtonDisabled,
-              pressed && canSubmit && { opacity: 0.85 },
-            ]}
-            onPress={handleCreate}
-            disabled={!canSubmit}
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            style={editStyles.sheetScroll}
+            contentContainerStyle={editStyles.sheetScrollContent}
           >
-            <Text style={editStyles.saveButtonText}>
-              {saving ? "Creating..." : "Create itinerary"}
+            <View style={editStyles.handle} />
+            <Text style={[editStyles.title, editStyles.titleStandalone]}>New Itinerary</Text>
+            <Text style={newListStyles.subtitle}>
+              Give your itinerary a name to get started.
             </Text>
-          </Pressable>
+
+            <Text style={editStyles.label}>Itinerary name *</Text>
+            <TextInput
+              style={editStyles.input}
+              placeholder="e.g. Sunday Brunch Crawl"
+              placeholderTextColor={colors.textMuted}
+              value={listName}
+              onChangeText={setListName}
+              returnKeyType="next"
+              autoFocus
+            />
+
+            <Text style={editStyles.label}>Description (optional)</Text>
+            <TextInput
+              style={[editStyles.input, editStyles.multilineInput]}
+              placeholder="What's this list about?"
+              placeholderTextColor={colors.textMuted}
+              value={description}
+              onChangeText={setDescription}
+              multiline
+              returnKeyType="done"
+            />
+
+            <Pressable
+              style={({ pressed }) => [
+                editStyles.saveButton,
+                !canSubmit && editStyles.saveButtonDisabled,
+                pressed && canSubmit && { opacity: 0.85 },
+              ]}
+              onPress={handleCreate}
+              disabled={!canSubmit}
+            >
+              <Text style={editStyles.saveButtonText}>
+                {saving ? "Creating..." : "Create itinerary"}
+              </Text>
+            </Pressable>
+          </ScrollView>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -618,14 +625,19 @@ const EditListModal: React.FC<EditListModalProps> = ({
 
   return (
     <Modal visible animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={editStyles.backdrop} onPress={onClose} />
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={editStyles.sheetWrap}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={editStyles.modalRoot}
       >
+        <Pressable style={editStyles.backdrop} onPress={onClose} />
         <View style={editStyles.sheet}>
           <View style={editStyles.handle} />
-          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            style={editStyles.sheetScroll}
+            contentContainerStyle={editStyles.sheetScrollContent}
+          >
 
             <View style={editStyles.titleRow}>
               <Text style={editStyles.title} numberOfLines={1}>
@@ -1064,15 +1076,13 @@ const newListStyles = StyleSheet.create({
 });
 
 const editStyles = StyleSheet.create({
-  backdrop: {
+  modalRoot: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
   },
-  sheetWrap: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0,0,0,0.4)",
   },
   sheet: {
     backgroundColor: colors.background,
@@ -1082,6 +1092,12 @@ const editStyles = StyleSheet.create({
     paddingBottom: spacing.xl + spacing.lg,
     paddingTop: spacing.sm,
     maxHeight: "85%",
+  },
+  sheetScroll: {
+    width: "100%",
+  },
+  sheetScrollContent: {
+    paddingBottom: spacing.sm,
   },
   handle: {
     width: 40,
