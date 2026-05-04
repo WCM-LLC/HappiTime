@@ -6,6 +6,7 @@ import { OrgsTable, VenuesTable, WindowsTable, UsersTable } from './AdminTables'
 import type { OrgRow, VenueRow, WindowRow, UserRow } from './AdminTables';
 import { SUPER_ADMIN_EMAIL } from '@/utils/admin-emails';
 import { addAdminUser, removeAdminUser } from '@/actions/admin-manage-actions';
+import { adminSendInvite } from '@/actions/admin-invite-actions';
 
 const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   slug_taken: 'That organization slug is already in use. Choose a different slug.',
@@ -27,6 +28,7 @@ export default async function AdminPage({
     password_reset_sent: 'Password-reset email sent.',
     user_updated: 'User info updated.',
     org_updated: 'Organization updated. Venue display names propagated automatically.',
+    invite_sent: 'Invite sent successfully.',
   };
   const noticeText = pageNotice ? (NOTICE_MESSAGES[pageNotice] ?? null) : null;
 
@@ -50,6 +52,12 @@ export default async function AdminPage({
     // Admin-user (super-admin only) errors
     missing_email: 'Email address is required.',
     cannot_remove_super_admin: 'The super admin cannot be removed.',
+    invite_target_required: 'Choose an organization, or mark the invitee as a console admin.',
+    invalid_venues: 'One or more selected venues do not belong to the selected organization.',
+    invite_create_failed: 'Could not create the organization invite.',
+    invite_admin_save_failed: 'Could not grant console-admin access.',
+    invite_email_failed: 'Could not send the invite email.',
+    invite_admin_not_allowed: 'Only admin@happitime can grant console-admin access.',
   };
   const errorText = pageError ? (ERROR_MESSAGES[pageError] ?? pageError) : null;
   const keyError = getServiceRoleKeyError();
@@ -58,6 +66,7 @@ export default async function AdminPage({
   const { data: auth } = await authClient.auth.getUser();
   const currentUserEmail = (auth.user?.email ?? '').toLowerCase();
   const isSuperAdmin = currentUserEmail === SUPER_ADMIN_EMAIL;
+  const canGrantConsoleAdmin = currentUserEmail === 'admin@happitime';
 
   // ─── Stats ───────────────────────────────────────────────────────────
   const [
@@ -341,6 +350,43 @@ export default async function AdminPage({
           })}
         </div>
 
+
+        <section className="mb-10 rounded-lg border border-border bg-surface p-6 shadow-sm">
+          <h2 className="text-heading-sm font-semibold text-foreground mb-1">Send Invite</h2>
+          <p className="text-body-sm text-muted mb-4">
+            Invite a user to one organization with optional venue assignments, and optionally grant console-admin access.
+          </p>
+          <form action={adminSendInvite} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input name="first_name" placeholder="First name" className="h-10 rounded-md border border-border bg-background px-3 text-body-sm" />
+            <input name="last_name" placeholder="Last name" className="h-10 rounded-md border border-border bg-background px-3 text-body-sm" />
+            <input required name="email" type="email" placeholder="Email" className="h-10 rounded-md border border-border bg-background px-3 text-body-sm md:col-span-2" />
+            <select name="org_id" className="h-10 rounded-md border border-border bg-background px-3 text-body-sm">
+              <option value="">No organization</option>
+              {orgs.map((org) => (
+                <option key={org.id} value={org.id}>{org.name}</option>
+              ))}
+            </select>
+            <select name="role" defaultValue="manager" className="h-10 rounded-md border border-border bg-background px-3 text-body-sm">
+              <option value="owner">Owner</option><option value="manager">Manager</option><option value="host">Host</option>
+            </select>
+            <select name="venue_ids" multiple className="min-h-32 rounded-md border border-border bg-background px-3 py-2 text-body-sm md:col-span-2">
+              {venues.map((venue) => (
+                <option key={venue.id} value={venue.id}>{venue.org_name || 'Org'} — {venue.name}</option>
+              ))}
+            </select>
+            {canGrantConsoleAdmin ? (
+              <label className="md:col-span-2 inline-flex items-center gap-2 text-body-sm text-foreground">
+                <input type="checkbox" name="console_admin" className="h-4 w-4" />
+                Grant console admin access
+              </label>
+            ) : (
+              <p className="md:col-span-2 text-caption text-muted">Only admin@happitime can grant console-admin access.</p>
+            )}
+            <div className="md:col-span-2">
+              <button className="h-10 px-4 rounded-md bg-foreground text-background text-body-sm font-semibold">Send Invite</button>
+            </div>
+          </form>
+        </section>
         {/* ── Organizations ── */}
         <section className="mb-10">
           <div className="flex items-center justify-between mb-4">
