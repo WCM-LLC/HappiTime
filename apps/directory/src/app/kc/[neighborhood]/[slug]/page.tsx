@@ -427,6 +427,39 @@ export default async function VenueDetailPage({ params }: Props) {
         </section>
       )}
 
+      {/* Mid-journey app download */}
+      <section className="rounded-2xl mb-8 p-5 flex items-center gap-4 flex-wrap" style={{ background: "#1A1A1A" }}>
+        <div
+          className="w-11 h-11 rounded-xl flex-shrink-0 flex items-center justify-center text-sm font-extrabold text-white"
+          style={{ background: "#C8965A", fontFamily: "var(--font-display)", letterSpacing: "-0.5px" }}
+        >
+          iTi
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-white">
+            Get notified when happy hour starts at {venue.name.split(" ").slice(0, 3).join(" ")}
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: "#9CA3AF" }}>
+            Save it in the HappiTime app. Free on iPhone &amp; Android.
+          </p>
+        </div>
+        <div className="flex gap-2 flex-shrink-0">
+          <a
+            href="/app/"
+            className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3.5 py-2 text-white text-xs font-bold hover:bg-brand-dark transition-colors"
+          >
+            App Store
+          </a>
+          <a
+            href="/app/"
+            className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition-colors"
+            style={{ border: "1.5px solid #C8965A", color: "#C8965A" }}
+          >
+            Play Store
+          </a>
+        </div>
+      </section>
+
       {/* Claim CTA */}
       <section className="rounded-2xl border border-border bg-surface p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>

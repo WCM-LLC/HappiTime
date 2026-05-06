@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
+import { AppDownloadStrip } from "@/components/AppDownloadStrip";
 
 export const metadata: Metadata = {
   title: {
@@ -84,6 +85,10 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@800&display=swap"
           rel="stylesheet"
         />
+        <link
+          href="https://api.fontshare.com/v2/css?f[]=boska@700,800,900&f[]=satoshi@400,500,700,900&display=swap"
+          rel="stylesheet"
+        />
         {/* Google Tag Manager — replace GTM-XXXXXXX with your container ID */}
         {process.env.NEXT_PUBLIC_GTM_ID && (
           <script
@@ -155,6 +160,7 @@ function SiteHeader() {
 function SiteFooter() {
   return (
     <footer className="border-t border-border bg-surface mt-16">
+      <AppDownloadStrip />
       <div className="mx-auto max-w-5xl px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted">
         <div className="flex items-center gap-3">
           <HappiTimeLogo className="h-5" />

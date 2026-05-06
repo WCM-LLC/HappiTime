@@ -46,23 +46,6 @@ const DRINK_TO_TAGS: Record<string, string[]> = {
   "Wine Bar": ["wine_bar"],
 };
 
-// ── Map styles ─────────────────────────────────────────────────────────────────
-
-const MAP_STYLES = [
-  { featureType: "all", elementType: "geometry", stylers: [{ saturation: -25 }, { lightness: 5 }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#c4d8ea" }] },
-  { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#ffffff" }] },
-  { featureType: "road.arterial", elementType: "geometry.fill", stylers: [{ color: "#f8f3ee" }] },
-  { featureType: "road.highway", elementType: "geometry.fill", stylers: [{ color: "#ede8e0" }] },
-  { featureType: "landscape.man_made", elementType: "geometry.fill", stylers: [{ color: "#ede9e3" }] },
-  { featureType: "landscape.natural", elementType: "geometry.fill", stylers: [{ color: "#e4e0d8" }] },
-  { featureType: "poi", stylers: [{ visibility: "off" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#d4e8d0" }, { visibility: "on" }] },
-  { featureType: "transit", stylers: [{ visibility: "off" }] },
-  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#6b6b6b" }] },
-  { featureType: "administrative.neighborhood", elementType: "labels.text.fill", stylers: [{ color: "#9ca3af" }] },
-];
-
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function fmtTime(t: string): string {
@@ -202,7 +185,7 @@ function MapView({ filteredVenues, allVenues, selectedId, todayDow, onSelectPin,
     const map = new gm.Map(divRef.current, {
       center: { lat: 39.085, lng: -94.583 },
       zoom: 13,
-      mapId: "DEMO_MAP_ID",
+      mapId: process.env.NEXT_PUBLIC_MAPS_MAP_ID ?? "DEMO_MAP_ID",
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
