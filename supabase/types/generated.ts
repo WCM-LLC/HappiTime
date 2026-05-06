@@ -1327,6 +1327,9 @@ export type Database = {
           tags: string[]
           timezone: string | null
           updated_at: string
+          facebook_url: string | null
+          instagram_url: string | null
+          tiktok_url: string | null
           website: string | null
           zip: string
         }
@@ -1372,6 +1375,9 @@ export type Database = {
           tags?: string[]
           timezone?: string | null
           updated_at?: string
+          facebook_url?: string | null
+          instagram_url?: string | null
+          tiktok_url?: string | null
           website?: string | null
           zip: string
         }
@@ -1417,6 +1423,9 @@ export type Database = {
           tags?: string[]
           timezone?: string | null
           updated_at?: string
+          facebook_url?: string | null
+          instagram_url?: string | null
+          tiktok_url?: string | null
           website?: string | null
           zip?: string
         }

@@ -210,6 +210,21 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
     Linking.openURL(venue.website).catch(() => {});
   };
 
+  const openFacebook = () => {
+    if (!(venue as any).facebook_url) return;
+    Linking.openURL((venue as any).facebook_url).catch(() => {});
+  };
+
+  const openInstagram = () => {
+    if (!(venue as any).instagram_url) return;
+    Linking.openURL((venue as any).instagram_url).catch(() => {});
+  };
+
+  const openTikTok = () => {
+    if (!(venue as any).tiktok_url) return;
+    Linking.openURL((venue as any).tiktok_url).catch(() => {});
+  };
+
   const callVenue = () => {
     if (!venue.phone) return;
     const url = `tel:${venue.phone}`;
@@ -572,6 +587,39 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
                 onPress={callVenue}
               >
                 <Text style={styles.actionSecondaryText}>Call</Text>
+              </Pressable>
+            )}
+            {(venue as any).facebook_url && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.actionButtonSecondary,
+                  pressed && styles.actionButtonPressed
+                ]}
+                onPress={openFacebook}
+              >
+                <Text style={styles.actionSecondaryText}>Facebook</Text>
+              </Pressable>
+            )}
+            {(venue as any).instagram_url && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.actionButtonSecondary,
+                  pressed && styles.actionButtonPressed
+                ]}
+                onPress={openInstagram}
+              >
+                <Text style={styles.actionSecondaryText}>Instagram</Text>
+              </Pressable>
+            )}
+            {(venue as any).tiktok_url && (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.actionButtonSecondary,
+                  pressed && styles.actionButtonPressed
+                ]}
+                onPress={openTikTok}
+              >
+                <Text style={styles.actionSecondaryText}>TikTok</Text>
               </Pressable>
             )}
           </View>

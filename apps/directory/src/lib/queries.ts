@@ -17,6 +17,9 @@ export type VenueWithWindows = {
   cuisine_type: string | null;
   phone: string | null;
   website: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
   promotion_tier: string | null;
   promotion_priority: number;
   happy_hour_windows: HappyHourWindow[];
@@ -80,6 +83,7 @@ export type MenuItem = {
 const VENUE_FIELDS = `
   id, name, slug, address, city, state, neighborhood,
   lat, lng, price_tier, rating, tags, cuisine_type, phone, website,
+  facebook_url, instagram_url, tiktok_url,
   promotion_tier, promotion_priority
 `;
 
@@ -153,6 +157,9 @@ function shapeVenue(raw: any): VenueWithWindows {
     cuisine_type: raw.cuisine_type ?? null,
     phone: raw.phone ?? null,
     website: raw.website ?? null,
+    facebook_url: raw.facebook_url ?? null,
+    instagram_url: raw.instagram_url ?? null,
+    tiktok_url: raw.tiktok_url ?? null,
     promotion_tier: raw.promotion_tier ?? null,
     promotion_priority: raw.promotion_priority ?? 0,
     happy_hour_windows: windows,

@@ -187,25 +187,47 @@ export default async function VenueDetailPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Contact info */}
-      {(venue.phone || venue.website) && (
-        <div className="flex items-center gap-6 mb-8 text-sm">
+      {/* Contact info + social links */}
+      {(venue.phone || venue.website || venue.facebook_url || venue.instagram_url || venue.tiktok_url) && (
+        <div className="flex flex-wrap items-center gap-3 mb-8 text-sm">
           {venue.phone && (
-            <a
-              href={`tel:${venue.phone}`}
-              className="text-brand font-medium hover:underline"
-            >
+            <a href={`tel:${venue.phone}`} className="text-brand font-medium hover:underline">
               {venue.phone}
             </a>
           )}
           {venue.website && (
+            <a href={venue.website} target="_blank" rel="noopener noreferrer" className="text-brand font-medium hover:underline">
+              Website →
+            </a>
+          )}
+          {venue.facebook_url && (
             <a
-              href={venue.website}
+              href={venue.facebook_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-brand font-medium hover:underline"
+              className="inline-flex items-center rounded-full border border-[#1877F2] px-3 py-1 text-xs font-semibold text-[#1877F2] hover:bg-[#1877F2] hover:text-white transition-colors"
             >
-              Website →
+              Facebook
+            </a>
+          )}
+          {venue.instagram_url && (
+            <a
+              href={venue.instagram_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center rounded-full border border-[#E1306C] px-3 py-1 text-xs font-semibold text-[#E1306C] hover:bg-[#E1306C] hover:text-white transition-colors"
+            >
+              Instagram
+            </a>
+          )}
+          {venue.tiktok_url && (
+            <a
+              href={venue.tiktok_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center rounded-full border border-gray-800 px-3 py-1 text-xs font-semibold text-gray-800 hover:bg-gray-800 hover:text-white transition-colors"
+            >
+              TikTok
             </a>
           )}
         </div>

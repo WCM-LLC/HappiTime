@@ -238,6 +238,10 @@ export async function updateVenue(orgId: string, venueId: string, formData: Form
     state: string | null;
     zip: string | null;
     timezone: string;
+    website: string | null;
+    facebook_url: string | null;
+    instagram_url: string | null;
+    tiktok_url: string | null;
     app_name_preference?: 'org' | 'venue';
   } = {
     name: toStr(formData.get('name')),
@@ -246,6 +250,10 @@ export async function updateVenue(orgId: string, venueId: string, formData: Form
     state: toNullableStr(formData.get('state')),
     zip: toNullableStr(formData.get('zip')),
     timezone: toNullableStr(formData.get('timezone')) ?? 'America/Chicago',
+    website: toNullableStr(formData.get('website')),
+    facebook_url: toNullableStr(formData.get('facebook_url')),
+    instagram_url: toNullableStr(formData.get('instagram_url')),
+    tiktok_url: toNullableStr(formData.get('tiktok_url')),
   };
 
   const appNamePreferenceRaw = formData.get('app_name_preference');

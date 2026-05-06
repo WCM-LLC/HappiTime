@@ -524,6 +524,29 @@ export default async function VenuePage({
               </div>
             </div>
 
+            <div>
+              <label htmlFor="vi-website" className="text-body-sm font-medium text-foreground block mb-1.5">Website</label>
+              <input id="vi-website" name="website" type="url" placeholder="https://example.com" defaultValue={v?.website ?? ''} readOnly={!canManageVenue} className={inputCls} />
+            </div>
+
+            <div>
+              <p className="text-body-sm font-medium text-foreground mb-2">Social media</p>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-body-sm text-muted w-24 shrink-0">Facebook</span>
+                  <input name="facebook_url" type="url" placeholder="https://facebook.com/yourvenue" defaultValue={v?.facebook_url ?? ''} readOnly={!canManageVenue} className={inputCls} />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-body-sm text-muted w-24 shrink-0">Instagram</span>
+                  <input name="instagram_url" type="url" placeholder="https://instagram.com/yourvenue" defaultValue={v?.instagram_url ?? ''} readOnly={!canManageVenue} className={inputCls} />
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-body-sm text-muted w-24 shrink-0">TikTok</span>
+                  <input name="tiktok_url" type="url" placeholder="https://tiktok.com/@yourvenue" defaultValue={v?.tiktok_url ?? ''} readOnly={!canManageVenue} className={inputCls} />
+                </div>
+              </div>
+            </div>
+
             {canManageVenue ? (
               <div>
                 <button formAction={updateVenue.bind(null, orgId, venueId)} className={btnPrimary}>

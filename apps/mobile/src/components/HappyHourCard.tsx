@@ -1,6 +1,6 @@
 // src/components/HappyHourCard.tsx
 import React from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions, Image } from "react-native";
+import { View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions, Image, Linking } from "react-native";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
@@ -87,6 +87,9 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
     venue?.address ??
     (window as any).address ??
     null;
+
+  const venueSocial = venue as any;
+  const hasSocial = venueSocial?.facebook_url || venueSocial?.instagram_url || venueSocial?.tiktok_url;
 
   return (
     <View style={styles.card}>
@@ -226,6 +229,35 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
           )}
         </View>
       </Pressable>
+
+      {hasSocial && (
+        <View style={styles.socialRow}>
+          {venueSocial?.facebook_url && (
+            <Pressable
+              style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
+              onPress={() => Linking.openURL(venueSocial.facebook_url).catch(() => {})}
+            >
+              <Text style={styles.socialButtonText}>Facebook</Text>
+            </Pressable>
+          )}
+          {venueSocial?.instagram_url && (
+            <Pressable
+              style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
+              onPress={() => Linking.openURL(venueSocial.instagram_url).catch(() => {})}
+            >
+              <Text style={styles.socialButtonText}>Instagram</Text>
+            </Pressable>
+          )}
+          {venueSocial?.tiktok_url && (
+            <Pressable
+              style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
+              onPress={() => Linking.openURL(venueSocial.tiktok_url).catch(() => {})}
+            >
+              <Text style={styles.socialButtonText}>TikTok</Text>
+            </Pressable>
+          )}
+        </View>
+      )}
     </View>
   );
 };
@@ -406,5 +438,31 @@ const styles = StyleSheet.create({
   verifiedTextMuted: {
     color: colors.textMutedLight,
     fontSize: 12
-  }
+  },
+  socialRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    paddingTop: spacing.xs,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  socialButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  socialButtonPressed: {
+    opacity: 0.6,
+  },
+  socialButtonText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: colors.textMuted,
+  },
 });
