@@ -525,6 +525,11 @@ export default async function VenuePage({
             </div>
 
             <div>
+              <label htmlFor="vi-phone" className="text-body-sm font-medium text-foreground block mb-1.5">Phone</label>
+              <input id="vi-phone" name="phone" type="tel" placeholder="+1 (555) 000-0000" defaultValue={v?.phone ?? ''} readOnly={!canManageVenue} className={inputCls} />
+            </div>
+
+            <div>
               <label htmlFor="vi-website" className="text-body-sm font-medium text-foreground block mb-1.5">Website</label>
               <input id="vi-website" name="website" type="url" placeholder="https://example.com" defaultValue={v?.website ?? ''} readOnly={!canManageVenue} className={inputCls} />
             </div>

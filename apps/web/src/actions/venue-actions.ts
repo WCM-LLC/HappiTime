@@ -238,6 +238,7 @@ export async function updateVenue(orgId: string, venueId: string, formData: Form
     state: string | null;
     zip: string | null;
     timezone: string;
+    phone: string | null;
     website: string | null;
     facebook_url: string | null;
     instagram_url: string | null;
@@ -250,6 +251,7 @@ export async function updateVenue(orgId: string, venueId: string, formData: Form
     state: toNullableStr(formData.get('state')),
     zip: toNullableStr(formData.get('zip')),
     timezone: toNullableStr(formData.get('timezone')) ?? 'America/Chicago',
+    phone: toNullableStr(formData.get('phone')),
     website: toNullableStr(formData.get('website')),
     facebook_url: toNullableStr(formData.get('facebook_url')),
     instagram_url: toNullableStr(formData.get('instagram_url')),
