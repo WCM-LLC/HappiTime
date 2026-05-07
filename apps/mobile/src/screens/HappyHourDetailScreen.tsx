@@ -31,6 +31,7 @@ import { getHappyHourDisplayNames } from "../utils/happyHourDisplay";
 import { formatDays, formatTimeRange } from "../utils/formatters";
 import { distanceMiles } from "../utils/location";
 import { IconSymbol } from "../../components/ui/icon-symbol";
+import { SocialIcon } from "../../components/ui/SocialIcon";
 
 type Props = NativeStackScreenProps<RootStackParamList, "HappyHourDetail">;
 
@@ -567,59 +568,44 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
             <Text style={styles.actionText}>Add to Itinerary</Text>
           </Pressable>
           <View style={styles.actionSecondaryRow}>
-            {venue.website && (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.actionButtonSecondary,
-                  pressed && styles.actionButtonPressed
-                ]}
-                onPress={openWebsite}
-              >
-                <Text style={styles.actionSecondaryText}>Website</Text>
-              </Pressable>
-            )}
             {venue.phone && (
               <Pressable
-                style={({ pressed }) => [
-                  styles.actionButtonSecondary,
-                  pressed && styles.actionButtonPressed
-                ]}
+                style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={callVenue}
               >
-                <Text style={styles.actionSecondaryText}>Call</Text>
+                <IconSymbol name="phone" size={20} color={colors.primary} />
+              </Pressable>
+            )}
+            {venue.website && (
+              <Pressable
+                style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
+                onPress={openWebsite}
+              >
+                <IconSymbol name="globe" size={20} color={colors.primary} />
               </Pressable>
             )}
             {(venue as any).facebook_url && (
               <Pressable
-                style={({ pressed }) => [
-                  styles.actionButtonSecondary,
-                  pressed && styles.actionButtonPressed
-                ]}
+                style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={openFacebook}
               >
-                <Text style={styles.actionSecondaryText}>Facebook</Text>
+                <SocialIcon platform="facebook" size={20} color={colors.primary} />
               </Pressable>
             )}
             {(venue as any).instagram_url && (
               <Pressable
-                style={({ pressed }) => [
-                  styles.actionButtonSecondary,
-                  pressed && styles.actionButtonPressed
-                ]}
+                style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={openInstagram}
               >
-                <Text style={styles.actionSecondaryText}>Instagram</Text>
+                <SocialIcon platform="instagram" size={20} color={colors.primary} />
               </Pressable>
             )}
             {(venue as any).tiktok_url && (
               <Pressable
-                style={({ pressed }) => [
-                  styles.actionButtonSecondary,
-                  pressed && styles.actionButtonPressed
-                ]}
+                style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={openTikTok}
               >
-                <Text style={styles.actionSecondaryText}>TikTok</Text>
+                <SocialIcon platform="tiktok" size={20} color={colors.primary} />
               </Pressable>
             )}
           </View>
@@ -1200,7 +1186,15 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 14,
     fontWeight: "600",
-  }
+  },
+  actionIconBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.brandSubtle,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
 
 const pickerStyles = StyleSheet.create({

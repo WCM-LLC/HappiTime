@@ -2,6 +2,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView, useWindowDimensions, Image, Linking } from "react-native";
 import { IconSymbol } from "../../components/ui/icon-symbol";
+import { SocialIcon } from "../../components/ui/SocialIcon";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { getHappyHourDisplayNames } from "../utils/happyHourDisplay";
@@ -89,7 +90,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
     null;
 
   const venueSocial = venue as any;
-  const hasSocial = venueSocial?.facebook_url || venueSocial?.instagram_url || venueSocial?.tiktok_url;
+  const hasSocial = venueSocial?.phone || venueSocial?.website || venueSocial?.facebook_url || venueSocial?.instagram_url || venueSocial?.tiktok_url;
 
   return (
     <View style={styles.card}>
@@ -232,12 +233,28 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
 
       {hasSocial && (
         <View style={styles.socialRow}>
+          {venueSocial?.phone && (
+            <Pressable
+              style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
+              onPress={() => Linking.openURL(`tel:${venueSocial.phone}`).catch(() => {})}
+            >
+              <IconSymbol name="phone" size={16} color={colors.primary} />
+            </Pressable>
+          )}
+          {venueSocial?.website && (
+            <Pressable
+              style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
+              onPress={() => Linking.openURL(venueSocial.website).catch(() => {})}
+            >
+              <IconSymbol name="globe" size={16} color={colors.primary} />
+            </Pressable>
+          )}
           {venueSocial?.facebook_url && (
             <Pressable
               style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
               onPress={() => Linking.openURL(venueSocial.facebook_url).catch(() => {})}
             >
-              <Text style={styles.socialButtonText}>Facebook</Text>
+              <SocialIcon platform="facebook" size={16} color={colors.primary} />
             </Pressable>
           )}
           {venueSocial?.instagram_url && (
@@ -245,7 +262,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
               style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
               onPress={() => Linking.openURL(venueSocial.instagram_url).catch(() => {})}
             >
-              <Text style={styles.socialButtonText}>Instagram</Text>
+              <SocialIcon platform="instagram" size={16} color={colors.primary} />
             </Pressable>
           )}
           {venueSocial?.tiktok_url && (
@@ -253,7 +270,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
               style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
               onPress={() => Linking.openURL(venueSocial.tiktok_url).catch(() => {})}
             >
-              <Text style={styles.socialButtonText}>TikTok</Text>
+              <SocialIcon platform="tiktok" size={16} color={colors.primary} />
             </Pressable>
           )}
         </View>
@@ -450,19 +467,14 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   socialButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.brandSubtle,
+    alignItems: "center",
+    justifyContent: "center",
   },
   socialButtonPressed: {
     opacity: 0.6,
-  },
-  socialButtonText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: colors.textMuted,
   },
 });

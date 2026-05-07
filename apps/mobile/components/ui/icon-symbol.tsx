@@ -40,6 +40,8 @@ const MAPPING = {
   'heart.fill': 'favorite',
   'location.fill': 'my-location',
   'xmark.circle.fill': 'cancel',
+  'globe': 'language',
+  'phone': 'phone',
 } as const;
 
 type IconSymbolName = keyof typeof MAPPING;

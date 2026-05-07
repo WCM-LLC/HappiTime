@@ -16,6 +16,11 @@ export type ItineraryMapVenue = {
   status?: string | null;
   lat?: number | null;
   lng?: number | null;
+  phone?: string | null;
+  website?: string | null;
+  facebook_url?: string | null;
+  instagram_url?: string | null;
+  tiktok_url?: string | null;
   promotion_tier?: string | null;
   promotion_priority?: number | null;
 };

@@ -8,6 +8,7 @@ import {
   Pressable,
   Image,
   Platform,
+  Linking,
 } from "react-native";
 import MapView, { Marker, Region } from "react-native-maps";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -19,6 +20,7 @@ import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useVenueCovers } from "../hooks/useVenueCovers";
 import { SearchableOptionSheet } from "../components/SearchableOptionSheet";
 import { IconSymbol } from "../../components/ui/icon-symbol";
+import { SocialIcon } from "../../components/ui/SocialIcon";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { getHappyHourDisplayNames } from "../utils/happyHourDisplay";
@@ -302,6 +304,9 @@ export const MapScreen: React.FC = () => {
           address,
           phone,
           website,
+          facebook_url,
+          instagram_url,
+          tiktok_url,
           neighborhood,
           city,
           state,
@@ -369,6 +374,11 @@ export const MapScreen: React.FC = () => {
           name,
           org_name,
           address,
+          phone,
+          website,
+          facebook_url,
+          instagram_url,
+          tiktok_url,
           neighborhood,
           city,
           state,
@@ -855,7 +865,7 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
   onDismiss,
 }) => {
   const { titleText } = getHappyHourDisplayNames(window);
-  const venue = window.venue;
+  const venue = window.venue as any;
   const priceTier = formatPriceTier(venue?.price_tier);
   const ratingRaw = venue?.rating ?? null;
   const rating = Number.isFinite(Number(ratingRaw)) ? Number(ratingRaw) : null;
@@ -924,6 +934,57 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
           {timeText ? (
             <Text style={styles.miniCardTimeText}>{timeText}</Text>
           ) : null}
+
+          {/* Contact / social icon strip */}
+          {(venue?.phone || venue?.website || venue?.facebook_url || venue?.instagram_url || venue?.tiktok_url) && (
+            <View style={styles.miniCardLinkRow}>
+              {venue?.phone && (
+                <Pressable
+                  hitSlop={6}
+                  onPress={(e) => { e.stopPropagation(); Linking.openURL(`tel:${venue.phone}`).catch(() => {}); }}
+                  style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
+                >
+                  <IconSymbol name="phone" size={13} color={colors.primary} />
+                </Pressable>
+              )}
+              {venue?.website && (
+                <Pressable
+                  hitSlop={6}
+                  onPress={(e) => { e.stopPropagation(); Linking.openURL(venue.website).catch(() => {}); }}
+                  style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
+                >
+                  <IconSymbol name="globe" size={13} color={colors.primary} />
+                </Pressable>
+              )}
+              {venue?.facebook_url && (
+                <Pressable
+                  hitSlop={6}
+                  onPress={(e) => { e.stopPropagation(); Linking.openURL(venue.facebook_url).catch(() => {}); }}
+                  style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
+                >
+                  <SocialIcon platform="facebook" size={13} color={colors.primary} />
+                </Pressable>
+              )}
+              {venue?.instagram_url && (
+                <Pressable
+                  hitSlop={6}
+                  onPress={(e) => { e.stopPropagation(); Linking.openURL(venue.instagram_url).catch(() => {}); }}
+                  style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
+                >
+                  <SocialIcon platform="instagram" size={13} color={colors.primary} />
+                </Pressable>
+              )}
+              {venue?.tiktok_url && (
+                <Pressable
+                  hitSlop={6}
+                  onPress={(e) => { e.stopPropagation(); Linking.openURL(venue.tiktok_url).catch(() => {}); }}
+                  style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
+                >
+                  <SocialIcon platform="tiktok" size={13} color={colors.primary} />
+                </Pressable>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Right arrow */}
@@ -1213,6 +1274,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     color: colors.primary,
+  },
+  miniCardLinkRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 5,
+  },
+  miniCardLinkBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.brandSubtle,
+    alignItems: "center",
+    justifyContent: "center",
   },
   miniCardArrow: {
     marginLeft: spacing.sm,
