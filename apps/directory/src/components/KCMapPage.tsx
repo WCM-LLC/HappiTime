@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import type { VenueWithWindows } from "@/lib/queries";
+import type { VenueWithWindows, VenueEvent } from "@/lib/queries";
 import type { Neighborhood } from "@/lib/neighborhoods";
+import { eventOccursToday } from "@/lib/eventUtils";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -501,13 +502,16 @@ type FilterBarProps = {
   setFilters: (fn: (prev: Filters) => Filters) => void;
   openNow: boolean;
   setOpenNow: (fn: (prev: boolean) => boolean) => void;
+  todaysEvents: boolean;
+  setTodaysEvents: (fn: (prev: boolean) => boolean) => void;
+  onOpenCalendar: () => void;
   search: string;
   setSearch: (s: string) => void;
   count: number;
   neighborhoodNames: string[];
 };
 
-function FilterBar({ filters, setFilters, openNow, setOpenNow, search, setSearch, count, neighborhoodNames }: FilterBarProps) {
+function FilterBar({ filters, setFilters, openNow, setOpenNow, todaysEvents, setTodaysEvents, onOpenCalendar, search, setSearch, count, neighborhoodNames }: FilterBarProps) {
   const [openCat, setOpenCat] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -520,7 +524,7 @@ function FilterBar({ filters, setFilters, openNow, setOpenNow, search, setSearch
   }, []);
 
   const totalActive =
-    Object.values(filters).flat().length + (openNow ? 1 : 0);
+    Object.values(filters).flat().length + (openNow ? 1 : 0) + (todaysEvents ? 1 : 0);
 
   const filterOpts: Record<string, string[]> = {
     neighborhood: neighborhoodNames,
@@ -546,6 +550,7 @@ function FilterBar({ filters, setFilters, openNow, setOpenNow, search, setSearch
   function clearAll() {
     setFilters(() => ({ neighborhood: [], cuisine: [], amenities: [], drinks: [] }));
     setOpenNow(() => false);
+    setTodaysEvents(() => false);
     setSearch("");
   }
 
@@ -618,6 +623,47 @@ function FilterBar({ filters, setFilters, openNow, setOpenNow, search, setSearch
           Open Now
         </button>
 
+        {/* Today's Events chip */}
+        <button
+          onClick={() => setTodaysEvents((v) => !v)}
+          className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer whitespace-nowrap transition-all duration-150"
+          style={{
+            border: `1px solid ${todaysEvents ? "#7C3AED" : "#E8E5E0"}`,
+            background: todaysEvents ? "#F5F3FF" : "#FFFFFF",
+            color: todaysEvents ? "#7C3AED" : "#1A1A1A",
+          }}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          Today&apos;s Events
+        </button>
+
+        {/* Events Calendar button */}
+        <button
+          onClick={onOpenCalendar}
+          className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold cursor-pointer whitespace-nowrap transition-all duration-150"
+          style={{
+            border: "1px solid #E8E5E0",
+            background: "#FFFFFF",
+            color: "#1A1A1A",
+          }}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+            <circle cx="8" cy="15" r="1" fill="currentColor" />
+            <circle cx="12" cy="15" r="1" fill="currentColor" />
+            <circle cx="16" cy="15" r="1" fill="currentColor" />
+          </svg>
+          Calendar
+        </button>
+
         <div className="flex-1 min-w-2" />
         <span className="text-xs text-muted whitespace-nowrap flex-shrink-0 font-medium hidden sm:inline">
           {count} venue{count !== 1 ? "s" : ""}
@@ -678,6 +724,7 @@ type VenueRowProps = {
   venue: VenueWithWindows;
   selected: boolean;
   todayDow: number;
+  now: Date;
   neighborhoodName: string;
   venueHref: string;
   onSelect: (venue: VenueWithWindows) => void;
@@ -685,10 +732,11 @@ type VenueRowProps = {
   isMobile: boolean;
 };
 
-function VenueRow({ venue, selected, todayDow, neighborhoodName, venueHref, onSelect, onHover, isMobile }: VenueRowProps) {
+function VenueRow({ venue, selected, todayDow, now, neighborhoodName, venueHref, onSelect, onHover, isMobile }: VenueRowProps) {
   const active = isActiveToday(venue, todayDow);
   const win = getActiveWindow(venue, todayDow);
   const firstItem = win?.menu_items[0];
+  const todayEvents = venue.venue_events.filter((e) => eventOccursToday(e, now));
 
   const amenityTags = venue.tags.filter((t) =>
     Object.values(AMENITY_TO_TAGS).flat().includes(t)
@@ -750,6 +798,21 @@ function VenueRow({ venue, selected, todayDow, neighborhoodName, venueHref, onSe
             ))}
           </div>
         )}
+
+        {todayEvents.length > 0 && (
+          <div className="flex gap-1 mt-1.5 flex-wrap">
+            {todayEvents.slice(0, 2).map((e) => (
+              <span key={e.id} className="text-[10px] rounded font-medium" style={{ color: "#7C3AED", background: "#F5F3FF", padding: "1px 5px" }}>
+                {e.title}
+              </span>
+            ))}
+            {todayEvents.length > 2 && (
+              <span className="text-[10px] rounded" style={{ color: "#7C3AED", background: "#F5F3FF", padding: "1px 5px" }}>
+                +{todayEvents.length - 2} more
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -775,6 +838,190 @@ function VenueRow({ venue, selected, todayDow, neighborhoodName, venueHref, onSe
   );
 }
 
+// ── EventsCalendarModal ────────────────────────────────────────────────────────
+
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAY_ABBREVS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+type CalendarEntry = {
+  venueName: string;
+  venueHref: string;
+  event: VenueEvent;
+};
+
+function EventsCalendarModal({
+  venues,
+  bestNeighborhoodSlugMap,
+  onClose,
+}: {
+  venues: VenueWithWindows[];
+  bestNeighborhoodSlugMap: Record<string, string>;
+  onClose: () => void;
+}) {
+  const today = new Date();
+  const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [selectedDay, setSelectedDay] = useState<Date>(today);
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDow = new Date(year, month, 1).getDay();
+
+  function getVenueHref(venueId: string, venueSlug: string): string {
+    const slug = bestNeighborhoodSlugMap[venueId] ?? "kansas-city";
+    return `/kc/${slug}/${venueSlug}/`;
+  }
+
+  function getEventsForDay(day: number): CalendarEntry[] {
+    const d = new Date(year, month, day);
+    const result: CalendarEntry[] = [];
+    for (const v of venues) {
+      for (const e of v.venue_events) {
+        if (eventOccursToday(e, d)) {
+          result.push({ venueName: v.name, venueHref: getVenueHref(v.id, v.slug), event: e });
+        }
+      }
+    }
+    return result;
+  }
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const selectedDayEntries = getEventsForDay(selectedDay.getDate());
+  const isSelectedInView =
+    selectedDay.getFullYear() === year && selectedDay.getMonth() === month;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.5)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="bg-surface rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        style={{ width: "min(500px, 95vw)", maxHeight: "88vh" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-border flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={() => setViewDate(new Date(year, month - 1, 1))}
+              className="w-7 h-7 flex items-center justify-center rounded-full border border-border hover:bg-background transition-colors"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <span className="text-sm font-bold text-foreground w-36 text-center">
+              {MONTH_NAMES[month]} {year}
+            </span>
+            <button
+              onClick={() => setViewDate(new Date(year, month + 1, 1))}
+              className="w-7 h-7 flex items-center justify-center rounded-full border border-border hover:bg-background transition-colors"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 flex items-center justify-center rounded-full text-sm"
+            style={{ background: "rgba(0,0,0,0.08)", color: "#6B6B6B" }}
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Calendar grid */}
+        <div className="px-4 pt-3 pb-2 flex-shrink-0">
+          <div className="grid grid-cols-7 mb-1">
+            {DAY_ABBREVS.map((d) => (
+              <div key={d} className="text-center text-[10px] font-semibold text-muted py-1">
+                {d}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-0.5">
+            {cells.map((day, i) => {
+              if (!day) return <div key={`empty-${i}`} />;
+              const cellDate = new Date(year, month, day);
+              const isToday = cellDate.toDateString() === today.toDateString();
+              const isSelected = isSelectedInView && selectedDay.getDate() === day;
+              const eventCount = getEventsForDay(day).length;
+              return (
+                <button
+                  key={`day-${day}`}
+                  onClick={() => setSelectedDay(cellDate)}
+                  className="flex flex-col items-center justify-center rounded-lg py-1.5 transition-colors"
+                  style={{
+                    background: isSelected ? "#1A1A1A" : isToday ? "#F5EDE3" : "transparent",
+                    border: isToday && !isSelected ? "1px solid #C8965A" : "1px solid transparent",
+                  }}
+                >
+                  <span
+                    className="text-xs font-semibold leading-none"
+                    style={{ color: isSelected ? "#fff" : isToday ? "#8B6535" : "#1A1A1A" }}
+                  >
+                    {day}
+                  </span>
+                  {eventCount > 0 && (
+                    <span
+                      className="w-1 h-1 rounded-full mt-0.5"
+                      style={{ background: isSelected ? "#C8965A" : "#7C3AED" }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Event list */}
+        <div className="flex-1 overflow-y-auto border-t border-border">
+          <div className="px-4 py-3">
+            <p className="text-xs font-bold text-muted mb-2.5">
+              {selectedDay.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+              {" · "}{isSelectedInView ? selectedDayEntries.length : 0} event{(isSelectedInView ? selectedDayEntries.length : 0) !== 1 ? "s" : ""}
+            </p>
+            {!isSelectedInView || selectedDayEntries.length === 0 ? (
+              <p className="text-sm text-muted-light text-center py-6">No events scheduled.</p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {selectedDayEntries.map((ce, i) => (
+                  <a
+                    key={i}
+                    href={ce.venueHref}
+                    className="block rounded-xl border border-border p-3 hover:border-brand transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-foreground truncate">{ce.event.title}</p>
+                        <p className="text-xs text-muted mt-0.5">{ce.venueName}</p>
+                        {ce.event.description && (
+                          <p className="text-[11px] text-muted mt-1 line-clamp-2">{ce.event.description}</p>
+                        )}
+                      </div>
+                      {ce.event.price_info && (
+                        <span className="text-[10px] rounded-full px-2 py-0.5 flex-shrink-0 font-medium" style={{ background: "#F5EDE3", color: "#8B6535" }}>
+                          {ce.event.price_info}
+                        </span>
+                      )}
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── KCMapPage ─────────────────────────────────────────────────────────────────
 
 type KCMapPageProps = {
@@ -791,6 +1038,8 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
     neighborhood: [], cuisine: [], amenities: [], drinks: [],
   });
   const [openNow, setOpenNow] = useState(false);
+  const [todaysEvents, setTodaysEvents] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mobileTab, setMobileTab] = useState<"list" | "map">("list");
@@ -845,6 +1094,8 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
 
     if (openNow && !isOpenNow(v, now)) return false;
 
+    if (todaysEvents && !v.venue_events.some((e) => eventOccursToday(e, now))) return false;
+
     if (search) {
       const q = search.toLowerCase();
       const hoodName = getNeighborhoodName(v.id).toLowerCase();
@@ -875,6 +1126,7 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
     if (filters.drinks.length) p.set("d", filters.drinks.join(","));
     if (search) p.set("q", search);
     if (openNow) p.set("open", "1");
+    if (todaysEvents) p.set("events", "1");
     const url = `https://happitime.biz/kc/${p.toString() ? "?" + p.toString() : ""}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
@@ -910,6 +1162,7 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
             venue={v}
             selected={selectedId === v.id}
             todayDow={todayDow}
+            now={now}
             neighborhoodName={getNeighborhoodName(v.id)}
             venueHref={getVenueHref(v)}
             onSelect={handlePin}
@@ -988,11 +1241,22 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
         setFilters={setFilters}
         openNow={openNow}
         setOpenNow={setOpenNow}
+        todaysEvents={todaysEvents}
+        setTodaysEvents={setTodaysEvents}
+        onOpenCalendar={() => setShowCalendar(true)}
         search={search}
         setSearch={setSearch}
         count={filteredVenues.length}
         neighborhoodNames={neighborhoodNames}
       />
+
+      {showCalendar && (
+        <EventsCalendarModal
+          venues={venues}
+          bestNeighborhoodSlugMap={bestNeighborhoodSlugMap}
+          onClose={() => setShowCalendar(false)}
+        />
+      )}
 
       {/* Mobile tab switcher */}
       {isMobile && (

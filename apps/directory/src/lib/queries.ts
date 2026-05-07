@@ -228,7 +228,7 @@ export async function getVenuesByNeighborhood(
 
   const { data, error } = await supabase
     .from("venues")
-    .select(`${VENUE_FIELDS}, happy_hour_windows!inner(${WINDOW_FIELDS}), venue_events(id, title, event_type, starts_at), venue_media(id, type, title, storage_path, sort_order, source)`)
+    .select(`${VENUE_FIELDS}, happy_hour_windows!inner(${WINDOW_FIELDS}), venue_events(id, title, description, event_type, starts_at, ends_at, is_recurring, recurrence_rule, price_info), venue_media(id, type, title, storage_path, sort_order, source)`)
     .gte("lat", neighborhood.lat - latDelta)
     .lte("lat", neighborhood.lat + latDelta)
     .gte("lng", neighborhood.lng - lngDelta)
@@ -293,7 +293,7 @@ export async function getVenueBySlug(
 export async function getAllKCVenues(): Promise<VenueWithWindows[]> {
   const { data, error } = await supabase
     .from("venues")
-    .select(`${VENUE_FIELDS}, happy_hour_windows!inner(${WINDOW_FIELDS}), venue_events(id, title, event_type, starts_at), venue_media(id, type, title, storage_path, sort_order, source)`)
+    .select(`${VENUE_FIELDS}, happy_hour_windows!inner(${WINDOW_FIELDS}), venue_events(id, title, description, event_type, starts_at, ends_at, is_recurring, recurrence_rule, price_info), venue_media(id, type, title, storage_path, sort_order, source)`)
     .ilike("city", "%kansas city%")
     .eq("happy_hour_windows.status", "published")
     .eq("venue_events.status", "published")
