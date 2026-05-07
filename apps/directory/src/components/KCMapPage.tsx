@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { VenueWithWindows, VenueEvent } from "@/lib/queries";
 import type { Neighborhood } from "@/lib/neighborhoods";
 import { eventOccursToday } from "@/lib/eventUtils";
+import { venueImageUrl } from "@/lib/mediaUrl";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -373,11 +374,9 @@ type MapPopupProps = {
   onClose: () => void;
 };
 
-const STORAGE_BASE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/venue-media`;
-
 function getVenueCover(venue: VenueWithWindows): string | null {
   const img = venue.venue_media.find((m) => m.type === "image");
-  return img ? `${STORAGE_BASE}/${img.storage_path}` : null;
+  return img ? venueImageUrl(img, { w: 640 }) : null;
 }
 
 function MapPopup({ venue, todayDow, venueHref, isMobile, onClose }: MapPopupProps) {

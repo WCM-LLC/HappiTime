@@ -46,6 +46,7 @@ export type VenueMediaItem = {
   id: string;
   type: string;
   title: string | null;
+  storage_bucket: string;
   storage_path: string;
   sort_order: number;
   source: string;
@@ -130,6 +131,7 @@ function shapeVenue(raw: any): VenueWithWindows {
       id: m.id,
       type: m.type,
       title: m.title ?? null,
+      storage_bucket: m.storage_bucket ?? 'venue-media',
       storage_path: m.storage_path,
       sort_order: m.sort_order,
       source: m.source ?? 'unknown',
@@ -228,7 +230,7 @@ export async function getVenuesByNeighborhood(
 
   const { data, error } = await supabase
     .from("venues")
-    .select(`${VENUE_FIELDS}, happy_hour_windows(${WINDOW_FIELDS}), venue_events(id, title, description, event_type, starts_at, ends_at, is_recurring, recurrence_rule, price_info), venue_media(id, type, title, storage_path, sort_order, source)`)
+    .select(`${VENUE_FIELDS}, happy_hour_windows(${WINDOW_FIELDS}), venue_events(id, title, description, event_type, starts_at, ends_at, is_recurring, recurrence_rule, price_info), venue_media(id, type, title, storage_bucket, storage_path, sort_order, source)`)
     .gte("lat", neighborhood.lat - latDelta)
     .lte("lat", neighborhood.lat + latDelta)
     .gte("lng", neighborhood.lng - lngDelta)
@@ -258,7 +260,7 @@ export async function getVenueBySlug(
       ${VENUE_FIELDS},
       happy_hour_windows(${WINDOW_FIELDS}),
       venue_events(id, title, description, event_type, starts_at, ends_at, is_recurring, recurrence_rule, price_info, external_url, ticket_url, cover_image_path),
-      venue_media(id, type, title, storage_path, sort_order, source)
+      venue_media(id, type, title, storage_bucket, storage_path, sort_order, source)
     `)
     .eq("slug", slug)
     .eq("venue_events.status", "published")
@@ -293,7 +295,7 @@ export async function getVenueBySlug(
 export async function getAllKCVenues(): Promise<VenueWithWindows[]> {
   const { data, error } = await supabase
     .from("venues")
-    .select(`${VENUE_FIELDS}, happy_hour_windows(${WINDOW_FIELDS}), venue_events(id, title, description, event_type, starts_at, ends_at, is_recurring, recurrence_rule, price_info), venue_media(id, type, title, storage_path, sort_order, source)`)
+    .select(`${VENUE_FIELDS}, happy_hour_windows(${WINDOW_FIELDS}), venue_events(id, title, description, event_type, starts_at, ends_at, is_recurring, recurrence_rule, price_info), venue_media(id, type, title, storage_bucket, storage_path, sort_order, source)`)
     .ilike("city", "%kansas city%")
     .eq("happy_hour_windows.status", "published")
     .eq("venue_events.status", "published")

@@ -71,6 +71,9 @@ const placesKey =
 
 const batchLimit = Number(Deno.env.get("PLACES_BATCH_LIMIT") ?? "5");
 const maxAttempts = Number(Deno.env.get("PLACES_MAX_ATTEMPTS") ?? "4");
+
+const cloudinaryCloud = Deno.env.get("CLOUDINARY_CLOUD_NAME") ?? "dhucspghz";
+const cloudinaryPreset = Deno.env.get("CLOUDINARY_UPLOAD_PRESET") ?? "happitime_venue_media";
 const retryMinutes = Number(Deno.env.get("PLACES_RETRY_MINUTES") ?? "60");
 const refreshDays = Number(Deno.env.get("PLACES_REFRESH_DAYS") ?? "30");
 const maxPhotos = Number(Deno.env.get("PLACES_MAX_PHOTOS") ?? "6");
@@ -542,40 +545,35 @@ const refreshVenueMedia = async (
   venueId: string,
   photoNames: string[]
 ) => {
-  const bucket = "venue-media";
-  const prefix = `places/${venueId}`;
   const errors: string[] = [];
 
-  const { data: existing, error: listError } = await supabase.storage
-    .from(bucket)
-    .list(prefix, { limit: 1000 });
-
-  if (listError) {
-    errors.push(`List storage: ${listError.message}`);
+  // 1. Clean up legacy Supabase Storage files (rows migrated before this change).
+  const legacyPrefix = `places/${venueId}`;
+  const { data: legacyFiles } = await supabase.storage
+    .from("venue-media")
+    .list(legacyPrefix, { limit: 1000 });
+  const legacyPaths = legacyFiles?.map((f) => `${legacyPrefix}/${f.name}`) ?? [];
+  if (legacyPaths.length > 0) {
+    await supabase.storage.from("venue-media").remove(legacyPaths);
   }
+  await supabase.from("venue_media").delete()
+    .eq("venue_id", venueId)
+    .eq("storage_bucket", "venue-media")
+    .ilike("storage_path", `${legacyPrefix}/%`);
 
-  const existingPaths =
-    existing?.map((item) => `${prefix}/${item.name}`) ?? [];
-  if (existingPaths.length > 0) {
-    const { error: removeError } = await supabase.storage
-      .from(bucket)
-      .remove(existingPaths);
-    if (removeError) {
-      errors.push(`Remove storage: ${removeError.message}`);
-    }
-  }
-
+  // 2. Delete existing Cloudinary rows for this venue from Google Places.
   const { error: deleteError } = await supabase
     .from("venue_media")
     .delete()
     .eq("venue_id", venueId)
-    .eq("storage_bucket", bucket)
-    .ilike("storage_path", `${prefix}/%`);
+    .eq("storage_bucket", "cloudinary")
+    .eq("title", "Google Places");
 
   if (deleteError) {
     errors.push(`Delete metadata: ${deleteError.message}`);
   }
 
+  // 3. Upload fresh photos to Cloudinary.
   const uploads: MediaUpload[] = [];
   for (const [index, photoName] of photoNames.entries()) {
     let photo: Awaited<ReturnType<typeof downloadPlacePhoto>>;
@@ -592,23 +590,24 @@ const refreshVenueMedia = async (
       continue;
     }
 
-    const fileBase = getPhotoFileBase(photoName, index);
-    const path = `${prefix}/${fileBase}.${photo.extension}`;
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(
-      path,
-      photo.data,
-      {
-        contentType: photo.contentType,
-        upsert: true
-      }
+    const publicId = `happitime/venues/${venueId}/${crypto.randomUUID()}`;
+    const formData = new FormData();
+    formData.append("file", new Blob([photo.data], { type: photo.contentType }));
+    formData.append("upload_preset", cloudinaryPreset);
+    formData.append("public_id", publicId);
+
+    const uploadRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudinaryCloud}/image/upload`,
+      { method: "POST", body: formData }
     );
 
-    if (uploadError) {
-      errors.push(`Upload photo ${index + 1}: ${uploadError.message}`);
+    if (!uploadRes.ok) {
+      const text = await uploadRes.text();
+      errors.push(`Upload photo ${index + 1}: ${text}`);
       continue;
     }
 
-    uploads.push({ path, sortOrder: index });
+    uploads.push({ path: publicId, sortOrder: index });
   }
 
   if (uploads.length > 0) {
@@ -618,7 +617,8 @@ const refreshVenueMedia = async (
         type: "image",
         status: "published",
         title: "Google Places",
-        storage_bucket: bucket,
+        source: "google_places",
+        storage_bucket: "cloudinary",
         storage_path: upload.path,
         sort_order: upload.sortOrder
       }))

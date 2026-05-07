@@ -10,16 +10,16 @@ import {
   type MediaRow,
   type MediaType,
 } from '@/services/media-store';
+import { venueImageUrl } from '@/services/media';
+import { deleteCloudinaryAsset } from '@/app/actions/media';
+
+const CLOUDINARY_CLOUD = 'dhucspghz';
+const CLOUDINARY_PRESET = 'happitime_venue_media';
 
 export default function VenueMediaUploader(props: { orgId: string; venueId: string }) {
   const { orgId, venueId } = props;
   const supabaseRef = useRef(createClient());
   const supabase = supabaseRef.current;
-
-  function publicUrl(storagePath: string) {
-    const { data } = supabase.storage.from('venue-media').getPublicUrl(storagePath);
-    return data?.publicUrl ?? '';
-  }
 
   const [rows, setRows] = useState<MediaRow[]>([]);
   const [busy, setBusy] = useState(false);
@@ -45,14 +45,8 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
     setBusy(true);
     setError(null);
     try {
-      const ext = file.name.split('.').pop() ?? 'bin';
-      const path = `${orgId}/${venueId}/${crypto.randomUUID()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('venue-media')
-        .upload(path, file, { upsert: false });
-
-      if (uploadError) throw uploadError;
+      const mediaId = crypto.randomUUID();
+      const publicId = `happitime/venues/${venueId}/${mediaId}`;
 
       const type: MediaType =
         file.type.startsWith('video/')
@@ -60,6 +54,21 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
           : file.type === 'application/pdf'
             ? 'menu_pdf'
             : 'image';
+
+      const resourceType = type === 'video' ? 'video' : type === 'menu_pdf' ? 'raw' : 'image';
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', CLOUDINARY_PRESET);
+      formData.append('public_id', publicId);
+
+      const uploadRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/${resourceType}/upload`,
+        { method: 'POST', body: formData }
+      );
+      if (!uploadRes.ok) {
+        const text = await uploadRes.text();
+        throw new Error(`Cloudinary upload failed: ${text}`);
+      }
 
       // First upload becomes cover (sort_order 0); subsequent get appended
       const nextOrder = rows.length === 0 ? 0 : Math.max(...rows.map((r) => r.sort_order)) + 1;
@@ -69,7 +78,8 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
         venue_id: venueId,
         type,
         title: file.name,
-        storage_path: path,
+        storage_bucket: 'cloudinary',
+        storage_path: publicId,
         sort_order: nextOrder,
       });
 
@@ -86,12 +96,18 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
     if (!confirm(`Delete "${row.title ?? row.type}"?`)) return;
     setDeletingId(row.id);
     setError(null);
-    const result = await deleteVenueMedia(supabase, row.id, row.storage_path);
-    setDeletingId(null);
-    if (result.error) {
-      setError(result.error);
-    } else {
+    try {
+      if (row.storage_bucket === 'cloudinary') {
+        const { error } = await deleteCloudinaryAsset(row.storage_path);
+        if (error) throw new Error(error);
+      }
+      const result = await deleteVenueMedia(supabase, row.id, row.storage_path, row.storage_bucket);
+      if (result.error) throw new Error(result.error);
       await refresh();
+    } catch (e: any) {
+      setError(e?.message ?? 'Delete failed');
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -264,7 +280,7 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
                   }}
                 >
                   <img
-                    src={publicUrl(row.storage_path)}
+                    src={venueImageUrl(row, { w: 400 })}
                     alt={row.title ?? 'venue photo'}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                   />
@@ -368,7 +384,7 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
                       <span className="muted" style={{ fontSize: 12 }}>{row.type}</span>
                     </div>
                     <div className="row" style={{ gap: 8 }}>
-                      <a href={publicUrl(row.storage_path)} target="_blank" rel="noreferrer">
+                      <a href={venueImageUrl(row, {})} target="_blank" rel="noreferrer">
                         <button className="secondary" style={{ padding: '6px 10px', fontSize: 12 }}>Open</button>
                       </a>
                       <button

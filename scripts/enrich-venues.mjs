@@ -61,6 +61,15 @@ if (!SERVICE_KEY) {
   process.exit(1);
 }
 
+if (!process.env.SUPABASE_STORAGE_WRITE_OK) {
+  console.error(
+    '⛔  This script writes photos to Supabase Storage (legacy).\n' +
+    '    New uploads should go to Cloudinary via the import-places Edge Function.\n' +
+    '    Set SUPABASE_STORAGE_WRITE_OK=1 to bypass this check if you are sure.'
+  );
+  process.exit(1);
+}
+
 // ─── rate-limiter (10 req/s) ──────────────────────────────────────────────────
 
 const RATE_MS = 100; // 10 requests per second

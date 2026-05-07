@@ -1,10 +1,9 @@
 import type { VenueWithWindows } from "@/lib/queries";
-
-const STORAGE_BASE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/venue-media`;
+import { venueImageUrl } from "@/lib/mediaUrl";
 
 function coverUrl(venue: VenueWithWindows): string | null {
   const img = venue.venue_media.find((m) => m.type === "image");
-  return img ? `${STORAGE_BASE}/${img.storage_path}` : null;
+  return img ? venueImageUrl(img, { w: 640 }) : null;
 }
 
 const DOW_SHORT = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];

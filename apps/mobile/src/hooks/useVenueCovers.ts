@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../api/supabaseClient";
+import { venueImageUrl } from "../utils/mediaUrl";
 
 const SOURCE_PRIORITY: Record<string, number> = {
   upload: 0,
@@ -74,12 +75,10 @@ export function useVenueMediaGalleries(
               return String(a.id ?? "").localeCompare(String(b.id ?? ""));
             })
             .slice(0, maxPerVenue)
-            .map((row) => {
-              const { data: urlData } = supabase.storage
-                .from(row.storage_bucket || "venue-media")
-                .getPublicUrl(row.storage_path);
-              return urlData?.publicUrl ?? "";
-            })
+            .map((row) => venueImageUrl(
+              { storage_bucket: row.storage_bucket || 'venue-media', storage_path: row.storage_path },
+              { w: 800 }
+            ))
             .filter(Boolean);
 
           if (urls.length > 0) {

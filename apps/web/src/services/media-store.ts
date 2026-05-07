@@ -6,6 +6,7 @@ export type MediaRow = {
   id: string;
   type: MediaType;
   title: string | null;
+  storage_bucket: string;
   storage_path: string;
   sort_order: number;
   source: string;
@@ -18,6 +19,7 @@ export type MediaInsert = {
   venue_id: string;
   type: MediaType;
   title: string | null;
+  storage_bucket?: string;
   storage_path: string;
   sort_order?: number;
 };
@@ -91,7 +93,7 @@ export async function listVenueMedia(
 
   let query = supabase
     .from(table)
-    .select('id,type,title,storage_path,sort_order,source,status,created_at')
+    .select('id,type,title,storage_bucket,storage_path,sort_order,source,status,created_at')
     .eq('venue_id', venueId)
     .order('sort_order', { ascending: true })
     .order('created_at', { ascending: true });
@@ -130,7 +132,7 @@ export async function insertVenueMedia(
           sort_order: payload.sort_order ?? 999,
           source: 'upload',
           status: 'published',
-          storage_bucket: 'venue-media',
+          storage_bucket: payload.storage_bucket ?? 'cloudinary',
         };
 
   const { error } = await supabase.from(table).insert(insertPayload);
@@ -144,14 +146,17 @@ export async function insertVenueMedia(
 export async function deleteVenueMedia(
   supabase: SupabaseClient,
   id: string,
-  storagePath: string
+  storagePath: string,
+  storageBucket = 'venue-media'
 ): Promise<{ error: string | null }> {
-  const { error: storageError } = await supabase.storage
-    .from('venue-media')
-    .remove([storagePath]);
-
-  if (storageError) {
-    return { error: storageError.message ?? 'storage_delete_failed' };
+  // Cloudinary rows: physical file deletion handled by deleteCloudinaryAsset server action.
+  if (storageBucket !== 'cloudinary') {
+    const { error: storageError } = await supabase.storage
+      .from(storageBucket)
+      .remove([storagePath]);
+    if (storageError) {
+      return { error: storageError.message ?? 'storage_delete_failed' };
+    }
   }
 
   const table = await resolveMediaTable(supabase);

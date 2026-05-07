@@ -6,6 +6,7 @@ import { getVenueBySlug } from "@/lib/queries";
 import { venueJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 import { PageTracker } from "@/components/PageTracker";
 import { ItineraryButton } from "@/components/ItineraryButton";
+import { venueImageUrl } from "@/lib/mediaUrl";
 
 export const revalidate = 900;
 
@@ -420,7 +421,7 @@ export default async function VenueDetailPage({ params }: Props) {
                   className="aspect-[4/3] rounded-xl overflow-hidden border border-border"
                 >
                   <img
-                    src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/venue-media/${m.storage_path}`}
+                    src={venueImageUrl(m, { w: 800 })}
                     alt={m.title ?? `${venue.name} photo`}
                     className="w-full h-full object-cover"
                     loading="lazy"

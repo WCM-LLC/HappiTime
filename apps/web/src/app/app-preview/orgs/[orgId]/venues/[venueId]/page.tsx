@@ -4,6 +4,7 @@ import type { HappyHourWindow, Menu } from '@happitime/shared-types';
 import { createClient } from '@/utils/supabase/server';
 import ScheduledEventsPopout, { type ScheduledPreviewEvent } from './ScheduledEventsPopout';
 import styles from './preview.module.css';
+import { venueImageUrl } from '@/services/media';
 
 export const dynamic = 'force-dynamic';
 
@@ -132,9 +133,10 @@ export default async function AppPreviewVenuePage({
 
   const coverRow = mediaRows?.[0] ?? null;
   const coverUrl = coverRow
-    ? supabase.storage
-        .from(coverRow.storage_bucket || 'venue-media')
-        .getPublicUrl(coverRow.storage_path).data?.publicUrl ?? null
+    ? venueImageUrl(
+        { storage_bucket: coverRow.storage_bucket || 'venue-media', storage_path: coverRow.storage_path },
+        { w: 800 }
+      )
     : null;
 
   let scheduledEvents: ScheduledPreviewEvent[] = [];

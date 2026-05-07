@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
+import { venueImageUrl } from "../utils/mediaUrl";
 
 export type VenueMediaItem = {
   id: string;
@@ -49,18 +50,16 @@ export function useVenueMedia(venueId: string | null) {
             if (pa !== pb) return pa - pb;
             return a.sort_order - b.sort_order;
           })
-          .map((row: any) => {
-            const { data: urlData } = supabase.storage
-              .from(row.storage_bucket || "venue-media")
-              .getPublicUrl(row.storage_path);
-            return {
-              id: row.id,
-              url: urlData?.publicUrl || "",
-              title: row.title,
-              sort_order: row.sort_order,
-              source: row.source ?? "unknown",
-            };
-          });
+          .map((row: any) => ({
+            id: row.id,
+            url: venueImageUrl(
+              { storage_bucket: row.storage_bucket || 'venue-media', storage_path: row.storage_path },
+              { w: 1200 }
+            ),
+            title: row.title,
+            sort_order: row.sort_order,
+            source: row.source ?? "unknown",
+          }));
         setMedia(items);
         setLoading(false);
       });
