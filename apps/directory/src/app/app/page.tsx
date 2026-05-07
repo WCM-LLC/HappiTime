@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "HappiTime App — Coming Soon",
+  title: "HappiTime — Available on iPhone | Android Coming Soon",
   description:
-    "The HappiTime mobile app is coming soon. Get notified when happy hour starts, save your favorites, and find deals near you.",
+    "Download HappiTime free on the App Store. Get notified when happy hour starts, save your favorites, and find deals near you. Android coming soon.",
 };
 
 export default function AppComingSoonPage() {
@@ -14,7 +14,7 @@ export default function AppComingSoonPage() {
         <div className="flex-1 text-center lg:text-left">
           <div className="inline-flex items-center gap-2 rounded-full bg-brand-subtle px-4 py-1.5 text-sm font-semibold text-brand mb-6">
             <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-            Coming Soon
+            HappiTime for Android Coming Soon
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-foreground mb-4">
             Happy hour,
@@ -22,11 +22,27 @@ export default function AppComingSoonPage() {
             in your pocket.
           </h1>
           <p className="text-lg text-muted max-w-md mx-auto lg:mx-0 mb-8">
-            The HappiTime app is almost here. Save your favorite spots, get
-            notified when deals start, and never miss a happy hour again.
+            HappiTime is live on iPhone. Save your favorite spots, get notified
+            when deals start, and never miss a happy hour again.
           </p>
 
-          {/* Email signup */}
+          {/* iOS App Store button */}
+          <a
+            href="https://apps.apple.com/us/app/happitime/id6757933269"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-3 rounded-xl border border-border bg-surface px-5 py-3 hover:border-brand hover:shadow-md transition-all mb-6 mx-auto lg:mx-0"
+          >
+            <svg className="w-7 h-7 text-foreground" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 21.99 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 21.99C7.79 22.03 6.8 20.68 5.96 19.47C4.25 16.99 2.97 12.5 4.7 9.46C5.55 7.95 7.13 7 8.82 6.97C10.1 6.95 11.32 7.84 12.11 7.84C12.89 7.84 14.37 6.77 15.92 6.93C16.57 6.96 18.39 7.21 19.56 8.91C19.47 8.97 17.09 10.35 17.12 13.18C17.15 16.58 20.01 17.69 20.04 17.7C20.01 17.78 19.58 19.27 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z" />
+            </svg>
+            <div className="text-left">
+              <p className="text-[10px] text-muted leading-none">Download on the</p>
+              <p className="text-sm font-semibold text-foreground leading-tight">App Store</p>
+            </div>
+          </a>
+
+          {/* Android notify signup */}
           <form
             action="https://happitime.biz/contactus"
             className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto lg:mx-0"
@@ -50,7 +66,7 @@ export default function AppComingSoonPage() {
             </button>
           </form>
           <p className="text-xs text-muted mt-3">
-            We&rsquo;ll let you know the moment it&rsquo;s live. No spam.
+            Get notified when Android launches. No spam.
           </p>
         </div>
 

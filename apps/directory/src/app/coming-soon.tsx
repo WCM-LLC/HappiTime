@@ -55,14 +55,14 @@ export default function ComingSoon() {
         Browse deals by neighborhood. Save your favorites. Never miss a deal again.
       </p>
 
-      {/* Coming Soon badge */}
+      {/* Android Coming Soon badge */}
       <div className="inline-flex items-center gap-2 rounded-full bg-brand-subtle px-5 py-2.5 mb-10">
         <span className="relative flex h-2.5 w-2.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75" />
           <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand" />
         </span>
         <span className="text-sm font-semibold text-brand-text tracking-wide uppercase">
-          Coming Soon
+          HappiTime for Android Coming Soon
         </span>
       </div>
 
@@ -105,8 +105,10 @@ export default function ComingSoon() {
 
       {/* App store badges */}
       <div className="flex flex-col sm:flex-row items-center gap-4 mb-16">
-        <button
-          onClick={() => setShowAppPopup(true)}
+        <a
+          href="https://apps.apple.com/us/app/happitime/id6757933269"
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex items-center gap-3 rounded-xl border border-border bg-surface px-5 py-3 hover:border-brand hover:shadow-md transition-all cursor-pointer"
         >
           <svg className="w-7 h-7 text-foreground" viewBox="0 0 24 24" fill="currentColor">
@@ -116,7 +118,7 @@ export default function ComingSoon() {
             <p className="text-[10px] text-muted leading-none">Download on the</p>
             <p className="text-sm font-semibold text-foreground leading-tight">App Store</p>
           </div>
-        </button>
+        </a>
         <button
           onClick={() => setShowAppPopup(true)}
           className="flex items-center gap-3 rounded-xl border border-border bg-surface px-5 py-3 hover:border-brand hover:shadow-md transition-all cursor-pointer"
@@ -131,7 +133,7 @@ export default function ComingSoon() {
         </button>
       </div>
 
-      {/* Coming Soon popup */}
+      {/* Android Coming Soon popup */}
       {showAppPopup && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
@@ -144,9 +146,9 @@ export default function ComingSoon() {
             <div className="w-14 h-14 rounded-full bg-brand-subtle flex items-center justify-center mx-auto mb-4">
               <span className="text-2xl">🚀</span>
             </div>
-            <h3 className="text-xl font-bold text-foreground mb-2">Coming Soon!</h3>
+            <h3 className="text-xl font-bold text-foreground mb-2">HappiTime for Android Coming Soon</h3>
             <p className="text-sm text-muted leading-relaxed mb-6">
-              HappiTime is launching soon on the App Store and Google Play. Sign up above to be the first to know when it&apos;s available!
+              HappiTime is launching on Google Play soon. Sign up above to be the first to know when it&apos;s available!
             </p>
             <button
               onClick={() => setShowAppPopup(false)}

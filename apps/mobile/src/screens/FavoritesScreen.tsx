@@ -547,7 +547,7 @@ type EditListModalProps = {
   onShowOnMap: (list: UserList) => void;
 };
 
-const HAPPITIME_APP_STORE_URL = "https://apps.apple.com/app/happitime";
+const HAPPITIME_APP_STORE_URL = "https://apps.apple.com/us/app/happitime/id6757933269";
 const HAPPITIME_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.happitime";
 
 const EditListModal: React.FC<EditListModalProps> = ({

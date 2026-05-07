@@ -20,7 +20,9 @@ export function AppDownloadStrip() {
         </div>
         <div className="flex items-center gap-2.5 flex-shrink-0">
           <a
-            href="/app/"
+            href="https://apps.apple.com/us/app/happitime/id6757933269"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-white text-xs font-bold hover:bg-brand-dark transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">

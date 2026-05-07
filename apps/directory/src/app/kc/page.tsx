@@ -26,7 +26,7 @@ const HAPPITIME_BUSINESS_JSON_LD = [
       "HappiTime is Kansas City's happy hour app — browse drink specials, food deals, and menus from local bars and restaurants by neighborhood.",
     sameAs: [
       "https://www.instagram.com/findhappitime",
-      "https://apps.apple.com/app/happitime",
+      "https://apps.apple.com/us/app/happitime/id6757933269",
       "https://play.google.com/store/apps/happitime",
     ],
     contactPoint: {
