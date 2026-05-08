@@ -37,7 +37,14 @@ export function useVenueMedia(venueId: string | null) {
       .select("id, storage_bucket, storage_path, title, sort_order, source")
       .eq("venue_id", venueId)
       .eq("status", "published")
-      .then(({ data }) => {
+      .eq("type", "image")
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn("[useVenueMedia] query failed", error.message);
+          setMedia([]);
+          setLoading(false);
+          return;
+        }
         if (!data?.length) {
           setMedia([]);
           setLoading(false);
@@ -61,6 +68,11 @@ export function useVenueMedia(venueId: string | null) {
             source: row.source ?? "unknown",
           }));
         setMedia(items);
+        setLoading(false);
+      })
+      .catch((err: unknown) => {
+        console.warn("[useVenueMedia] fetch error", err instanceof Error ? err.message : String(err));
+        setMedia([]);
         setLoading(false);
       });
   }, [venueId]);
