@@ -1089,10 +1089,10 @@ const styles = StyleSheet.create({
   },
   cardImageScroll: {
     ...StyleSheet.absoluteFillObject,
-    height: "100%",
+    backgroundColor: "transparent",
   },
   cardHeroImage: {
-    height: "100%",
+    height: 150,
   },
   cardHeroPlaceholder: {
     ...StyleSheet.absoluteFillObject,

@@ -802,10 +802,11 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   heroScroll: {
-    flex: 1
+    flex: 1,
+    backgroundColor: "transparent",
   },
   heroImage: {
-    height: "100%"
+    height: 220,
   },
   heroPlaceholder: {
     flex: 1,

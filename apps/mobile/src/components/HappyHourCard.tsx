@@ -313,10 +313,11 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
   heroScroll: {
-    height: "100%"
+    height: "100%",
+    backgroundColor: "transparent",
   },
   heroImage: {
-    height: "100%"
+    height: 190,
   },
   heroDots: {
     position: "absolute",
