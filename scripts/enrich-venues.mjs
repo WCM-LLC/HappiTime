@@ -109,10 +109,13 @@ async function supaFetch(path, init = {}) {
 }
 
 async function getVenuesToEnrich() {
-  // Venues missing coords OR already have places_id but missing rating/review data
+  // DATA PROTECTION: skip is_verified=true venues. Curated data is the
+  // source of truth — pulls only enrich rows that haven't been hand-confirmed.
+  // Venues missing coords OR already have places_id but missing rating/review data.
   return supaFetch(
     '/rest/v1/venues' +
     '?select=id,org_id,name,address,city,state,zip,lat,lng,places_id,places_status,places_attempts' +
+    '&is_verified=eq.false' +
     '&or=(lat.is.null,lng.is.null,rating.is.null)' +
     '&order=name.asc',
   );

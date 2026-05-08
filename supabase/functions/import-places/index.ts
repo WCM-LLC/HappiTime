@@ -16,6 +16,7 @@ type VenueRow = {
   places_attempts: number | null;
   places_id: string | null;
   places_status: string | null;
+  is_verified: boolean | null;
 };
 
 type PlacesPhoto = {
@@ -665,11 +666,15 @@ serve(async (req) => {
     const now = new Date();
     const nowIso = now.toISOString();
 
+    // DATA PROTECTION: never enrich verified venues. Curated data is the
+    // source of truth — pulls only enrich rows that haven't been hand-confirmed.
+    // Re-verify manually (set is_verified=false) if you want a row re-enriched.
     const { data: venues, error } = await supabase
       .from("venues")
       .select(
-        "id,name,org_name,address,city,state,zip,lat,lng,phone,website,places_attempts,places_id,places_status"
+        "id,name,org_name,address,city,state,zip,lat,lng,phone,website,places_attempts,places_id,places_status,is_verified"
       )
+      .eq("is_verified", false)
       .in("places_status", ["pending", "success"])
       .lte("places_next_sync_at", nowIso)
       .order("places_next_sync_at", { ascending: true, nullsFirst: false })
@@ -692,8 +697,15 @@ serve(async (req) => {
     let successCount = 0;
     let failureCount = 0;
     let skippedCount = 0;
+    let verifiedSkippedCount = 0;
 
     for (const venue of venues as VenueRow[]) {
+      // Defense-in-depth: even though the SELECT already filters verified
+      // venues, recheck here in case the flag flipped between fetch and write.
+      if (venue.is_verified === true) {
+        verifiedSkippedCount += 1;
+        continue;
+      }
       const attempts = (venue.places_attempts ?? 0) + 1;
       const hasName = normalizePart(venue.name).length > 0;
       const hasAddress =
@@ -925,7 +937,8 @@ serve(async (req) => {
         processed: venues.length,
         success: successCount,
         failed: failureCount,
-        skipped: skippedCount
+        skipped: skippedCount,
+        verified_skipped: verifiedSkippedCount
       }),
       { headers: { "content-type": "application/json" } }
     );
