@@ -1,12 +1,44 @@
 'use server';
 
 import crypto from 'crypto';
+import { createClient } from '@/utils/supabase/server';
 
 const CLOUD_NAME = 'dhucspghz';
 
 export async function deleteCloudinaryAsset(
-  publicId: string
+  mediaId: string
 ): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: 'Unauthorized' };
+  }
+
+  const mediaSelect = async (table: 'venue_media' | 'media_assets') =>
+    supabase
+      .from(table)
+      .select('storage_bucket,storage_path')
+      .eq('id', mediaId)
+      .maybeSingle();
+
+  let rowResult = await mediaSelect('venue_media');
+  if (rowResult.error && String(rowResult.error.code ?? '') === '42P01') {
+    rowResult = await mediaSelect('media_assets');
+  }
+  if (rowResult.error || !rowResult.data) {
+    return { error: 'Media not found or not authorized' };
+  }
+
+  const { storage_bucket: storageBucket, storage_path: publicId } = rowResult.data;
+  if (storageBucket !== 'cloudinary') {
+    return { error: 'Invalid storage bucket for Cloudinary delete' };
+  }
+  if (!publicId.startsWith('happitime/venues/')) {
+    return { error: 'Invalid Cloudinary public ID' };
+  }
+
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
 
