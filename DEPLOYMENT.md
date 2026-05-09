@@ -25,3 +25,14 @@ GitHub Actions (DB deploy workflow) expects:
 - Set env vars from `ENV.md`.
 - Ensure deep links are configured for magic links (scheme + redirect URLs).
 - Build using EAS if desired (`apps/mobile/eas.json`).
+
+## Android (Expo / Google Play)
+- Set env vars from `ENV.md`.
+- Configure Supabase Auth redirect URLs with `happitime://auth/callback`.
+- Enable the Supabase Google provider before testing "Continue with Google".
+- Build with `npm run build:android` from the repo root.
+- Upload the production `.aab` to the existing Play Console app with package
+  `com.jwill7486.happitime.mobile`.
+- Complete the Play Console Advertising ID declaration. This app blocks
+  `com.google.android.gms.permission.AD_ID`, so answer "No" unless an ad or
+  analytics SDK that uses advertising ID is added later.

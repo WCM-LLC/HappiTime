@@ -1,0 +1,31 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "allowJs": false,
+    "baseUrl": ".",
+    "jsx": "react-native",
+    "lib": ["esnext"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "noEmit": true,
+    "paths": {
+      "@/*": ["../mobile/*"],
+      "@happitime/shared-api": ["../../packages/shared-api/src/index.ts"],
+      "@happitime/shared-env": ["../../packages/shared-env/src/index.ts"],
+      "@happitime/shared-types": ["../../packages/shared-types/index.ts"]
+    },
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["react", "react-native", "react-native-screens"]
+  },
+  "include": [
+    "App.tsx",
+    "index.js",
+    "../mobile/App.tsx",
+    "../mobile/components",
+    "../mobile/constants",
+    "../mobile/hooks",
+    "../mobile/src"
+  ]
+}

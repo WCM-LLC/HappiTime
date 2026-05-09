@@ -3,6 +3,7 @@
 HappiTime is a Supabase-backed happy-hour platform with:
 - `apps/web`: Next.js client portal (venue owners/admins)
 - `apps/mobile`: Expo React Native consumer app
+- `apps/android`: Android-specific Expo app that reuses `apps/mobile` source
 - `packages/shared-api`: shared, typed Supabase query helpers
 - `packages/shared-env`: shared env parsing/validation
 - `packages/shared-types`: shared Supabase DB types + domain aliases
@@ -25,6 +26,11 @@ npm run dev:web
 Mobile (in a separate terminal):
 ```powershell
 npm run dev:mobile
+```
+
+Android app (in a separate terminal):
+```powershell
+npm run dev:android
 ```
 
 ## Mobile Dev Build (iOS)
@@ -62,6 +68,9 @@ This creates a public URL that works across any network connection.
 ## Commands
 - Web dev: `npm run dev:web`
 - Mobile dev: `npm run dev:mobile`
+- Android dev: `npm run dev:android`
+- Android native run: `npm run android`
+- Android Play build: `npm run build:android`
 - Lint: `npm run lint`
 - Typecheck: `npm run typecheck`
 - Unit tests: `npm test`
@@ -86,4 +95,3 @@ Migrations live in `supabase/migrations/`. Seed data lives in `supabase/seed.sql
 - Consumer app reads **public** listings (anon) for `published` venues/windows/menus.
 - Client portal uses org membership + venue assignments for tenant isolation.
 - Local Supabase Postgres major version is set to `15` in `supabase/config.toml`.
-

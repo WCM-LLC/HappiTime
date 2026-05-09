@@ -1,5 +1,4 @@
 // src/screens/AuthScreen.tsx
-import * as AppleAuthentication from "expo-apple-authentication";
 import * as Linking from "expo-linking";
 import React, { useState } from "react";
 import {
@@ -13,6 +12,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { AppleSignInButton } from "../components/AppleSignInButton";
 import { supabase } from "../api/supabaseClient";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
@@ -20,8 +20,9 @@ import { spacing } from "../theme/spacing";
 export const AuthScreen: React.FC = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<"google" | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const redirectTo = Linking.createURL("auth/callback");
+  const redirectTo = Linking.createURL("auth/callback", { scheme: "happitime" });
 
   const handleEmailContinue = async () => {
     const trimmed = email.trim();
@@ -63,36 +64,37 @@ export const AuthScreen: React.FC = () => {
     }
   };
 
-  const handleAppleSignIn = async () => {
+  const handleGoogleSignIn = async () => {
     try {
-      const credential = await AppleAuthentication.signInAsync({
-        requestedScopes: [
-          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
-          AppleAuthentication.AppleAuthenticationScope.EMAIL
-        ]
-      });
+      setOauthLoading("google");
+      setStatusMessage(null);
 
-      if (!credential.identityToken) {
-        setStatusMessage("Apple sign-in failed: no identity token received.");
-        return;
-      }
-
-      const { error } = await supabase.auth.signInWithIdToken({
-        provider: "apple",
-        token: credential.identityToken
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
       });
 
       if (error) {
-        console.error("Supabase Apple auth error:", error);
+        console.error("Supabase Google auth error:", error);
         setStatusMessage(`Auth error: ${error.message}`);
-      }
-    } catch (err: any) {
-      if (err.code === "ERR_REQUEST_CANCELED") {
-        // User cancelled — not an error
         return;
       }
-      console.error("Apple sign-in error:", err);
-      setStatusMessage(err?.message ?? "Unexpected error during Apple sign-in");
+
+      if (!data?.url) {
+        setStatusMessage("Google sign-in could not start. Please try again.");
+        return;
+      }
+
+      await Linking.openURL(data.url);
+      setStatusMessage("Complete Google sign-in in your browser to continue.");
+    } catch (err: any) {
+      console.error("Google sign-in error:", err);
+      setStatusMessage(err?.message ?? "Unexpected error during Google sign-in");
+    } finally {
+      setOauthLoading(null);
     }
   };
 
@@ -115,16 +117,29 @@ export const AuthScreen: React.FC = () => {
             Enter your email to sign up for this app
           </Text>
 
-          {/* Apple Sign In — iOS only */}
-          {Platform.OS === "ios" && (
-            <AppleAuthentication.AppleAuthenticationButton
-              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-              cornerRadius={999}
-              style={styles.appleButton}
-              onPress={handleAppleSignIn}
-            />
-          )}
+          <Pressable
+            style={({ pressed }) => [
+              styles.googleButton,
+              pressed && styles.googleButtonPressed,
+              oauthLoading === "google" && styles.primaryButtonDisabled
+            ]}
+            onPress={handleGoogleSignIn}
+            disabled={loading || oauthLoading !== null}
+          >
+            {oauthLoading === "google" ? (
+              <ActivityIndicator color={colors.text} />
+            ) : (
+              <>
+                <Text style={styles.googleButtonIcon}>G</Text>
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </>
+            )}
+          </Pressable>
+
+          <AppleSignInButton
+            disabled={loading || oauthLoading !== null}
+            onStatusMessage={setStatusMessage}
+          />
 
           {/* Divider */}
           <View style={styles.dividerRow}>
@@ -151,7 +166,7 @@ export const AuthScreen: React.FC = () => {
               loading && styles.primaryButtonDisabled
             ]}
             onPress={handleEmailContinue}
-            disabled={loading}
+            disabled={loading || oauthLoading !== null}
           >
             {loading ? (
               <ActivityIndicator color={colors.pillActiveText} />
@@ -255,10 +270,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600"
   },
-  appleButton: {
+  googleButton: {
     width: "100%",
     height: 50,
-    marginBottom: spacing.lg
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginBottom: spacing.md
+  },
+  googleButtonPressed: {
+    opacity: 0.9
+  },
+  googleButtonIcon: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "700"
+  },
+  googleButtonText: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "600"
   },
   dividerRow: {
     flexDirection: "row",

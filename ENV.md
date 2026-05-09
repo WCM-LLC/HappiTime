@@ -107,3 +107,22 @@ Optional (maps):
 Note: `apps/mobile/app.config.js` reads `.env`/`.env.local` from the app root
 or repo root to inject values into `expo.extra`. Restart Expo with `-c` after
 changing env vars.
+
+## Android (`apps/android`)
+Copy `apps/android/.env.example` → `apps/android/.env`.
+
+Required:
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY` (or `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`)
+
+Optional (maps):
+- `EXPO_PUBLIC_MAPS_PROVIDER` (`google` or `mapbox`)
+- `EXPO_PUBLIC_MAPS_API_KEY`
+
+Google sign-in is configured in Supabase Auth, not as a public client secret in
+the app. Enable the Google provider in Supabase and add
+`happitime://auth/callback` to the Supabase Auth redirect URL allow list.
+
+Note: `apps/android/app.config.js` reads `.env`/`.env.local` from the Android
+app root, repo root, or `apps/mobile` fallback to inject values into
+`expo.extra`. Restart Expo with `-c` after changing env vars.

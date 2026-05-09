@@ -11,8 +11,8 @@ out/
 # Expo / React Native
 .expo/
 .expo-shared/
-android/
-ios/
+/android/
+/ios/
 
 # Build outputs
 dist/
@@ -36,6 +36,7 @@ apps/mobile/.env*
 !.env.example
 !apps/web/.env.example
 !apps/mobile/.env.example
+!apps/android/.env.example
 !apps/directory/.env.example
 
 # macOS

@@ -2,17 +2,38 @@ import { useEffect } from "react";
 import * as Linking from "expo-linking";
 import { supabase } from "../api/supabaseClient";
 
-function extractTokenSession(url: string) {
-  // Legacy flow: happitime://auth/callback#access_token=...&refresh_token=...&...
-  const hashIndex = url.indexOf("#");
-  if (hashIndex === -1) return null;
+function parseAuthParams(url: string) {
+  const params: Record<string, string> = {};
+  const addParams = (value: string) => {
+    if (!value) return;
 
-  const fragment = url.slice(hashIndex + 1);
-  const params = fragment.split("&").reduce((acc, part) => {
-    const [rawKey, rawValue = ""] = part.split("=");
-    acc[decodeURIComponent(rawKey)] = decodeURIComponent(rawValue);
-    return acc;
-  }, {} as Record<string, string>);
+    for (const part of value.split("&")) {
+      if (!part) continue;
+      const [rawKey, rawValue = ""] = part.split("=");
+      if (!rawKey) continue;
+      params[decodeURIComponent(rawKey)] = decodeURIComponent(rawValue);
+    }
+  };
+
+  const hashIndex = url.indexOf("#");
+  const queryIndex = url.indexOf("?");
+
+  if (queryIndex !== -1) {
+    const queryEnd = hashIndex !== -1 && hashIndex > queryIndex ? hashIndex : url.length;
+    addParams(url.slice(queryIndex + 1, queryEnd));
+  }
+
+  if (hashIndex !== -1) {
+    addParams(url.slice(hashIndex + 1));
+  }
+
+  return params;
+}
+
+function extractTokenSession(url: string) {
+  // Token flow: happitime://auth/callback#access_token=...&refresh_token=...
+  // Some tools/providers place those same params in the query string.
+  const params = parseAuthParams(url);
 
   const access_token = params["access_token"];
   const refresh_token = params["refresh_token"];
@@ -23,15 +44,36 @@ function extractTokenSession(url: string) {
 
 function extractAuthCode(url: string) {
   // PKCE flow: happitime://auth/callback?code=...
-  const parsed = Linking.parse(url);
-  const maybeCode = parsed.queryParams?.code;
+  const maybeCode = parseAuthParams(url)["code"];
   return typeof maybeCode === "string" && maybeCode.length > 0 ? maybeCode : null;
+}
+
+function extractAuthError(url: string) {
+  const params = parseAuthParams(url);
+  const code = params["error_code"] ?? params["error"];
+  const description = params["error_description"];
+
+  if (!code && !description) return null;
+  return [code, description].filter(Boolean).join(": ");
+}
+
+function redactUrl(url: string) {
+  return url
+    .replace(/access_token=[^&#]+/g, "access_token=[redacted]")
+    .replace(/refresh_token=[^&#]+/g, "refresh_token=[redacted]")
+    .replace(/code=[^&#]+/g, "code=[redacted]");
 }
 
 export function useMagicLinkListener() {
   useEffect(() => {
     const handleUrl = async (url: string) => {
-      console.log("🔥 Deep link received:", url);
+      console.log("Deep link received:", redactUrl(url));
+
+      const authError = extractAuthError(url);
+      if (authError) {
+        console.log("Auth callback error:", authError);
+        return;
+      }
 
       const authCode = extractAuthCode(url);
       if (authCode) {
@@ -45,7 +87,7 @@ export function useMagicLinkListener() {
 
       const tokenSession = extractTokenSession(url);
       if (!tokenSession) {
-        console.log("❌ No auth code or tokens found in deep link.");
+        console.log("No auth code or tokens found in deep link.");
         return;
       }
 
