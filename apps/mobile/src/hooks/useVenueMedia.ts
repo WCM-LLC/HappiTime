@@ -69,11 +69,6 @@ export function useVenueMedia(venueId: string | null) {
           }));
         setMedia(items);
         setLoading(false);
-      })
-      .catch((err: unknown) => {
-        console.warn("[useVenueMedia] fetch error", err instanceof Error ? err.message : String(err));
-        setMedia([]);
-        setLoading(false);
       });
   }, [venueId]);
 
