@@ -86,6 +86,18 @@ async function requireVenueManagementAccess(orgId: string, venueId: string) {
     redirectWithError(orgId, venueId, 'not_authorized');
   }
 
+  if (!isPlatformAdmin && role !== 'owner') {
+    const { data: assignment } = await writeSupabase
+      .from('venue_members')
+      .select('venue_id')
+      .eq('org_id', orgId)
+      .eq('venue_id', venueId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!assignment) redirectWithError(orgId, venueId, 'not_authorized');
+  }
+
   const { data: venue } = await writeSupabase
     .from('venues')
     .select('id')
