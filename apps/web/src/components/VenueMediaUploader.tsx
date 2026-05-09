@@ -98,7 +98,7 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
     setError(null);
     try {
       if (row.storage_bucket === 'cloudinary') {
-        const { error } = await deleteCloudinaryAsset(row.storage_path);
+        const { error } = await deleteCloudinaryAsset(row.id);
         if (error) throw new Error(error);
       }
       const result = await deleteVenueMedia(supabase, row.id, row.storage_path, row.storage_bucket);
