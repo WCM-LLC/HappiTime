@@ -115,6 +115,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
                 source={{ uri: url }}
                 style={[styles.heroImage, { width: heroWidth }]}
                 resizeMode="cover"
+                onError={(e) => console.warn('[img-fail] hero', url, e.nativeEvent?.error)}
               />
             ))}
           </ScrollView>

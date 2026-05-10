@@ -98,6 +98,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
               source={{ uri: img.url }}
               style={styles.photoThumb}
               resizeMode="cover"
+              onError={(e) => console.warn('[img-fail] venue-preview', img.url, e.nativeEvent?.error)}
             />
           ))}
         </ScrollView>

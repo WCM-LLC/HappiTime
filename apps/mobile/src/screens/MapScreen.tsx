@@ -892,6 +892,7 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
               source={{ uri: coverUrl }}
               style={styles.miniCardImageInner}
               resizeMode="cover"
+              onError={(e) => console.warn('[img-fail] map-cover', coverUrl, e.nativeEvent?.error)}
             />
           ) : (
             <View style={styles.miniCardImagePlaceholder}>
