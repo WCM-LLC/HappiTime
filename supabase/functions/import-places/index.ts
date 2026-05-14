@@ -666,14 +666,13 @@ serve(async (req) => {
     const now = new Date();
     const nowIso = now.toISOString();
 
-    // DATA PROTECTION: never enrich verified venues. Curated data is the
-    // source of truth — pulls only enrich rows that haven't been hand-confirmed.
-    // Re-verify manually (set is_verified=false) if you want a row re-enriched.
-    const { data: venues, error } = await supabase
+    const venueSelectFields =
+      "id,name,org_name,address,city,state,zip,lat,lng,phone,website,places_attempts,places_id,places_status,is_verified";
+
+    // Unverified venues: full enrichment (data + photos).
+    const { data: unverifiedVenues, error } = await supabase
       .from("venues")
-      .select(
-        "id,name,org_name,address,city,state,zip,lat,lng,phone,website,places_attempts,places_id,places_status,is_verified"
-      )
+      .select(venueSelectFields)
       .eq("is_verified", false)
       .in("places_status", ["pending", "success"])
       .lte("places_next_sync_at", nowIso)
@@ -687,7 +686,41 @@ serve(async (req) => {
       );
     }
 
-    if (!venues || venues.length === 0) {
+    // Verified venues with no published media: photo-only sync.
+    // is_verified guards curated fields (address, tags, etc.) but not photo
+    // absence — every published venue should have at least one image.
+    const remainingSlots = limit - (unverifiedVenues?.length ?? 0);
+    let verifiedNoMedia: VenueRow[] = [];
+
+    if (remainingSlots > 0) {
+      const { data: verifiedCandidates } = await supabase
+        .from("venues")
+        .select(venueSelectFields)
+        .eq("is_verified", true)
+        .eq("status", "published")
+        .in("places_status", ["pending", "success"])
+        .limit(remainingSlots + 20);
+
+      if (verifiedCandidates && verifiedCandidates.length > 0) {
+        const candidateIds = verifiedCandidates.map((v: VenueRow) => v.id);
+        const { data: mediaRows } = await supabase
+          .from("venue_media")
+          .select("venue_id")
+          .in("venue_id", candidateIds)
+          .eq("status", "published");
+
+        const withMedia = new Set(
+          (mediaRows ?? []).map((m: { venue_id: string }) => m.venue_id)
+        );
+        verifiedNoMedia = (verifiedCandidates as VenueRow[])
+          .filter((v) => !withMedia.has(v.id))
+          .slice(0, remainingSlots);
+      }
+    }
+
+    const venues = [...(unverifiedVenues ?? []), ...verifiedNoMedia];
+
+    if (venues.length === 0) {
       return new Response(
         JSON.stringify({ processed: 0 }),
         { headers: { "content-type": "application/json" } }
@@ -697,15 +730,11 @@ serve(async (req) => {
     let successCount = 0;
     let failureCount = 0;
     let skippedCount = 0;
-    let verifiedSkippedCount = 0;
 
     for (const venue of venues as VenueRow[]) {
-      // Defense-in-depth: even though the SELECT already filters verified
-      // venues, recheck here in case the flag flipped between fetch and write.
-      if (venue.is_verified === true) {
-        verifiedSkippedCount += 1;
-        continue;
-      }
+      // Verified venues: photo-only sync — fetch images and fill missing lat/lng,
+      // but never overwrite curated fields (address, tags, price_tier, etc.).
+      const photoOnly = venue.is_verified === true;
       const attempts = (venue.places_attempts ?? 0) + 1;
       const hasName = normalizePart(venue.name).length > 0;
       const hasAddress =
@@ -895,11 +924,19 @@ serve(async (req) => {
         places_last_error: mediaError,
         places_attempts: status === "success" ? 0 : attempts,
         places_next_sync_at: nextSyncAt,
-        tags,
-        price_tier: priceTier
       };
 
-      Object.assign(updatePayload, buildVenueUpdatesFromPlace(venue, place));
+      if (!photoOnly) {
+        updatePayload.tags = tags;
+        updatePayload.price_tier = priceTier;
+        Object.assign(updatePayload, buildVenueUpdatesFromPlace(venue, place));
+      } else {
+        // For verified venues: only fill missing lat/lng (location, not curated).
+        const lat = place.location?.latitude;
+        const lng = place.location?.longitude;
+        if (venue.lat == null && typeof lat === "number") updatePayload.lat = lat;
+        if (venue.lng == null && typeof lng === "number") updatePayload.lng = lng;
+      }
 
       if (status === "success") {
         updatePayload.places_last_synced_at = nowIso;
@@ -938,7 +975,6 @@ serve(async (req) => {
         success: successCount,
         failed: failureCount,
         skipped: skippedCount,
-        verified_skipped: verifiedSkippedCount
       }),
       { headers: { "content-type": "application/json" } }
     );
