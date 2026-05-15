@@ -29,7 +29,20 @@ Install prerequisites:
 
 ```bash
 npm install
-sudo gem install cocoapods
+brew install cocoapods
+```
+
+Prefer Homebrew CocoaPods on macOS. The system Ruby that ships with macOS
+can be too old for current CocoaPods dependencies and may fail with an `ffi`
+or `fffi requires Ruby version >= 3.0` error. If Homebrew is not available,
+install a modern Ruby first with `rbenv`, `asdf`, or `mise`, then install
+CocoaPods through that Ruby instead of `/usr/bin/ruby`.
+
+If you already hit the system Ruby error, run:
+
+```bash
+brew install cocoapods
+pod --version
 ```
 
 Install pods when native dependencies or iOS config change:
