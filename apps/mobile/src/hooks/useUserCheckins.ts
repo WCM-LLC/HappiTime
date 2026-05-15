@@ -19,6 +19,10 @@ type State = {
   error: string | null;
 };
 
+/**
+ * Loads the current user's check-in history from venue_visits (newest first, max 100).
+ * Exposes togglePrivacy for optimistic is_private updates with automatic rollback on failure.
+ */
 export function useUserCheckins() {
   const { user } = useCurrentUser();
   const [state, setState] = useState<State>({

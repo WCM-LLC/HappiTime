@@ -2,6 +2,11 @@ import type { Session } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
 
+/**
+ * Subscribes to the Supabase auth state and exposes the current session.
+ * Sets loading=false as soon as the initial session check OR the INITIAL_SESSION event arrives,
+ * whichever comes first — prevents the app from blocking on a slow auth library init.
+ */
 export function useAuth() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);

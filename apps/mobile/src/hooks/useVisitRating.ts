@@ -27,6 +27,11 @@ export function buildFallbackVisitInsert(
   };
 }
 
+/**
+ * Manages the post-visit rating flow — sets pendingVisit from either a notification tap
+ * or a programmatic trigger, then submits or updates the venue_visits row on confirmation.
+ * Falls back to inserting a new row when no visitId is available.
+ */
 export function useVisitRating() {
   const [pendingVisit, setPendingVisit] = useState<PendingVisit | null>(null);
   const [submitting, setSubmitting] = useState(false);

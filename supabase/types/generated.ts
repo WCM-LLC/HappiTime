@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_users: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          email: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          id?: string
+        }
+        Relationships: []
+      }
       approved_tags: {
         Row: {
           category: string
@@ -43,6 +64,60 @@ export type Database = {
           sort_order?: number
         }
         Relationships: []
+      }
+      directory_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          meta: Json | null
+          page_path: string | null
+          referrer: string | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+          venue_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          meta?: Json | null
+          page_path?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          venue_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          meta?: Json | null
+          page_path?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+          venue_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "directory_events_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "promoted_venues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "directory_events_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_signups: {
         Row: {
@@ -288,6 +363,7 @@ export type Database = {
           dow: number[]
           end_time: string
           id: string
+          is_verified: boolean
           label: string | null
           last_confirmed_at: string | null
           restaurant_id: string | null
@@ -296,12 +372,15 @@ export type Database = {
           timezone: string
           updated_at: string
           venue_id: string
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           created_at?: string
           dow?: number[]
           end_time: string
           id?: string
+          is_verified?: boolean
           label?: string | null
           last_confirmed_at?: string | null
           restaurant_id?: string | null
@@ -310,12 +389,15 @@ export type Database = {
           timezone?: string
           updated_at?: string
           venue_id: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           created_at?: string
           dow?: number[]
           end_time?: string
           id?: string
+          is_verified?: boolean
           label?: string | null
           last_confirmed_at?: string | null
           restaurant_id?: string | null
@@ -324,6 +406,8 @@ export type Database = {
           timezone?: string
           updated_at?: string
           venue_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -338,6 +422,35 @@ export type Database = {
             columns: ["venue_id"]
             isOneToOne: false
             referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      happy_hour_windows_snapshot: {
+        Row: {
+          captured_at: string
+          data: Json
+          snapshot_id: string
+          window_id: string
+        }
+        Insert: {
+          captured_at?: string
+          data: Json
+          snapshot_id: string
+          window_id: string
+        }
+        Update: {
+          captured_at?: string
+          data?: Json
+          snapshot_id?: string
+          window_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "happy_hour_windows_snapshot_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "reference_snapshots"
             referencedColumns: ["id"]
           },
         ]
@@ -466,14 +579,77 @@ export type Database = {
           },
         ]
       }
+      neighborhoods: {
+        Row: {
+          centroid_lat: number | null
+          centroid_lng: number | null
+          city: string
+          created_at: string
+          description: string | null
+          is_active: boolean
+          label: string
+          parent_slug: string | null
+          slug: string
+          sort_order: number
+          state: string
+          tier: Database["public"]["Enums"]["neighborhood_tier"]
+          updated_at: string
+        }
+        Insert: {
+          centroid_lat?: number | null
+          centroid_lng?: number | null
+          city?: string
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          label: string
+          parent_slug?: string | null
+          slug: string
+          sort_order?: number
+          state?: string
+          tier?: Database["public"]["Enums"]["neighborhood_tier"]
+          updated_at?: string
+        }
+        Update: {
+          centroid_lat?: number | null
+          centroid_lng?: number | null
+          city?: string
+          created_at?: string
+          description?: string | null
+          is_active?: boolean
+          label?: string
+          parent_slug?: string | null
+          slug?: string
+          sort_order?: number
+          state?: string
+          tier?: Database["public"]["Enums"]["neighborhood_tier"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "neighborhoods_parent_slug_fkey"
+            columns: ["parent_slug"]
+            isOneToOne: false
+            referencedRelation: "neighborhoods"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "neighborhoods_parent_slug_fkey"
+            columns: ["parent_slug"]
+            isOneToOne: false
+            referencedRelation: "v_kcmo_neighborhoods"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       org_invites: {
         Row: {
           accepted_at: string | null
           accepted_by: string | null
           created_at: string
           email: string
-          first_name: string | null
           expires_at: string | null
+          first_name: string | null
           id: string
           invited_by: string
           last_name: string | null
@@ -488,8 +664,8 @@ export type Database = {
           accepted_by?: string | null
           created_at?: string
           email: string
-          first_name?: string | null
           expires_at?: string | null
+          first_name?: string | null
           id?: string
           invited_by: string
           last_name?: string | null
@@ -504,8 +680,8 @@ export type Database = {
           accepted_by?: string | null
           created_at?: string
           email?: string
-          first_name?: string | null
           expires_at?: string | null
+          first_name?: string | null
           id?: string
           invited_by?: string
           last_name?: string | null
@@ -592,6 +768,168 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      reference_snapshots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          notes: string | null
+          row_counts: Json
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          notes?: string | null
+          row_counts?: Json
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          notes?: string | null
+          row_counts?: Json
+        }
+        Relationships: []
+      }
+      staging_happy_hour_windows: {
+        Row: {
+          created_at: string
+          id: string
+          match_venue_id: string | null
+          match_window_id: string | null
+          payload: Json
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string
+          source_run_id: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          match_venue_id?: string | null
+          match_window_id?: string | null
+          payload: Json
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source: string
+          source_run_id?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          match_venue_id?: string | null
+          match_window_id?: string | null
+          payload?: Json
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          source_run_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staging_happy_hour_windows_match_venue_id_fkey"
+            columns: ["match_venue_id"]
+            isOneToOne: false
+            referencedRelation: "promoted_venues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staging_happy_hour_windows_match_venue_id_fkey"
+            columns: ["match_venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staging_happy_hour_windows_match_window_id_fkey"
+            columns: ["match_window_id"]
+            isOneToOne: false
+            referencedRelation: "happy_hour_windows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staging_happy_hour_windows_match_window_id_fkey"
+            columns: ["match_window_id"]
+            isOneToOne: false
+            referencedRelation: "published_happy_hour_windows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staging_happy_hour_windows_match_window_id_fkey"
+            columns: ["match_window_id"]
+            isOneToOne: false
+            referencedRelation: "published_happy_hour_windows_with_names"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staging_venues: {
+        Row: {
+          created_at: string
+          external_ref: string | null
+          id: string
+          match_venue_id: string | null
+          payload: Json
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string
+          source_run_id: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          external_ref?: string | null
+          id?: string
+          match_venue_id?: string | null
+          payload: Json
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source: string
+          source_run_id?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          external_ref?: string | null
+          id?: string
+          match_venue_id?: string | null
+          payload?: Json
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          source_run_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staging_venues_match_venue_id_fkey"
+            columns: ["match_venue_id"]
+            isOneToOne: false
+            referencedRelation: "promoted_venues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staging_venues_match_venue_id_fkey"
+            columns: ["match_venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_events: {
         Row: {
@@ -792,18 +1130,49 @@ export type Database = {
         }
         Relationships: []
       }
+      user_plans: {
+        Row: {
+          created_at: string
+          id: string
+          plan: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          plan?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          plan?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_preferences: {
         Row: {
           created_at: string
           cuisines: string[]
+          default_checkin_privacy: string
           home_city: string | null
           home_lat: number | null
           home_lng: number | null
           home_state: string | null
           max_distance_miles: number | null
+          notifications_friend_activity: boolean
+          notifications_happy_hours: boolean
           notifications_marketing: boolean
           notifications_product: boolean
           notifications_push: boolean
+          notifications_venue_updates: boolean
           price_tier_max: number | null
           price_tier_min: number | null
           updated_at: string
@@ -812,14 +1181,18 @@ export type Database = {
         Insert: {
           created_at?: string
           cuisines?: string[]
+          default_checkin_privacy?: string
           home_city?: string | null
           home_lat?: number | null
           home_lng?: number | null
           home_state?: string | null
           max_distance_miles?: number | null
+          notifications_friend_activity?: boolean
+          notifications_happy_hours?: boolean
           notifications_marketing?: boolean
           notifications_product?: boolean
           notifications_push?: boolean
+          notifications_venue_updates?: boolean
           price_tier_max?: number | null
           price_tier_min?: number | null
           updated_at?: string
@@ -828,14 +1201,18 @@ export type Database = {
         Update: {
           created_at?: string
           cuisines?: string[]
+          default_checkin_privacy?: string
           home_city?: string | null
           home_lat?: number | null
           home_lng?: number | null
           home_state?: string | null
           max_distance_miles?: number | null
+          notifications_friend_activity?: boolean
+          notifications_happy_hours?: boolean
           notifications_marketing?: boolean
           notifications_product?: boolean
           notifications_push?: boolean
+          notifications_venue_updates?: boolean
           price_tier_max?: number | null
           price_tier_min?: number | null
           updated_at?: string
@@ -917,6 +1294,42 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      user_venue_notification_blocks: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          venue_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_venue_notification_blocks_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "promoted_venues"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_venue_notification_blocks_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       venue_events: {
         Row: {
@@ -1011,11 +1424,14 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          migrated_at: string | null
           sort_order: number
           source: string
           status: string
           storage_bucket: string
+          storage_bucket_legacy: string | null
           storage_path: string
+          storage_path_legacy: string | null
           title: string | null
           type: string
           updated_at: string
@@ -1026,11 +1442,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          migrated_at?: string | null
           sort_order?: number
           source?: string
           status?: string
           storage_bucket: string
+          storage_bucket_legacy?: string | null
           storage_path: string
+          storage_path_legacy?: string | null
           title?: string | null
           type: string
           updated_at?: string
@@ -1041,11 +1460,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          migrated_at?: string | null
           sort_order?: number
           source?: string
           status?: string
           storage_bucket?: string
+          storage_bucket_legacy?: string | null
           storage_path?: string
+          storage_path_legacy?: string | null
           title?: string | null
           type?: string
           updated_at?: string
@@ -1241,7 +1663,9 @@ export type Database = {
           entered_at: string
           exited_at: string | null
           id: string
+          is_private: boolean
           rating: number | null
+          source: string
           user_id: string
           venue_id: string
         }
@@ -1252,7 +1676,9 @@ export type Database = {
           entered_at?: string
           exited_at?: string | null
           id?: string
+          is_private?: boolean
           rating?: number | null
+          source?: string
           user_id: string
           venue_id: string
         }
@@ -1263,7 +1689,9 @@ export type Database = {
           entered_at?: string
           exited_at?: string | null
           id?: string
+          is_private?: boolean
           rating?: number | null
+          source?: string
           user_id?: string
           venue_id?: string
         }
@@ -1291,6 +1719,8 @@ export type Database = {
           city: string
           created_at: string
           cuisine_type: string | null
+          data_locked_fields: string[]
+          facebook_url: string | null
           geocode_attempts: number
           geocode_last_attempt_at: string | null
           geocode_last_error: string | null
@@ -1299,6 +1729,8 @@ export type Database = {
           geocode_status: string
           geocoded_at: string | null
           id: string
+          instagram_url: string | null
+          is_verified: boolean
           last_confirmed_at: string | null
           lat: number | null
           lng: number | null
@@ -1325,11 +1757,11 @@ export type Database = {
           state: string
           status: string
           tags: string[]
+          tiktok_url: string | null
           timezone: string | null
           updated_at: string
-          facebook_url: string | null
-          instagram_url: string | null
-          tiktok_url: string | null
+          verified_at: string | null
+          verified_by: string | null
           website: string | null
           zip: string
         }
@@ -1339,6 +1771,8 @@ export type Database = {
           city: string
           created_at?: string
           cuisine_type?: string | null
+          data_locked_fields?: string[]
+          facebook_url?: string | null
           geocode_attempts?: number
           geocode_last_attempt_at?: string | null
           geocode_last_error?: string | null
@@ -1347,6 +1781,8 @@ export type Database = {
           geocode_status?: string
           geocoded_at?: string | null
           id?: string
+          instagram_url?: string | null
+          is_verified?: boolean
           last_confirmed_at?: string | null
           lat?: number | null
           lng?: number | null
@@ -1373,11 +1809,11 @@ export type Database = {
           state: string
           status?: string
           tags?: string[]
+          tiktok_url?: string | null
           timezone?: string | null
           updated_at?: string
-          facebook_url?: string | null
-          instagram_url?: string | null
-          tiktok_url?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
           website?: string | null
           zip: string
         }
@@ -1387,6 +1823,8 @@ export type Database = {
           city?: string
           created_at?: string
           cuisine_type?: string | null
+          data_locked_fields?: string[]
+          facebook_url?: string | null
           geocode_attempts?: number
           geocode_last_attempt_at?: string | null
           geocode_last_error?: string | null
@@ -1395,6 +1833,8 @@ export type Database = {
           geocode_status?: string
           geocoded_at?: string | null
           id?: string
+          instagram_url?: string | null
+          is_verified?: boolean
           last_confirmed_at?: string | null
           lat?: number | null
           lng?: number | null
@@ -1421,11 +1861,11 @@ export type Database = {
           state?: string
           status?: string
           tags?: string[]
+          tiktok_url?: string | null
           timezone?: string | null
           updated_at?: string
-          facebook_url?: string | null
-          instagram_url?: string | null
-          tiktok_url?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
           website?: string | null
           zip?: string
         }
@@ -1435,6 +1875,35 @@ export type Database = {
             columns: ["org_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venues_snapshot: {
+        Row: {
+          captured_at: string
+          data: Json
+          snapshot_id: string
+          venue_id: string
+        }
+        Insert: {
+          captured_at?: string
+          data: Json
+          snapshot_id: string
+          venue_id: string
+        }
+        Update: {
+          captured_at?: string
+          data?: Json
+          snapshot_id?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venues_snapshot_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "reference_snapshots"
             referencedColumns: ["id"]
           },
         ]
@@ -1606,6 +2075,43 @@ export type Database = {
           },
         ]
       }
+      v_kcmo_neighborhoods: {
+        Row: {
+          black_owned_count: number | null
+          centroid_lat: number | null
+          centroid_lng: number | null
+          city: string | null
+          description: string | null
+          draft_count: number | null
+          label: string | null
+          lgbtq_owned_count: number | null
+          parent_slug: string | null
+          published_count: number | null
+          slug: string | null
+          sort_order: number | null
+          state: string | null
+          tier: Database["public"]["Enums"]["neighborhood_tier"] | null
+          venue_count: number | null
+          veteran_owned_count: number | null
+          women_owned_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "neighborhoods_parent_slug_fkey"
+            columns: ["parent_slug"]
+            isOneToOne: false
+            referencedRelation: "neighborhoods"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "neighborhoods_parent_slug_fkey"
+            columns: ["parent_slug"]
+            isOneToOne: false
+            referencedRelation: "v_kcmo_neighborhoods"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       venue_event_counts: {
         Row: {
           cnt: number | null
@@ -1639,6 +2145,10 @@ export type Database = {
       }
     }
     Functions: {
+      capture_reference_snapshot: {
+        Args: { p_label: string; p_notes?: string }
+        Returns: string
+      }
       create_organization: { Args: { p_name: string }; Returns: string }
       get_geocode_job_token: { Args: never; Returns: string }
       get_places_job_token: { Args: never; Returns: string }
@@ -1657,10 +2167,32 @@ export type Database = {
       is_org_manager: { Args: { p_org_id: string }; Returns: boolean }
       is_org_member: { Args: { p_org_id: string }; Returns: boolean }
       is_org_owner: { Args: { p_org_id: string }; Returns: boolean }
+      is_platform_admin: { Args: never; Returns: boolean }
+      merge_staging_venues: {
+        Args: { p_dry_run?: boolean; p_source_run_id: string }
+        Returns: {
+          action: string
+          reason: string
+          staging_id: string
+          venue_id: string
+        }[]
+      }
+      prune_cron_logs: {
+        Args: never
+        Returns: {
+          deleted_http_responses: number
+          deleted_job_run_details: number
+        }[]
+      }
+      restore_venue_from_snapshot: {
+        Args: { p_snapshot_id: string; p_venue_id: string }
+        Returns: boolean
+      }
+      venue_slugify: { Args: { input: string }; Returns: string }
       whoami: { Args: never; Returns: Json }
     }
     Enums: {
-      [_ in never]: never
+      neighborhood_tier: "kcmo" | "metro_mo" | "metro_ks"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1787,6 +2319,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      neighborhood_tier: ["kcmo", "metro_mo", "metro_ks"],
+    },
   },
 } as const
+

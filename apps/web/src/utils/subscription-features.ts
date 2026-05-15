@@ -62,6 +62,7 @@ export const PLAN_LABEL: Record<SubscriptionPlan, string> = {
   premium:  'Premium',
 };
 
+/** Returns true if the given plan includes the requested feature. */
 export function hasFeature(plan: SubscriptionPlan, feature: FeatureKey): boolean {
   return PLAN_FEATURES[plan].has(feature);
 }

@@ -9,6 +9,7 @@ import { hasAdminEmailsConfigured, isAdmin, getAdminClient } from "@/utils/admin
 
 const ORGANIZATION_ALREADY_EXISTS = "organization_already_exists";
 
+/** Returns the org ID for a given slug, or null if the slug is unclaimed. */
 async function findOrganizationIdBySlug(dbClient: SupabaseClient, slug: string) {
   const { data, error } = await dbClient
     .from("organizations")
@@ -24,6 +25,10 @@ async function findOrganizationIdBySlug(dbClient: SupabaseClient, slug: string) 
   return data?.id ? String(data.id) : null;
 }
 
+/**
+ * If the user is already a member of an existing org with this slug, redirects them to it.
+ * Otherwise redirects to the dashboard with an organization_already_exists error.
+ */
 async function redirectForExistingOrganization(
   dbClient: SupabaseClient,
   orgId: string,
@@ -43,6 +48,10 @@ async function redirectForExistingOrganization(
   redirect(`/dashboard?error=${ORGANIZATION_ALREADY_EXISTS}`);
 }
 
+/**
+ * Handles the race-condition path where a unique-constraint violation means another
+ * org claimed the same slug between the initial check and the insert.
+ */
 async function redirectForDuplicateOrganizationSlug(
   dbClient: SupabaseClient,
   slug: string,
@@ -57,6 +66,11 @@ async function redirectForDuplicateOrganizationSlug(
   redirect(`/dashboard?error=${ORGANIZATION_ALREADY_EXISTS}`);
 }
 
+/**
+ * Server action: creates a new organization and adds the creator as owner.
+ * Admin users use a service-role client to bypass the org_members insert RLS policy
+ * which would otherwise fail before the membership row exists.
+ */
 export async function createOrganization(formData: FormData) {
   const supabase = await createClient();
 

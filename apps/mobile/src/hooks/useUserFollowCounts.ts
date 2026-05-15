@@ -9,6 +9,7 @@ type FollowCounts = {
   error: Error | null;
 };
 
+/** Returns the current user's follower and following counts via parallel count queries on user_follows. */
 export function useUserFollowCounts() {
   const { user } = useCurrentUser();
   const [state, setState] = useState<FollowCounts>({

@@ -11,14 +11,17 @@ export type StaticMapOptions = {
   markerLabel?: string;
 };
 
+/** Converts degrees to radians for the Haversine formula. */
 function toRad(value: number) {
   return (value * Math.PI) / 180;
 }
 
+/** Returns true for finite numbers; guards against NaN/Infinity coordinates. */
 function isValidCoordinate(value: number) {
   return Number.isFinite(value);
 }
 
+/** Computes the great-circle distance in miles between two lat/lng coordinates using the Haversine formula. */
 export function getDistanceMiles(a: Coordinates, b: Coordinates): number {
   if (!isValidCoordinate(a.lat) || !isValidCoordinate(a.lng)) return NaN;
   if (!isValidCoordinate(b.lat) || !isValidCoordinate(b.lng)) return NaN;
@@ -35,11 +38,16 @@ export function getDistanceMiles(a: Coordinates, b: Coordinates): number {
   return 2 * R * Math.asin(Math.sqrt(hav));
 }
 
+/** Converts the Haversine result from miles to kilometres. */
 export function getDistanceKm(a: Coordinates, b: Coordinates): number {
   const miles = getDistanceMiles(a, b);
   return Number.isFinite(miles) ? miles * 1.609344 : NaN;
 }
 
+/**
+ * Builds a static map image URL for the given provider (Google or Mapbox).
+ * Returns null when no API key is configured.
+ */
 export function getStaticMapUrl(options: StaticMapOptions): string | null {
   const provider = (process.env.NEXT_PUBLIC_MAPS_PROVIDER ?? '').toLowerCase();
   const apiKey = process.env.NEXT_PUBLIC_MAPS_API_KEY ?? '';
@@ -77,6 +85,10 @@ export function getStaticMapUrl(options: StaticMapOptions): string | null {
   return null;
 }
 
+/**
+ * Geocodes a free-text address to lat/lng via the Google Geocoding API.
+ * Returns null when the address doesn't resolve, the API key is missing, or the provider is not Google.
+ */
 export async function geocodeAddress(_address: string): Promise<Coordinates | null> {
   const address = _address.trim();
   if (!address) return null;
@@ -113,6 +125,10 @@ export async function geocodeAddress(_address: string): Promise<Coordinates | nu
   }
 }
 
+/**
+ * Reverse-geocodes lat/lng to a human-readable address via the Google Geocoding API.
+ * Returns null when the coordinates are invalid, the API key is absent, or the request fails.
+ */
 export async function reverseGeocode(_coords: Coordinates): Promise<string | null> {
   if (!isValidCoordinate(_coords.lat) || !isValidCoordinate(_coords.lng)) {
     return null;

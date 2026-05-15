@@ -11,20 +11,24 @@ export type ErrorUser = {
   name?: string | null;
 };
 
+/** Maps the NEXT_PUBLIC_ERROR_REPORTING_PROVIDER env value to a typed provider enum; defaults to 'auto'. */
 function normalizeProvider(value: string | undefined): ErrorReportingProvider {
   const v = (value ?? '').trim().toLowerCase();
   if (v === 'sentry' || v === 'bugsnag' || v === 'none') return v;
   return 'auto';
 }
 
+/** Returns true in development so uncaptured errors surface in the console. */
 function shouldDebug(): boolean {
   return process.env.NODE_ENV === 'development';
 }
 
+/** Returns globalThis, typed loosely so provider SDKs can be accessed by name. */
 function getScope(): any {
   return globalThis as any;
 }
 
+/** Wraps any thrown value (string, object, etc.) in a real Error for consistent handling. */
 function normalizeError(error: unknown): Error {
   if (error instanceof Error) return error;
   if (typeof error === 'string') return new Error(error);
@@ -35,6 +39,7 @@ function normalizeError(error: unknown): Error {
   }
 }
 
+/** Reports an error to the configured provider (Sentry / Bugsnag); logs to console in development. */
 export function captureError(error: unknown, context?: ErrorContext) {
   const provider = normalizeProvider(process.env.NEXT_PUBLIC_ERROR_REPORTING_PROVIDER);
   const scope = getScope();
@@ -69,6 +74,7 @@ export function captureError(error: unknown, context?: ErrorContext) {
   }
 }
 
+/** Sends an informational message (non-exception) to the configured error reporting provider. */
 export function captureMessage(message: string, context?: ErrorContext) {
   const provider = normalizeProvider(process.env.NEXT_PUBLIC_ERROR_REPORTING_PROVIDER);
   const scope = getScope();
@@ -102,6 +108,7 @@ export function captureMessage(message: string, context?: ErrorContext) {
   }
 }
 
+/** Associates a user identity with subsequent error reports; pass null to clear on sign-out. */
 export function setErrorUser(user: ErrorUser | null) {
   const provider = normalizeProvider(process.env.NEXT_PUBLIC_ERROR_REPORTING_PROVIDER);
   const scope = getScope();
@@ -128,6 +135,7 @@ export function setErrorUser(user: ErrorUser | null) {
   }
 }
 
+/** Appends a breadcrumb to the current error reporting session for richer crash context. */
 export function addErrorBreadcrumb(message: string, metadata?: Record<string, unknown>) {
   const provider = normalizeProvider(process.env.NEXT_PUBLIC_ERROR_REPORTING_PROVIDER);
   const scope = getScope();

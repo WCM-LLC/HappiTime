@@ -22,6 +22,10 @@ type State = {
   error: string | null;
 };
 
+/**
+ * Loads the current user's venue activity history (views, saves, check-ins) with venue details joined.
+ * Also provides recordEvent to append a new history entry without a full reload.
+ */
 export function useUserHistory() {
   const { user } = useCurrentUser();
   const [state, setState] = useState<State>({

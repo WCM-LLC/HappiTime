@@ -3,6 +3,7 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 import { geocodeAddress, reverseGeocode } from "../apps/web/src/services/maps";
 
+/** Loads env vars from a dotenv file into process.env, skipping keys that are already set. */
 const loadEnvFile = (relativePath: string) => {
   const filePath = resolve(process.cwd(), relativePath);
   let contents = "";
@@ -25,11 +26,13 @@ const loadEnvFile = (relativePath: string) => {
   }
 };
 
+/** Throws if the given env var is absent; used for fail-fast validation before API calls. */
 const assertEnv = (key: string) => {
   if (process.env[key]) return;
   throw new Error(`${key} is missing`);
 };
 
+/** Exercises geocode, reverse-geocode, and static-map endpoints end-to-end using Seattle coords. */
 const run = async () => {
   loadEnvFile("apps/web/.env.local");
   loadEnvFile("apps/mobile/.env");

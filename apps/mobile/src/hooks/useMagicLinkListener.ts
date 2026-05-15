@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import * as Linking from "expo-linking";
 import { supabase } from "../api/supabaseClient";
 
+/** Parses all query-string and hash fragment key-value pairs from a URL into a flat object. */
 function parseAuthParams(url: string) {
   const params: Record<string, string> = {};
   const addParams = (value: string) => {
@@ -30,6 +31,7 @@ function parseAuthParams(url: string) {
   return params;
 }
 
+/** Extracts access_token + refresh_token from the URL (token flow — fragment or query). Returns null if either is missing. */
 function extractTokenSession(url: string) {
   // Token flow: happitime://auth/callback#access_token=...&refresh_token=...
   // Some tools/providers place those same params in the query string.
@@ -42,12 +44,14 @@ function extractTokenSession(url: string) {
   return { access_token, refresh_token };
 }
 
+/** Extracts a PKCE auth code from the URL (code flow — query string). Returns null if absent. */
 function extractAuthCode(url: string) {
   // PKCE flow: happitime://auth/callback?code=...
   const maybeCode = parseAuthParams(url)["code"];
   return typeof maybeCode === "string" && maybeCode.length > 0 ? maybeCode : null;
 }
 
+/** Returns a human-readable error string when the callback URL contains error/error_code params; null otherwise. */
 function extractAuthError(url: string) {
   const params = parseAuthParams(url);
   const code = params["error_code"] ?? params["error"];
@@ -57,6 +61,7 @@ function extractAuthError(url: string) {
   return [code, description].filter(Boolean).join(": ");
 }
 
+/** Redacts sensitive auth tokens from a URL before logging to prevent credential leakage in logs. */
 function redactUrl(url: string) {
   return url
     .replace(/access_token=[^&#]+/g, "access_token=[redacted]")
@@ -64,6 +69,11 @@ function redactUrl(url: string) {
     .replace(/code=[^&#]+/g, "code=[redacted]");
 }
 
+/**
+ * Listens for deep link URLs on both cold start and foreground.
+ * Handles PKCE code-exchange flow, token-based magic link flow, and auth error logging.
+ * Tokens are redacted from all log output.
+ */
 export function useMagicLinkListener() {
   useEffect(() => {
     const handleUrl = async (url: string) => {

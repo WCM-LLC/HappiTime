@@ -28,18 +28,26 @@ type State = {
   refreshing: boolean;
 };
 
+/** Trims a string and returns null if empty; used to normalize optional venue/org name fields. */
 const normalizeText = (value?: string | null) => {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
 };
 
+/** Extracts org_id from a window row, preferring the nested venue join over the denormalized column. */
 const getOrgId = (window: HappyHourWindow) =>
   window.venue?.org_id ?? (typeof window.org_id === "string" ? window.org_id : null);
 
+/** Extracts venue_id from a window row, preferring the nested venue join over the denormalized column. */
 const getVenueId = (window: HappyHourWindow) =>
   window.venue?.id ?? window.venue_id ?? null;
 
+/**
+ * Loads all published happy hour windows with venues, offers, and org metadata.
+ * Performs a secondary venue lookup for windows whose venue didn't join,
+ * then computes per-org venue counts from the already-fetched data.
+ */
 export function useHappyHours() {
   const [state, setState] = useState<State>({
     data: [],

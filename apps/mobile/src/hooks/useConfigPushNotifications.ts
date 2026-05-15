@@ -14,11 +14,14 @@ type PushNotificationState = {
   error: string | null;
 };
 
+/** Returns true in development so push registration logs appear in Metro output. */
 const shouldDebug = () => process.env.NODE_ENV === "development";
 
+/** Resolves the EAS project ID from Expo config for getExpoPushTokenAsync. */
 const getProjectId = () =>
   Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
+/** Creates the default Android notification channel on first install; no-op on iOS. */
 const ensureAndroidChannel = async () => {
   if (Platform.OS !== "android") return;
   await Notifications.setNotificationChannelAsync("default", {
@@ -39,6 +42,11 @@ Notifications.setNotificationHandler({
   })
 });
 
+/**
+ * Requests push notification permissions and returns an Expo push token.
+ * Returns a null token (with an error message) when running on a simulator,
+ * and a null token with no error when the user declines the permission prompt.
+ */
 const registerForPushNotificationsAsync = async () => {
   if (!Device.isDevice) {
     return {
@@ -95,6 +103,11 @@ const persistPushToken = async (token: string, userId: string) => {
   }
 };
 
+/**
+ * Registers the device for push notifications when a session is present and persists
+ * the Expo push token to the user_push_tokens table. Also subscribes to foreground
+ * notification events and cold-start notification responses.
+ */
 export function useConfigPushNotifications(session?: Session | null) {
   const [state, setState] = useState<PushNotificationState>({
     expoPushToken: null,

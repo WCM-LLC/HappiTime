@@ -57,6 +57,10 @@ const DISCOVER_EVENT_TYPES: DiscoverEventType[] = [
   "follow",
 ];
 
+/**
+ * Loads the Discover social feed — the 80 most recent public user events (check-ins,
+ * itinerary shares, ratings, comments, follows) with their actor profiles joined.
+ */
 export function useDiscoverFeed() {
   const [state, setState] = useState<State>({ feed: [], loading: true, error: null });
 

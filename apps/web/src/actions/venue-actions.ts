@@ -63,6 +63,11 @@ async function requireVenueAccess(orgId: string, venueId: string) {
   return { supabase, userId };
 }
 
+/**
+ * Asserts the current user has management-level access to the venue.
+ * Platform admins bypass membership checks; all others must hold owner/manager/admin/editor role.
+ * Uses a service-role client when available so RLS doesn't block the membership lookup.
+ */
 async function requireVenueManagementAccess(orgId: string, venueId: string) {
   const { supabase, user } = await requireAuth();
   const isPlatformAdmin = await isAdminEmail(user.email);

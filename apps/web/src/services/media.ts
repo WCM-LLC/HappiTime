@@ -36,20 +36,27 @@ export type ImageTransformOptions = {
   bucket?: string;
 };
 
+/** Maps NEXT_PUBLIC_MEDIA_PROVIDER to a typed enum; returns 'none' for unknown values. */
 function normalizeProvider(value: string | undefined): MediaProvider {
   const v = (value ?? '').trim().toLowerCase();
   if (v === 'cloudinary' || v === 'imgix' || v === 'supabase') return v;
   return 'none';
 }
 
+/** Strips leading and trailing slashes for safe URL segment joining. */
 function stripSlashes(value: string) {
   return value.replace(/^\/+|\/+$/g, '');
 }
 
+/** Joins a base URL and a path segment, normalizing any duplicate slashes at the boundary. */
 function joinUrl(base: string, path: string) {
   return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
 }
 
+/**
+ * Returns a public URL for a Supabase Storage object, preferring the CDN base when set.
+ * Returns null if path is empty or SUPABASE_URL is missing.
+ */
 export function getMediaPublicUrl(path: string, bucket = 'venue-media'): string | null {
   if (!path) return null;
 
@@ -67,6 +74,10 @@ export function getMediaPublicUrl(path: string, bucket = 'venue-media'): string 
   return joinUrl(base, stripSlashes(path));
 }
 
+/**
+ * Builds an optimized image URL using the configured media provider (Cloudinary, imgix, or Supabase).
+ * Falls back to the plain Supabase public URL when no CDN is configured.
+ */
 export function getOptimizedImageUrl(
   path: string,
   options: ImageTransformOptions = {}

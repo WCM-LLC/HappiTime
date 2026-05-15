@@ -15,6 +15,10 @@ export type DiscoverActivityItem = {
 
 type State = { items: DiscoverActivityItem[]; loading: boolean; error: string | null };
 
+/**
+ * Fetches itinerary-share events directed at the current user and resolves
+ * actor profiles and list names in two parallel lookups.
+ */
 export function useDiscoverActivity() {
   const { user } = useCurrentUser();
   const [state, setState] = useState<State>({ items: [], loading: true, error: null });

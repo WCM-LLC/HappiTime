@@ -2,6 +2,7 @@ import { createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/se
 
 export const SUPER_ADMIN_EMAIL = 'admin@happitime.biz';
 
+/** Trims and lowercases an email string for comparison; returns empty string on null/undefined. */
 function normalizeEmail(value: string | undefined | null) {
   return String(value ?? '').trim().toLowerCase();
 }

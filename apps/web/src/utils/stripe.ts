@@ -12,11 +12,13 @@ const STRIPE_CONFIG_ERROR_PATTERNS = [
   /^No active recurring price found for product /,
 ];
 
+/** Returns true when the error is a known Stripe misconfiguration (missing key/product). */
 export function isStripeConfigurationError(err: unknown): boolean {
   if (!(err instanceof Error)) return false;
   return STRIPE_CONFIG_ERROR_PATTERNS.some((pattern) => pattern.test(err.message));
 }
 
+/** Returns the singleton Stripe client, initializing it on first call. Throws if STRIPE_SECRET_KEY is absent. */
 export function getStripe(): Stripe {
   if (!_stripe) {
     const key = process.env.STRIPE_SECRET_KEY;

@@ -161,6 +161,7 @@ const typeOverrides: Record<string, string> = {
   barbecue_restaurant: "bbq"
 };
 
+/** Normalizes a single address/name part to a clean string; returns "" for null, 0, "unknown", or "n/a". */
 const normalizePart = (part: string | number | null | undefined) => {
   if (part == null) return "";
   if (typeof part === "number") {
@@ -176,17 +177,20 @@ const normalizePart = (part: string | number | null | undefined) => {
   return text;
 };
 
+/** Normalizes a zip code string, collapsing internal whitespace. */
 const normalizeZip = (zip: string) => {
   const normalized = normalizePart(zip);
   if (!normalized) return "";
   return normalized.replace(/\s+/g, " ").trim();
 };
 
+/** Returns true when the venue's name is a known generic placeholder that should be replaced with the org name in search queries. */
 const shouldUseOrgNameFallback = (venue: VenueRow) => {
   const name = normalizePart(venue.name).toLowerCase();
   return name.length > 0 && orgNameFallbacks.has(name);
 };
 
+/** Builds the search query string sent to the Places textSearch API; prefers org name over a generic venue name. */
 const buildSearchText = (venue: VenueRow) => {
   const parts: string[] = [];
   const namePart = normalizePart(venue.name);
@@ -214,14 +218,17 @@ const buildSearchText = (venue: VenueRow) => {
   return parts.join(", ");
 };
 
+/** Returns true when a field value would normalize to an empty string (null, blank, "unknown", etc.). */
 const isMissingText = (value: string | number | null | undefined) =>
   normalizePart(value).length === 0;
 
+/** Finds the first Places address component with the given type tag. */
 const getComponent = (
   components: PlacesAddressComponent[] | undefined,
   type: string
 ) => components?.find((component) => component.types?.includes(type));
 
+/** Extracts the text of an address component by type; prefers long form unless preferShort is true. */
 const getComponentText = (
   components: PlacesAddressComponent[] | undefined,
   type: string,
@@ -234,6 +241,7 @@ const getComponentText = (
   return normalizePart(primary ?? fallback ?? "");
 };
 
+/** Assembles a street address from number + route, falling back to premise, and appending subpremise when present. */
 const buildStreetAddress = (
   components: PlacesAddressComponent[] | undefined
 ) => {
@@ -251,18 +259,25 @@ const buildStreetAddress = (
   return address;
 };
 
+/** Extracts the city from address components, trying multiple administrative types as fallbacks. */
 const getCity = (components: PlacesAddressComponent[] | undefined) =>
   getComponentText(components, "locality") ||
   getComponentText(components, "postal_town") ||
   getComponentText(components, "sublocality_level_1") ||
   getComponentText(components, "administrative_area_level_2");
 
+/** Extracts the 2-letter state/province abbreviation using the short text form of administrative_area_level_1. */
 const getState = (components: PlacesAddressComponent[] | undefined) =>
   getComponentText(components, "administrative_area_level_1", true);
 
+/** Extracts the postal code from address components. */
 const getZip = (components: PlacesAddressComponent[] | undefined) =>
   getComponentText(components, "postal_code");
 
+/**
+ * Derives a partial venues update object from a Places API result.
+ * Only sets a field when the venue's existing value is blank/missing — never overwrites populated data.
+ */
 const buildVenueUpdatesFromPlace = (venue: VenueRow, place: PlacesPlace) => {
   const updates: Record<string, unknown> = {};
   const components = place.addressComponents;
@@ -316,6 +331,7 @@ const needsDetails = (venue: VenueRow) =>
   venue.lat == null ||
   venue.lng == null;
 
+/** Fetches the expected authorization token from the get_places_job_token RPC; returned to validate incoming requests. */
 const getJobToken = async () => {
   const { data, error } = await supabase.rpc("get_places_job_token");
 
@@ -327,14 +343,20 @@ const getJobToken = async () => {
   return { token, error: null };
 };
 
+/** Computes the next retry timestamp (now + retryMinutes) for a failed Places fetch. */
 const getNextAttemptAt = (now: Date) =>
   new Date(now.getTime() + retryMinutes * 60 * 1000).toISOString();
 
+/** Computes the next full re-sync timestamp (now + refreshDays) after a successful enrichment; returns null when refresh is disabled. */
 const getNextSyncAt = (now: Date) =>
   refreshDays > 0
     ? new Date(now.getTime() + refreshDays * 24 * 60 * 60 * 1000).toISOString()
     : null;
 
+/**
+ * Converts Places API type strings to HappiTime venue tags.
+ * Ignored types (generic or non-food), overridden types, and _restaurant suffixes are all handled.
+ */
 const mapTypesToTags = (types: string[]) => {
   const tags = new Set<string>();
   for (const rawType of types ?? []) {
@@ -355,6 +377,7 @@ const mapTypesToTags = (types: string[]) => {
   return Array.from(tags);
 };
 
+/** Converts a Places API price level (numeric or PRICE_LEVEL_* string) to the 1–4 integer scale used in the venues table. */
 const mapPriceTier = (priceLevel?: string | number | null) => {
   if (typeof priceLevel === "number") return priceLevel;
   switch ((priceLevel ?? "").toUpperCase()) {
@@ -371,12 +394,17 @@ const mapPriceTier = (priceLevel?: string | number | null) => {
   }
 };
 
+/** Constructs the request headers for a Places API call, including the field mask that controls billed fields. */
 const buildPlacesHeaders = (fieldMask: string) => ({
   "Content-Type": "application/json",
   "X-Goog-Api-Key": placesKey,
   "X-Goog-FieldMask": fieldMask
 });
 
+/**
+ * Performs a typed fetch to the Places API and normalizes the result into a PlacesResult discriminated union.
+ * Marks 429/503 responses as retryable so the caller can schedule a backoff.
+ */
 const fetchPlacesJson = async <T>(
   url: string,
   init: RequestInit
@@ -420,6 +448,10 @@ const fetchPlacesJson = async <T>(
   };
 };
 
+/**
+ * Searches for a venue using Places textSearch. Applies a 5 km location bias when coordinates are available.
+ * Returns the first matching Place, or an error result with retryable=false when no match is found.
+ */
 const searchPlace = async (
   venue: VenueRow
 ): Promise<PlacesResult<PlacesPlace>> => {
@@ -468,6 +500,7 @@ const searchPlace = async (
   };
 };
 
+/** Fetches full Place details by ID including address components, photos, and contact fields. */
 const fetchPlaceDetails = async (
   placeId: string
 ): Promise<PlacesResult<PlacesPlace>> => {
@@ -495,6 +528,7 @@ const fetchPlaceDetails = async (
   return result;
 };
 
+/** Maps a Content-Type header to a file extension for the Cloudinary upload path; defaults to jpg. */
 const getPhotoExtension = (contentType: string) => {
   const normalized = contentType.toLowerCase();
   if (normalized.includes("image/png")) return "png";
@@ -502,11 +536,16 @@ const getPhotoExtension = (contentType: string) => {
   return "jpg";
 };
 
+/** Extracts a URL-safe base filename from a Places photo resource name for use in storage paths. */
 const getPhotoFileBase = (photoName: string, index: number) => {
   const base = photoName.split("/").pop() || `photo-${index + 1}`;
   return base.replace(/[^a-zA-Z0-9_-]/g, "_");
 };
 
+/**
+ * Downloads a photo from the Places media endpoint and returns its bytes and content type.
+ * Returns an error result (not a throw) for non-image responses.
+ */
 const downloadPlacePhoto = async (photoName: string) => {
   const normalizedName = photoName.replace(/^\/+/, "");
   const url = new URL(`${placesApiBaseUrl}/${normalizedName}/media`);
@@ -542,6 +581,13 @@ const downloadPlacePhoto = async (photoName: string) => {
   };
 };
 
+/**
+ * Replaces a venue's Google Places photos in full:
+ * 1. Removes legacy Supabase Storage files and their metadata rows.
+ * 2. Deletes existing Cloudinary "Google Places" rows for the venue.
+ * 3. Downloads and re-uploads up to the configured max photos to Cloudinary.
+ * 4. Inserts fresh venue_media rows for all successful uploads.
+ */
 const refreshVenueMedia = async (
   venueId: string,
   photoNames: string[]

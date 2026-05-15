@@ -84,12 +84,10 @@ This creates a public URL that works across any network connection.
 Migrations live in `supabase/migrations/`. Seed data lives in `supabase/seed.sql`.
 
 ## Docs
-- `ENV.md`
-- `DB_SCHEMA.md`
-- `RLS.md`
-- `MIGRATIONS.md`
-- `TESTING.md`
-- `DEPLOYMENT.md`
+
+See **[docs/index.md](docs/index.md)** for the full documentation index.
+
+Quick links: [ENV](ENV.md) · [DB Schema](DB_SCHEMA.md) · [RLS](RLS.md) · [Migrations](MIGRATIONS.md) · [Testing](TESTING.md) · [Deployment](DEPLOYMENT.md) · [Auth Checklist](AUTH_ADMIN_CHECKLIST.md) · [Backlog](BACKLOG.md)
 
 ## Assumptions (documented)
 - Consumer app reads **public** listings (anon) for `published` venues/windows/menus.

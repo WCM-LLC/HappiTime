@@ -37,6 +37,7 @@ const MISSING_TABLE_MESSAGE =
 
 let cachedTable: MediaTableName | null = null;
 
+/** Detects "table does not exist" errors from Postgres (42P01), PostgREST (PGRST205), or a 404 HTTP status. */
 function isMissingTableError(error: any): boolean {
   const code = String(error?.code ?? '');
   const status = Number(error?.status ?? 0);
@@ -51,6 +52,7 @@ function isMissingTableError(error: any): boolean {
   );
 }
 
+/** Probes whether a table exists by issuing a no-row select; returns true on success or non-404 errors. */
 async function tableExists(
   supabase: SupabaseClient,
   table: MediaTableName
@@ -61,6 +63,10 @@ async function tableExists(
   return true;
 }
 
+/**
+ * Resolves the correct media table name (venue_media preferred over legacy media_assets).
+ * Result is module-cached after the first successful probe to avoid repeated DB round trips.
+ */
 async function resolveMediaTable(supabase: SupabaseClient): Promise<MediaTableName | null> {
   if (cachedTable) return cachedTable;
 
@@ -81,6 +87,10 @@ async function resolveMediaTable(supabase: SupabaseClient): Promise<MediaTableNa
   return null;
 }
 
+/**
+ * Lists published media rows for a venue, sorted by sort_order then created_at.
+ * Returns an error result (not a throw) when the media table is missing.
+ */
 export async function listVenueMedia(
   supabase: SupabaseClient,
   orgId: string,

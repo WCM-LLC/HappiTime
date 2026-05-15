@@ -1,4 +1,5 @@
 
+/** Converts an ISO timestamp to a human-readable relative string ("today", "3 days ago", etc.). Returns null for null/invalid input. */
 export function timeAgo(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const ts = new Date(iso).getTime();

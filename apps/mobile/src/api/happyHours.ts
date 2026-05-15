@@ -6,6 +6,7 @@ import { supabase } from "./supabaseClient";
 
 export type HappyHourWindow = HappyHourWindowWithVenueAndOffers;
 
+/** Fetches published happy hour windows and filters offers to published-only before returning. */
 export async function fetchPublishedHappyHours(): Promise<HappyHourWindow[]> {
   try {
     const windows = await fetchPublishedHappyHourWindows({ supabase });

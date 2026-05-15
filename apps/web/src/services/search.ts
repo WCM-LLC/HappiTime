@@ -18,10 +18,12 @@ export type SearchOptions = {
   radiusMiles?: number;
 };
 
+/** Returns true in development so search errors surface in the console. */
 function shouldDebug(): boolean {
   return process.env.NODE_ENV === 'development';
 }
 
+/** Normalizes raw search API response into typed SearchVenueResult objects, guarding against unexpected shapes. */
 function normalizeResults(input: unknown): SearchVenueResult[] {
   if (!Array.isArray(input)) return [];
   return input.map((item, index) => ({
@@ -37,6 +39,10 @@ function normalizeResults(input: unknown): SearchVenueResult[] {
   }));
 }
 
+/**
+ * Searches venues by query string using the configured search API.
+ * Returns an empty array when the feature flag is off, the endpoint is missing, or the device is offline.
+ */
 export async function searchVenues(
   query: string,
   options: SearchOptions = {}
@@ -67,6 +73,10 @@ export async function searchVenues(
   }
 }
 
+/**
+ * Fetches venue recommendations seeded by a known venue ID.
+ * Returns an empty array when the feature flag is off, the endpoint is missing, or the device is offline.
+ */
 export async function getRecommendedVenues(
   seedVenueId: string,
   options: SearchOptions = {}

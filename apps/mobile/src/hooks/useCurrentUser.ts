@@ -2,6 +2,7 @@ import type { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
 
+/** Returns the current Supabase user and a loading flag; stays in sync with auth state changes. */
 export function useCurrentUser() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);

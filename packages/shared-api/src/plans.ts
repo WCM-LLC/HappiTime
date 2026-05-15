@@ -24,7 +24,7 @@ export async function getVenuePlan(
   supabase?: SupabaseClient<Database>
 ): Promise<VenuePlan> {
   const client = supabase ?? createSupabaseClient();
-  const { data } = await (client as any)
+  const { data } = await client
     .from("venue_subscriptions")
     .select("plan, status")
     .eq("venue_id", venueId)
@@ -42,7 +42,7 @@ export async function getUserPlan(
   supabase?: SupabaseClient<Database>
 ): Promise<UserPlan> {
   const client = supabase ?? createSupabaseClient();
-  const { data } = await (client as any)
+  const { data } = await client
     .from("user_plans")
     .select("plan, status")
     .eq("user_id", userId)

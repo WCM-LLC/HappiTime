@@ -25,7 +25,11 @@
     "supabase:status": "supabase status",
     "supabase:reset": "supabase db reset",
     "supabase:push": "supabase db push",
-    "supabase:gen-types": "supabase gen types typescript --local > supabase/types/generated.ts"
+    "supabase:gen-types": "supabase gen types typescript --local > supabase/types/generated.ts",
+    "data:enrich-venues": "node scripts/enrich-venues.mjs",
+    "data:fetch-photos": "node scripts/fetch-venue-photos.mjs",
+    "data:fetch-covers": "node scripts/fetch-venue-covers.mjs",
+    "data:assign-placeholders": "node scripts/assign-placeholder-covers.mjs"
   },
   "devDependencies": {
     "next": "^16.2.4",

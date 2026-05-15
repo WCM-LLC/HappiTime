@@ -8,12 +8,18 @@ export type PublicSupabaseEnvInput = {
   supabaseKey?: string;
 };
 
+/** Trims and normalizes an env string; returns null for empty or undefined values. */
 function normalizeEnvValue(value: string | undefined): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed.length ? trimmed : null;
 }
 
+/**
+ * Resolves Supabase public env vars from the calling framework's prefix first
+ * (NEXT_PUBLIC_* or EXPO_PUBLIC_*) to avoid cross-app collisions in a monorepo shell.
+ * Throws if url or anonKey are missing.
+ */
 export function getPublicSupabaseEnv(
   input?: PublicSupabaseEnvInput
 ): PublicSupabaseEnv {
@@ -57,6 +63,10 @@ export type PublicMapsEnv = {
   styleId?: string;
 };
 
+/**
+ * Resolves maps provider config from EXPO_PUBLIC_* or NEXT_PUBLIC_* env vars.
+ * Returns null when the required keys are absent — callers should treat null as "no map".
+ */
 export function getPublicMapsEnv(): PublicMapsEnv | null {
   const providerRaw =
     normalizeEnvValue(process.env.EXPO_PUBLIC_MAPS_PROVIDER) ??

@@ -33,6 +33,11 @@ type RawMenuWithSections = MenuSummary & {
   venue_id?: string | null;
 };
 
+/**
+ * Filters, sorts, and normalizes raw menu rows into typed MenuWithSections objects.
+ * Removes empty sections and menus unless includeEmptyMenus is true.
+ * Filters items to happy-hour-only when happyHourOnly is set.
+ */
 function shapeMenus(
   menus: RawMenuWithSections[],
   opts: {

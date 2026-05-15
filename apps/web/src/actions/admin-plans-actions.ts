@@ -10,7 +10,7 @@ export async function adminUpsertVenueSubscription(formData: FormData) {
   const status  = formData.get('status')   as string | null;
   if (!venueId || !plan || !status) throw new Error('venue_id, plan, and status are required');
   const supabase = getAdminClient();
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('venue_subscriptions')
     .upsert({ venue_id: venueId, plan, status }, { onConflict: 'venue_id' });
   if (error) throw new Error(error.message);
@@ -24,7 +24,7 @@ export async function adminUpsertUserPlan(formData: FormData) {
   const status = formData.get('status')  as string | null;
   if (!userId || !plan || !status) throw new Error('user_id, plan, and status are required');
   const supabase = getAdminClient();
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('user_plans')
     .upsert({ user_id: userId, plan, status }, { onConflict: 'user_id' });
   if (error) throw new Error(error.message);
@@ -36,7 +36,7 @@ export async function adminDeleteVenueSubscription(formData: FormData) {
   const venueId = formData.get('venue_id') as string | null;
   if (!venueId) throw new Error('venue_id is required');
   const supabase = getAdminClient();
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('venue_subscriptions')
     .delete()
     .eq('venue_id', venueId);
@@ -49,7 +49,7 @@ export async function adminDeleteUserPlan(formData: FormData) {
   const userId = formData.get('user_id') as string | null;
   if (!userId) throw new Error('user_id is required');
   const supabase = getAdminClient();
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('user_plans')
     .delete()
     .eq('user_id', userId);
