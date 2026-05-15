@@ -185,6 +185,41 @@ WITH org_stats AS (
   LEFT JOIN public.org_members om ON om.org_id = o.id
   GROUP BY o.id, o.name, o.slug, o.created_at
 ),
+verified_groups AS (
+  SELECT DISTINCT
+    a.normalized_name,
+    least(a.org_id, b.org_id) AS org_id_low,
+    greatest(a.org_id, b.org_id) AS org_id_high
+  FROM (
+    SELECT
+      o.id AS org_id,
+      public.normalize_organization_name(o.name) AS normalized_name,
+      om.user_id
+    FROM public.organizations o
+    JOIN public.org_members om
+      ON om.org_id = o.id
+    WHERE om.role = 'owner'
+  ) a
+  JOIN (
+    SELECT
+      o.id AS org_id,
+      public.normalize_organization_name(o.name) AS normalized_name,
+      om.user_id
+    FROM public.organizations o
+    JOIN public.org_members om
+      ON om.org_id = o.id
+    WHERE om.role = 'owner'
+  ) b
+    ON a.normalized_name = b.normalized_name
+   AND a.user_id = b.user_id
+   AND a.org_id <> b.org_id
+  WHERE a.normalized_name IS NOT NULL
+),
+eligible_orgs AS (
+  SELECT normalized_name, org_id_low AS org_id FROM verified_groups
+  UNION
+  SELECT normalized_name, org_id_high AS org_id FROM verified_groups
+),
 ranked AS (
   SELECT
     os.*,
@@ -192,7 +227,9 @@ ranked AS (
     first_value(os.name) OVER canonical_choice AS canonical_organization_name,
     count(*) OVER (PARTITION BY os.normalized_name) AS group_size
   FROM org_stats os
-  WHERE os.normalized_name IS NOT NULL
+  JOIN eligible_orgs eo
+    ON eo.org_id = os.id
+   AND eo.normalized_name = os.normalized_name
   WINDOW canonical_choice AS (
     PARTITION BY os.normalized_name
     ORDER BY os.venue_count DESC, os.member_count DESC, os.created_at ASC, os.id ASC
