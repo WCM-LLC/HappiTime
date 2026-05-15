@@ -107,8 +107,10 @@ const promoLabel: Record<string, string> = {
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { data, loading, error, refreshing, refresh } = useHappyHours();
-  const { coords, error: locationError } = useUserLocation();
   const { preferences, savePreferences } = useUserPreferences();
+  const { coords, error: locationError } = useUserLocation({
+    requestOnMount: preferences.location_enabled,
+  });
   const { isFollowing, toggleFollow, savingVenueId } = useUserFollowedVenues();
   const { width } = useWindowDimensions();
 

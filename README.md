@@ -33,6 +33,11 @@ Android app (in a separate terminal):
 npm run dev:android
 ```
 
+iOS/Xcode setup lives in `apps/ios`:
+```bash
+npm run ios --workspace apps/ios
+```
+
 ## Mobile Dev Build (iOS)
 
 The mobile app uses `react-native-maps` and `expo-notifications`, which are not supported in Expo Go and require a custom dev client build.

@@ -18,6 +18,13 @@ export type UserPreferences = {
   notifications_friend_activity: boolean;
   notifications_product: boolean;
   notifications_marketing: boolean;
+  onboarding_completed_at: string | null;
+  onboarding_step: string;
+  onboarding_version: number;
+  interests: string[];
+  location_enabled: boolean;
+  location_permission_status: "undetermined" | "granted" | "denied" | null;
+  notifications_permission_status: "undetermined" | "granted" | "denied" | null;
 };
 
 const DEFAULTS: UserPreferences = {
@@ -36,6 +43,13 @@ const DEFAULTS: UserPreferences = {
   notifications_friend_activity: true,
   notifications_product: true,
   notifications_marketing: false,
+  onboarding_completed_at: null,
+  onboarding_step: "welcome",
+  onboarding_version: 1,
+  interests: [],
+  location_enabled: false,
+  location_permission_status: null,
+  notifications_permission_status: null,
 };
 
 type State = {
@@ -93,6 +107,23 @@ export function useUserPreferences() {
             notifications_friend_activity: d.notifications_friend_activity ?? true,
             notifications_product: d.notifications_product ?? true,
             notifications_marketing: d.notifications_marketing ?? false,
+            onboarding_completed_at: d.onboarding_completed_at ?? null,
+            onboarding_step: d.onboarding_step ?? "welcome",
+            onboarding_version: d.onboarding_version ?? 1,
+            interests: Array.isArray(d.interests) ? d.interests : [],
+            location_enabled: d.location_enabled ?? false,
+            location_permission_status:
+              d.location_permission_status === "undetermined" ||
+              d.location_permission_status === "granted" ||
+              d.location_permission_status === "denied"
+                ? d.location_permission_status
+                : null,
+            notifications_permission_status:
+              d.notifications_permission_status === "undetermined" ||
+              d.notifications_permission_status === "granted" ||
+              d.notifications_permission_status === "denied"
+                ? d.notifications_permission_status
+                : null,
           }
         : DEFAULTS,
       loading: false,

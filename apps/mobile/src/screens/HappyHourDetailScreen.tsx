@@ -23,6 +23,7 @@ import { useUserLists } from "../hooks/useUserLists";
 import { useVenueMenus } from "../hooks/useVenueMenus";
 import { useVenueMediaGalleries } from "../hooks/useVenueCovers";
 import { useUserLocation } from "../hooks/useUserLocation";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
 import { colors } from "../theme/colors";
@@ -49,7 +50,10 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
 }) => {
   const { windowId } = route.params;
   const { data, loading: windowsLoading, error: windowsError } = useHappyHours();
-  const { coords } = useUserLocation();
+  const { preferences } = useUserPreferences();
+  const { coords } = useUserLocation({
+    requestOnMount: preferences.location_enabled,
+  });
   const { width } = useWindowDimensions();
   const {
     isFollowing,

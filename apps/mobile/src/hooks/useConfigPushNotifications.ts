@@ -103,6 +103,23 @@ const persistPushToken = async (token: string, userId: string) => {
   }
 };
 
+const shouldRegisterForPushNotifications = async (userId: string) => {
+  const { data, error } = await (supabase as any)
+    .from("user_preferences")
+    .select("notifications_push")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (error) {
+    if (shouldDebug()) {
+      console.log("[push] preference lookup failed:", error.message);
+    }
+    return true;
+  }
+
+  return data?.notifications_push !== false;
+};
+
 /**
  * Registers the device for push notifications when a session is present and persists
  * the Expo push token to the user_push_tokens table. Also subscribes to foreground
@@ -125,6 +142,17 @@ export function useConfigPushNotifications(session?: Session | null) {
 
     const register = async () => {
       try {
+        const shouldRegister = await shouldRegisterForPushNotifications(session.user.id);
+        if (!shouldRegister) {
+          if (cancelled) return;
+          setState((prev) => ({
+            ...prev,
+            expoPushToken: null,
+            error: null,
+          }));
+          return;
+        }
+
         const { token, status, error } =
           await registerForPushNotificationsAsync();
         if (cancelled) return;

@@ -3,6 +3,7 @@
 Canonical setup + docs live at repo root:
 - `README.md`
 - `ENV.md`
+- `apps/ios/README.md` for iOS/Xcode ownership, signing, pods, and native capability notes
 
 Quickstart (from repo root):
 ```bash
@@ -52,4 +53,3 @@ eas update --auto --message "your message here"
 ```
 
 Force-close and reopen the app on the device/simulator to apply the update.
-

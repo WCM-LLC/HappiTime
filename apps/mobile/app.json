@@ -28,8 +28,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "HappiTime uses your location to show happy hours near you.",
-          "locationWhenInUsePermission": "HappiTime uses your location to show happy hours near you."
+          "locationAlwaysAndWhenInUsePermission": "HappiTime uses your location to detect nearby happy hours and optional visit reminders after you enable location features.",
+          "locationWhenInUsePermission": "HappiTime uses your location to show nearby happy hours and center the map after you enable location.",
+          "isIosBackgroundLocationEnabled": true
         }
       ]
     ],
@@ -40,9 +41,14 @@
       "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "HappiTime uses your location to show happy hours near you.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "HappiTime uses your location to show happy hours near you even when the app is in the background.",
-        "CFBundleAllowMixedLocalizations": true
+        "NSLocationWhenInUseUsageDescription": "HappiTime uses your location to show nearby happy hours and center the map after you enable location.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "HappiTime uses your location to detect nearby happy hours and optional visit reminders after you enable location features.",
+        "NSLocationAlwaysUsageDescription": "HappiTime uses your location to detect nearby happy hours and optional visit reminders after you enable location features.",
+        "CFBundleAllowMixedLocalizations": true,
+        "UIBackgroundModes": [
+          "fetch",
+          "location"
+        ]
       },
       "config": {
         "googleMapsApiKey": ""

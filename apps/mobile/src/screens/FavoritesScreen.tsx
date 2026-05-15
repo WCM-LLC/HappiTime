@@ -12,6 +12,7 @@ import { useUserHistory, type HistoryEntry } from "../hooks/useUserHistory";
 import { useUserLists, type UserList } from "../hooks/useUserLists";
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserLocation } from "../hooks/useUserLocation";
+import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useVenueMediaGalleries } from "../hooks/useVenueCovers";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
@@ -24,7 +25,10 @@ export const FavoritesScreen: React.FC = () => {
     "favorites"
   );
   const { data } = useHappyHours();
-  const { coords } = useUserLocation();
+  const { preferences } = useUserPreferences();
+  const { coords } = useUserLocation({
+    requestOnMount: preferences.location_enabled,
+  });
   const { venueIds: followedVenueIds, loading: followedLoading } =
     useUserFollowedVenues();
   const { user, loading: authLoading } = useCurrentUser();

@@ -1,3 +1,4 @@
+import type { Session } from "@supabase/supabase-js";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { IconSymbol } from "./components/ui/icon-symbol";
@@ -7,15 +8,19 @@ import { supabase } from "./src/api/supabaseClient";
 import { useConfigPushNotifications } from "./src/hooks/useConfigPushNotifications";
 import { useHappyHours } from "./src/hooks/useHappyHours";
 import { useMagicLinkListener } from "./src/hooks/useMagicLinkListener";
+import { useOnboardingStatus } from "./src/hooks/useOnboardingStatus";
+import { useUserPreferences } from "./src/hooks/useUserPreferences";
 import { useVisitRating } from "./src/hooks/useVisitRating";
 import { useVisitTracker, type VenuePoint } from "./src/hooks/useVisitTracker";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { AuthScreen } from "./src/screens/AuthScreen";
+import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { colors } from "./src/theme/colors";
 import { spacing } from "./src/theme/spacing";
 
-function AuthenticatedApp({ session }: { session: any }) {
+function AuthenticatedApp({ session }: { session: Session }) {
   useConfigPushNotifications(session);
+  const { preferences, loading: preferencesLoading } = useUserPreferences();
 
   const { data: happyHours } = useHappyHours();
   const { pendingVisit, submitRating, dismissRating, submitting, triggerRating } =
@@ -55,7 +60,7 @@ function AuthenticatedApp({ session }: { session: any }) {
     return Array.from(seen.values());
   }, [happyHours]);
 
-  const { startTracking, setOnVisitDetected } = useVisitTracker(venues);
+  const { startTracking, stopTracking, setOnVisitDetected } = useVisitTracker(venues);
   const [showCheckinPrivacyPrompt, setShowCheckinPrivacyPrompt] = useState(false);
   const [checkinPrivacySaving, setCheckinPrivacySaving] = useState(false);
   const [checkinPrivacyError, setCheckinPrivacyError] = useState<string | null>(null);
@@ -102,12 +107,21 @@ function AuthenticatedApp({ session }: { session: any }) {
     [session?.user?.id]
   );
 
-  // Start tracking when we have venues
+  // Start location tracking only after the user opts into location-powered features.
   useEffect(() => {
-    if (venues.length > 0) {
+    if (preferencesLoading) return;
+    if (preferences.location_enabled && venues.length > 0) {
       void startTracking();
+    } else {
+      void stopTracking();
     }
-  }, [venues.length, startTracking]);
+  }, [
+    preferences.location_enabled,
+    preferencesLoading,
+    venues.length,
+    startTracking,
+    stopTracking,
+  ]);
 
   // Wire visit detection to rating flow
   useEffect(() => {
@@ -177,8 +191,9 @@ export default function App() {
 }, []);
 
   const [booting, setBooting] = useState(true);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [guestChoice, setGuestChoice] = useState<"prompt" | "skip" | "signin">("prompt");
+  const onboarding = useOnboardingStatus(session);
   useMagicLinkListener();
   console.log("App render");
 
@@ -251,6 +266,21 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
           </Pressable>
         </View>
       </View>
+    );
+  }
+
+  if (onboarding.loading) {
+    return <LoadingView message={"Checking account setup..."} />;
+  }
+
+  if (!onboarding.hasCompletedOnboarding) {
+    return (
+      <OnboardingScreen
+        session={session}
+        initialStep={onboarding.step}
+        onProgress={onboarding.saveProgress}
+        onComplete={onboarding.completeOnboarding}
+      />
     );
   }
 

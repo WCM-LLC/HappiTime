@@ -7,13 +7,25 @@ type Coords = {
   lng: number;
 };
 
-export function useUserLocation() {
+type UseUserLocationOptions = {
+  requestOnMount?: boolean;
+};
+
+export function useUserLocation(options: UseUserLocationOptions = {}) {
+  const requestOnMount = options.requestOnMount ?? false;
   const [coords, setCoords] = useState<Coords | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(requestOnMount);
 
   useEffect(() => {
     let cancelled = false;
+
+    if (!requestOnMount) {
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     (async () => {
       try {
@@ -51,7 +63,7 @@ export function useUserLocation() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [requestOnMount]);
 
   return { coords, error, loading };
 }

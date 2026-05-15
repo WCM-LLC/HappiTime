@@ -190,8 +190,10 @@ export const MapScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { data } = useHappyHours();
-  const { coords } = useUserLocation();
   const { preferences } = useUserPreferences();
+  const { coords } = useUserLocation({
+    requestOnMount: preferences.location_enabled,
+  });
   const mapRef = useRef<MapView>(null);
 
   const [query, setQuery] = useState("");

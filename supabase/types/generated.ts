@@ -1166,7 +1166,14 @@ export type Database = {
           home_lat: number | null
           home_lng: number | null
           home_state: string | null
+          interests: string[]
+          location_enabled: boolean
+          location_permission_status: string | null
           max_distance_miles: number | null
+          notifications_permission_status: string | null
+          onboarding_completed_at: string | null
+          onboarding_step: string
+          onboarding_version: number
           notifications_friend_activity: boolean
           notifications_happy_hours: boolean
           notifications_marketing: boolean
@@ -1186,7 +1193,14 @@ export type Database = {
           home_lat?: number | null
           home_lng?: number | null
           home_state?: string | null
+          interests?: string[]
+          location_enabled?: boolean
+          location_permission_status?: string | null
           max_distance_miles?: number | null
+          notifications_permission_status?: string | null
+          onboarding_completed_at?: string | null
+          onboarding_step?: string
+          onboarding_version?: number
           notifications_friend_activity?: boolean
           notifications_happy_hours?: boolean
           notifications_marketing?: boolean
@@ -1206,7 +1220,14 @@ export type Database = {
           home_lat?: number | null
           home_lng?: number | null
           home_state?: string | null
+          interests?: string[]
+          location_enabled?: boolean
+          location_permission_status?: string | null
           max_distance_miles?: number | null
+          notifications_permission_status?: string | null
+          onboarding_completed_at?: string | null
+          onboarding_step?: string
+          onboarding_version?: number
           notifications_friend_activity?: boolean
           notifications_happy_hours?: boolean
           notifications_marketing?: boolean
@@ -2324,4 +2345,3 @@ export const Constants = {
     },
   },
 } as const
-

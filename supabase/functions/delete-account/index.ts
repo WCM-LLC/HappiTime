@@ -100,7 +100,7 @@ async function anonymizeAndDetachUserData(adminClient: SupabaseAdminClient, user
       is_public: boolean;
       created_at: string | null;
     }>(adminClient, "user_profiles", "handle, display_name, avatar_url, bio, is_public, created_at", "user_id", userId),
-    safeRows<Record<string, unknown>>(adminClient, "user_preferences", "max_distance_miles, price_tier_min, price_tier_max, cuisines, notifications_marketing, notifications_product, notifications_push, notifications_happy_hours, notifications_venue_updates, notifications_friend_activity, default_checkin_privacy", "user_id", userId),
+    safeRows<Record<string, unknown>>(adminClient, "user_preferences", "max_distance_miles, price_tier_min, price_tier_max, cuisines, interests, location_enabled, location_permission_status, notifications_permission_status, notifications_marketing, notifications_product, notifications_push, notifications_happy_hours, notifications_venue_updates, notifications_friend_activity, default_checkin_privacy, onboarding_completed_at, onboarding_step, onboarding_version", "user_id", userId),
     safeRows<{ visibility: string | null; created_at: string | null }>(adminClient, "user_lists", "visibility, created_at", "user_id", userId),
     safeRows<{ event_type: string | null; venue_id: string | null }>(adminClient, "user_events", "event_type, venue_id", "user_id", userId),
     safeCount(adminClient, "user_followed_venues", "user_id", userId),

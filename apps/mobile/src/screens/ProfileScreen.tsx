@@ -68,6 +68,7 @@ export const ProfileScreen: React.FC = () => {
   const [notifVenueUpdates, setNotifVenueUpdates] = useState(true);
   const [notifFriendActivity, setNotifFriendActivity] = useState(true);
   const [notifProduct, setNotifProduct] = useState(true);
+  const [locationEnabled, setLocationEnabled] = useState(false);
   const [handle, setHandle] = useState("");
   const [bio, setBio] = useState("");
   const [isPublic, setIsPublic] = useState(false);
@@ -170,6 +171,7 @@ export const ProfileScreen: React.FC = () => {
     setNotifVenueUpdates(preferences.notifications_venue_updates);
     setNotifFriendActivity(preferences.notifications_friend_activity);
     setNotifProduct(preferences.notifications_product);
+    setLocationEnabled(preferences.location_enabled);
   }, [preferences]);
 
   const handleSave = async () => {
@@ -343,6 +345,16 @@ export const ProfileScreen: React.FC = () => {
         </View>
 
         <View style={styles.switchRow}>
+          <Text style={styles.label}>Use current location</Text>
+          <Switch
+            value={locationEnabled}
+            onValueChange={setLocationEnabled}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={colors.background}
+          />
+        </View>
+
+        <View style={styles.switchRow}>
           <Text style={styles.label}>Push notifications</Text>
           <Switch
             value={notifPush}
@@ -411,6 +423,7 @@ export const ProfileScreen: React.FC = () => {
               notifications_venue_updates: notifVenueUpdates,
               notifications_friend_activity: notifFriendActivity,
               notifications_product: notifProduct,
+              location_enabled: locationEnabled,
             })
           }
           disabled={prefSaving}
