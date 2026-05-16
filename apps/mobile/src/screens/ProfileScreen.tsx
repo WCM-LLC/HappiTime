@@ -10,6 +10,10 @@ import { useUserFollowCounts } from "../hooks/useUserFollowCounts";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useUserProfile } from "../hooks/useUserProfile";
+import {
+  HappiTimeIOSPermissionPanel,
+  isHappiTimeIOSUIAvailable,
+} from "../native/HappiTimeIOSUI";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -74,6 +78,8 @@ export const ProfileScreen: React.FC = () => {
   const [isPublic, setIsPublic] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const useNativePermissionPanel =
+    Platform.OS === "ios" && isHappiTimeIOSUIAvailable;
 
   const handleOpenSupport = () => {
     Linking.openURL("https://happitime.biz/contactus").catch(() => {
@@ -353,6 +359,18 @@ export const ProfileScreen: React.FC = () => {
             thumbColor={colors.background}
           />
         </View>
+        {useNativePermissionPanel && locationEnabled ? (
+          <HappiTimeIOSPermissionPanel
+            style={styles.nativePermissionPanel}
+            variant="settings"
+            title="Location is controlled by iOS"
+            message="If nearby discovery is not working, check that HappiTime has location access in iPhone Settings."
+            primaryTitle="Open iOS Settings"
+            secondaryTitle="Use manual city"
+            onPrimaryPress={() => void Linking.openSettings()}
+            onSecondaryPress={() => setLocationEnabled(false)}
+          />
+        ) : null}
 
         <View style={styles.switchRow}>
           <Text style={styles.label}>Push notifications</Text>
@@ -363,6 +381,18 @@ export const ProfileScreen: React.FC = () => {
             thumbColor={colors.background}
           />
         </View>
+        {useNativePermissionPanel && notifPush ? (
+          <HappiTimeIOSPermissionPanel
+            style={styles.nativePermissionPanel}
+            variant="settings"
+            title="Alerts are controlled by iOS"
+            message="If happy hour reminders are missing, check that HappiTime can send notifications in iPhone Settings."
+            primaryTitle="Open iOS Settings"
+            secondaryTitle="Keep alerts off"
+            onPrimaryPress={() => void Linking.openSettings()}
+            onSecondaryPress={() => setNotifPush(false)}
+          />
+        ) : null}
 
         {notifPush && (
           <>
@@ -587,6 +617,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: spacing.sm,
     paddingLeft: spacing.lg,
+  },
+  nativePermissionPanel: {
+    height: 188,
+    marginBottom: spacing.md,
+    width: "100%",
   },
   labelSmall: {
     color: colors.textMuted,

@@ -33,6 +33,7 @@ import { IconSymbol } from "../../components/ui/icon-symbol";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { distanceMiles } from "../utils/location";
+import { nativeMapViewProps } from "../utils/mapViewProps";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
 
@@ -465,6 +466,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.mapContainer}>
             <MapView
               ref={mapRef}
+              {...nativeMapViewProps}
               style={styles.mapView}
               initialRegion={{
                 latitude: effectiveCoords?.lat ?? 39.0997,

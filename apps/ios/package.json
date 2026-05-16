@@ -8,6 +8,6 @@
     "prebuild": "npm exec --workspace mobile -- expo prebuild --platform ios",
     "pods": "cd ../mobile/ios && pod install",
     "xcode": "xed ../mobile/ios/HappiTime.xcworkspace",
-    "build:simulator": "xcodebuild -workspace ../mobile/ios/HappiTime.xcworkspace -scheme HappiTime -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build"
+    "build:simulator": "xcodebuild -workspace ../mobile/ios/HappiTime.xcworkspace -scheme HappiTime -configuration Debug -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -derivedDataPath /private/tmp/HappiTimeSwiftUIVerificationDerivedData -skipPackagePluginValidation build"
   }
 }

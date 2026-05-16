@@ -30,17 +30,22 @@ const parseEnvFile = (filePath) => {
   return env;
 };
 
-const loadEnv = (rootDir) => {
-  const env = {};
-  for (const [key, value] of Object.entries(process.env)) {
-    if (typeof value === "string") {
-      env[key] = value;
+const mergeEnv = (target, source) => {
+  for (const [key, value] of Object.entries(source)) {
+    if (typeof value !== "string" || value.trim() === "") continue;
+    if (target[key] == null || target[key] === "") {
+      target[key] = value;
     }
   }
+};
+
+const loadEnv = (rootDir) => {
+  const env = {};
+  mergeEnv(env, process.env);
 
   const monorepoRoot = path.resolve(rootDir, "../..");
   const mobileRoot = path.join(monorepoRoot, "apps", "mobile");
-  const envFiles = [".env", ".env.local"];
+  const envFiles = [".env.local", ".env"];
   const roots = [rootDir, process.cwd(), monorepoRoot, mobileRoot];
   const seen = new Set();
 
@@ -50,7 +55,7 @@ const loadEnv = (rootDir) => {
       if (seen.has(filePath)) continue;
       seen.add(filePath);
       if (fs.existsSync(filePath)) {
-        Object.assign(env, parseEnvFile(filePath));
+        mergeEnv(env, parseEnvFile(filePath));
       }
     }
   }

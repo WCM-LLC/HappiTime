@@ -24,6 +24,10 @@ import {
   type OnboardingPermissionStatus,
   type OnboardingStep,
 } from "../onboarding/state";
+import {
+  HappiTimeIOSPermissionPanel,
+  isHappiTimeIOSUIAvailable,
+} from "../native/HappiTimeIOSUI";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -118,6 +122,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   const currentIndex = ONBOARDING_STEPS.indexOf(step);
   const current = stepContent[step];
   const selectedInterestSet = useMemo(() => new Set(interests), [interests]);
+  const useNativePermissionPanel =
+    Platform.OS === "ios" && isHappiTimeIOSUIAvailable;
 
   const goToStep = async (nextStep: OnboardingStep) => {
     setStatusMessage(null);
@@ -287,12 +293,28 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
               onChangeText={setHomeState}
             />
           </View>
-          <SecondaryButton
-            label={locationLoading ? "Checking location..." : "Use current location"}
-            onPress={() => void requestLocation()}
-            disabled={locationLoading}
-            loading={locationLoading}
-          />
+          {useNativePermissionPanel ? (
+            <HappiTimeIOSPermissionPanel
+              style={styles.nativePermissionPanel}
+              variant="location"
+              title="Use precise nearby discovery"
+              message="HappiTime can use your iPhone location to sort nearby happy hours and reduce manual searching. You can still enter a city instead."
+              primaryTitle={locationLoading ? "Checking..." : "Use current location"}
+              secondaryTitle="Enter city manually"
+              loading={locationLoading}
+              onPrimaryPress={() => void requestLocation()}
+              onSecondaryPress={() =>
+                setStatusMessage("Enter a city and state, then continue when you are ready.")
+              }
+            />
+          ) : (
+            <SecondaryButton
+              label={locationLoading ? "Checking location..." : "Use current location"}
+              onPress={() => void requestLocation()}
+              disabled={locationLoading}
+              loading={locationLoading}
+            />
+          )}
           <PrimaryButton label="Continue" onPress={goNext} />
           <SecondaryButton label="Skip location" onPress={goNext} />
         </>
@@ -367,12 +389,29 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
               onValueChange={setNotificationsProduct}
             />
           </View>
-          <SecondaryButton
-            label={notificationLoading ? "Opening permission..." : "Ask iOS now"}
-            onPress={() => void requestNotifications()}
-            disabled={notificationLoading}
-            loading={notificationLoading}
-          />
+          {useNativePermissionPanel ? (
+            <HappiTimeIOSPermissionPanel
+              style={styles.nativePermissionPanel}
+              variant="notifications"
+              title="Let iOS handle useful reminders"
+              message="Turn on alerts only if you want timely pings for nearby happy hours, saved venues, and favorite categories."
+              primaryTitle={notificationLoading ? "Opening..." : "Ask iOS now"}
+              secondaryTitle="Not now"
+              loading={notificationLoading}
+              onPrimaryPress={() => void requestNotifications()}
+              onSecondaryPress={() => {
+                setNotificationsPush(false);
+                setStatusMessage("Notifications are off for now. You can continue.");
+              }}
+            />
+          ) : (
+            <SecondaryButton
+              label={notificationLoading ? "Opening permission..." : "Ask iOS now"}
+              onPress={() => void requestNotifications()}
+              disabled={notificationLoading}
+              loading={notificationLoading}
+            />
+          )}
           <PrimaryButton label="Continue" onPress={goNext} />
           <SecondaryButton
             label="Skip alerts"
@@ -731,6 +770,11 @@ const styles = StyleSheet.create({
   switchGroup: {
     gap: spacing.sm,
     marginBottom: spacing.sm,
+  },
+  nativePermissionPanel: {
+    height: 188,
+    marginVertical: spacing.xs,
+    width: "100%",
   },
   switchRow: {
     minHeight: 48,

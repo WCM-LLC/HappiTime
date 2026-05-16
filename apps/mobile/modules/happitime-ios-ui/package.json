@@ -1,0 +1,9 @@
+{
+  "name": "happitime-ios-ui",
+  "version": "0.1.0",
+  "description": "Apple-only SwiftUI presentation surfaces for HappiTime's Expo mobile app.",
+  "private": true,
+  "license": "UNLICENSED",
+  "author": "HappiTime",
+  "homepage": "https://happitime.biz"
+}

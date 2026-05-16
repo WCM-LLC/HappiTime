@@ -25,6 +25,7 @@ import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { getHappyHourDisplayNames } from "../utils/happyHourDisplay";
 import { formatTimeRange } from "../utils/formatters";
+import { nativeMapViewProps } from "../utils/mapViewProps";
 
 const formatPriceTier = (tier?: number | null) =>
   typeof tier === "number" && tier > 0 ? "$".repeat(tier) : null;
@@ -686,6 +687,7 @@ export const MapScreen: React.FC = () => {
       {/* Map */}
       <MapView
         ref={mapRef}
+        {...nativeMapViewProps}
         style={styles.map}
         initialRegion={initialRegion}
         showsUserLocation

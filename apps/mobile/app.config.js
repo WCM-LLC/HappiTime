@@ -30,16 +30,22 @@ const parseEnvFile = (filePath) => {
   return env;
 };
 
-const loadEnv = (rootDir) => {
-  const env = {};
-  for (const [key, value] of Object.entries(process.env)) {
-    if (typeof value === "string") {
-      env[key] = value;
+const mergeEnv = (target, source) => {
+  for (const [key, value] of Object.entries(source)) {
+    if (typeof value !== "string" || value.trim() === "") continue;
+    if (target[key] == null || target[key] === "") {
+      target[key] = value;
     }
   }
+};
 
-  const envFiles = [".env", ".env.local"];
-  const roots = [rootDir, process.cwd(), path.join(process.cwd(), "apps", "mobile")];
+const loadEnv = (rootDir) => {
+  const env = {};
+  mergeEnv(env, process.env);
+
+  const monorepoRoot = path.resolve(rootDir, "../..");
+  const envFiles = [".env.local", ".env"];
+  const roots = [rootDir, process.cwd(), monorepoRoot, path.join(monorepoRoot, "apps", "mobile")];
   const seen = new Set();
 
   for (const root of roots) {
@@ -48,13 +54,28 @@ const loadEnv = (rootDir) => {
       if (seen.has(filePath)) continue;
       seen.add(filePath);
       if (fs.existsSync(filePath)) {
-        Object.assign(env, parseEnvFile(filePath));
+        mergeEnv(env, parseEnvFile(filePath));
       }
     }
   }
 
   return env;
 };
+
+const withAndroidMapsKey = (plugins, mapsApiKey) =>
+  (plugins ?? []).map((plugin) => {
+    if (!Array.isArray(plugin) || plugin[0] !== "react-native-maps") {
+      return plugin;
+    }
+
+    return [
+      "react-native-maps",
+      {
+        ...(plugin[1] ?? {}),
+        androidGoogleMapsApiKey: mapsApiKey ?? "",
+      },
+    ];
+  });
 
 module.exports = ({ config }) => {
   const env = loadEnv(__dirname);
@@ -68,6 +89,17 @@ module.exports = ({ config }) => {
 
   return {
     ...config,
+    plugins: withAndroidMapsKey(config.plugins, mapsApiKey),
+    android: {
+      ...config.android,
+      config: {
+        ...config.android?.config,
+        googleMaps: {
+          ...config.android?.config?.googleMaps,
+          apiKey: mapsApiKey ?? "",
+        },
+      },
+    },
     extra: {
       ...config.extra,
       supabaseUrl,
