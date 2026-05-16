@@ -2,7 +2,11 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createServiceClient } from '@/utils/supabase/server';
+import { isAdminEmail } from '@/utils/admin-emails';
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+const VENUE_MANAGER_ROLES = new Set(['owner', 'manager', 'admin', 'editor']);
 
 function toStr(v: FormDataEntryValue | null | undefined) {
   return String(v ?? '').trim();
@@ -34,7 +38,60 @@ async function requireAuth() {
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect('/login');
-  return { supabase, userId: auth.user.id };
+  return { supabase, user: auth.user, userId: auth.user.id };
+}
+
+async function requireVenueManagementAccess(orgId: string, venueId: string) {
+  const { supabase, user, userId } = await requireAuth();
+  const isPlatformAdmin = await isAdminEmail(user.email);
+  let serviceSupabase: SupabaseServerClient | null = null;
+
+  try {
+    serviceSupabase = createServiceClient() as SupabaseServerClient;
+  } catch {
+    // Fall back to the request-scoped client. RLS will still enforce access if configured.
+  }
+
+  const lookupSupabase = serviceSupabase ?? supabase;
+
+  const { data: venue } = await lookupSupabase
+    .from('venues')
+    .select('id')
+    .eq('id', venueId)
+    .eq('org_id', orgId)
+    .maybeSingle();
+
+  if (!venue) redirectWithError(orgId, venueId, 'not_authorized');
+
+  if (isPlatformAdmin) {
+    return { supabase: serviceSupabase ?? supabase, userId };
+  }
+
+  const { data: membership } = await lookupSupabase
+    .from('org_members')
+    .select('role')
+    .eq('org_id', orgId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const role = String(membership?.role ?? '');
+  if (!VENUE_MANAGER_ROLES.has(role)) {
+    redirectWithError(orgId, venueId, 'not_authorized');
+  }
+
+  if (role !== 'owner') {
+    const { data: assignment } = await lookupSupabase
+      .from('venue_members')
+      .select('venue_id')
+      .eq('org_id', orgId)
+      .eq('venue_id', venueId)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!assignment) redirectWithError(orgId, venueId, 'not_authorized');
+  }
+
+  return { supabase, userId };
 }
 
 function revalidateVenue(orgId: string, venueId: string) {
@@ -46,7 +103,7 @@ function revalidateVenue(orgId: string, venueId: string) {
    ────────────────────────────────────────── */
 
 export async function createEvent(orgId: string, venueId: string, formData: FormData) {
-  const { supabase, userId } = await requireAuth();
+  const { supabase, userId } = await requireVenueManagementAccess(orgId, venueId);
 
   const title = requireField(formData, 'event_title', orgId, venueId, 'missing_event_title');
   const description = toNullableStr(formData.get('event_description'));
@@ -102,7 +159,7 @@ export async function createEvent(orgId: string, venueId: string, formData: Form
 }
 
 export async function updateEvent(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { supabase } = await requireVenueManagementAccess(orgId, venueId);
 
   const event_id = requireField(formData, 'event_id', orgId, venueId, 'missing_event_id');
   const title = toStr(formData.get('event_title'));
@@ -163,7 +220,7 @@ export async function updateEvent(orgId: string, venueId: string, formData: Form
 }
 
 export async function deleteEvent(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { supabase } = await requireVenueManagementAccess(orgId, venueId);
 
   const event_id = requireField(formData, 'event_id', orgId, venueId, 'missing_event_id');
 
@@ -182,7 +239,7 @@ export async function deleteEvent(orgId: string, venueId: string, formData: Form
 }
 
 export async function publishEvent(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { supabase } = await requireVenueManagementAccess(orgId, venueId);
   const event_id = requireField(formData, 'event_id', orgId, venueId, 'missing_event_id');
 
   const { error } = await supabase
@@ -200,7 +257,7 @@ export async function publishEvent(orgId: string, venueId: string, formData: For
 }
 
 export async function unpublishEvent(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { supabase } = await requireVenueManagementAccess(orgId, venueId);
   const event_id = requireField(formData, 'event_id', orgId, venueId, 'missing_event_id');
 
   const { error } = await supabase
@@ -222,7 +279,7 @@ export async function unpublishEvent(orgId: string, venueId: string, formData: F
    ─────────────────���──────────────────────── */
 
 export async function updateVenueTags(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { supabase } = await requireVenueManagementAccess(orgId, venueId);
 
   const tagIds = formData
     .getAll('tag_ids')

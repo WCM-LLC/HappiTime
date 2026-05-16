@@ -10,6 +10,7 @@ const HH_STATUS_DRAFT = 'draft';
 const HH_STATUS_PUBLISHED = 'published';
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 const VENUE_MANAGER_ROLES = new Set(['owner', 'manager', 'admin', 'editor']);
+const VENUE_CONTENT_ROLES = new Set(['owner', 'manager', 'admin', 'editor', 'host']);
 
 /** Parses the 'dow' field from FormData. Supports both multi-checkbox and single-select inputs. */
 function parseDowArray(formData: FormData): number[] {
@@ -36,22 +37,27 @@ async function requireAuth() {
 }
 
 /**
- * Asserts the current user is a member of the org and that the venue belongs to it.
- * Redirects with 'not_authorized' if either check fails.
+ * Asserts the current user has scoped write access to the venue.
+ * Platform admins write with service role; other users keep the request client so RLS remains a backstop.
  */
-async function requireVenueAccess(orgId: string, venueId: string) {
-  const { supabase, userId } = await requireAuth();
+async function requireVenueScopedWriteAccess(
+  orgId: string,
+  venueId: string,
+  allowedRoles: Set<string>,
+) {
+  const { supabase, user } = await requireAuth();
+  const isPlatformAdmin = await isAdminEmail(user.email);
+  let serviceSupabase: SupabaseServerClient | null = null;
 
-  const { data: membership } = await supabase
-    .from('org_members')
-    .select('role')
-    .eq('org_id', orgId)
-    .eq('user_id', userId)
-    .maybeSingle();
+  try {
+    serviceSupabase = createServiceClient() as SupabaseServerClient;
+  } catch {
+    // Fall back to the request-scoped client. RLS will still enforce access if configured.
+  }
 
-  if (!membership) redirectWithError(orgId, venueId, 'not_authorized');
+  const lookupSupabase = serviceSupabase ?? supabase;
 
-  const { data: venue } = await supabase
+  const { data: venue } = await lookupSupabase
     .from('venues')
     .select('id')
     .eq('id', venueId)
@@ -60,26 +66,11 @@ async function requireVenueAccess(orgId: string, venueId: string) {
 
   if (!venue) redirectWithError(orgId, venueId, 'not_authorized');
 
-  return { supabase, userId };
-}
-
-/**
- * Asserts the current user has management-level access to the venue.
- * Platform admins bypass membership checks; all others must hold owner/manager/admin/editor role.
- * Uses a service-role client when available so RLS doesn't block the membership lookup.
- */
-async function requireVenueManagementAccess(orgId: string, venueId: string) {
-  const { supabase, user } = await requireAuth();
-  const isPlatformAdmin = await isAdminEmail(user.email);
-  let writeSupabase: SupabaseServerClient = supabase;
-
-  try {
-    writeSupabase = createServiceClient() as SupabaseServerClient;
-  } catch {
-    // Fall back to the request-scoped client. RLS will still enforce access.
+  if (isPlatformAdmin) {
+    return { supabase, writeSupabase: serviceSupabase ?? supabase };
   }
 
-  const { data: membership } = await writeSupabase
+  const { data: membership } = await lookupSupabase
     .from('org_members')
     .select('role')
     .eq('org_id', orgId)
@@ -87,12 +78,12 @@ async function requireVenueManagementAccess(orgId: string, venueId: string) {
     .maybeSingle();
 
   const role = String(membership?.role ?? '');
-  if (!isPlatformAdmin && !VENUE_MANAGER_ROLES.has(role)) {
+  if (!allowedRoles.has(role)) {
     redirectWithError(orgId, venueId, 'not_authorized');
   }
 
-  if (!isPlatformAdmin && role !== 'owner') {
-    const { data: assignment } = await writeSupabase
+  if (role !== 'owner') {
+    const { data: assignment } = await lookupSupabase
       .from('venue_members')
       .select('venue_id')
       .eq('org_id', orgId)
@@ -103,16 +94,15 @@ async function requireVenueManagementAccess(orgId: string, venueId: string) {
     if (!assignment) redirectWithError(orgId, venueId, 'not_authorized');
   }
 
-  const { data: venue } = await writeSupabase
-    .from('venues')
-    .select('id')
-    .eq('id', venueId)
-    .eq('org_id', orgId)
-    .maybeSingle();
+  return { supabase, writeSupabase: supabase };
+}
 
-  if (!venue) redirectWithError(orgId, venueId, 'not_authorized');
+async function requireVenueManagementAccess(orgId: string, venueId: string) {
+  return requireVenueScopedWriteAccess(orgId, venueId, VENUE_MANAGER_ROLES);
+}
 
-  return { supabase, writeSupabase };
+async function requireVenueContentAccess(orgId: string, venueId: string) {
+  return requireVenueScopedWriteAccess(orgId, venueId, VENUE_CONTENT_ROLES);
 }
 
 /** Invalidates the Next.js cache for the venue management page. */
@@ -227,7 +217,7 @@ async function publishMenusForWindow(
  * Uses max(sort_order) + 1; new rows get appended to the end.
  */
 async function nextSortOrder(
-  supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+  supabase: SupabaseServerClient,
   table: 'menu_sections' | 'menu_items',
   filterField: 'menu_id' | 'section_id',
   filterValue: string,
@@ -244,9 +234,7 @@ async function nextSortOrder(
 
 /** Updates core venue fields (name, address, timezone, app_name_preference). */
 export async function updateVenue(orgId: string, venueId: string, formData: FormData) {
-  // Authed session only. RLS handles authorization, including the admin override
-  // (policy `venues_admin_all` permits platform admins via public.is_platform_admin()).
-  const { supabase } = await requireAuth();
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
 
   const patch: {
     name: string;
@@ -285,7 +273,7 @@ export async function updateVenue(orgId: string, venueId: string, formData: Form
 
   // Update and verify rows actually changed. Without this verification, RLS-filtered
   // writes return success with 0 rows affected — the form silently reverts.
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await writeSupabase
     .from('venues')
     .update(patch)
     .eq('id', venueId)
@@ -307,26 +295,26 @@ export async function updateVenue(orgId: string, venueId: string, formData: Form
 }
 
 export async function publishVenue(orgId: string, venueId: string, _formData?: FormData) {
-  const { supabase } = await requireVenueAccess(orgId, venueId);
-  await setVenueStatus(supabase, orgId, venueId, HH_STATUS_PUBLISHED, 'venue_publish_failed');
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  await setVenueStatus(writeSupabase, orgId, venueId, HH_STATUS_PUBLISHED, 'venue_publish_failed');
   revalidateVenue(orgId, venueId);
 }
 
 export async function unpublishVenue(orgId: string, venueId: string, _formData?: FormData) {
-  const { supabase } = await requireVenueAccess(orgId, venueId);
-  await setVenueStatus(supabase, orgId, venueId, HH_STATUS_DRAFT, 'venue_unpublish_failed');
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  await setVenueStatus(writeSupabase, orgId, venueId, HH_STATUS_DRAFT, 'venue_unpublish_failed');
   revalidateVenue(orgId, venueId);
 }
 
 export async function updateVenueRatingSettings(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   const enabled = formData.get("post_visit_rating_enabled") === "on";
   const aspects = formData
     .getAll("rating_aspects")
     .map((v) => String(v).trim())
     .filter(Boolean);
 
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await writeSupabase
     .from("venues")
     .update({
       post_visit_rating_enabled: enabled,
@@ -349,9 +337,9 @@ export async function updateVenueRatingSettings(orgId: string, venueId: string, 
 }
 /** Creates a new happy hour window in 'draft' status for the given venue. */
 export async function addHappyHour(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
 
-  const { data: venue, error: vErr } = await supabase
+  const { data: venue, error: vErr } = await writeSupabase
     .from('venues')
     .select('id,org_id,timezone')
     .eq('id', venueId)
@@ -372,7 +360,7 @@ export async function addHappyHour(orgId: string, venueId: string, formData: For
   if (!dow.length) redirectWithError(orgId, venueId, 'missing_dow');
   if (!start_time || !end_time) redirectWithError(orgId, venueId, 'missing_time');
 
-  const { data: inserted, error } = await supabase.from('happy_hour_windows').insert({
+  const { data: inserted, error } = await writeSupabase.from('happy_hour_windows').insert({
     venue_id: venueId,
     dow,
     start_time,
@@ -389,7 +377,7 @@ export async function addHappyHour(orgId: string, venueId: string, formData: For
 
 /** Updates schedule fields (dow, start_time, end_time, label) for an existing happy hour window. */
 export async function updateHappyHour(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
 
   const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
   const dow = parseDowArray(formData);
@@ -400,7 +388,7 @@ export async function updateHappyHour(orgId: string, venueId: string, formData: 
   if (!dow.length) redirectWithError(orgId, venueId, 'missing_dow');
   if (!start_time || !end_time) redirectWithError(orgId, venueId, 'missing_time');
 
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await writeSupabase
     .from('happy_hour_windows')
     .update({ dow, start_time, end_time, label })
     .eq('id', hh_id)
@@ -414,10 +402,10 @@ export async function updateHappyHour(orgId: string, venueId: string, formData: 
 
 /** Deletes a happy hour window and its associated records. */
 export async function deleteHappyHour(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
 
-  const { data: deleted, error } = await supabase
+  const { data: deleted, error } = await writeSupabase
     .from('happy_hour_windows')
     .delete()
     .eq('id', hh_id)
@@ -431,10 +419,10 @@ export async function deleteHappyHour(orgId: string, venueId: string, formData: 
 
 /** Sets a happy hour window status to 'published', making it visible in the directory and mobile app. */
 export async function publishHappyHour(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireVenueAccess(orgId, venueId);
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
 
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await writeSupabase
     .from('happy_hour_windows')
     .update({ status: HH_STATUS_PUBLISHED })
     .eq('id', hh_id)
@@ -442,18 +430,18 @@ export async function publishHappyHour(orgId: string, venueId: string, formData:
     .select('id');
 
   assertMutationRows('publishHappyHour', updated, error, orgId, venueId, 'happyhour_publish_failed');
-  await ensureVenuePublished(supabase, orgId, venueId);
-  await publishMenusForWindow(supabase, orgId, venueId, hh_id, 'happyhour_publish_failed');
+  await ensureVenuePublished(writeSupabase, orgId, venueId);
+  await publishMenusForWindow(writeSupabase, orgId, venueId, hh_id, 'happyhour_publish_failed');
 
   revalidateVenue(orgId, venueId);
 }
 
 /** Sets a happy hour window status back to 'draft', hiding it from public views. */
 export async function unpublishHappyHour(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireVenueAccess(orgId, venueId);
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
 
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await writeSupabase
     .from('happy_hour_windows')
     .update({ status: HH_STATUS_DRAFT })
     .eq('id', hh_id)
@@ -576,10 +564,10 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
 
 /** Creates a new menu in 'draft' status for a venue. */
 export async function createMenu(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   const name = requireField(formData, 'menu_name', orgId, venueId, 'missing_menu_name');
 
-  const { data: inserted, error } = await supabase.from('menus').insert({
+  const { data: inserted, error } = await writeSupabase.from('menus').insert({
     venue_id: venueId,
     name,
     status: HH_STATUS_DRAFT,
@@ -593,10 +581,10 @@ export async function createMenu(orgId: string, venueId: string, formData: FormD
 
 /** Saves editable fields for a menu, including its existing sections and items. */
 export async function saveMenu(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireVenueAccess(orgId, venueId);
+  const { writeSupabase } = await requireVenueContentAccess(orgId, venueId);
   const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
 
-  const { data: menu, error: menuLookupError } = await supabase
+  const { data: menu, error: menuLookupError } = await writeSupabase
     .from('menus')
     .select('id')
     .eq('id', menu_id)
@@ -616,7 +604,7 @@ export async function saveMenu(orgId: string, venueId: string, formData: FormDat
 
     if (!name) redirectWithError(orgId, venueId, 'missing_menu_name');
 
-    const { data: updatedMenu, error: menuError } = await supabase
+    const { data: updatedMenu, error: menuError } = await writeSupabase
       .from('menus')
       .update({ name, is_active })
       .eq('id', menu_id)
@@ -639,7 +627,7 @@ export async function saveMenu(orgId: string, venueId: string, formData: FormDat
       'missing_section_fields',
     );
 
-    const { data: updatedSection, error: sectionError } = await supabase
+    const { data: updatedSection, error: sectionError } = await writeSupabase
       .from('menu_sections')
       .update({ name: sectionName })
       .eq('id', sectionId)
@@ -668,7 +656,7 @@ export async function saveMenu(orgId: string, venueId: string, formData: FormDat
 
     if (!itemName) redirectWithError(orgId, venueId, 'missing_item_fields');
 
-    const { data: item } = await supabase
+    const { data: item } = await writeSupabase
       .from('menu_items')
       .select('id, menu_sections!inner(menu_id)')
       .eq('id', itemId)
@@ -677,7 +665,7 @@ export async function saveMenu(orgId: string, venueId: string, formData: FormDat
 
     if (!item) redirectWithError(orgId, venueId, 'not_authorized');
 
-    const { data: updatedItem, error: itemError } = await supabase
+    const { data: updatedItem, error: itemError } = await writeSupabase
       .from('menu_items')
       .update({ name: itemName, description, price, is_happy_hour })
       .eq('id', itemId)
@@ -691,10 +679,10 @@ export async function saveMenu(orgId: string, venueId: string, formData: FormDat
 
 /** Sets a menu's status to 'published'. */
 export async function publishMenu(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireVenueAccess(orgId, venueId);
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
 
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await writeSupabase
     .from('menus')
     .update({ status: HH_STATUS_PUBLISHED })
     .eq('id', menu_id)
@@ -702,17 +690,17 @@ export async function publishMenu(orgId: string, venueId: string, formData: Form
     .select('id');
 
   assertMutationRows('publishMenu', updated, error, orgId, venueId, 'menu_publish_failed');
-  await ensureVenuePublished(supabase, orgId, venueId);
+  await ensureVenuePublished(writeSupabase, orgId, venueId);
 
   revalidateVenue(orgId, venueId);
 }
 
 /** Sets a menu's status back to 'draft'. */
 export async function unpublishMenu(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireVenueAccess(orgId, venueId);
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
 
-  const { data: updated, error } = await supabase
+  const { data: updated, error } = await writeSupabase
     .from('menus')
     .update({ status: HH_STATUS_DRAFT })
     .eq('id', menu_id)
@@ -729,21 +717,30 @@ export async function unpublishMenu(orgId: string, venueId: string, formData: Fo
  * Manually cascades the delete in case FK cascade is not configured.
  */
 export async function deleteMenu(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
 
-  const { data: sections } = await supabase
+  const { data: menu } = await writeSupabase
+    .from('menus')
+    .select('id')
+    .eq('id', menu_id)
+    .eq('venue_id', venueId)
+    .maybeSingle();
+
+  if (!menu) redirectWithError(orgId, venueId, 'not_authorized');
+
+  const { data: sections } = await writeSupabase
     .from('menu_sections')
     .select('id')
     .eq('menu_id', menu_id);
 
   const sectionIds = (sections ?? []).map((s: any) => s.id).filter(Boolean);
   if (sectionIds.length) {
-    await supabase.from('menu_items').delete().in('section_id', sectionIds);
+    await writeSupabase.from('menu_items').delete().in('section_id', sectionIds);
   }
-  await supabase.from('menu_sections').delete().eq('menu_id', menu_id);
+  await writeSupabase.from('menu_sections').delete().eq('menu_id', menu_id);
 
-  const { data: deleted, error } = await supabase
+  const { data: deleted, error } = await writeSupabase
     .from('menus')
     .delete()
     .eq('id', menu_id)
@@ -757,12 +754,21 @@ export async function deleteMenu(orgId: string, venueId: string, formData: FormD
 
 /** Creates a new menu section appended to the end of the menu. */
 export async function createSection(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_section_fields');
   const name = requireField(formData, 'section_name', orgId, venueId, 'missing_section_fields');
-  const nextSort = await nextSortOrder(supabase, 'menu_sections', 'menu_id', menu_id);
+  const { data: menu } = await writeSupabase
+    .from('menus')
+    .select('id')
+    .eq('id', menu_id)
+    .eq('venue_id', venueId)
+    .maybeSingle();
 
-  const { error } = await supabase.from('menu_sections').insert({ menu_id, name, sort_order: nextSort });
+  if (!menu) redirectWithError(orgId, venueId, 'not_authorized');
+
+  const nextSort = await nextSortOrder(writeSupabase, 'menu_sections', 'menu_id', menu_id);
+
+  const { error } = await writeSupabase.from('menu_sections').insert({ menu_id, name, sort_order: nextSort });
   if (error) {
     console.error(error);
     redirectWithError(orgId, venueId, 'section_create_failed');
@@ -776,10 +782,10 @@ export async function createSection(orgId: string, venueId: string, formData: Fo
  * Verifies the section belongs to a menu owned by this venue before deleting.
  */
 export async function deleteSection(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireVenueAccess(orgId, venueId);
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   const section_id = requireField(formData, 'section_id', orgId, venueId, 'missing_section_id');
 
-  const { data: section } = await supabase
+  const { data: section } = await writeSupabase
     .from('menu_sections')
     .select('id, menus!inner(venue_id)')
     .eq('id', section_id)
@@ -788,9 +794,9 @@ export async function deleteSection(orgId: string, venueId: string, formData: Fo
 
   if (!section) redirectWithError(orgId, venueId, 'not_authorized');
 
-  await supabase.from('menu_items').delete().eq('section_id', section_id);
+  await writeSupabase.from('menu_items').delete().eq('section_id', section_id);
 
-  const { error } = await supabase.from('menu_sections').delete().eq('id', section_id);
+  const { error } = await writeSupabase.from('menu_sections').delete().eq('id', section_id);
   if (error) {
     console.error(error);
     redirectWithError(orgId, venueId, 'section_delete_failed');
@@ -801,7 +807,7 @@ export async function deleteSection(orgId: string, venueId: string, formData: Fo
 
 /** Creates a menu item appended to the end of a section. */
 export async function createItem(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireAuth();
+  const { writeSupabase } = await requireVenueContentAccess(orgId, venueId);
   const section_id = requireField(formData, 'section_id', orgId, venueId, 'missing_item_fields');
   const name = toStr(formData.get('item_name'));
   const description = toNullableStr(formData.get('item_description'));
@@ -810,8 +816,17 @@ export async function createItem(orgId: string, venueId: string, formData: FormD
 
   if (!name) redirectWithError(orgId, venueId, 'missing_item_fields');
 
-  const nextSort = await nextSortOrder(supabase, 'menu_items', 'section_id', section_id);
-  const { error } = await supabase.from('menu_items').insert({
+  const { data: section } = await writeSupabase
+    .from('menu_sections')
+    .select('id, menus!inner(venue_id)')
+    .eq('id', section_id)
+    .eq('menus.venue_id', venueId)
+    .maybeSingle();
+
+  if (!section) redirectWithError(orgId, venueId, 'not_authorized');
+
+  const nextSort = await nextSortOrder(writeSupabase, 'menu_items', 'section_id', section_id);
+  const { error } = await writeSupabase.from('menu_items').insert({
     section_id, name, description, price, is_happy_hour, sort_order: nextSort,
   });
 
@@ -828,10 +843,10 @@ export async function createItem(orgId: string, venueId: string, formData: FormD
  * Verifies the item traces back to this venue via section → menu before deleting.
  */
 export async function deleteItem(orgId: string, venueId: string, formData: FormData) {
-  const { supabase } = await requireVenueAccess(orgId, venueId);
+  const { writeSupabase } = await requireVenueContentAccess(orgId, venueId);
   const item_id = requireField(formData, 'item_id', orgId, venueId, 'missing_item_id');
 
-  const { data: item } = await supabase
+  const { data: item } = await writeSupabase
     .from('menu_items')
     .select('id, menu_sections!inner(menu_id, menus!inner(venue_id))')
     .eq('id', item_id)
@@ -840,7 +855,7 @@ export async function deleteItem(orgId: string, venueId: string, formData: FormD
 
   if (!item) redirectWithError(orgId, venueId, 'not_authorized');
 
-  const { error } = await supabase.from('menu_items').delete().eq('id', item_id);
+  const { error } = await writeSupabase.from('menu_items').delete().eq('id', item_id);
   if (error) {
     console.error(error);
     redirectWithError(orgId, venueId, 'item_delete_failed');
