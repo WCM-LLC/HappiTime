@@ -429,8 +429,8 @@ export function OrgsTable({ orgs }: { orgs: OrgRow[] }) {
     const q = search.toLowerCase();
     return sorted.filter(
       (o) =>
-        o.name.toLowerCase().includes(q) ||
-        o.slug.toLowerCase().includes(q)
+        (o.name ?? '').toLowerCase().includes(q) ||
+        (o.slug ?? '').toLowerCase().includes(q)
     );
   }, [sorted, search]);
 
