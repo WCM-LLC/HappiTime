@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Inter, Plus_Jakarta_Sans } from 'next/font/google';
+import { Toaster } from 'sonner';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       {/* Some browser extensions (e.g., grammar/spellcheck tools) mutate <body> before hydration. */}
       <body suppressHydrationWarning>
         {children}
+        <Toaster position="bottom-right" richColors closeButton />
       </body>
     </html>
   );

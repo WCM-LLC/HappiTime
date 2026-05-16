@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
 import { isAdminEmail } from '@/utils/admin-emails';
-import { toStr, toNullableStr, toNumberOrNull, redirectWithError, requireField } from '@/utils/form';
+import { toStr, toNullableStr, toNumberOrNull, redirectWithError, redirectWithSuccess, requireField } from '@/utils/form';
 
 const HH_STATUS_DRAFT = 'draft';
 const HH_STATUS_PUBLISHED = 'published';
@@ -292,18 +292,21 @@ export async function updateVenue(orgId: string, venueId: string, formData: Form
   }
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'venue_saved');
 }
 
 export async function publishVenue(orgId: string, venueId: string, _formData?: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   await setVenueStatus(writeSupabase, orgId, venueId, HH_STATUS_PUBLISHED, 'venue_publish_failed');
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'venue_published');
 }
 
 export async function unpublishVenue(orgId: string, venueId: string, _formData?: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   await setVenueStatus(writeSupabase, orgId, venueId, HH_STATUS_DRAFT, 'venue_unpublish_failed');
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'venue_unpublished');
 }
 
 export async function updateVenueRatingSettings(orgId: string, venueId: string, formData: FormData) {
@@ -334,6 +337,7 @@ export async function updateVenueRatingSettings(orgId: string, venueId: string, 
   );
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'settings_saved');
 }
 /** Creates a new happy hour window in 'draft' status for the given venue. */
 export async function addHappyHour(orgId: string, venueId: string, formData: FormData) {
@@ -373,6 +377,7 @@ export async function addHappyHour(orgId: string, venueId: string, formData: For
   assertMutationRows('addHappyHour', inserted, error, orgId, venueId, 'happyhour_create_failed');
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'hh_created');
 }
 
 /** Updates schedule fields (dow, start_time, end_time, label) for an existing happy hour window. */
@@ -398,6 +403,7 @@ export async function updateHappyHour(orgId: string, venueId: string, formData: 
   assertMutationRows('updateHappyHour', updated, error, orgId, venueId, 'happyhour_update_failed');
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'hh_saved');
 }
 
 /** Deletes a happy hour window and its associated records. */
@@ -415,6 +421,7 @@ export async function deleteHappyHour(orgId: string, venueId: string, formData: 
   assertMutationRows('deleteHappyHour', deleted, error, orgId, venueId, 'happyhour_delete_failed');
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'hh_deleted');
 }
 
 /** Sets a happy hour window status to 'published', making it visible in the directory and mobile app. */
@@ -434,6 +441,7 @@ export async function publishHappyHour(orgId: string, venueId: string, formData:
   await publishMenusForWindow(writeSupabase, orgId, venueId, hh_id, 'happyhour_publish_failed');
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'hh_published');
 }
 
 /** Sets a happy hour window status back to 'draft', hiding it from public views. */
@@ -451,6 +459,7 @@ export async function unpublishHappyHour(orgId: string, venueId: string, formDat
   assertMutationRows('unpublishHappyHour', updated, error, orgId, venueId, 'happyhour_unpublish_failed');
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'hh_unpublished');
 }
 
 /**
@@ -560,6 +569,7 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
   }
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'hh_menus_saved');
 }
 
 /** Creates a new menu in 'draft' status for a venue. */
@@ -577,6 +587,7 @@ export async function createMenu(orgId: string, venueId: string, formData: FormD
   assertMutationRows('createMenu', inserted, error, orgId, venueId, 'menu_create_failed');
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'menu_created');
 }
 
 /** Saves editable fields for a menu, including its existing sections and items. */
@@ -675,6 +686,7 @@ export async function saveMenu(orgId: string, venueId: string, formData: FormDat
   }
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'menu_saved');
 }
 
 /** Sets a menu's status to 'published'. */
@@ -693,6 +705,7 @@ export async function publishMenu(orgId: string, venueId: string, formData: Form
   await ensureVenuePublished(writeSupabase, orgId, venueId);
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'menu_published');
 }
 
 /** Sets a menu's status back to 'draft'. */
@@ -710,6 +723,7 @@ export async function unpublishMenu(orgId: string, venueId: string, formData: Fo
   assertMutationRows('unpublishMenu', updated, error, orgId, venueId, 'menu_unpublish_failed');
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'menu_unpublished');
 }
 
 /**
@@ -750,6 +764,7 @@ export async function deleteMenu(orgId: string, venueId: string, formData: FormD
   assertMutationRows('deleteMenu', deleted, error, orgId, venueId, 'menu_delete_failed');
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'menu_deleted');
 }
 
 /** Creates a new menu section appended to the end of the menu. */
@@ -775,6 +790,7 @@ export async function createSection(orgId: string, venueId: string, formData: Fo
   }
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'section_created');
 }
 
 /**
@@ -803,6 +819,7 @@ export async function deleteSection(orgId: string, venueId: string, formData: Fo
   }
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'section_deleted');
 }
 
 /** Creates a menu item appended to the end of a section. */
@@ -836,6 +853,7 @@ export async function createItem(orgId: string, venueId: string, formData: FormD
   }
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'item_created');
 }
 
 /**
@@ -862,4 +880,5 @@ export async function deleteItem(orgId: string, venueId: string, formData: FormD
   }
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'item_deleted');
 }

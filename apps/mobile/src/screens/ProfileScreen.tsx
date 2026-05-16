@@ -1,6 +1,6 @@
 // src/screens/ProfileScreen.tsx
 import React, { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../api/supabaseClient";
 import { LoadingSpinner } from "../components/LoadingSpinner";
@@ -77,6 +77,7 @@ export const ProfileScreen: React.FC = () => {
   const [bio, setBio] = useState("");
   const [isPublic, setIsPublic] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [statusIsError, setStatusIsError] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const useNativePermissionPanel =
     Platform.OS === "ios" && isHappiTimeIOSUIAvailable;
@@ -189,9 +190,11 @@ export const ProfileScreen: React.FC = () => {
       is_public: isPublic
     });
     if (error) {
+      setStatusIsError(true);
       setStatusMessage(error.message);
       return;
     }
+    setStatusIsError(false);
     setStatusMessage("Profile saved.");
   };
 
@@ -303,13 +306,20 @@ export const ProfileScreen: React.FC = () => {
           onPress={handleSave}
           disabled={saving}
         >
-          <Text style={styles.primaryButtonText}>
-            {saving ? "Saving..." : "Save profile"}
-          </Text>
+          {saving ? (
+            <View style={styles.buttonRow}>
+              <ActivityIndicator size="small" color="#FFFFFF" style={styles.buttonSpinner} />
+              <Text style={styles.primaryButtonText}>Saving…</Text>
+            </View>
+          ) : (
+            <Text style={styles.primaryButtonText}>Save profile</Text>
+          )}
         </Pressable>
 
         {statusMessage ? (
-          <Text style={styles.statusMessage}>{statusMessage}</Text>
+          <Text style={[styles.statusMessage, statusIsError ? styles.statusError : styles.statusSuccess]}>
+            {statusIsError ? "⚠ " : "✓ "}{statusMessage}
+          </Text>
         ) : null}
 
         <Pressable
@@ -458,9 +468,14 @@ export const ProfileScreen: React.FC = () => {
           }
           disabled={prefSaving}
         >
-          <Text style={styles.primaryButtonText}>
-            {prefSaving ? "Saving..." : "Save preferences"}
-          </Text>
+          {prefSaving ? (
+            <View style={styles.buttonRow}>
+              <ActivityIndicator size="small" color="#FFFFFF" style={styles.buttonSpinner} />
+              <Text style={styles.primaryButtonText}>Saving…</Text>
+            </View>
+          ) : (
+            <Text style={styles.primaryButtonText}>Save preferences</Text>
+          )}
         </Pressable>
         </View>
 
@@ -650,8 +665,23 @@ const styles = StyleSheet.create({
   },
   statusMessage: {
     marginTop: spacing.sm,
-    color: colors.textMuted,
-    fontSize: 12
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  statusSuccess: {
+    color: "#16a34a",
+  },
+  statusError: {
+    color: colors.error,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+  },
+  buttonSpinner: {
+    marginRight: 2,
   },
   dangerButton: {
     marginTop: spacing.md,

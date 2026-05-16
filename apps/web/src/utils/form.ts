@@ -28,6 +28,14 @@ export function redirectWithError(orgId: string, venueId: string, error: string)
 }
 
 /**
+ * Redirects to the venue page with a success query param.
+ * The FlashMessage client component reads this and shows a toast.
+ */
+export function redirectWithSuccess(orgId: string, venueId: string, success: string): never {
+  redirect(`/orgs/${orgId}/venues/${venueId}?success=${success}`);
+}
+
+/**
  * Extracts a required string field from FormData, redirecting with an error if missing.
  * Depends on: redirectWithError.
  */

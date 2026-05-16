@@ -28,6 +28,10 @@ function redirectWithError(orgId: string, venueId: string, error: string): never
   redirect(`/orgs/${orgId}/venues/${venueId}?error=${error}`);
 }
 
+function redirectWithSuccess(orgId: string, venueId: string, success: string): never {
+  redirect(`/orgs/${orgId}/venues/${venueId}?success=${success}`);
+}
+
 function requireField(formData: FormData, key: string, orgId: string, venueId: string, error: string) {
   const value = toStr(formData.get(key));
   if (!value) redirectWithError(orgId, venueId, error);
@@ -156,6 +160,7 @@ export async function createEvent(orgId: string, venueId: string, formData: Form
   }
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'event_created');
 }
 
 export async function updateEvent(orgId: string, venueId: string, formData: FormData) {
@@ -217,6 +222,7 @@ export async function updateEvent(orgId: string, venueId: string, formData: Form
   }
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'event_saved');
 }
 
 export async function deleteEvent(orgId: string, venueId: string, formData: FormData) {
@@ -236,6 +242,7 @@ export async function deleteEvent(orgId: string, venueId: string, formData: Form
   }
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'event_deleted');
 }
 
 export async function publishEvent(orgId: string, venueId: string, formData: FormData) {
@@ -254,6 +261,7 @@ export async function publishEvent(orgId: string, venueId: string, formData: For
   }
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'event_published');
 }
 
 export async function unpublishEvent(orgId: string, venueId: string, formData: FormData) {
@@ -272,6 +280,7 @@ export async function unpublishEvent(orgId: string, venueId: string, formData: F
   }
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'event_unpublished');
 }
 
 /* ──────────────────────────────────────────
@@ -351,4 +360,5 @@ export async function updateVenueTags(orgId: string, venueId: string, formData: 
   }
 
   revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'tags_saved');
 }

@@ -1,6 +1,9 @@
 import Link from 'next/link';
+import { Suspense } from 'react';
 import UserBar from '@/components/layout/UserBar';
 import MenuSectionItemAdder from '@/components/MenuSectionItemAdder';
+import { SubmitButton } from '@/components/ui/SubmitButton';
+import { FlashMessage } from '@/components/FlashMessage';
 import VenueMediaUploader from '@/components/VenueMediaUploader';
 import type { SubscriptionPlan } from '@/utils/stripe';
 import { PLAN_LABEL } from '@/utils/subscription-features';
@@ -413,13 +416,13 @@ export default async function VenuePage({
                   {venuePublished ? 'Published' : 'Draft'}
                 </span>
                 {venuePublished ? (
-                  <button className={btnSecondary} formAction={unpublishVenue.bind(null, orgId, venueId)}>
+                  <SubmitButton className={btnSecondary} formAction={unpublishVenue.bind(null, orgId, venueId)} pendingLabel="Updating…">
                     Unpublish venue
-                  </button>
+                  </SubmitButton>
                 ) : (
-                  <button className={btnPrimary} formAction={publishVenue.bind(null, orgId, venueId)}>
+                  <SubmitButton className={btnPrimary} formAction={publishVenue.bind(null, orgId, venueId)} pendingLabel="Publishing…">
                     Publish venue
-                  </button>
+                  </SubmitButton>
                 )}
               </form>
             ) : null}
@@ -451,6 +454,11 @@ export default async function VenuePage({
             </Link>
           </div>
         </div>
+
+        {/* ── Flash / Success toast ── */}
+        <Suspense>
+          <FlashMessage />
+        </Suspense>
 
         {/* ── Error Banners ── */}
         {[
@@ -554,9 +562,9 @@ export default async function VenuePage({
 
             {canManageVenue ? (
               <div>
-                <button formAction={updateVenue.bind(null, orgId, venueId)} className={btnPrimary}>
+                <SubmitButton formAction={updateVenue.bind(null, orgId, venueId)} className={btnPrimary} pendingLabel="Saving…">
                   Save changes
-                </button>
+                </SubmitButton>
               </div>
             ) : (
               <p className="text-caption text-muted">You can view venue details, but editing requires manager access.</p>
@@ -593,9 +601,9 @@ export default async function VenuePage({
             </div>
             {canManageVenue ? (
               <div>
-                <button formAction={updateVenueRatingSettings.bind(null, orgId, venueId)} className={btnPrimary}>
+                <SubmitButton formAction={updateVenueRatingSettings.bind(null, orgId, venueId)} className={btnPrimary} pendingLabel="Saving…">
                   Save rating settings
-                </button>
+                </SubmitButton>
               </div>
             ) : null}
           </form>
@@ -642,13 +650,13 @@ export default async function VenuePage({
                         <form>
                           <input type="hidden" name="hh_id" value={h.id} />
                           {isPublished ? (
-                            <button className={btnSecondary} formAction={unpublishHappyHour.bind(null, orgId, venueId)}>
+                            <SubmitButton className={btnSecondary} formAction={unpublishHappyHour.bind(null, orgId, venueId)} pendingLabel="Updating…">
                               Unpublish
-                            </button>
+                            </SubmitButton>
                           ) : (
-                            <button className={btnPrimary} formAction={publishHappyHour.bind(null, orgId, venueId)}>
+                            <SubmitButton className={btnPrimary} formAction={publishHappyHour.bind(null, orgId, venueId)} pendingLabel="Publishing…">
                               Publish
-                            </button>
+                            </SubmitButton>
                           )}
                         </form>
                       ) : null}
@@ -695,12 +703,12 @@ export default async function VenuePage({
                             </div>
 
                             <div className="flex items-center gap-2">
-                              <button className={btnSecondary} formAction={updateHappyHour.bind(null, orgId, venueId)}>
+                              <SubmitButton className={btnSecondary} formAction={updateHappyHour.bind(null, orgId, venueId)} pendingLabel="Saving…">
                                 Save
-                              </button>
-                              <button className={btnDanger} formAction={deleteHappyHour.bind(null, orgId, venueId)}>
+                              </SubmitButton>
+                              <SubmitButton className={btnDanger} formAction={deleteHappyHour.bind(null, orgId, venueId)} pendingLabel="Deleting…">
                                 Delete
-                              </button>
+                              </SubmitButton>
                             </div>
                           </form>
                         </div>
@@ -729,9 +737,9 @@ export default async function VenuePage({
                                 ))}
                               </div>
                               <div>
-                                <button type="submit" className={btnSecondary}>
+                                <SubmitButton type="submit" className={btnSecondary} pendingLabel="Saving…">
                                   Save menus
-                                </button>
+                                </SubmitButton>
                               </div>
                             </form>
                           ) : (
@@ -791,9 +799,9 @@ export default async function VenuePage({
                 </div>
 
                 <div>
-                  <button formAction={addHappyHour.bind(null, orgId, venueId)} className={btnPrimary}>
+                  <SubmitButton formAction={addHappyHour.bind(null, orgId, venueId)} className={btnPrimary} pendingLabel="Adding…">
                     Add window (draft)
-                  </button>
+                  </SubmitButton>
                 </div>
               </form>
             </div>
@@ -818,9 +826,9 @@ export default async function VenuePage({
                 <label className="text-body-sm font-medium text-foreground block mb-1.5">New menu</label>
                 <input name="menu_name" placeholder="e.g., Happy Hour Drinks" required className={inputCls} />
               </div>
-              <button formAction={createMenu.bind(null, orgId, venueId)} className={btnPrimary + ' shrink-0'}>
+              <SubmitButton formAction={createMenu.bind(null, orgId, venueId)} className={btnPrimary + ' shrink-0'} pendingLabel="Adding…">
                 Add menu
-              </button>
+              </SubmitButton>
             </form>
           ) : null}
 
@@ -882,34 +890,37 @@ export default async function VenuePage({
                             <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${menuStatusColor}`}>
                               {menuPublished ? 'Published' : 'Draft'}
                             </span>
-                            <button type="submit" form={menuFormId} className={btnSecondary}>
+                            <SubmitButton type="submit" form={menuFormId} className={btnSecondary} pendingLabel="Saving…">
                               Save menu
-                            </button>
+                            </SubmitButton>
                             {menuPublished ? (
-                              <button
+                              <SubmitButton
                                 className={btnPrimary}
                                 form={publishMenuFormId}
                                 formAction={unpublishMenu.bind(null, orgId, venueId)}
+                                pendingLabel="Updating…"
                               >
                                 Unpublish menu
-                              </button>
+                              </SubmitButton>
                             ) : (
-                              <button
+                              <SubmitButton
                                 className={btnPrimary}
                                 form={publishMenuFormId}
                                 formAction={publishMenu.bind(null, orgId, venueId)}
+                                pendingLabel="Publishing…"
                               >
                                 Publish menu
-                              </button>
+                              </SubmitButton>
                             )}
-                            <button
+                            <SubmitButton
                               className={btnDanger}
                               form={deleteMenuFormId}
                               formAction={deleteMenu.bind(null, orgId, venueId)}
                               formNoValidate
+                              pendingLabel="Deleting…"
                             >
                               Delete menu
-                            </button>
+                            </SubmitButton>
                           </div>
                         </div>
                       ) : (
@@ -921,9 +932,9 @@ export default async function VenuePage({
                             </span>
                           </div>
                           {canEditMenuItems ? (
-                            <button type="submit" form={menuFormId} className={btnSecondary}>
+                            <SubmitButton type="submit" form={menuFormId} className={btnSecondary} pendingLabel="Saving…">
                               Save menu
-                            </button>
+                            </SubmitButton>
                           ) : null}
                         </div>
                       )}
@@ -1153,9 +1164,9 @@ export default async function VenuePage({
               })}
 
               <div>
-                <button formAction={updateVenueTags.bind(null, orgId, venueId)} className={btnPrimary}>
+                <SubmitButton formAction={updateVenueTags.bind(null, orgId, venueId)} className={btnPrimary} pendingLabel="Saving…">
                   Save tags
-                </button>
+                </SubmitButton>
               </div>
             </form>
           ) : (
@@ -1227,13 +1238,13 @@ export default async function VenuePage({
                         <form>
                           <input type="hidden" name="event_id" value={ev.id} />
                           {isPublished ? (
-                            <button className={btnSecondary} formAction={unpublishEvent.bind(null, orgId, venueId)}>
+                            <SubmitButton className={btnSecondary} formAction={unpublishEvent.bind(null, orgId, venueId)} pendingLabel="Updating…">
                               Unpublish
-                            </button>
+                            </SubmitButton>
                           ) : (
-                            <button className={btnPrimary} formAction={publishEvent.bind(null, orgId, venueId)}>
+                            <SubmitButton className={btnPrimary} formAction={publishEvent.bind(null, orgId, venueId)} pendingLabel="Publishing…">
                               Publish
-                            </button>
+                            </SubmitButton>
                           )}
                         </form>
                       ) : null}
@@ -1338,12 +1349,12 @@ export default async function VenuePage({
                           </div>
 
                           <div className="flex items-center gap-2">
-                            <button className={btnSecondary} formAction={updateEvent.bind(null, orgId, venueId)}>
+                            <SubmitButton className={btnSecondary} formAction={updateEvent.bind(null, orgId, venueId)} pendingLabel="Saving…">
                               Save
-                            </button>
-                            <button className={btnDanger} formAction={deleteEvent.bind(null, orgId, venueId)}>
+                            </SubmitButton>
+                            <SubmitButton className={btnDanger} formAction={deleteEvent.bind(null, orgId, venueId)} pendingLabel="Deleting…">
                               Delete
-                            </button>
+                            </SubmitButton>
                           </div>
                         </form>
                       </div>
@@ -1443,9 +1454,9 @@ export default async function VenuePage({
                 </div>
 
                 <div>
-                  <button formAction={createEvent.bind(null, orgId, venueId)} className={btnPrimary}>
+                  <SubmitButton formAction={createEvent.bind(null, orgId, venueId)} className={btnPrimary} pendingLabel="Adding…">
                     Add event (draft)
-                  </button>
+                  </SubmitButton>
                 </div>
               </form>
             </div>
