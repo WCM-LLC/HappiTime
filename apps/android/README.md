@@ -42,26 +42,57 @@ EXPO_PUBLIC_MAPS_API_KEY=
 
 ## Run Locally
 
-From the repo root:
+### Prerequisites
+
+1. **Android Studio** — installs the Android SDK to `~/Library/Android/sdk`.
+2. **Java 17** — the Gradle build requires Java 17 specifically. Java 26+ is too new and will fail.
+   ```bash
+   brew install --cask temurin@17
+   ```
+3. **`ANDROID_HOME` and `PATH`** — add to `~/.zshrc` (or `~/.bashrc`):
+   ```bash
+   export ANDROID_HOME=$HOME/Library/Android/sdk
+   export PATH=$PATH:$ANDROID_HOME/emulator
+   export PATH=$PATH:$ANDROID_HOME/platform-tools
+   ```
+   Then reload: `source ~/.zshrc`
+
+### Start the emulator
+
+Open **Android Studio → Device Manager** and start a virtual device (Pixel with a Google APIs image). Or check if one is already running:
 
 ```bash
-npm install
-npm run dev:android
+~/Library/Android/sdk/platform-tools/adb devices
 ```
 
-To build and install a native debug app on an emulator or connected device:
+### Build and run
+
+From the `apps/android` directory:
 
 ```bash
-npm run android
+ANDROID_HOME=$HOME/Library/Android/sdk npx expo run:android
 ```
 
-Native Android runs require:
+This compiles the native debug APK, installs it on the running emulator, and starts the Metro bundler. The first build takes ~5–10 minutes; subsequent builds use the Gradle cache and finish in ~1 minute.
 
-- Android Studio with Android SDK Platform 35 or newer installed.
-- `ANDROID_HOME` set to your Android SDK path.
-- Android SDK `platform-tools` available on `PATH` so `adb` resolves.
-- A running Android emulator or connected device with USB debugging enabled.
-- A Java runtime compatible with the installed Android Gradle Plugin.
+> **Note:** Java 17 is pinned in `android/gradle.properties` via `org.gradle.java.home`, so you do not need to set `JAVA_HOME` manually as long as Temurin 17 is installed at the default path.
+
+### Troubleshooting
+
+**`spawn adb ENOENT`** — `ANDROID_HOME` is not set or `platform-tools` is not on `PATH`. Add the exports above and reload your shell.
+
+**`Unsupported class file major version 70`** — Java 26 is being used. Install Java 17 (`brew install --cask temurin@17`) and verify `org.gradle.java.home` in `android/gradle.properties` points to it.
+
+**`No development build installed`** — the APK hasn't been installed yet. Run `npx expo run:android` (not `expo start --android`) to build and install it first.
+
+**Google Maps not showing** — the Maps API key must have the debug certificate fingerprint added in Google Cloud Console. Get the fingerprint:
+```bash
+keytool -list -v \
+  -keystore android/app/debug.keystore \
+  -alias androiddebugkey \
+  -storepass android -keypass android
+```
+Then add an Android restriction to the key at [console.cloud.google.com](https://console.cloud.google.com) → APIs & Services → Credentials using package `com.jwill7486.happitime.mobile` and the SHA-1 shown above. Also confirm **Maps SDK for Android** is in the key's allowed APIs.
 
 ## Build For Google Play
 
