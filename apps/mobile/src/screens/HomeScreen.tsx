@@ -74,6 +74,22 @@ const getVenueName = (window: HappyHourWindow) => {
 const getVenueId = (window: HappyHourWindow) =>
   window.venue_id ?? window.venue?.id ?? null;
 
+const toNullableCoordinate = (value: unknown): number | null => {
+  if (value == null || value === "") return null;
+  const numberValue = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+};
+
+const getWindowCoordinate = (
+  window: HappyHourWindow
+): { latitude: number; longitude: number } | null => {
+  const latitude = toNullableCoordinate(window.venue?.lat);
+  const longitude = toNullableCoordinate(window.venue?.lng);
+  if (latitude == null || longitude == null) return null;
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
+  return { latitude, longitude };
+};
+
 const getVenueSubtitle = (window: HappyHourWindow): string | null => {
   const { subtitleText } = getHappyHourDisplayNames(window);
   return subtitleText;
@@ -156,10 +172,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     return dedupedByVenue
       .map((window) => {
         if (typeof window.distance === "number") return window;
-        const venueLat = window.venue?.lat ?? null;
-        const venueLng = window.venue?.lng ?? null;
+        const coordinate = getWindowCoordinate(window);
         // Venues with no coordinates always sort to the end
-        if (venueLat == null || venueLng == null) {
+        if (!coordinate) {
           return { ...window, distance: null };
         }
         if (!effectiveCoords) {
@@ -167,7 +182,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         }
         return {
           ...window,
-          distance: distanceMiles(effectiveCoords.lat, effectiveCoords.lng, venueLat, venueLng)
+          distance: distanceMiles(
+            effectiveCoords.lat,
+            effectiveCoords.lng,
+            coordinate.latitude,
+            coordinate.longitude
+          )
         };
       })
       .sort((a, b) => {
@@ -491,14 +511,13 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               }}
             >
               {filtered.map((place) => {
-                const lat = place.venue?.lat;
-                const lng = place.venue?.lng;
-                if (lat == null || lng == null) return null;
+                const coordinate = getWindowCoordinate(place);
+                if (!coordinate) return null;
                 return (
                   <Marker
                     key={place.id}
                     identifier={place.id}
-                    coordinate={{ latitude: lat, longitude: lng }}
+                    coordinate={coordinate}
                     pinColor={colors.primary}
                   />
                 );

@@ -44,8 +44,9 @@ const loadEnv = (rootDir) => {
   mergeEnv(env, process.env);
 
   const monorepoRoot = path.resolve(rootDir, "../..");
+  const androidRoot = path.join(monorepoRoot, "apps", "android");
   const envFiles = [".env.local", ".env"];
-  const roots = [rootDir, process.cwd(), monorepoRoot, path.join(monorepoRoot, "apps", "mobile")];
+  const roots = [rootDir, process.cwd(), monorepoRoot, androidRoot];
   const seen = new Set();
 
   for (const root of roots) {

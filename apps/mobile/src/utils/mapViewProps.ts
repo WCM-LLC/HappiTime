@@ -5,14 +5,12 @@ import { colors } from "../theme/colors";
 export const nativeMapViewProps: Pick<
   MapViewProps,
   | "provider"
-  | "googleRenderer"
   | "loadingEnabled"
   | "loadingBackgroundColor"
   | "loadingIndicatorColor"
   | "userInterfaceStyle"
 > = {
   provider: Platform.OS === "android" ? PROVIDER_GOOGLE : undefined,
-  googleRenderer: Platform.OS === "android" ? "LEGACY" : undefined,
   loadingEnabled: true,
   loadingBackgroundColor: colors.background,
   loadingIndicatorColor: colors.primary,

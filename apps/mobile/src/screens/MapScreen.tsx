@@ -66,14 +66,24 @@ const ITINERARY_EDGE_PADDING = {
 const getWindowVenueId = (window: HappyHourWindow) =>
   window.venue?.id ?? window.venue_id ?? null;
 
-const hasVenueCoordinates = (window: HappyHourWindow) =>
-  window.venue?.lat != null && window.venue?.lng != null;
-
 const toNullableCoordinate = (value: unknown): number | null => {
   if (value == null || value === "") return null;
   const numberValue = typeof value === "number" ? value : Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
 };
+
+const getWindowCoordinate = (
+  window: HappyHourWindow
+): { latitude: number; longitude: number } | null => {
+  const latitude = toNullableCoordinate(window.venue?.lat);
+  const longitude = toNullableCoordinate(window.venue?.lng);
+  if (latitude == null || longitude == null) return null;
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
+  return { latitude, longitude };
+};
+
+const hasVenueCoordinates = (window: HappyHourWindow) =>
+  getWindowCoordinate(window) != null;
 
 const normalizeMapVenue = (venue: ItineraryMapVenue): ItineraryMapVenue => {
   return {
@@ -245,7 +255,11 @@ export const MapScreen: React.FC = () => {
   }, [fetchedItineraryVenues, itineraryVenueIds, routeItineraryVenues]);
   const missingCoordinateCount = hasItineraryFilter
     ? itineraryVenueIds.length -
-      combinedItineraryVenues.filter((venue) => venue.lat != null && venue.lng != null).length
+      combinedItineraryVenues.filter(
+        (venue) =>
+          toNullableCoordinate(venue.lat) != null &&
+          toNullableCoordinate(venue.lng) != null
+      ).length
     : 0;
 
   // Center on user location or home coords or default
@@ -534,12 +548,7 @@ export const MapScreen: React.FC = () => {
   const itineraryCoordinates = useMemo(() => {
     if (!hasItineraryFilter) return [];
     return filtered
-      .map((window) => {
-        const lat = window.venue?.lat;
-        const lng = window.venue?.lng;
-        if (lat == null || lng == null) return null;
-        return { latitude: lat, longitude: lng };
-      })
+      .map(getWindowCoordinate)
       .filter((coord): coord is { latitude: number; longitude: number } => coord != null);
   }, [filtered, hasItineraryFilter]);
   const itineraryCoordinateKey = itineraryCoordinates
@@ -611,13 +620,12 @@ export const MapScreen: React.FC = () => {
       setQuery(suggestion.name);
       setShowSuggestions(false);
       setSelectedWindow(w);
-      const lat = w.venue?.lat;
-      const lng = w.venue?.lng;
-      if (lat != null && lng != null && mapRef.current) {
+      const coordinate = getWindowCoordinate(w);
+      if (coordinate && mapRef.current) {
         mapRef.current.animateToRegion(
           {
-            latitude: lat,
-            longitude: lng,
+            latitude: coordinate.latitude,
+            longitude: coordinate.longitude,
             latitudeDelta: 0.01,
             longitudeDelta: 0.01,
           },
@@ -700,15 +708,15 @@ export const MapScreen: React.FC = () => {
         }}
       >
         {filtered.map((window) => {
-          const lat = window.venue?.lat!;
-          const lng = window.venue?.lng!;
+          const coordinate = getWindowCoordinate(window);
+          if (!coordinate) return null;
           const active = isToday(window);
 
           return (
             <Marker
               key={window.id}
               identifier={window.id}
-              coordinate={{ latitude: lat, longitude: lng }}
+              coordinate={coordinate}
               pinColor={active ? colors.primary : colors.textMutedLight}
               onPress={(event) => {
                 event.stopPropagation();

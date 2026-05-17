@@ -83,6 +83,10 @@ function relativeTime(iso: string | null): string {
   return `${mo}mo ago`;
 }
 
+function searchText(value: unknown): string {
+  return String(value ?? '').toLowerCase();
+}
+
 type SortDir = 'asc' | 'desc';
 
 // ── Shared classes ──────────────────────────────────────────────────────────────
@@ -426,11 +430,11 @@ export function OrgsTable({ orgs }: { orgs: OrgRow[] }) {
 
   const filtered = useMemo(() => {
     if (!search) return sorted;
-    const q = search.toLowerCase();
+    const q = searchText(search);
     return sorted.filter(
       (o) =>
-        (o.name ?? '').toLowerCase().includes(q) ||
-        (o.slug ?? '').toLowerCase().includes(q)
+        searchText(o.name).includes(q) ||
+        searchText(o.slug).includes(q)
     );
   }, [sorted, search]);
 
@@ -521,13 +525,13 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
   const filtered = useMemo(() => {
     let r = sorted;
     if (search) {
-      const q = search.toLowerCase();
+      const q = searchText(search);
       r = r.filter(
         (v) =>
-          v.name.toLowerCase().includes(q) ||
-          v.org_name.toLowerCase().includes(q) ||
-          (v.city ?? '').toLowerCase().includes(q) ||
-          (v.state ?? '').toLowerCase().includes(q)
+          searchText(v.name).includes(q) ||
+          searchText(v.org_name).includes(q) ||
+          searchText(v.city).includes(q) ||
+          searchText(v.state).includes(q)
       );
     }
     if (statusFilter.length) {
@@ -728,11 +732,11 @@ export function WindowsTable({ windows, venues }: { windows: WindowRow[]; venues
   const filtered = useMemo(() => {
     let r = sorted;
     if (search) {
-      const q = search.toLowerCase();
+      const q = searchText(search);
       r = r.filter(
         (w) =>
-          w.venue_name.toLowerCase().includes(q) ||
-          w.location_name.toLowerCase().includes(q)
+          searchText(w.venue_name).includes(q) ||
+          searchText(w.location_name).includes(q)
       );
     }
     if (statusFilter.length) {
@@ -997,12 +1001,12 @@ export function UsersTable({ users }: { users: UserRow[] }) {
       list = list.filter((u) => u.memberships.some((m) => m.role === roleFilter));
     }
     if (search) {
-      const q = search.toLowerCase();
+      const q = searchText(search);
       list = list.filter((u) =>
-        (u.email ?? '').toLowerCase().includes(q)
-        || (u.first_name ?? '').toLowerCase().includes(q)
-        || (u.last_name ?? '').toLowerCase().includes(q)
-        || u.memberships.some((m) => (m.org_name ?? '').toLowerCase().includes(q))
+        searchText(u.email).includes(q)
+        || searchText(u.first_name).includes(q)
+        || searchText(u.last_name).includes(q)
+        || u.memberships.some((m) => searchText(m.org_name).includes(q))
       );
     }
     return list;
