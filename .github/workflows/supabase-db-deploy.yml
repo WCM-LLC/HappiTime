@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.95.6
       - name: Validate required secrets
         run: |
           missing=0

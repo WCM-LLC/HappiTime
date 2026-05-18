@@ -134,3 +134,73 @@ export async function adminUpdateUserInfo(formData: FormData) {
   revalidatePath(returnPath);
   redirect(`${returnPath}?notice=user_updated`);
 }
+
+// ── Super User role management ────────────────────────────────────────────────
+
+export async function promoteToSuperUser(formData: FormData) {
+  await assertAdmin();
+  const db = getAdminClient();
+  const userId = toStr(formData.get('user_id'));
+  if (!userId) redirect('/admin/users?error=missing_user_id');
+
+  const { error } = await db
+    .from('user_profiles')
+    .update({ role: 'super_user' } as any)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('[admin] promoteToSuperUser failed', error);
+    redirect(`/admin/users?error=${encodeURIComponent(error.message)}`);
+  }
+  revalidatePath('/admin/users');
+  redirect('/admin/users?notice=user_promoted');
+}
+
+export async function revokeSuperUser(formData: FormData) {
+  await assertAdmin();
+  const db = getAdminClient();
+  const userId = toStr(formData.get('user_id'));
+  if (!userId) redirect('/admin/users?error=missing_user_id');
+
+  const { error } = await db
+    .from('user_profiles')
+    .update({ role: 'user', auto_publish_enabled: false } as any)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('[admin] revokeSuperUser failed', error);
+    redirect(`/admin/users?error=${encodeURIComponent(error.message)}`);
+  }
+  revalidatePath('/admin/users');
+  redirect('/admin/users?notice=user_revoked');
+}
+
+export async function toggleAutoPublish(formData: FormData) {
+  await assertAdmin();
+  const db = getAdminClient();
+  const userId = toStr(formData.get('user_id'));
+  const enabled = formData.get('enabled') === 'true';
+  if (!userId) redirect('/admin/users?error=missing_user_id');
+
+  // Guard: auto_publish is only meaningful for super_users.
+  const { data: profile, error: fetchErr } = await db
+    .from('user_profiles')
+    .select('role')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (fetchErr || !profile) redirect('/admin/users?error=user_not_found');
+  if ((profile as any).role !== 'super_user') redirect('/admin/users?error=not_super_user');
+
+  const { error } = await db
+    .from('user_profiles')
+    .update({ auto_publish_enabled: enabled } as any)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('[admin] toggleAutoPublish failed', error);
+    redirect(`/admin/users?error=${encodeURIComponent(error.message)}`);
+  }
+  revalidatePath('/admin/users');
+  redirect('/admin/users?notice=auto_publish_updated');
+}

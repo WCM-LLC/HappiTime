@@ -7,5 +7,8 @@
   "types": "dist/packages/shared-types/index.d.ts",
   "scripts": {
     "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "bad-words": "^4.0.0"
   }
 }
