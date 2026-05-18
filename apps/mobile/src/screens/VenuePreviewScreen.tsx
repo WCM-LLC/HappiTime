@@ -10,6 +10,7 @@ import {
   Linking
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { RootStackParamList } from "../navigation/types";
 import { useHappyHours } from "../hooks/useHappyHours";
 import { HappyHourCard } from "../components/HappyHourCard";
@@ -52,6 +53,7 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
 
 export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const { venueId } = route.params;
+  const insets = useSafeAreaInsets();
   const { data, loading, error, refreshing, refresh } = useHappyHours();
   const { data: events } = useVenueEvents(venueId ?? null);
   const { media } = useVenueMedia(venueId ?? null);
@@ -178,7 +180,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           <FlatList
             data={windowsForVenue}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, { paddingBottom: spacing.xl + insets.bottom }]}
             refreshing={refreshing}
             onRefresh={refresh}
             ListHeaderComponent={<>{sections}</>}

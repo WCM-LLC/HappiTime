@@ -16,6 +16,7 @@ import {
   KeyboardAvoidingView,
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { RootStackParamList } from "../navigation/types";
 import { useHappyHours } from "../hooks/useHappyHours";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
@@ -49,6 +50,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
   navigation
 }) => {
   const { windowId } = route.params;
+  const insets = useSafeAreaInsets();
   const { data, loading: windowsLoading, error: windowsError } = useHappyHours();
   const { preferences } = useUserPreferences();
   const { coords } = useUserLocation({
@@ -274,7 +276,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, { paddingBottom: spacing.xl + insets.bottom }]}>
         <View style={styles.heroWrap}>
           <View style={[styles.heroCard, { width: heroWidth }]}>
             {heroImages.length > 0 ? (
