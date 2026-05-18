@@ -175,7 +175,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
       ) : (
         <>
           <Text style={styles.title}>{venueName}</Text>
-          <Text style={styles.subtitle}>Preview of this venue in the app</Text>
+          <Text style={styles.subtitle}>Tap below to see Menus</Text>
 
           <FlatList
             data={windowsForVenue}
