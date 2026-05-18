@@ -26,7 +26,8 @@ Do not expose Stripe secrets with `NEXT_PUBLIC_` names.
 Optional (auth debug):
 - `AUTH_DEBUG` — enable server-side auth logging (`true`/`false`)
 - `NEXT_PUBLIC_AUTH_DEBUG` — enable client-side auth logging (`true`/`false`)
-- `NEXT_PUBLIC_SITE_URL` — canonical site URL (used for auth redirects in production)
+- `NEXT_PUBLIC_CONSOLE_URL` — canonical console URL for auth redirects (defaults to `https://happitime-console.vercel.app`)
+- `NEXT_PUBLIC_SITE_URL` — canonical site URL fallback; do not point this at the marketing site for console deployments.
 
 Optional (maps):
 - `NEXT_PUBLIC_MAPS_PROVIDER` (`google` or `mapbox`)
@@ -75,6 +76,7 @@ Recommended:
 - `SMTP_SECURE` (`true`/`false`; defaults to `true` only when port is `465`)
 
 Optional:
+- `NEXT_PUBLIC_CONSOLE_URL` — canonical console URL used to forward misplaced auth recovery links.
 - `NEXT_PUBLIC_MAPS_API_KEY`
 - `NEXT_PUBLIC_COMING_SOON` — set to `true` to show coming-soon page
 - `NEXT_PUBLIC_GTM_ID` — Google Tag Manager container ID

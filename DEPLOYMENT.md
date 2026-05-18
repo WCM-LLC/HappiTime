@@ -13,6 +13,10 @@ GitHub Actions (DB deploy workflow) expects:
 - Set env vars from `ENV.md` in your hosting provider.
 - Configure Supabase Auth redirect URLs:
   - `https://<your-domain>/auth/callback`
+  - `https://<your-domain>/auth/recovery`
+  - For HappiTime console production, include:
+    - `https://happitime-console.vercel.app/auth/callback`
+    - `https://happitime-console.vercel.app/auth/recovery`
 - For Vercel billing setup, set the Stripe server-only env vars in the target
   environment, redeploy, then configure the Stripe webhook endpoint:
   `https://<your-domain>/api/stripe/webhook`

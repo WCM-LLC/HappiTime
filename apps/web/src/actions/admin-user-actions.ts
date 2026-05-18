@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { assertAdmin, getAdminClient } from '@/utils/admin';
+import { buildPasswordRecoveryRedirectTo, resolveConsoleOrigin } from '@/utils/auth-redirects';
 
 function toStr(value: FormDataEntryValue | null | undefined) {
   return String(value ?? '').trim();
@@ -11,20 +12,6 @@ function toStr(value: FormDataEntryValue | null | undefined) {
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-/**
- * Resolve the deployed origin so password-reset emails point to the right host.
- * Falls back to NEXT_PUBLIC_SITE_URL or the request origin.
- */
-async function resolveSiteOrigin(): Promise<string> {
-  const explicit = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim();
-  if (explicit) return explicit.replace(/\/+$/, '');
-  const h = await headers();
-  const proto = h.get('x-forwarded-proto') ?? 'https';
-  const host = h.get('x-forwarded-host') ?? h.get('host');
-  if (host) return `${proto}://${host}`;
-  return 'http://localhost:3000';
 }
 
 /**
@@ -62,19 +49,14 @@ export async function adminSendPasswordReset(formData: FormData) {
   }
 
   const email = authUser.user.email!;
-  const origin = await resolveSiteOrigin();
+  const origin = resolveConsoleOrigin(await headers());
 
-  // Generate a recovery link (this also triggers the email if Auth → Emails is enabled)
-  const { error: linkErr } = await admin.auth.admin.generateLink({
-    type: 'recovery',
-    email,
-    options: {
-      redirectTo: `${origin}/auth/callback?next=/reset-password`,
-    },
+  const { error: resetErr } = await admin.auth.resetPasswordForEmail(email, {
+    redirectTo: buildPasswordRecoveryRedirectTo(origin),
   });
 
-  if (linkErr) {
-    console.error('[admin] password reset failed', linkErr);
+  if (resetErr) {
+    console.error('[admin] password reset failed', resetErr);
     redirect(`${returnPath}?error=password_reset_failed`);
   }
 

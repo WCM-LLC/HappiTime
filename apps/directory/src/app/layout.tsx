@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { AppDownloadStrip } from "@/components/AppDownloadStrip";
+import { AuthRecoveryRedirect } from "@/components/AuthRecoveryRedirect";
 
 export const metadata: Metadata = {
   title: {
@@ -113,6 +114,7 @@ gtag('config', 'G-8MZMX2GH4E');`,
         />
       </head>
       <body className="min-h-screen">
+        <AuthRecoveryRedirect />
         {/* GTM noscript fallback */}
         {process.env.NEXT_PUBLIC_GTM_ID && (
           <noscript>

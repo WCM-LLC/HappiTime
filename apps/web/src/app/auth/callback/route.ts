@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { resolveConsoleOrigin } from '@/utils/auth-redirects';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -21,13 +22,14 @@ export async function GET(request: Request) {
   if (type === 'recovery') {
     next = '/reset-password';
   }
+  const isRecoveryFlow = next === '/reset-password';
 
   const supabase = await createClient();
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return redirectToNext(request, origin, next);
+      return redirectToNext(request, origin, next, isRecoveryFlow);
     }
     return redirectToAuthError(origin, error.message);
   }
@@ -38,7 +40,7 @@ export async function GET(request: Request) {
       token_hash: tokenHash,
     });
     if (!error) {
-      return redirectToNext(request, origin, next);
+      return redirectToNext(request, origin, next, isRecoveryFlow);
     }
     return redirectToAuthError(origin, error.message);
   }
@@ -52,7 +54,11 @@ export async function GET(request: Request) {
   return redirectToAuthError(origin);
 }
 
-function redirectToNext(request: Request, origin: string, next: string) {
+function redirectToNext(request: Request, origin: string, next: string, forceConsoleOrigin = false) {
+  if (forceConsoleOrigin) {
+    return NextResponse.redirect(`${resolveConsoleOrigin(request.headers)}${next}`);
+  }
+
   const forwardedHost = request.headers.get('x-forwarded-host'); // original origin before load balancer
   const isLocalEnv = process.env.NODE_ENV === 'development';
 
