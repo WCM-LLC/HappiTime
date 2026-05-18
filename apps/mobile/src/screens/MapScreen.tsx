@@ -9,7 +9,10 @@ import {
   Image,
   Platform,
   Linking,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MapView, { Marker, Region } from "react-native-maps";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { supabase } from "../api/supabaseClient";
@@ -206,6 +209,8 @@ export const MapScreen: React.FC = () => {
     requestOnMount: preferences.location_enabled,
   });
   const mapRef = useRef<MapView>(null);
+  const insets = useSafeAreaInsets();
+  const tabBarBottom = 56 + insets.bottom;
 
   const [query, setQuery] = useState("");
   const [selectedCuisine, setSelectedCuisine] = useState("all");
@@ -660,16 +665,11 @@ export const MapScreen: React.FC = () => {
   };
 
   const handleRecenter = () => {
-    if (!coords || !mapRef.current) return;
-    mapRef.current.animateToRegion(
-      {
-        latitude: coords.lat,
-        longitude: coords.lng,
-        latitudeDelta: 0.06,
-        longitudeDelta: 0.06,
-      },
-      400
-    );
+    if (!mapRef.current) return;
+    const region = coords
+      ? { latitude: coords.lat, longitude: coords.lng, latitudeDelta: 0.06, longitudeDelta: 0.06 }
+      : initialRegion;
+    mapRef.current.animateToRegion(region, 400);
   };
 
   const handleViewItineraries = () => {
@@ -833,17 +833,20 @@ export const MapScreen: React.FC = () => {
       </View>
 
       {/* Recenter button */}
-      {coords && (
-        <Pressable
-          onPress={handleRecenter}
-          style={({ pressed }) => [
-            styles.recenterButton,
-            pressed && styles.recenterButtonPressed,
-          ]}
-        >
-          <IconSymbol name="location.fill" size={18} color={colors.primary} />
-        </Pressable>
-      )}
+      <Pressable
+        onPress={handleRecenter}
+        style={({ pressed }) => [
+          styles.recenterButton,
+          { bottom: tabBarBottom + 120 },
+          pressed && styles.recenterButtonPressed,
+        ]}
+      >
+        <IconSymbol
+          name="location.fill"
+          size={18}
+          color={coords ? colors.primary : colors.textMuted}
+        />
+      </Pressable>
 
       {/* Selected venue — MiniVenueCard */}
       {selectedWindow && (
@@ -853,6 +856,7 @@ export const MapScreen: React.FC = () => {
           todayIndex={todayIndex}
           onPress={handleCardPress}
           onDismiss={handleDismissCard}
+          style={{ bottom: tabBarBottom + 8 }}
         />
       )}
     </View>
@@ -867,6 +871,7 @@ type MiniVenueCardProps = {
   todayIndex: number;
   onPress: () => void;
   onDismiss: () => void;
+  style?: StyleProp<ViewStyle>;
 };
 
 const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
@@ -875,6 +880,7 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
   todayIndex,
   onPress,
   onDismiss,
+  style,
 }) => {
   const { titleText } = getHappyHourDisplayNames(window);
   const venue = window.venue as any;
@@ -893,6 +899,7 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
       onPress={onPress}
       style={({ pressed }) => [
         styles.miniCard,
+        style,
         pressed && { opacity: 0.95, transform: [{ scale: 0.99 }] },
       ]}
     >

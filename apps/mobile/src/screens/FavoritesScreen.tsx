@@ -1,7 +1,7 @@
 // src/screens/FavoritesScreen.tsx
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, FlatList, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView, Share } from "react-native";
-import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
+import { TabActions, useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { HappyHourCard } from "../components/HappyHourCard";
@@ -297,12 +297,14 @@ export const FavoritesScreen: React.FC = () => {
             return;
           }
           setEditingList(null);
-          navigation.navigate("Map", {
-            itineraryVenueIds: venueIds,
-            itineraryVenues,
-            itineraryName: list.name,
-            itineraryRequestId: Date.now(),
-          });
+          navigation.dispatch(
+            TabActions.jumpTo("Map", {
+              itineraryVenueIds: venueIds,
+              itineraryVenues,
+              itineraryName: list.name,
+              itineraryRequestId: Date.now(),
+            })
+          );
         }}
       />
     </View>
