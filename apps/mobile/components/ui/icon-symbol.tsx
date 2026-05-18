@@ -43,6 +43,7 @@ const MAPPING = {
   'xmark.circle.fill': 'cancel',
   'globe': 'language',
   'phone': 'phone',
+  'at': 'alternate-email',
 } as const;
 
 type IconSymbolName = keyof typeof MAPPING;

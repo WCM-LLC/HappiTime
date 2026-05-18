@@ -43,7 +43,7 @@ type OnboardingScreenProps = {
 const stepContent: Record<
   OnboardingStep,
   {
-    icon: "star.fill" | "location.fill" | "heart" | "bell.fill" | "person.crop.circle.fill" | "checkmark.seal.fill";
+    icon: "star.fill" | "location.fill" | "heart" | "bell.fill" | "person.crop.circle.fill" | "checkmark.seal.fill" | "at";
     title: string;
     body: string;
   }
@@ -73,6 +73,11 @@ const stepContent: Record<
     title: "Add a profile name",
     body: "Keep this light. A display name helps saved lists, follows, and community activity feel less anonymous.",
   },
+  handle: {
+    icon: "at",
+    title: "Claim your handle",
+    body: "Pick a unique @handle so friends can find and tag you. Lowercase letters, numbers, and underscores only. You can change it later.",
+  },
   complete: {
     icon: "checkmark.seal.fill",
     title: "You are set",
@@ -99,6 +104,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
 
   const [step, setStep] = useState<OnboardingStep>(initialStep);
   const [displayName, setDisplayName] = useState(defaultDisplayName);
+  const [handle, setHandle] = useState("");
+  const [handleError, setHandleError] = useState<string | null>(null);
   const [homeCity, setHomeCity] = useState("");
   const [homeState, setHomeState] = useState("");
   const [homeLat, setHomeLat] = useState<number | null>(null);
@@ -232,6 +239,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
     setStatusMessage(null);
     const result = await onComplete({
       display_name: displayName,
+      handle: handle.trim().toLowerCase() || null,
       home_city: homeCity,
       home_state: homeState,
       home_lat: homeLat,
@@ -437,8 +445,60 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
             value={displayName}
             onChangeText={setDisplayName}
           />
-          <PrimaryButton label="Review setup" onPress={goNext} />
+          <PrimaryButton label="Continue" onPress={goNext} />
           <SecondaryButton label="Skip profile name" onPress={goNext} />
+        </>
+      );
+    }
+
+    if (step === "handle") {
+      const tryGoNext = () => {
+        const trimmed = handle.trim().toLowerCase();
+        if (trimmed === "") {
+          // Skip — handle is optional
+          setHandleError(null);
+          goNext();
+          return;
+        }
+        const err = validateHandle(trimmed);
+        if (err) {
+          setHandleError(err);
+          return;
+        }
+        setHandleError(null);
+        goNext();
+      };
+
+      return (
+        <>
+          <Text style={styles.label}>Handle</Text>
+          <View style={styles.handleRow}>
+            <View style={styles.handlePrefix}>
+              <Text style={styles.handlePrefixText}>@</Text>
+            </View>
+            <TextInput
+              accessibilityLabel="Handle"
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="yourusername"
+              placeholderTextColor={colors.textMuted}
+              style={[styles.input, styles.handleInput]}
+              value={handle}
+              onChangeText={(text) => {
+                setHandle(text.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+                setHandleError(null);
+              }}
+              maxLength={20}
+            />
+          </View>
+          {handleError ? (
+            <Text style={styles.handleErrorText}>{handleError}</Text>
+          ) : null}
+          <Text style={styles.handleHint}>
+            3–20 characters. Letters, numbers, and underscores only.
+          </Text>
+          <PrimaryButton label="Review setup" onPress={tryGoNext} />
+          <SecondaryButton label="Skip for now" onPress={() => { setHandle(""); setHandleError(null); goNext(); }} />
         </>
       );
     }
@@ -447,6 +507,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
       <>
         <View style={styles.summaryList}>
           <SummaryItem label="Area" value={homeCity ? `${homeCity}${homeState ? `, ${homeState}` : ""}` : "Not set"} />
+          <SummaryItem label="Handle" value={handle.trim() ? `@${handle.trim().toLowerCase()}` : "Skipped"} />
           <SummaryItem label="Interests" value={interests.length > 0 ? `${interests.length} selected` : "Skipped"} />
           <SummaryItem label="Notifications" value={notificationsPush ? "Enabled" : "Off"} />
           <SummaryItem label="Location" value={locationEnabled ? "Enabled" : "Manual or skipped"} />
@@ -520,6 +581,15 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
     </KeyboardAvoidingView>
   );
 };
+
+function validateHandle(value: string): string | null {
+  if (value.length < 3) return "Handle must be at least 3 characters.";
+  if (value.length > 20) return "Handle must be 20 characters or less.";
+  if (!/^[a-z0-9_]+$/.test(value)) return "Letters, numbers, and underscores only.";
+  if (value.startsWith("_") || value.endsWith("_")) return "Handle cannot start or end with an underscore.";
+  if (/__/.test(value)) return "Handle cannot have consecutive underscores.";
+  return null;
+}
 
 function PrimaryButton({
   label,
@@ -829,6 +899,43 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     flex: 1,
     textAlign: "right",
+  },
+  handleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 0,
+  },
+  handlePrefix: {
+    height: 48,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderRightWidth: 0,
+    borderColor: colors.border,
+    borderTopLeftRadius: 12,
+    borderBottomLeftRadius: 12,
+    backgroundColor: colors.cream,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  handlePrefixText: {
+    color: colors.textMuted,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  handleInput: {
+    flex: 1,
+    borderTopLeftRadius: 0,
+    borderBottomLeftRadius: 0,
+  },
+  handleErrorText: {
+    color: colors.error,
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  handleHint: {
+    color: colors.textMuted,
+    fontSize: 12,
+    lineHeight: 16,
   },
   primaryButton: {
     minHeight: 52,

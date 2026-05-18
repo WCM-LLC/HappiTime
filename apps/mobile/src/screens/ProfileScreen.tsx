@@ -1,10 +1,11 @@
 // src/screens/ProfileScreen.tsx
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../api/supabaseClient";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { VenueSuggestionForm } from "./AddScreen";
+import { useAvatarUpload } from "../hooks/useAvatarUpload";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useUserFollowCounts } from "../hooks/useUserFollowCounts";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
@@ -79,6 +80,7 @@ export const ProfileScreen: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusIsError, setStatusIsError] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const { state: avatarState, pickAndUpload } = useAvatarUpload();
   const useNativePermissionPanel =
     Platform.OS === "ios" && isHappiTimeIOSUIAvailable;
 
@@ -181,6 +183,24 @@ export const ProfileScreen: React.FC = () => {
     setLocationEnabled(preferences.location_enabled);
   }, [preferences]);
 
+  const handleAvatarPress = async () => {
+    const url = await pickAndUpload();
+    if (!url) {
+      if (avatarState.status === "error") {
+        Alert.alert("Upload failed", avatarState.message);
+      }
+      return;
+    }
+    const { error } = await saveProfile({ avatar_url: url });
+    if (error) {
+      setStatusIsError(true);
+      setStatusMessage(error.message);
+    } else {
+      setStatusIsError(false);
+      setStatusMessage("Photo updated.");
+    }
+  };
+
   const handleSave = async () => {
     setStatusMessage(null);
     const { error } = await saveProfile({
@@ -236,11 +256,32 @@ export const ProfileScreen: React.FC = () => {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.avatarSection}>
-          <View style={styles.avatarCircle}>
-            <Text style={styles.avatarText}>
-              {(profile?.display_name ?? user?.email ?? "U").charAt(0).toUpperCase()}
-            </Text>
-          </View>
+          <Pressable
+            onPress={handleAvatarPress}
+            disabled={avatarState.status === "uploading"}
+            style={({ pressed }) => [styles.avatarWrapper, pressed && { opacity: 0.8 }]}
+          >
+            {profile?.avatar_url ? (
+              <Image
+                source={{ uri: profile.avatar_url }}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={styles.avatarCircle}>
+                <Text style={styles.avatarText}>
+                  {(profile?.display_name ?? user?.email ?? "U").charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <View style={styles.avatarEditBadge}>
+              {avatarState.status === "uploading" ? (
+                <ActivityIndicator size="small" color={colors.surface} />
+              ) : (
+                <Text style={styles.avatarEditIcon}>✎</Text>
+              )}
+            </View>
+          </Pressable>
           <View>
             <Text style={styles.avatarName}>
               {profile?.display_name || user?.email?.split("@")[0] || "User"}
@@ -553,6 +594,11 @@ const styles = StyleSheet.create({
     gap: 14,
     marginBottom: spacing.lg,
   },
+  avatarWrapper: {
+    position: "relative",
+    width: 60,
+    height: 60,
+  },
   avatarCircle: {
     width: 60,
     height: 60,
@@ -560,6 +606,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brandSubtle,
     alignItems: "center",
     justifyContent: "center",
+  },
+  avatarImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  avatarEditBadge: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: colors.surface,
+  },
+  avatarEditIcon: {
+    color: colors.surface,
+    fontSize: 10,
+    lineHeight: 12,
   },
   avatarText: {
     color: colors.primary,

@@ -2,6 +2,15 @@ import type { MetadataRoute } from "next";
 import { KC_NEIGHBORHOODS } from "@/lib/neighborhoods";
 import { HAPPY_HOUR_LANDING_PAGES } from "@/lib/seoNeighborhoods";
 import { getAllKCVenues } from "@/lib/queries";
+import { supabase } from "@/lib/supabase";
+
+const STATIC_GUIDE_SLUGS = new Set([
+  "best-happy-hours-kansas-city",
+  "westport-happy-hour-guide",
+  "power-and-light-happy-hour-guide",
+  "best-happy-hour-food-kansas-city",
+  "friday-happy-hours-kansas-city",
+]);
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = "https://happitime.biz";
@@ -111,6 +120,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.8,
   }));
 
+  // Dynamic guide pages (Super User authored)
+  let dynamicGuidePages: MetadataRoute.Sitemap = [];
+  try {
+    const { data: guides } = await supabase
+      .from("guides")
+      .select("slug, updated_at")
+      .eq("status", "published");
+    dynamicGuidePages = (guides ?? [])
+      .filter((g) => !STATIC_GUIDE_SLUGS.has(g.slug))
+      .map((g) => ({
+        url: `${baseUrl}/guides/${g.slug}/`,
+        lastModified: g.updated_at ? new Date(g.updated_at) : new Date(),
+        changeFrequency: "weekly" as const,
+        priority: 0.6,
+      }));
+  } catch {
+    // If DB is unavailable, skip dynamic guide pages
+  }
+
   // Venue detail pages
   let venuePages: MetadataRoute.Sitemap = [];
   try {
@@ -149,6 +177,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticPages,
+    ...dynamicGuidePages,
     ...happyHourLandingPages,
     ...neighborhoodPages,
     ...venuePages,

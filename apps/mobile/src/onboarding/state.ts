@@ -6,6 +6,7 @@ export const ONBOARDING_STEPS = [
   "preferences",
   "notifications",
   "profile",
+  "handle",
   "complete",
 ] as const;
 
@@ -23,6 +24,7 @@ export type OnboardingNotificationPreferences = {
 
 export type OnboardingCompletionInput = OnboardingNotificationPreferences & {
   display_name?: string | null;
+  handle?: string | null;
   home_city?: string | null;
   home_state?: string | null;
   home_lat?: number | null;

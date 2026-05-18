@@ -1,7 +1,18 @@
 import type { Metadata } from "next";
 import { breadcrumbJsonLd } from "@/lib/structuredData";
+import { supabase } from "@/lib/supabase";
 
 const BASE = "https://happitime.biz";
+
+export const revalidate = 3600;
+
+const STATIC_SLUGS = new Set([
+  "best-happy-hours-kansas-city",
+  "westport-happy-hour-guide",
+  "power-and-light-happy-hour-guide",
+  "best-happy-hour-food-kansas-city",
+  "friday-happy-hours-kansas-city",
+]);
 
 export const metadata: Metadata = {
   title:
@@ -62,7 +73,17 @@ const guides = [
   },
 ];
 
-export default function GuidesHub() {
+export default async function GuidesHub() {
+  const { data: dbGuides } = await supabase
+    .from("guides")
+    .select("slug, title, subtitle")
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(50);
+
+  const communityGuides = (dbGuides ?? []).filter(
+    (g) => !STATIC_SLUGS.has(g.slug)
+  );
   const breadcrumbs = breadcrumbJsonLd([
     { name: "HappiTime", url: `${BASE}/` },
     { name: "Guides", url: `${BASE}/guides/` },
@@ -108,6 +129,34 @@ export default function GuidesHub() {
           </a>
         ))}
       </div>
+
+      {/* Community guides from Super Users */}
+      {communityGuides.length > 0 ? (
+        <section className="mb-16">
+          <h2 className="text-2xl font-bold text-foreground mb-1">
+            From the Community
+          </h2>
+          <p className="text-sm text-muted mb-5">
+            Guides written by HappiTime Super Users.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {communityGuides.map((g) => (
+              <a
+                key={g.slug}
+                href={`/guides/${g.slug}/`}
+                className="group block rounded-2xl border border-border bg-surface p-6 hover:border-brand hover:shadow-md transition-all"
+              >
+                <h3 className="text-lg font-bold text-foreground group-hover:text-brand transition-colors mb-2">
+                  {g.title}
+                </h3>
+                {g.subtitle ? (
+                  <p className="text-sm text-muted leading-relaxed">{g.subtitle}</p>
+                ) : null}
+              </a>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {/* Neighborhood quick-links */}
       <section className="mb-16">

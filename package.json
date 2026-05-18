@@ -29,7 +29,8 @@
     "data:enrich-venues": "node scripts/enrich-venues.mjs",
     "data:fetch-photos": "node scripts/fetch-venue-photos.mjs",
     "data:fetch-covers": "node scripts/fetch-venue-covers.mjs",
-    "data:assign-placeholders": "node scripts/assign-placeholder-covers.mjs"
+    "data:assign-placeholders": "node scripts/assign-placeholder-covers.mjs",
+    "data:migrate-guides": "npx tsx scripts/migrate-static-guides-to-db.ts"
   },
   "devDependencies": {
     "next": "^16.2.4",
