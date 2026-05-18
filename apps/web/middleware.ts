@@ -4,6 +4,8 @@ import { getPublicSupabaseEnv } from "@happitime/shared-env";
 
 const PUBLIC_PATHS = ["/", "/login", "/auth", "/forgot-password", "/reset-password", "/invite"];
 const PROTECTED_PATHS = ["/dashboard", "/admin", "/orgs", "/change-password"];
+// Paths that require super_user role OR admin membership in addition to auth.
+const SUPER_USER_PATHS = ["/dashboard/guides"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
@@ -11,6 +13,10 @@ function isPublicPath(pathname: string) {
 
 function isProtectedPath(pathname: string) {
   return PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+
+function isSuperUserPath(pathname: string) {
+  return SUPER_USER_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
 export async function middleware(request: NextRequest) {
@@ -66,6 +72,32 @@ export async function middleware(request: NextRequest) {
     loginUrl.pathname = "/login";
     loginUrl.search = "";
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Role gate: super_user paths require role='super_user' or admin email.
+  // Admin email fast-path uses ADMIN_EMAILS env var (avoids DB call for admins).
+  // Non-admins get a single user_profiles query; redirect if not super_user.
+  if (user && isSuperUserPath(pathname)) {
+    const adminEmails = new Set(
+      (process.env.ADMIN_EMAILS ?? "admin@happitime.biz")
+        .split(",")
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
+    );
+    const userEmail = (user.email ?? "").toLowerCase();
+    if (!adminEmails.has(userEmail)) {
+      const { data: profile } = await supabase
+        .from("user_profiles")
+        .select("role")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if ((profile as any)?.role !== "super_user") {
+        const url = request.nextUrl.clone();
+        url.pathname = "/dashboard";
+        url.search = "?error=not_authorized";
+        return NextResponse.redirect(url);
+      }
+    }
   }
 
   if (user && pathname === "/login") {

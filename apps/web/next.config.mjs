@@ -8,6 +8,7 @@ const __dirname = path.dirname(__filename);
 const nextConfig = {
   experimental: {},
   outputFileTracingRoot: path.join(__dirname, '../../'),
+  transpilePackages: ['@uiw/react-md-editor', '@uiw/react-markdown-preview'],
 };
 
 export default nextConfig;
