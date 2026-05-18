@@ -3,6 +3,7 @@ import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useRef } from "react";
 import { StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { useNotificationNavigation } from "../hooks/useNotificationNavigation";
 import { useCurrentUser } from "../hooks/useCurrentUser";
@@ -34,7 +35,9 @@ const navTheme: typeof DefaultTheme = {
 
 function AppTabs({ initialRouteName }: { initialRouteName?: keyof MainTabParamList }) {
   const { user } = useCurrentUser();
+  const insets = useSafeAreaInsets();
   const isGuest = !user;
+  const tabBarHeight = 56 + insets.bottom;
   return (
     <Tab.Navigator
       initialRouteName={initialRouteName}
@@ -50,8 +53,8 @@ function AppTabs({ initialRouteName }: { initialRouteName?: keyof MainTabParamLi
           backgroundColor: colors.surface,
           borderTopColor: colors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
-          height: 80,
-          paddingBottom: 20,
+          height: tabBarHeight,
+          paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 8,
           shadowColor: colors.shadowMedium,
           shadowOffset: { width: 0, height: -2 },

@@ -1,6 +1,7 @@
 import type { Session } from "@supabase/supabase-js";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { IconSymbol } from "./components/ui/icon-symbol";
 import LoadingView from "./src/components/LoadingView";
 import { VisitRatingModal } from "./src/components/VisitRatingModal";
@@ -183,7 +184,7 @@ function AuthenticatedApp({ session }: { session: Session }) {
   );
 }
 
-export default function App() {
+function AppRoot() {
 
   useEffect(() => {
   console.log("App mounted");
@@ -448,3 +449,11 @@ const styles = StyleSheet.create({
     opacity: 0.62,
   },
 });
+
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <AppRoot />
+    </SafeAreaProvider>
+  );
+}
