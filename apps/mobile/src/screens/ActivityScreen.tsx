@@ -17,6 +17,7 @@ import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendS
 import { useDiscoverFeed, type DiscoverFeedItem } from "../hooks/useDiscoverFeed";
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
+import { useUserSearch, type UserSearchResult } from "../hooks/useUserSearch";
 import { isFeatureEnabled } from "../lib/featureFlags";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { colors } from "../theme/colors";
@@ -198,6 +199,51 @@ const SuggestionCard: React.FC<{
   );
 };
 
+/* ── People Search Card ── */
+
+const PeopleSearchCard: React.FC<{
+  item: UserSearchResult;
+  onFollow: (userId: string) => void;
+  following: boolean;
+}> = ({ item, onFollow, following }) => {
+  const name = item.display_name ?? item.handle;
+  return (
+    <View style={styles.row}>
+      <View style={styles.avatarWrap}>
+        {item.avatar_url ? (
+          <Image source={{ uri: item.avatar_url }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarInitial}>{name.charAt(0).toUpperCase()}</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.textContainer}>
+        <View style={styles.nameRow}>
+          <Text style={styles.actor}>{name}</Text>
+          <SuperUserBadge role={item.role} />
+        </View>
+        <Text style={styles.handle}>@{item.handle}</Text>
+      </View>
+      <View style={styles.trailing}>
+        <Pressable
+          onPress={() => onFollow(item.user_id)}
+          disabled={following}
+          style={({ pressed }) => [
+            styles.followButton,
+            following && styles.followButtonActive,
+            pressed && styles.followButtonPressed,
+          ]}
+        >
+          <Text style={[styles.followText, following && styles.followTextActive]}>
+            {following ? "Requested" : "Follow"}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+};
+
 const DiscoverFeedCard: React.FC<{ item: DiscoverFeedItem; anonymous?: boolean }> = ({ item, anonymous }) => {
   const actor = anonymous
     ? "A HappiTime user"
@@ -273,7 +319,7 @@ const CheckInCard: React.FC<{
 
 /* ── Main Screen ── */
 
-type Tab = "friends" | "discover" | "checkins";
+type Tab = "friends" | "discover" | "checkins" | "people";
 type DiscoverListItem =
   | { kind: "feed"; id: string; item: DiscoverFeedItem }
   | { kind: "suggestion"; id: string; item: FriendSuggestion };
@@ -304,6 +350,7 @@ export const ActivityScreen: React.FC = () => {
   } = useUserCheckins();
   const [requestedUsers, setRequestedUsers] = useState<Record<string, boolean>>({});
   const [friendHandleQuery, setFriendHandleQuery] = useState("");
+  const { query: peopleQuery, setQuery: setPeopleQuery, results: peopleResults, loading: peopleLoading } = useUserSearch();
   const useDiscoverFeedSource = true;
   const friendHandleSearch = normalizeHandleSearch(friendHandleQuery);
   const filteredActivities = useMemo(() => {
@@ -332,6 +379,7 @@ export const ActivityScreen: React.FC = () => {
   const isLoading =
     tab === "friends" ? followersLoading || activityLoading
     : tab === "discover" ? (useDiscoverFeedSource ? discoverLoading : suggestionsLoading)
+    : tab === "people" ? false
     : checkinsLoading;
 
   if (isGuest) {
@@ -364,6 +412,7 @@ export const ActivityScreen: React.FC = () => {
         tabs={[
           { key: "friends", label: "Friends" },
           { key: "discover", label: "Discover" },
+          { key: "people", label: "People" },
           { key: "checkins", label: "Check Ins" },
         ]}
         activeKey={tab}
@@ -505,6 +554,63 @@ export const ActivityScreen: React.FC = () => {
               />
             )
           }
+        />
+      ) : tab === "people" ? (
+        <FlatList
+          data={peopleResults}
+          keyExtractor={(item) => item.user_id}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          keyboardShouldPersistTaps="handled"
+          ListHeaderComponent={
+            <View style={styles.friendSearchWrap}>
+              <TextInput
+                value={peopleQuery}
+                onChangeText={setPeopleQuery}
+                placeholder="Search by @handle"
+                placeholderTextColor={colors.textMutedLight}
+                autoCapitalize="none"
+                autoCorrect={false}
+                style={styles.friendSearchInput}
+              />
+              {peopleQuery.length > 0 ? (
+                <Pressable
+                  onPress={() => setPeopleQuery("")}
+                  style={({ pressed }) => [styles.friendSearchClear, pressed && styles.buttonPressed]}
+                >
+                  <Text style={styles.friendSearchClearText}>Clear</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          }
+          ListFooterComponent={
+            peopleLoading ? (
+              <View style={styles.peopleLoadingFooter}>
+                <ActivityIndicator color={colors.primary} size="small" />
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            !peopleLoading ? (
+              <View style={styles.emptyState}>
+                {peopleQuery.length === 0 ? (
+                  <Text style={styles.emptyText}>Search for friends by @handle</Text>
+                ) : (
+                  <>
+                    <Text style={styles.emptyTitle}>No users found</Text>
+                    <Text style={styles.emptyText}>Try a different handle.</Text>
+                  </>
+                )}
+              </View>
+            ) : null
+          }
+          renderItem={({ item }) => (
+            <PeopleSearchCard
+              item={item}
+              onFollow={handleFollow}
+              following={requestedUsers[item.user_id] ?? false}
+            />
+          )}
         />
       ) : (
         <FlatList
@@ -876,5 +982,9 @@ const styles = StyleSheet.create({
   },
   privacyChoiceBtnTextAlt: {
     color: colors.text,
+  },
+  peopleLoadingFooter: {
+    paddingVertical: spacing.md,
+    alignItems: "center" as const,
   },
 });
