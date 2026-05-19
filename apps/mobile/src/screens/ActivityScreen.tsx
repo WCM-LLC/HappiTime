@@ -10,11 +10,13 @@ import {
   ActivityIndicator,
   TextInput,
 } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { SuperUserBadge } from "../components/SuperUserBadge";
 import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity";
 import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendSuggestions";
 import { useDiscoverFeed, type DiscoverFeedItem } from "../hooks/useDiscoverFeed";
+import { useInsiderItineraries, type InsiderItinerary } from "../hooks/useInsiderItineraries";
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
 import { useUserSearch, type UserSearchResult } from "../hooks/useUserSearch";
@@ -244,6 +246,44 @@ const PeopleSearchCard: React.FC<{
   );
 };
 
+/* ── Insider Itinerary Card ── */
+
+const InsiderItineraryCard: React.FC<{
+  item: InsiderItinerary;
+  onPress: (item: InsiderItinerary) => void;
+}> = ({ item, onPress }) => {
+  const authorName = item.authorDisplayName ?? item.authorHandle ?? "HappiTime Insider";
+  return (
+    <Pressable
+      onPress={() => onPress(item)}
+      style={({ pressed }) => [styles.insiderCard, pressed && styles.buttonPressed]}
+    >
+      <View style={styles.insiderIconWrap}>
+        {item.authorAvatar ? (
+          <Image source={{ uri: item.authorAvatar }} style={styles.insiderAvatar} />
+        ) : (
+          <View style={styles.insiderAvatarPlaceholder}>
+            <Text style={styles.insiderAvatarInitial}>{authorName.charAt(0).toUpperCase()}</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.insiderText}>
+        <Text style={styles.insiderTitle} numberOfLines={1}>{item.name}</Text>
+        <View style={styles.insiderAuthorRow}>
+          <Text style={styles.insiderAuthor} numberOfLines={1}>
+            {item.authorHandle ? `@${item.authorHandle}` : authorName}
+          </Text>
+          <SuperUserBadge role="super_user" size="sm" />
+        </View>
+        {item.description ? (
+          <Text style={styles.insiderDescription} numberOfLines={2}>{item.description}</Text>
+        ) : null}
+      </View>
+      <Text style={styles.insiderChevron}>›</Text>
+    </Pressable>
+  );
+};
+
 const DiscoverFeedCard: React.FC<{ item: DiscoverFeedItem; anonymous?: boolean }> = ({ item, anonymous }) => {
   const actor = anonymous
     ? "A HappiTime user"
@@ -326,6 +366,7 @@ type DiscoverListItem =
 
 export const ActivityScreen: React.FC = () => {
   const { user } = useCurrentUser();
+  const navigation = useNavigation<any>();
   const isGuest = !user;
   const [tab, setTab] = useState<Tab>("friends");
   const {
@@ -342,6 +383,10 @@ export const ActivityScreen: React.FC = () => {
     loading: discoverLoading,
     refresh: refreshDiscoverFeed,
   } = useDiscoverFeed();
+  const {
+    itineraries: insiderItineraries,
+    refresh: refreshInsiderItineraries,
+  } = useInsiderItineraries();
   const {
     checkins,
     loading: checkinsLoading,
@@ -374,6 +419,13 @@ export const ActivityScreen: React.FC = () => {
   const handleFollow = (userId: string) => {
     setRequestedUsers((prev) => ({ ...prev, [userId]: true }));
     void sendFollowRequest(userId);
+  };
+
+  const handleOpenItinerary = (item: InsiderItinerary) => {
+    navigation.navigate("AppTabs", {
+      screen: "Favorites",
+      params: { openListId: item.id, tab: "lists" },
+    });
   };
 
   const isLoading =
@@ -500,21 +552,38 @@ export const ActivityScreen: React.FC = () => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          onRefresh={useDiscoverFeedSource ? refreshDiscoverFeed : refreshSuggestions}
+          onRefresh={() => { void (useDiscoverFeedSource ? refreshDiscoverFeed() : refreshSuggestions()); void refreshInsiderItineraries(); }}
           refreshing={useDiscoverFeedSource ? discoverLoading : suggestionsLoading}
           ListHeaderComponent={
-            suggestions.length > 0 && useDiscoverFeedSource ? (
-              <View style={styles.pendingSection}>
-                <Text style={styles.sectionTitle}>Suggested people</Text>
-                {suggestions.slice(0, 5).map((item) => (
-                  <SuggestionCard
-                    key={item.user_id}
-                    suggestion={item}
-                    onFollow={handleFollow}
-                    following={requestedUsers[item.user_id] ?? false}
-                  />
-                ))}
-                <View style={styles.sectionDivider} />
+            (insiderItineraries.length > 0 || (suggestions.length > 0 && useDiscoverFeedSource)) ? (
+              <View>
+                {insiderItineraries.length > 0 ? (
+                  <View style={styles.pendingSection}>
+                    <Text style={styles.sectionTitle}>From HappiTime Insiders</Text>
+                    {insiderItineraries.map((item) => (
+                      <InsiderItineraryCard
+                        key={item.id}
+                        item={item}
+                        onPress={handleOpenItinerary}
+                      />
+                    ))}
+                    <View style={styles.sectionDivider} />
+                  </View>
+                ) : null}
+                {suggestions.length > 0 && useDiscoverFeedSource ? (
+                  <View style={styles.pendingSection}>
+                    <Text style={styles.sectionTitle}>Suggested people</Text>
+                    {suggestions.slice(0, 5).map((item) => (
+                      <SuggestionCard
+                        key={item.user_id}
+                        suggestion={item}
+                        onFollow={handleFollow}
+                        following={requestedUsers[item.user_id] ?? false}
+                      />
+                    ))}
+                    <View style={styles.sectionDivider} />
+                  </View>
+                ) : null}
               </View>
             ) : null
           }
@@ -986,5 +1055,62 @@ const styles = StyleSheet.create({
   peopleLoadingFooter: {
     paddingVertical: spacing.md,
     alignItems: "center" as const,
+  },
+
+  /* ── Insider itinerary cards ── */
+  insiderCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: spacing.sm,
+    gap: spacing.md,
+  },
+  insiderIconWrap: {
+    flexShrink: 0,
+  },
+  insiderAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+  insiderAvatarPlaceholder: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.wine,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  insiderAvatarInitial: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  insiderText: {
+    flex: 1,
+  },
+  insiderTitle: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  insiderAuthorRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 1,
+  },
+  insiderAuthor: {
+    color: colors.textMuted,
+    fontSize: 13,
+  },
+  insiderDescription: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  insiderChevron: {
+    color: colors.textMuted,
+    fontSize: 20,
+    flexShrink: 0,
   },
 });
