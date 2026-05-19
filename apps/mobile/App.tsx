@@ -15,6 +15,7 @@ import { useVisitRating } from "./src/hooks/useVisitRating";
 import { useVisitTracker, type VenuePoint } from "./src/hooks/useVisitTracker";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { AuthScreen } from "./src/screens/AuthScreen";
+import { HandleGateScreen } from "./src/screens/HandleGateScreen";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { colors } from "./src/theme/colors";
 import { spacing } from "./src/theme/spacing";
@@ -194,6 +195,7 @@ function AppRoot() {
   const [booting, setBooting] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [guestChoice, setGuestChoice] = useState<"prompt" | "skip" | "signin">("prompt");
+  const [handleGate, setHandleGate] = useState<"checking" | "needed" | "satisfied">("checking");
   const onboarding = useOnboardingStatus(session);
   useMagicLinkListener();
   console.log("App render");
@@ -225,6 +227,25 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       sub.subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId || onboarding.loading || !onboarding.hasCompletedOnboarding) {
+      if (!session || (!onboarding.loading && !onboarding.hasCompletedOnboarding)) {
+        setHandleGate("checking");
+      }
+      return;
+    }
+    void (async () => {
+      const { data } = await (supabase as any)
+        .from("user_profiles")
+        .select("handle")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const existingHandle = data?.handle;
+      setHandleGate(existingHandle && String(existingHandle).trim().length > 0 ? "satisfied" : "needed");
+    })();
+  }, [session?.user?.id, onboarding.loading, onboarding.hasCompletedOnboarding]);
 
   if (booting) {
     console.log("booting:", booting, "session:", !!session);
@@ -281,6 +302,19 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
         initialStep={onboarding.step}
         onProgress={onboarding.saveProgress}
         onComplete={onboarding.completeOnboarding}
+      />
+    );
+  }
+
+  if (handleGate === "checking") {
+    return <LoadingView message={"Setting up account..."} />;
+  }
+
+  if (handleGate === "needed") {
+    return (
+      <HandleGateScreen
+        session={session}
+        onComplete={() => setHandleGate("satisfied")}
       />
     );
   }

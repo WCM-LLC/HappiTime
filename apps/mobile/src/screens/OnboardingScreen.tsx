@@ -14,7 +14,9 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { isReservedHandle } from "@happitime/shared-types";
 import { IconSymbol } from "../../components/ui/icon-symbol";
+import { supabase } from "../api/supabaseClient";
 import {
   INTEREST_OPTIONS,
   ONBOARDING_STEPS,
@@ -106,6 +108,8 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   const [displayName, setDisplayName] = useState(defaultDisplayName);
   const [handle, setHandle] = useState("");
   const [handleError, setHandleError] = useState<string | null>(null);
+  const [checkingHandle, setCheckingHandle] = useState(false);
+  const [handleSuggestions, setHandleSuggestions] = useState<string[]>([]);
   const [homeCity, setHomeCity] = useState("");
   const [homeState, setHomeState] = useState("");
   const [homeLat, setHomeLat] = useState<number | null>(null);
@@ -452,20 +456,40 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
     }
 
     if (step === "handle") {
-      const tryGoNext = () => {
+      const tryGoNext = async () => {
         const trimmed = handle.trim().toLowerCase();
         if (trimmed === "") {
-          // Skip — handle is optional
           setHandleError(null);
+          setHandleSuggestions([]);
           goNext();
           return;
         }
         const err = validateHandle(trimmed);
         if (err) {
           setHandleError(err);
+          setHandleSuggestions(
+            err.includes("reserved") || err.includes("profan")
+              ? [`${trimmed}1`, `${trimmed}_kc`, `${trimmed}_xx`]
+              : []
+          );
+          return;
+        }
+        setCheckingHandle(true);
+        setHandleError(null);
+        setHandleSuggestions([]);
+        const { data } = await (supabase as any)
+          .from("user_profiles")
+          .select("handle")
+          .eq("handle", trimmed)
+          .maybeSingle();
+        setCheckingHandle(false);
+        if (data) {
+          setHandleError("That handle is already taken.");
+          setHandleSuggestions([`${trimmed}1`, `${trimmed}_kc`, `${trimmed}_xx`]);
           return;
         }
         setHandleError(null);
+        setHandleSuggestions([]);
         goNext();
       };
 
@@ -487,6 +511,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
               onChangeText={(text) => {
                 setHandle(text.toLowerCase().replace(/[^a-z0-9_]/g, ""));
                 setHandleError(null);
+                setHandleSuggestions([]);
               }}
               maxLength={20}
             />
@@ -494,11 +519,39 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           {handleError ? (
             <Text style={styles.handleErrorText}>{handleError}</Text>
           ) : null}
+          {handleSuggestions.length > 0 ? (
+            <View style={styles.suggestionRow}>
+              <Text style={styles.suggestionLabel}>Try one of these:</Text>
+              {handleSuggestions.map((s) => (
+                <Pressable
+                  key={s}
+                  accessibilityRole="button"
+                  style={({ pressed }) => [styles.suggestionChip, pressed && styles.pressed]}
+                  onPress={() => {
+                    setHandle(s);
+                    setHandleError(null);
+                    setHandleSuggestions([]);
+                  }}
+                >
+                  <Text style={styles.suggestionChipText}>@{s}</Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
           <Text style={styles.handleHint}>
             3–20 characters. Letters, numbers, and underscores only.
           </Text>
-          <PrimaryButton label="Review setup" onPress={tryGoNext} />
-          <SecondaryButton label="Skip for now" onPress={() => { setHandle(""); setHandleError(null); goNext(); }} />
+          <PrimaryButton
+            label={checkingHandle ? "Checking..." : "Review setup"}
+            onPress={() => void tryGoNext()}
+            disabled={checkingHandle}
+            loading={checkingHandle}
+          />
+          <SecondaryButton
+            label="Skip for now"
+            onPress={() => { setHandle(""); setHandleError(null); setHandleSuggestions([]); goNext(); }}
+            disabled={checkingHandle}
+          />
         </>
       );
     }
@@ -588,6 +641,7 @@ function validateHandle(value: string): string | null {
   if (!/^[a-z0-9_]+$/.test(value)) return "Letters, numbers, and underscores only.";
   if (value.startsWith("_") || value.endsWith("_")) return "Handle cannot start or end with an underscore.";
   if (/__/.test(value)) return "Handle cannot have consecutive underscores.";
+  if (isReservedHandle(value)) return "That handle is reserved. Try a variation.";
   return null;
 }
 
@@ -936,6 +990,28 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 12,
     lineHeight: 16,
+  },
+  suggestionRow: {
+    gap: spacing.xs,
+  },
+  suggestionLabel: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  suggestionChip: {
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  suggestionChipText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "600",
   },
   primaryButton: {
     minHeight: 52,

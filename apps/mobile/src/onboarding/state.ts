@@ -5,8 +5,8 @@ export const ONBOARDING_STEPS = [
   "location",
   "preferences",
   "notifications",
-  "profile",
   "handle",
+  "profile",
   "complete",
 ] as const;
 

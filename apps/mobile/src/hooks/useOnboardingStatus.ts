@@ -201,17 +201,18 @@ export function useOnboardingStatus(session: Session | null) {
       }
 
       const displayName = normalizeText(input.display_name);
-      if (displayName) {
+      const handle = normalizeText(input.handle)?.toLowerCase() ?? null;
+      if (displayName || handle) {
+        const profilePayload: Record<string, unknown> = {
+          user_id: userId,
+          updated_at: completedAt,
+        };
+        if (displayName) profilePayload.display_name = displayName;
+        if (handle) profilePayload.handle = handle;
+
         const { error: profileError } = await (supabase as any)
           .from("user_profiles")
-          .upsert(
-            {
-              user_id: userId,
-              display_name: displayName,
-              updated_at: completedAt,
-            },
-            { onConflict: "user_id" }
-          );
+          .upsert(profilePayload, { onConflict: "user_id" });
 
         if (profileError) {
           errors.push(profileError.message);
