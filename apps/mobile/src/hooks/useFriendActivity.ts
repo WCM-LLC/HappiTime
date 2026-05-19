@@ -8,6 +8,7 @@ export type ActivityItem = {
   userName: string;
   userHandle: string | null;
   userAvatar: string | null;
+  userRole: string | null;
   venueName: string;
   venueId: string;
   visitedAt: string;
@@ -90,20 +91,24 @@ export function useFriendActivity() {
 
     const followedIds = followRows.map((r) => r.following_user_id);
 
-    // 2. Get profiles of followed users to check is_public
-    const { data: profiles } = await supabase
-      .from("user_profiles")
-      .select("user_id, display_name, handle, avatar_url, is_public")
-      .in("user_id", followedIds);
+    type ProfileRow = {
+      user_id: string;
+      display_name: string | null;
+      handle: string | null;
+      avatar_url: string | null;
+      is_public: boolean;
+      role: string | null;
+    };
 
-    const profileMap = new Map(
-      (profiles ?? []).map((p: {
-        user_id: string;
-        display_name: string | null;
-        handle: string | null;
-        avatar_url: string | null;
-        is_public: boolean;
-      }) => [p.user_id, p])
+    // 2. Get profiles of followed users to check is_public
+    const { data: profilesData } = await (supabase as any)
+      .from("user_profiles")
+      .select("user_id, display_name, handle, avatar_url, is_public, role")
+      .in("user_id", followedIds);
+    const profiles = (profilesData ?? []) as ProfileRow[];
+
+    const profileMap = new Map<string, ProfileRow>(
+      profiles.map((p) => [p.user_id, p])
     );
 
     // Only include users with public profiles (or accepted follow — already filtered above)
@@ -146,6 +151,7 @@ export function useFriendActivity() {
         userName: displayName,
         userHandle: isPrivate ? null : (profile?.handle ?? null),
         userAvatar: isPrivate ? null : (profile?.avatar_url ?? null),
+        userRole: isPrivate ? null : (profile?.role ?? null),
         venueName: isPrivate ? "a venue" : (v.venue?.name ?? "Venue"),
         venueId: v.venue_id,
         visitedAt: v.visited_at,

@@ -7,6 +7,7 @@ export type UserProfile = {
   display_name: string | null;
   handle: string | null;
   avatar_url: string | null;
+  role: string | null;
 };
 
 export type FriendSuggestion = UserProfile & {
@@ -113,9 +114,9 @@ export function useFriendSuggestions() {
 
       // 4. Fetch profiles for candidate users
       const candidateIds = Array.from(candidateMap.keys());
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles, error: profilesError } = await (supabase as any)
         .from("user_profiles")
-        .select("user_id, display_name, handle, avatar_url")
+        .select("user_id, display_name, handle, avatar_url, role")
         .in("user_id", candidateIds);
 
       if (profilesError) {

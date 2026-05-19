@@ -19,6 +19,7 @@ type UserProfile = {
   display_name: string | null;
   handle: string | null;
   avatar_url: string | null;
+  role: string | null;
 };
 
 type DiscoverEventRow = {
@@ -37,6 +38,7 @@ export type DiscoverFeedItem = {
   userHandle: string | null;
   userDisplayName: string | null;
   userAvatar: string | null;
+  userRole: string | null;
   itineraryName: string | null;
   venueName: string | null;
   commentText: string | null;
@@ -70,7 +72,7 @@ export function useDiscoverFeed() {
     const { data, error } = await (supabase as any)
       .from("user_events")
       .select(
-        "id, user_id, event_type, created_at, meta, profile:user_profiles(display_name, handle, avatar_url)"
+        "id, user_id, event_type, created_at, meta, profile:user_profiles(display_name, handle, avatar_url, role)"
       )
       .in("event_type", DISCOVER_EVENT_TYPES)
       .order("created_at", { ascending: false })
@@ -90,6 +92,7 @@ export function useDiscoverFeed() {
         userHandle: profile?.handle ?? null,
         userDisplayName: profile?.display_name ?? null,
         userAvatar: profile?.avatar_url ?? null,
+        userRole: profile?.role ?? null,
         itineraryName: row.meta?.itinerary_name ?? null,
         venueName: row.meta?.venue_name ?? null,
         commentText: row.meta?.comment_text ?? null,

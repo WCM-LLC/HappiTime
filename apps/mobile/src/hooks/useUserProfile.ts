@@ -9,6 +9,7 @@ type UserProfile = {
   avatar_url: string | null;
   bio: string | null;
   is_public: boolean;
+  role: string;
 };
 
 const normalizeText = (value?: string | null) => {
@@ -40,7 +41,7 @@ export function useUserProfile() {
     setLoading(true);
     const { data, error } = await (supabase as any)
       .from("user_profiles")
-      .select("user_id, handle, display_name, avatar_url, bio, is_public")
+      .select("user_id, handle, display_name, avatar_url, bio, is_public, role")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -84,7 +85,7 @@ export function useUserProfile() {
       const { data, error } = await (supabase as any)
         .from("user_profiles")
         .upsert(payload, { onConflict: "user_id" })
-        .select("user_id, handle, display_name, avatar_url, bio, is_public")
+        .select("user_id, handle, display_name, avatar_url, bio, is_public, role")
         .maybeSingle();
 
       if (error) {

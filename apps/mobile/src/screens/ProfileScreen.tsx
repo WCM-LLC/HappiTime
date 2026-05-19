@@ -4,6 +4,7 @@ import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Modal, 
 import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../api/supabaseClient";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { SuperUserBadge } from "../components/SuperUserBadge";
 import { VenueSuggestionForm } from "./AddScreen";
 import { useAvatarUpload } from "../hooks/useAvatarUpload";
 import { useCurrentUser } from "../hooks/useCurrentUser";
@@ -283,9 +284,12 @@ export const ProfileScreen: React.FC = () => {
             </View>
           </Pressable>
           <View>
-            <Text style={styles.avatarName}>
-              {profile?.display_name || user?.email?.split("@")[0] || "User"}
-            </Text>
+            <View style={styles.profileNameRow}>
+              <Text style={styles.avatarName}>
+                {profile?.display_name || user?.email?.split("@")[0] || "User"}
+              </Text>
+              <SuperUserBadge role={profile?.role} size="md" />
+            </View>
             <Text style={styles.avatarCity}>
               {preferences.home_city
                 ? `${preferences.home_city}${preferences.home_state ? `, ${preferences.home_state}` : ""}`
@@ -634,6 +638,11 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 24,
     fontWeight: "800",
+  },
+  profileNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   avatarName: {
     color: colors.text,

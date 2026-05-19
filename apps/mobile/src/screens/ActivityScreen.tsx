@@ -11,6 +11,7 @@ import {
   TextInput,
 } from "react-native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
+import { SuperUserBadge } from "../components/SuperUserBadge";
 import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity";
 import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendSuggestions";
 import { useDiscoverFeed, type DiscoverFeedItem } from "../hooks/useDiscoverFeed";
@@ -60,9 +61,10 @@ const PendingRequestCard: React.FC<{
   id: string;
   name: string;
   avatarUrl: string | null;
+  role?: string | null;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
-}> = ({ id, name, avatarUrl, onApprove, onReject }) => (
+}> = ({ id, name, avatarUrl, role, onApprove, onReject }) => (
   <View style={styles.pendingCard}>
     <View style={styles.avatarWrap}>
       {avatarUrl ? (
@@ -76,7 +78,10 @@ const PendingRequestCard: React.FC<{
       )}
     </View>
     <View style={styles.pendingTextWrap}>
-      <Text style={styles.actor}>{name}</Text>
+      <View style={styles.nameRow}>
+        <Text style={styles.actor}>{name}</Text>
+        <SuperUserBadge role={role} />
+      </View>
       <Text style={styles.message}>wants to follow you</Text>
     </View>
     <View style={styles.pendingActions}>
@@ -114,6 +119,7 @@ const ActivityCard: React.FC<{ item: ActivityItem }> = ({ item }) => (
     <View style={styles.textContainer}>
       <View style={styles.nameRow}>
         <Text style={styles.actor}>{item.userName}</Text>
+        <SuperUserBadge role={item.userRole} />
         <Text style={styles.when}>{timeAgo(item.visitedAt)}</Text>
       </View>
       <Text style={styles.message}>
@@ -159,7 +165,10 @@ const SuggestionCard: React.FC<{
         )}
       </View>
       <View style={styles.textContainer}>
-        <Text style={styles.actor}>{name}</Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.actor}>{name}</Text>
+          <SuperUserBadge role={suggestion.role} />
+        </View>
         {suggestion.handle ? (
           <Text style={styles.handle}>@{suggestion.handle}</Text>
         ) : null}
@@ -411,6 +420,7 @@ export const ActivityScreen: React.FC = () => {
                         id={req.follower_id}
                         name={name}
                         avatarUrl={req.profile?.avatar_url ?? null}
+                        role={req.profile?.role}
                         onApprove={handleApprove}
                         onReject={handleReject}
                       />
@@ -590,7 +600,8 @@ const styles = StyleSheet.create({
   },
   nameRow: {
     flexDirection: "row",
-    alignItems: "baseline",
+    alignItems: "center",
+    gap: 4,
     marginBottom: 2,
   },
   actor: {

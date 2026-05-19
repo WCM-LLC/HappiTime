@@ -12,6 +12,7 @@ export type Follower = {
     handle: string | null;
     display_name: string | null;
     avatar_url: string | null;
+    role: string | null;
   } | null;
 };
 
@@ -22,6 +23,7 @@ export type PendingRequest = {
     handle: string | null;
     display_name: string | null;
     avatar_url: string | null;
+    role: string | null;
   } | null;
 };
 
@@ -48,9 +50,9 @@ export function useUserFollowers() {
     }
 
     // Fetch accepted followers
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("user_follows")
-      .select("follower_id, created_at, profile:user_profiles!user_follows_follower_id_profile_fkey(handle, display_name, avatar_url)")
+      .select("follower_id, created_at, profile:user_profiles!user_follows_follower_id_profile_fkey(handle, display_name, avatar_url, role)")
       .eq("following_user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -61,9 +63,9 @@ export function useUserFollowers() {
 
     // Try to fetch pending requests (may fail if status column doesn't exist yet)
     let pendingRequests: PendingRequest[] = [];
-    const { data: pendingData, error: pendingError } = await supabase
+    const { data: pendingData, error: pendingError } = await (supabase as any)
       .from("user_follows")
-      .select("follower_id, created_at, profile:user_profiles!user_follows_follower_id_profile_fkey(handle, display_name, avatar_url)")
+      .select("follower_id, created_at, profile:user_profiles!user_follows_follower_id_profile_fkey(handle, display_name, avatar_url, role)")
       .eq("following_user_id", user.id)
       .eq("status", "pending")
       .order("created_at", { ascending: false });
@@ -164,9 +166,9 @@ export function useUserFollowers() {
    */
   const getPendingRequests = useCallback(async () => {
     if (!user?.id) return [];
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from("user_follows")
-      .select("follower_id, created_at, profile:user_profiles!user_follows_follower_id_profile_fkey(handle, display_name, avatar_url)")
+      .select("follower_id, created_at, profile:user_profiles!user_follows_follower_id_profile_fkey(handle, display_name, avatar_url, role)")
       .eq("following_user_id", user.id)
       .eq("status", "pending")
       .order("created_at", { ascending: false });
