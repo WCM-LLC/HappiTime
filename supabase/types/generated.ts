@@ -235,6 +235,98 @@ export type Database = {
           },
         ]
       }
+      guide_submissions: {
+        Row: {
+          decision: string | null
+          guide_id: string
+          id: string
+          notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          submitted_at: string
+          submitted_by: string | null
+        }
+        Insert: {
+          decision?: string | null
+          guide_id: string
+          id?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          submitted_at?: string
+          submitted_by?: string | null
+        }
+        Update: {
+          decision?: string | null
+          guide_id?: string
+          id?: string
+          notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          submitted_at?: string
+          submitted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guide_submissions_guide_id_fkey"
+            columns: ["guide_id"]
+            isOneToOne: false
+            referencedRelation: "guides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guides: {
+        Row: {
+          author_id: string | null
+          body_md: string
+          city: string | null
+          cover_image_url: string | null
+          created_at: string
+          id: string
+          neighborhood: string | null
+          published_at: string | null
+          slug: string
+          status: string
+          subtitle: string | null
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          body_md: string
+          city?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          id?: string
+          neighborhood?: string | null
+          published_at?: string | null
+          slug: string
+          status?: string
+          subtitle?: string | null
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          body_md?: string
+          city?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          id?: string
+          neighborhood?: string | null
+          published_at?: string | null
+          slug?: string
+          status?: string
+          subtitle?: string | null
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       happy_hour_offers: {
         Row: {
           category: string
@@ -769,6 +861,42 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_friend_invites: {
+        Row: {
+          claimed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          invite_token: string
+          invitee_email: string
+          invitee_handle: string | null
+          inviter_id: string
+          status: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invite_token?: string
+          invitee_email: string
+          invitee_handle?: string | null
+          inviter_id: string
+          status?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invite_token?: string
+          invitee_email?: string
+          invitee_handle?: string | null
+          inviter_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       reference_snapshots: {
         Row: {
           created_at: string
@@ -793,6 +921,18 @@ export type Database = {
           label?: string
           notes?: string | null
           row_counts?: Json
+        }
+        Relationships: []
+      }
+      reserved_handles: {
+        Row: {
+          handle: string
+        }
+        Insert: {
+          handle: string
+        }
+        Update: {
+          handle?: string
         }
         Relationships: []
       }
@@ -1170,16 +1310,16 @@ export type Database = {
           location_enabled: boolean
           location_permission_status: string | null
           max_distance_miles: number | null
-          notifications_permission_status: string | null
-          onboarding_completed_at: string | null
-          onboarding_step: string
-          onboarding_version: number
           notifications_friend_activity: boolean
           notifications_happy_hours: boolean
           notifications_marketing: boolean
+          notifications_permission_status: string | null
           notifications_product: boolean
           notifications_push: boolean
           notifications_venue_updates: boolean
+          onboarding_completed_at: string | null
+          onboarding_step: string
+          onboarding_version: number
           price_tier_max: number | null
           price_tier_min: number | null
           updated_at: string
@@ -1197,16 +1337,16 @@ export type Database = {
           location_enabled?: boolean
           location_permission_status?: string | null
           max_distance_miles?: number | null
-          notifications_permission_status?: string | null
-          onboarding_completed_at?: string | null
-          onboarding_step?: string
-          onboarding_version?: number
           notifications_friend_activity?: boolean
           notifications_happy_hours?: boolean
           notifications_marketing?: boolean
+          notifications_permission_status?: string | null
           notifications_product?: boolean
           notifications_push?: boolean
           notifications_venue_updates?: boolean
+          onboarding_completed_at?: string | null
+          onboarding_step?: string
+          onboarding_version?: number
           price_tier_max?: number | null
           price_tier_min?: number | null
           updated_at?: string
@@ -1224,16 +1364,16 @@ export type Database = {
           location_enabled?: boolean
           location_permission_status?: string | null
           max_distance_miles?: number | null
-          notifications_permission_status?: string | null
-          onboarding_completed_at?: string | null
-          onboarding_step?: string
-          onboarding_version?: number
           notifications_friend_activity?: boolean
           notifications_happy_hours?: boolean
           notifications_marketing?: boolean
+          notifications_permission_status?: string | null
           notifications_product?: boolean
           notifications_push?: boolean
           notifications_venue_updates?: boolean
+          onboarding_completed_at?: string | null
+          onboarding_step?: string
+          onboarding_version?: number
           price_tier_max?: number | null
           price_tier_min?: number | null
           updated_at?: string
@@ -1243,32 +1383,38 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          auto_publish_enabled: boolean
           avatar_url: string | null
           bio: string | null
           created_at: string
           display_name: string | null
           handle: string | null
           is_public: boolean
+          role: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          auto_publish_enabled?: boolean
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
           handle?: string | null
           is_public?: boolean
+          role?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          auto_publish_enabled?: boolean
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
           handle?: string | null
           is_public?: boolean
+          role?: string
           updated_at?: string
           user_id?: string
         }
@@ -2184,6 +2330,7 @@ export type Database = {
       hh_days_from_text: { Args: { s: string }; Returns: string[] }
       invoke_geocode_venues: { Args: never; Returns: undefined }
       invoke_places_import: { Args: never; Returns: undefined }
+      is_happitime_admin: { Args: never; Returns: boolean }
       is_org_host: { Args: { p_org_id: string }; Returns: boolean }
       is_org_manager: { Args: { p_org_id: string }; Returns: boolean }
       is_org_member: { Args: { p_org_id: string }; Returns: boolean }
