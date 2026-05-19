@@ -14,6 +14,7 @@ import { HappyHourDetailScreen } from "../screens/HappyHourDetailScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { MapScreen } from "../screens/MapScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
+import { InviteScreen } from "../screens/InviteScreen";
 import { VenuePreviewScreen } from "../screens/VenuePreviewScreen";
 import { colors } from "../theme/colors";
 import type { MainTabParamList, RootStackParamList } from "./types";
@@ -149,6 +150,20 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
               fontSize: 17,
               fontWeight: "600",
             },
+          }}
+        />
+        <Stack.Screen
+          name="InviteScreen"
+          component={InviteScreen}
+          options={{
+            presentation: "modal",
+            headerShown: true,
+            title: "Invite a Friend",
+            headerBackTitle: "Cancel",
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontSize: 17, fontWeight: "600" },
           }}
         />
       </Stack.Navigator>

@@ -31,6 +31,7 @@ export type RootStackParamList = {
   AppTabs: { screen?: keyof MainTabParamList; params?: Record<string, unknown> } | undefined;
   HappyHourDetail: { windowId: string };
   VenuePreview?: { venueId: string };
+  InviteScreen: undefined;
 };
 
 export type MainTabParamList = {

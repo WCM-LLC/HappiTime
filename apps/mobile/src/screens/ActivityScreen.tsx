@@ -663,11 +663,25 @@ export const ActivityScreen: React.FC = () => {
             !peopleLoading ? (
               <View style={styles.emptyState}>
                 {peopleQuery.length === 0 ? (
-                  <Text style={styles.emptyText}>Search for friends by @handle</Text>
+                  <>
+                    <Text style={styles.emptyText}>Search for friends by @handle</Text>
+                    <Pressable
+                      onPress={() => navigation.navigate("InviteScreen" as never)}
+                      style={({ pressed }) => [styles.inviteLink, pressed && styles.inviteLinkPressed]}
+                    >
+                      <Text style={styles.inviteLinkText}>Not on HappiTime? Invite a friend →</Text>
+                    </Pressable>
+                  </>
                 ) : (
                   <>
                     <Text style={styles.emptyTitle}>No users found</Text>
                     <Text style={styles.emptyText}>Try a different handle.</Text>
+                    <Pressable
+                      onPress={() => navigation.navigate("InviteScreen" as never)}
+                      style={({ pressed }) => [styles.inviteLink, pressed && styles.inviteLinkPressed]}
+                    >
+                      <Text style={styles.inviteLinkText}>Invite them to HappiTime →</Text>
+                    </Pressable>
                   </>
                 )}
               </View>
@@ -1055,6 +1069,19 @@ const styles = StyleSheet.create({
   peopleLoadingFooter: {
     paddingVertical: spacing.md,
     alignItems: "center" as const,
+  },
+  inviteLink: {
+    marginTop: spacing.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  inviteLinkPressed: {
+    opacity: 0.6,
+  },
+  inviteLinkText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: "600",
   },
 
   /* ── Insider itinerary cards ── */
