@@ -2,7 +2,7 @@
   "expo": {
     "name": "HappiTime",
     "slug": "happyhour-mobile",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "happitime",
