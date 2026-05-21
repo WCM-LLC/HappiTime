@@ -72,15 +72,17 @@ export function useUserProfile() {
       }
 
       setSaving(true);
-      const payload = {
+      // Only include fields that were explicitly passed — omitting a key
+      // entirely prevents the upsert from overwriting unrelated columns with null.
+      const payload: Record<string, unknown> = {
         user_id: user.id,
-        display_name: normalizeText(updates.display_name),
-        handle: normalizeHandle(updates.handle),
-        bio: normalizeText(updates.bio),
-        avatar_url: updates.avatar_url ?? profile?.avatar_url ?? null,
-        is_public: updates.is_public ?? profile?.is_public ?? false,
         updated_at: new Date().toISOString(),
       };
+      if ("display_name" in updates) payload.display_name = normalizeText(updates.display_name);
+      if ("handle" in updates) payload.handle = normalizeHandle(updates.handle);
+      if ("bio" in updates) payload.bio = normalizeText(updates.bio);
+      if ("avatar_url" in updates) payload.avatar_url = updates.avatar_url ?? null;
+      if ("is_public" in updates) payload.is_public = updates.is_public;
 
       const { data, error } = await (supabase as any)
         .from("user_profiles")
@@ -97,7 +99,7 @@ export function useUserProfile() {
       setSaving(false);
       return { data: data ?? null, error };
     },
-    [user?.id, profile?.avatar_url, profile?.is_public]
+    [user?.id]
   );
 
   return { profile, loading, saving, error, refresh: load, saveProfile };
