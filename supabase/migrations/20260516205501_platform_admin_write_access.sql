@@ -27,8 +27,6 @@ declare
     'happy_hour_window_menus',
     'happy_hour_menu_item_prices',
     'venue_media',
-    'venue_events',
-    'venue_tags',
     'event_media',
     'events',
     'approved_tags'
