@@ -16,6 +16,7 @@ const DASHBOARD_ERROR_MESSAGES: Record<string, string> = {
   slug_taken: 'That organization slug is already in use. Choose a different slug.',
   missing_org_name: 'Enter an organization name.',
   not_org_owner: 'You must be an organization owner to make that change.',
+  not_authorized: 'That account does not have Super User or Super Admin access.',
 };
 
 export default async function DashboardPage({

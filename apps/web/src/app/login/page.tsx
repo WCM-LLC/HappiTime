@@ -2,6 +2,10 @@ import OAuthButtons from '@/components/OAuthButtons';
 import { Logo } from '@/components/ui/Logo';
 import { login } from '../../actions/login-actions';
 
+function safeNextPath(value: string | undefined) {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return '';
+  return value;
+}
 
 export default async function LoginPage({
   searchParams,
@@ -10,8 +14,9 @@ export default async function LoginPage({
 }) {
   const sp = await searchParams;
   const error = sp?.error;
-  const next = sp?.next ?? '';
+  const next = safeNextPath(sp?.next);
   const isAdminLogin = next === '/admin';
+  const isSuperUserLogin = next === '/dashboard/guides';
 
   const inputCls =
     'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors';
@@ -48,12 +53,18 @@ export default async function LoginPage({
           {/* Heading */}
           <div>
             <h1 className="text-heading-lg font-bold text-foreground tracking-tight">
-              {isAdminLogin ? 'Admin login' : 'Sign in to your account'}
+              {isAdminLogin
+                ? 'Admin login'
+                : isSuperUserLogin
+                  ? 'Super User login'
+                  : 'Sign in to your account'}
             </h1>
             <p className="text-body-sm text-muted mt-1">
               {isAdminLogin
                 ? 'Enter your admin credentials to continue.'
-                : 'Enter your credentials to continue.'}
+                : isSuperUserLogin
+                  ? 'Sign in with your HappiTime account to open guide authoring.'
+                  : 'Enter your credentials to continue.'}
             </p>
           </div>
 
@@ -66,7 +77,9 @@ export default async function LoginPage({
                   ? 'Incorrect email or password. Try again, or sign up below.'
                   : error === 'not_admin'
                     ? 'That account does not have admin access.'
-                    : 'Something went wrong. Try again or use a social login.'}
+                    : error === 'not_authorized'
+                      ? 'That account does not have Super User access.'
+                      : 'Something went wrong. Try again or use a social login.'}
               </p>
             </div>
           ) : null}
@@ -125,7 +138,7 @@ export default async function LoginPage({
                 <span className="text-caption text-muted-light">or continue with</span>
                 <div className="flex-1 h-px bg-border" />
               </div>
-              <OAuthButtons />
+              <OAuthButtons next={next || undefined} />
             </div>
           ) : null}
 
@@ -138,12 +151,23 @@ export default async function LoginPage({
               Forgot password? Reset it
             </a>
             {!isAdminLogin ? (
-              <a
-                href="/login?next=/admin"
-                className="text-caption text-muted hover:text-foreground underline underline-offset-4 transition-colors"
-              >
-                Admin access
-              </a>
+              <div className="flex flex-col gap-2">
+                <a
+                  href="/login?next=/admin"
+                  className="text-caption text-muted hover:text-foreground underline underline-offset-4 transition-colors"
+                >
+                  Admin access
+                </a>
+                <a
+                  href="/dashboard/guides"
+                  className="inline-flex items-center justify-center h-10 px-4 rounded-md border border-border bg-surface text-body-sm font-semibold text-foreground hover:bg-background transition-colors"
+                >
+                  Super User Access
+                </a>
+                <p className="text-caption text-muted-light">
+                  For approved HappiTime Super Users submitting guides and featured content.
+                </p>
+              </div>
             ) : (
               <a
                 href="/login"

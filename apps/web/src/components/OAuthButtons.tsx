@@ -5,7 +5,16 @@ import { createClient } from '@/utils/supabase/client';
 
 type Provider = 'google';
 
-export default function OAuthButtons() {
+type OAuthButtonsProps = {
+  next?: string;
+};
+
+function safeNextPath(value: string | undefined) {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return null;
+  return value;
+}
+
+export default function OAuthButtons({ next }: OAuthButtonsProps) {
   const [busy, setBusy] = useState<Provider | null>(null);
 
   async function signIn(provider: Provider) {
@@ -13,10 +22,14 @@ export default function OAuthButtons() {
     try {
       const supabase = await createClient();
       const origin = window.location.origin.replace(/\/+$/, '');
+      const callbackUrl = new URL('/auth/callback', origin);
+      const safeNext = safeNextPath(next);
+      if (safeNext) callbackUrl.searchParams.set('next', safeNext);
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${origin}/auth/callback`,
+          redirectTo: callbackUrl.toString(),
           skipBrowserRedirect: true,
         },
       });

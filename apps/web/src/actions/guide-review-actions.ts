@@ -26,25 +26,48 @@ export async function approveGuide(formData: FormData) {
   const reviewerId = await currentAdminUserId();
   const now = new Date().toISOString();
 
-  const { error: updateErr } = await (db as any)
+  const { data: guide, error: fetchErr } = await (db as any)
+    .from('guides')
+    .select('id, status')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (fetchErr || !guide) {
+    console.error('[review] approve fetch failed', fetchErr);
+    redirect('/admin/guides?error=approve_failed');
+  }
+
+  if (guide.status !== 'pending_review') {
+    redirect('/admin/guides?error=invalid_status');
+  }
+
+  const { data: updated, error: updateErr } = await (db as any)
     .from('guides')
     .update({ status: 'published', published_at: now })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('status', 'pending_review')
+    .select('id')
+    .maybeSingle();
 
-  if (updateErr) {
+  if (updateErr || !updated) {
     console.error('[review] approve failed', updateErr);
     redirect(`/admin/guides?error=approve_failed`);
   }
 
-  await (db as any).from('guide_submissions').insert({
+  const { error: auditErr } = await (db as any).from('guide_submissions').insert({
     guide_id: id,
     submitted_by: null,
     reviewed_by: reviewerId,
     reviewed_at: now,
     decision: 'approved',
   });
+  if (auditErr) {
+    console.error('[review] approve audit failed', auditErr);
+    redirect('/admin/guides?error=approve_failed');
+  }
 
   revalidatePath('/admin/guides');
+  revalidatePath(`/admin/guides/${id}/preview`);
   revalidatePath('/dashboard/guides');
   redirect('/admin/guides?notice=guide_approved');
 }
@@ -61,17 +84,35 @@ export async function rejectGuide(formData: FormData) {
   const reviewerId = await currentAdminUserId();
   const now = new Date().toISOString();
 
-  const { error: updateErr } = await (db as any)
+  const { data: guide, error: fetchErr } = await (db as any)
+    .from('guides')
+    .select('id, status')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (fetchErr || !guide) {
+    console.error('[review] reject fetch failed', fetchErr);
+    redirect('/admin/guides?error=reject_failed');
+  }
+
+  if (guide.status !== 'pending_review') {
+    redirect('/admin/guides?error=invalid_status');
+  }
+
+  const { data: updated, error: updateErr } = await (db as any)
     .from('guides')
     .update({ status: 'draft' })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('status', 'pending_review')
+    .select('id')
+    .maybeSingle();
 
-  if (updateErr) {
+  if (updateErr || !updated) {
     console.error('[review] reject failed', updateErr);
     redirect('/admin/guides?error=reject_failed');
   }
 
-  await (db as any).from('guide_submissions').insert({
+  const { error: auditErr } = await (db as any).from('guide_submissions').insert({
     guide_id: id,
     submitted_by: null,
     reviewed_by: reviewerId,
@@ -79,8 +120,13 @@ export async function rejectGuide(formData: FormData) {
     decision: 'rejected',
     notes,
   });
+  if (auditErr) {
+    console.error('[review] reject audit failed', auditErr);
+    redirect('/admin/guides?error=reject_failed');
+  }
 
   revalidatePath('/admin/guides');
+  revalidatePath(`/admin/guides/${id}/preview`);
   revalidatePath('/dashboard/guides');
   redirect('/admin/guides?notice=guide_rejected');
 }
@@ -96,25 +142,48 @@ export async function unpublishGuide(formData: FormData) {
   const reviewerId = await currentAdminUserId();
   const now = new Date().toISOString();
 
-  const { error: updateErr } = await (db as any)
+  const { data: guide, error: fetchErr } = await (db as any)
+    .from('guides')
+    .select('id, status')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (fetchErr || !guide) {
+    console.error('[review] unpublish fetch failed', fetchErr);
+    redirect('/admin/guides?tab=published&error=unpublish_failed');
+  }
+
+  if (guide.status !== 'published') {
+    redirect('/admin/guides?tab=published&error=invalid_status');
+  }
+
+  const { data: updated, error: updateErr } = await (db as any)
     .from('guides')
     .update({ status: 'archived' })
-    .eq('id', id);
+    .eq('id', id)
+    .eq('status', 'published')
+    .select('id')
+    .maybeSingle();
 
-  if (updateErr) {
+  if (updateErr || !updated) {
     console.error('[review] unpublish failed', updateErr);
     redirect('/admin/guides?tab=published&error=unpublish_failed');
   }
 
-  await (db as any).from('guide_submissions').insert({
+  const { error: auditErr } = await (db as any).from('guide_submissions').insert({
     guide_id: id,
     submitted_by: null,
     reviewed_by: reviewerId,
     reviewed_at: now,
     decision: 'unpublished',
   });
+  if (auditErr) {
+    console.error('[review] unpublish audit failed', auditErr);
+    redirect('/admin/guides?tab=published&error=unpublish_failed');
+  }
 
   revalidatePath('/admin/guides');
+  revalidatePath(`/admin/guides/${id}/preview`);
   revalidatePath('/dashboard/guides');
   redirect('/admin/guides?tab=published&notice=guide_unpublished');
 }

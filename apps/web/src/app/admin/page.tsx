@@ -67,6 +67,8 @@ export default async function AdminPage({
     { count: hhCount },
     { count: mediaCount },
     { count: suggestionCount },
+    { count: superUserCount },
+    { count: pendingGuideCount },
   ] = await Promise.all([
     supabase.from('organizations').select('id', { count: 'exact', head: true }),
     supabase.from('venues').select('id', { count: 'exact', head: true }),
@@ -74,6 +76,8 @@ export default async function AdminPage({
     supabase.from('happy_hour_windows').select('id', { count: 'exact', head: true }),
     supabase.from('venue_media').select('id', { count: 'exact', head: true }),
     supabase.from('user_events').select('id', { count: 'exact', head: true }).eq('event_type', 'venue_suggestion'),
+    supabase.from('user_profiles').select('user_id', { count: 'exact', head: true }).eq('role', 'super_user'),
+    supabase.from('guides').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
   ]);
 
   // ─── Organizations ────────────────────────────────────────────────────
@@ -266,6 +270,8 @@ export default async function AdminPage({
     { label: 'Happy Hours', value: hhCount ?? 0, icon: '⏰' },
     { label: 'Media Files', value: mediaCount ?? 0, icon: '📷' },
     { label: 'Suggestions', value: suggestionCount ?? 0, icon: '📍', href: '/admin/suggestions' },
+    { label: 'Super Users', value: superUserCount ?? 0, icon: 'SU', href: '/admin/users' },
+    { label: 'Guide Review', value: pendingGuideCount ?? 0, icon: 'GR', href: '/admin/guides?tab=pending' },
   ];
 
   return (
@@ -322,7 +328,7 @@ export default async function AdminPage({
         ) : null}
 
         {/* ── Stats Grid ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-10">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3 mb-10">
           {stats.map((s) => {
             const inner = (
               <div className={`rounded-lg border border-border bg-surface p-5 shadow-sm${s.href ? ' hover:border-brand hover:shadow-md transition-all' : ''}`}>

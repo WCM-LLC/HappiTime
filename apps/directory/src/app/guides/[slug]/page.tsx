@@ -6,16 +6,7 @@ import { supabase } from "@/lib/supabase";
 
 const BASE = "https://happitime.biz";
 
-// Static guide slugs managed as files — exclude from generateStaticParams to avoid double-rendering.
-const STATIC_SLUGS = new Set([
-  "best-happy-hours-kansas-city",
-  "westport-happy-hour-guide",
-  "power-and-light-happy-hour-guide",
-  "best-happy-hour-food-kansas-city",
-  "friday-happy-hours-kansas-city",
-]);
-
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 async function getGuide(slug: string) {
   const { data } = await supabase
@@ -25,17 +16,6 @@ async function getGuide(slug: string) {
     .eq("status", "published")
     .maybeSingle();
   return data ?? null;
-}
-
-export async function generateStaticParams() {
-  const { data } = await supabase
-    .from("guides")
-    .select("slug")
-    .eq("status", "published");
-
-  return (data ?? [])
-    .filter((g) => !STATIC_SLUGS.has(g.slug))
-    .map((g) => ({ slug: g.slug }));
 }
 
 export async function generateMetadata({

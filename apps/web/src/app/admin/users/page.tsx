@@ -31,19 +31,77 @@ export default async function AdminUsersPage({
     const db = createServiceClient();
     const { data } = await db
       .from('user_profiles')
-      .select('user_id, handle, display_name, role, auto_publish_enabled, created_at, is_public')
+      .select('user_id, handle, display_name, avatar_url, role, auto_publish_enabled, created_at, is_public')
       .order('role', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(1000);
 
-    rows = ((data ?? []) as any[]).map((r) => ({
+    const profiles = (data ?? []) as any[];
+    const userIds = profiles.map((r) => r.user_id as string).filter(Boolean);
+    const emailByUserId = new Map<string, string>();
+
+    let page = 1;
+    while (userIds.length > 0) {
+      const { data: authUsers, error } = await (db as any).auth.admin.listUsers({ page, perPage: 200 });
+      if (error) break;
+      for (const u of authUsers?.users ?? []) {
+        if (userIds.includes(u.id) && u.email) emailByUserId.set(u.id, u.email);
+      }
+      if (!authUsers?.nextPage) break;
+      page = authUsers.nextPage;
+    }
+
+    const publishedCountByUserId = new Map<string, number>();
+    const pendingCountByUserId = new Map<string, number>();
+    if (userIds.length > 0) {
+      const { data: guides } = await db
+        .from('guides')
+        .select('id, author_id, status')
+        .in('author_id', userIds);
+      for (const guide of (guides ?? []) as any[]) {
+        if (!guide.author_id) continue;
+        if (guide.status === 'published') {
+          publishedCountByUserId.set(
+            guide.author_id,
+            (publishedCountByUserId.get(guide.author_id) ?? 0) + 1,
+          );
+        }
+        if (guide.status === 'pending_review') {
+          pendingCountByUserId.set(
+            guide.author_id,
+            (pendingCountByUserId.get(guide.author_id) ?? 0) + 1,
+          );
+        }
+      }
+    }
+
+    const lastSubmissionByUserId = new Map<string, string>();
+    if (userIds.length > 0) {
+      const { data: submissions } = await db
+        .from('guide_submissions')
+        .select('submitted_by, submitted_at')
+        .in('submitted_by', userIds)
+        .order('submitted_at', { ascending: false });
+      for (const submission of (submissions ?? []) as any[]) {
+        if (submission.submitted_by && !lastSubmissionByUserId.has(submission.submitted_by)) {
+          lastSubmissionByUserId.set(submission.submitted_by, submission.submitted_at);
+        }
+      }
+    }
+
+    rows = profiles.map((r) => ({
       user_id: r.user_id as string,
       handle: r.handle as string | null,
       display_name: r.display_name as string | null,
+      avatar_url: r.avatar_url as string | null,
+      email: emailByUserId.get(r.user_id) ?? null,
       role: (r.role ?? 'user') as 'user' | 'super_user',
       auto_publish_enabled: Boolean(r.auto_publish_enabled),
       created_at: r.created_at as string,
       is_public: Boolean(r.is_public),
+      published_guide_count: publishedCountByUserId.get(r.user_id) ?? 0,
+      pending_submission_count: pendingCountByUserId.get(r.user_id) ?? 0,
+      last_submission_at: lastSubmissionByUserId.get(r.user_id) ?? null,
     }));
   }
 

@@ -14,6 +14,8 @@ const STATIC_SLUGS = new Set([
   "friday-happy-hours-kansas-city",
 ]);
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title:
     "Kansas City Happy Hour Guides — Tips, Best-of Lists & Neighborhood Spotlights | HappiTime",

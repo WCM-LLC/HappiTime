@@ -19,6 +19,12 @@ function isSuperUserPath(pathname: string) {
   return SUPER_USER_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 
+function safeNextPath(value: string | null) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
+  if (value === "/login" || value.startsWith("/login?")) return null;
+  return value;
+}
+
 export async function middleware(request: NextRequest) {
   const authDebug = process.env.AUTH_DEBUG === "1" || process.env.NEXT_PUBLIC_AUTH_DEBUG === "1";
   let response = NextResponse.next({
@@ -71,21 +77,15 @@ export async function middleware(request: NextRequest) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.search = "";
+    const next = safeNextPath(`${pathname}${request.nextUrl.search}`);
+    if (next) loginUrl.searchParams.set("next", next);
     return NextResponse.redirect(loginUrl);
   }
 
-  // Role gate: super_user paths require role='super_user' or admin email.
-  // Admin email fast-path uses ADMIN_EMAILS env var (avoids DB call for admins).
-  // Non-admins get a single user_profiles query; redirect if not super_user.
+  // Role gate: super_user paths require role='super_user' or DB allowlisted admin.
   if (user && isSuperUserPath(pathname)) {
-    const adminEmails = new Set(
-      (process.env.ADMIN_EMAILS ?? "admin@happitime.biz")
-        .split(",")
-        .map((e) => e.trim().toLowerCase())
-        .filter(Boolean),
-    );
-    const userEmail = (user.email ?? "").toLowerCase();
-    if (!adminEmails.has(userEmail)) {
+    const { data: adminOk } = await supabase.rpc("is_happitime_admin");
+    if (!adminOk) {
       const { data: profile } = await supabase
         .from("user_profiles")
         .select("role")
@@ -100,11 +100,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (user && pathname === "/login") {
-    const dashboardUrl = request.nextUrl.clone();
-    dashboardUrl.pathname = "/dashboard";
-    dashboardUrl.search = "";
-    return NextResponse.redirect(dashboardUrl);
+  if (user && pathname === "/login" && !request.nextUrl.searchParams.get("error")) {
+    const next = safeNextPath(request.nextUrl.searchParams.get("next")) ?? "/dashboard";
+    return NextResponse.redirect(new URL(next, request.url));
   }
 
   return response;
