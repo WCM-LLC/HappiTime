@@ -38,7 +38,6 @@
       "usesAppleSignIn": true,
       "supportsTablet": true,
       "bundleIdentifier": "com.jwill7486.happitime.mobile",
-      "buildNumber": "1",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "HappiTime uses your location to show nearby happy hours and center the map after you enable location.",
