@@ -1,11 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getPublicSupabaseEnv } from "@happitime/shared-env";
+import { isGuideAuthoringPath, loginPathFor, safeNextPath } from "@/utils/auth-paths";
 
 const PUBLIC_PATHS = ["/", "/login", "/auth", "/forgot-password", "/reset-password", "/invite"];
 const PROTECTED_PATHS = ["/dashboard", "/admin", "/orgs", "/change-password"];
-// Paths that require super_user role OR admin membership in addition to auth.
-const SUPER_USER_PATHS = ["/dashboard/guides"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
@@ -13,16 +12,6 @@ function isPublicPath(pathname: string) {
 
 function isProtectedPath(pathname: string) {
   return PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
-}
-
-function isSuperUserPath(pathname: string) {
-  return SUPER_USER_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"));
-}
-
-function safeNextPath(value: string | null) {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) return null;
-  if (value === "/login" || value.startsWith("/login?")) return null;
-  return value;
 }
 
 export async function middleware(request: NextRequest) {
@@ -82,8 +71,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Role gate: super_user paths require role='super_user' or DB allowlisted admin.
-  if (user && isSuperUserPath(pathname)) {
+  // Role gate: guide-authoring paths require role='super_user' or DB allowlisted admin.
+  if (user && isGuideAuthoringPath(pathname)) {
     const { data: adminOk } = await supabase.rpc("is_happitime_admin");
     if (!adminOk) {
       const { data: profile } = await supabase
@@ -92,10 +81,8 @@ export async function middleware(request: NextRequest) {
         .eq("user_id", user.id)
         .maybeSingle();
       if ((profile as any)?.role !== "super_user") {
-        const url = request.nextUrl.clone();
-        url.pathname = "/dashboard";
-        url.search = "?error=not_authorized";
-        return NextResponse.redirect(url);
+        const next = safeNextPath(`${pathname}${request.nextUrl.search}`) ?? "/dashboard/guides";
+        return NextResponse.redirect(new URL(loginPathFor(next, "not_authorized"), request.url));
       }
     }
   }

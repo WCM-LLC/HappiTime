@@ -18,7 +18,7 @@ async function tryFetch(url, opts = {}) {
     return await fetch(url, opts);
   } catch (err) {
     const code = err?.cause?.code ?? err?.code;
-    if (code === "ECONNREFUSED" || code === "ENOTFOUND") return null;
+    if (code === "ECONNREFUSED" || code === "ENOTFOUND" || code === "EPERM") return null;
     throw err;
   }
 }
@@ -44,7 +44,7 @@ test("/login renders Super User Access", async (t) => {
   assert.equal(res.status, 200);
   const html = await res.text();
   assert.match(html, /Super User Access/);
-  assert.match(html, /href="\/dashboard\/guides"/);
+  assert.match(html, /href="\/login\?next=%2Fdashboard%2Fguides"/);
 });
 
 test("/dashboard/guides (logged-out) redirects through login with next", async (t) => {
@@ -108,7 +108,8 @@ test("/dashboard/guides (non-Super User session) is denied", async (t) => {
   }
 
   const finalUrl = new URL(res.url);
-  assert.equal(finalUrl.pathname, "/dashboard");
+  assert.equal(finalUrl.pathname, "/login");
+  assert.equal(finalUrl.searchParams.get("next"), "/dashboard/guides");
   assert.equal(finalUrl.searchParams.get("error"), "not_authorized");
 });
 

@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import UserBar from '@/components/layout/UserBar';
 import { createClient } from '@/utils/supabase/server';
+import { GUIDE_AUTHORING_PATH, loginPathFor } from '@/utils/auth-paths';
 import { GuideEditor } from '../../components/GuideEditor';
 
 const NOTICE: Record<string, string> = {
@@ -26,12 +27,17 @@ export default async function EditGuidePage({
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
+  const user = auth.user;
+
+  if (!user) {
+    redirect(loginPathFor(GUIDE_AUTHORING_PATH));
+  }
 
   const { data: guide } = await supabase
     .from('guides')
     .select('id, title, subtitle, body_md, city, tags, cover_image_url, status, slug')
     .eq('id', id)
-    .eq('author_id', auth.user!.id)
+    .eq('author_id', user.id)
     .maybeSingle();
 
   if (!guide) notFound();

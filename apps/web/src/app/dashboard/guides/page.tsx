@@ -1,7 +1,9 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import UserBar from '@/components/layout/UserBar';
 import { createClient } from '@/utils/supabase/server';
 import { deleteDraft, submitGuide } from '@/actions/guide-actions';
+import { GUIDE_AUTHORING_PATH, loginPathFor } from '@/utils/auth-paths';
 
 const STATUS_LABEL: Record<string, string> = {
   draft: 'Draft',
@@ -46,11 +48,16 @@ export default async function GuidesListPage({
 
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
+  const user = auth.user;
+
+  if (!user) {
+    redirect(loginPathFor(GUIDE_AUTHORING_PATH));
+  }
 
   const { data: guides } = await supabase
     .from('guides')
     .select('id, title, slug, status, city, tags, created_at, updated_at')
-    .eq('author_id', auth.user!.id)
+    .eq('author_id', user.id)
     .order('updated_at', { ascending: false })
     .limit(100);
 

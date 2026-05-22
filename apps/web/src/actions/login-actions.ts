@@ -2,7 +2,51 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/utils/supabase/server';
+import { isAdminEmail } from '@/utils/admin-emails';
+import { GUIDE_AUTHORING_PATH, isGuideAuthoringPath, loginPathFor, safeNextPath } from '@/utils/auth-paths';
+import { createClient, createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
+
+async function canAccessGuideAuthoring({
+  authDebug,
+  email,
+  requestClient,
+  userId,
+}: {
+  authDebug: boolean;
+  email: string | null | undefined;
+  requestClient: Awaited<ReturnType<typeof createClient>>;
+  userId: string;
+}) {
+  if (await isAdminEmail(email)) return true;
+
+  let profileDb: any = requestClient;
+  if (!getServiceRoleKeyError()) {
+    try {
+      profileDb = createServiceClient();
+    } catch (error) {
+      if (authDebug) {
+        console.warn('[auth][login] service-role profile check unavailable', {
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+  }
+
+  const { data: profile, error } = await profileDb
+    .from('user_profiles')
+    .select('role')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (authDebug && error) {
+    console.warn('[auth][login] guide authoring profile check failed', {
+      userId,
+      message: error.message,
+    });
+  }
+
+  return (profile as any)?.role === 'super_user';
+}
 
 export async function login(formData: FormData) {
   const supabase = await createClient();
@@ -10,9 +54,9 @@ export async function login(formData: FormData) {
 
   const email = String(formData.get('email') ?? '');
   const password = String(formData.get('password') ?? '');
-  const next = String(formData.get('next') ?? '').trim();
+  const next = safeNextPath(String(formData.get('next') ?? '').trim());
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (authDebug) {
     console.log('[auth][login] signInWithPassword result', {
@@ -24,15 +68,35 @@ export async function login(formData: FormData) {
   }
 
   if (error) {
-    const base = next ? `/login?next=${encodeURIComponent(next)}` : '/login';
-    const joiner = base.includes('?') ? '&' : '?';
-    redirect(`${base}${joiner}error=bad_credentials`);
+    redirect(loginPathFor(next, 'bad_credentials'));
   }
 
   revalidatePath('/', 'layout');
 
+  if (isGuideAuthoringPath(next)) {
+    const user = data.user ?? (await supabase.auth.getUser()).data.user;
+    const authorized = user
+      ? await canAccessGuideAuthoring({
+          authDebug,
+          email: user.email,
+          requestClient: supabase,
+          userId: user.id,
+        })
+      : false;
+
+    if (!authorized) {
+      if (authDebug) {
+        console.log('[auth][login] guide authoring access denied', {
+          userId: user?.id ?? null,
+          next,
+        });
+      }
+      redirect(loginPathFor(next ?? GUIDE_AUTHORING_PATH, 'not_authorized'));
+    }
+  }
+
   // Honor explicit redirect, then check if this email is an admin
-  if (next && next.startsWith('/')) {
+  if (next) {
     redirect(next);
   }
 
@@ -53,17 +117,21 @@ export async function signup(formData: FormData) {
 
   const email = String(formData.get('email') ?? '');
   const password = String(formData.get('password') ?? '');
-  const next = String(formData.get('next') ?? '').trim();
+  const next = safeNextPath(String(formData.get('next') ?? '').trim());
 
   const { error } = await supabase.auth.signUp({ email, password });
 
   if (error) {
-    redirect('/login?error=signup_failed');
+    redirect(loginPathFor(next, 'signup_failed'));
   }
 
   revalidatePath('/', 'layout');
 
-  if (next && next.startsWith('/')) {
+  if (isGuideAuthoringPath(next)) {
+    redirect(loginPathFor(next ?? GUIDE_AUTHORING_PATH, 'not_authorized'));
+  }
+
+  if (next) {
     redirect(next);
   }
 

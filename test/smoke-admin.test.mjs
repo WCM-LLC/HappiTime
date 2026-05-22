@@ -21,7 +21,7 @@ async function tryFetch(url, opts = {}) {
     return await fetch(url, opts);
   } catch (err) {
     const code = err?.cause?.code ?? err?.code;
-    if (code === "ECONNREFUSED" || code === "ENOTFOUND") return null;
+    if (code === "ECONNREFUSED" || code === "ENOTFOUND" || code === "EPERM") return null;
     throw err;
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { safeNextPath } from '@/utils/auth-paths';
 import { createClient } from '@/utils/supabase/client';
 
 type Provider = 'google';
@@ -8,11 +9,6 @@ type Provider = 'google';
 type OAuthButtonsProps = {
   next?: string;
 };
-
-function safeNextPath(value: string | undefined) {
-  if (!value || !value.startsWith('/') || value.startsWith('//')) return null;
-  return value;
-}
 
 export default function OAuthButtons({ next }: OAuthButtonsProps) {
   const [busy, setBusy] = useState<Provider | null>(null);

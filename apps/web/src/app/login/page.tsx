@@ -1,11 +1,7 @@
 import OAuthButtons from '@/components/OAuthButtons';
 import { Logo } from '@/components/ui/Logo';
+import { GUIDE_AUTHORING_PATH, isGuideAuthoringPath, loginPathFor, safeNextPath } from '@/utils/auth-paths';
 import { login } from '../../actions/login-actions';
-
-function safeNextPath(value: string | undefined) {
-  if (!value || !value.startsWith('/') || value.startsWith('//')) return '';
-  return value;
-}
 
 export default async function LoginPage({
   searchParams,
@@ -14,9 +10,9 @@ export default async function LoginPage({
 }) {
   const sp = await searchParams;
   const error = sp?.error;
-  const next = safeNextPath(sp?.next);
+  const next = safeNextPath(sp?.next) ?? '';
   const isAdminLogin = next === '/admin';
-  const isSuperUserLogin = next === '/dashboard/guides';
+  const isSuperUserLogin = isGuideAuthoringPath(next);
 
   const inputCls =
     'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors';
@@ -78,7 +74,7 @@ export default async function LoginPage({
                   : error === 'not_admin'
                     ? 'That account does not have admin access.'
                     : error === 'not_authorized'
-                      ? 'That account does not have Super User access.'
+                      ? 'That account is signed in, but it has not been approved for Super User guide authoring.'
                       : 'Something went wrong. Try again or use a social login.'}
               </p>
             </div>
@@ -159,7 +155,7 @@ export default async function LoginPage({
                   Admin access
                 </a>
                 <a
-                  href="/dashboard/guides"
+                  href={loginPathFor(GUIDE_AUTHORING_PATH)}
                   className="inline-flex items-center justify-center h-10 px-4 rounded-md border border-border bg-surface text-body-sm font-semibold text-foreground hover:bg-background transition-colors"
                 >
                   Super User Access

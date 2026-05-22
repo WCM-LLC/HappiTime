@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/utils/supabase/server';
 import { getAdminClient } from '@/utils/admin';
+import { GUIDE_AUTHORING_PATH, loginPathFor } from '@/utils/auth-paths';
 import { slugify } from '@/utils/slugify';
 import { sendGuideSubmissionEmail } from '@/utils/email';
 
@@ -20,7 +21,7 @@ function parseTags(raw: string): string[] {
 
 async function assertSuperUserOrAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
   const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) redirect('/login');
+  if (!auth.user) redirect(loginPathFor(GUIDE_AUTHORING_PATH));
 
   const { data: profile } = await supabase
     .from('user_profiles')
@@ -34,7 +35,7 @@ async function assertSuperUserOrAdmin(supabase: Awaited<ReturnType<typeof create
   const { isAdminEmail } = await import('@/utils/admin-emails');
   const adminOk = await isAdminEmail(auth.user.email);
   if (!adminOk && role !== 'super_user') {
-    redirect('/dashboard?error=not_authorized');
+    redirect(loginPathFor(GUIDE_AUTHORING_PATH, 'not_authorized'));
   }
 
   return {
