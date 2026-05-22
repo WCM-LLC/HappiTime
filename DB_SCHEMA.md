@@ -14,7 +14,7 @@ Canonical schema lives in `supabase/migrations/` and is designed for:
 - `happy_hour_windows`: schedule windows (`draft|published`)
 - `happy_hour_offers`: offer rows tied to venue + optionally a window
 
-- `menus`: menu container (`draft|published`) + `is_active`
+- `menus`: menu container (`draft|published`) + `is_active`; supports venue menus and organization templates (`scope`)
 - `menu_sections`: sections under a menu
 - `menu_items`: items under a section (supports `is_happy_hour`)
 - `happy_hour_window_menus`: join table to attach menus to windows
@@ -31,13 +31,14 @@ Canonical schema lives in `supabase/migrations/` and is designed for:
 - `organizations (1) -> (N) org_members`
 - `venues (1) -> (N) happy_hour_windows`
 - `venues (1) -> (N) happy_hour_offers`
-- `venues (1) -> (N) menus -> menu_sections -> menu_items`
+- `organizations (1) -> (N) organization menu templates`
+- `venues (1) -> (N) venue menus -> menu_sections -> menu_items`
+- `organization menu templates (1) -> (N) venue menu copies` via `menus.source_menu_id`
 - `happy_hour_windows (N) <-> (N) menus` via `happy_hour_window_menus`
 
 ## Indexes
 Hot paths are indexed (org/venue/status, and event lookups):
 - `venues(org_id)`, `venues(status)`
 - `happy_hour_windows(venue_id)`, `happy_hour_windows(status)`
-- `menus(venue_id)`, `menus(status)`, `menus(is_active)`
+- `menus(org_id)`, `menus(venue_id)`, `menus(scope)`, `menus(status)`, `menus(is_active)`
 - `events(org_id, venue_id, event_type)`, `events(occurred_at)`
-

@@ -5,6 +5,11 @@ import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
 import { isAdminEmail } from '@/utils/admin-emails';
 import { toStr, toNullableStr, toNumberOrNull, redirectWithError, redirectWithSuccess, requireField } from '@/utils/form';
+import {
+  cloneOrganizationMenuToVenue,
+  fetchOrganizationMenuTree,
+  syncVenueMenuFromOrganizationMenu,
+} from './menu-tree';
 
 const HH_STATUS_DRAFT = 'draft';
 const HH_STATUS_PUBLISHED = 'published';
@@ -578,7 +583,9 @@ export async function createMenu(orgId: string, venueId: string, formData: FormD
   const name = requireField(formData, 'menu_name', orgId, venueId, 'missing_menu_name');
 
   const { data: inserted, error } = await writeSupabase.from('menus').insert({
+    org_id: orgId,
     venue_id: venueId,
+    scope: 'venue',
     name,
     status: HH_STATUS_DRAFT,
     is_active: true,
@@ -588,6 +595,67 @@ export async function createMenu(orgId: string, venueId: string, formData: FormD
 
   revalidateVenue(orgId, venueId);
   redirectWithSuccess(orgId, venueId, 'menu_created');
+}
+
+/** Imports an organization menu as a venue-owned copy, or refreshes an existing copy. */
+export async function importOrganizationMenu(orgId: string, venueId: string, formData: FormData) {
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  const organizationMenuId = requireField(
+    formData,
+    'organization_menu_id',
+    orgId,
+    venueId,
+    'missing_organization_menu_id',
+  );
+
+  const { data: sourceMenu, error: sourceMenuError } = await fetchOrganizationMenuTree(
+    writeSupabase,
+    orgId,
+    organizationMenuId,
+  );
+
+  if (sourceMenuError) {
+    console.error('[importOrganizationMenu] source lookup failed', sourceMenuError);
+    redirectWithError(orgId, venueId, 'organization_menu_import_failed');
+  }
+
+  if (!sourceMenu) redirectWithError(orgId, venueId, 'organization_menu_not_found');
+
+  const { data: existingCopy, error: existingCopyError } = await writeSupabase
+    .from('menus')
+    .select('id')
+    .eq('org_id', orgId)
+    .eq('venue_id', venueId)
+    .eq('scope', 'venue')
+    .eq('source_menu_id', organizationMenuId)
+    .maybeSingle();
+
+  if (existingCopyError) {
+    console.error('[importOrganizationMenu] existing copy lookup failed', existingCopyError);
+    redirectWithError(orgId, venueId, 'organization_menu_import_failed');
+  }
+
+  const successCode = existingCopy?.id
+    ? 'organization_menu_synced'
+    : 'organization_menu_imported';
+
+  try {
+    if (existingCopy?.id) {
+      await syncVenueMenuFromOrganizationMenu(writeSupabase, existingCopy.id, sourceMenu);
+    } else {
+      await cloneOrganizationMenuToVenue(writeSupabase, sourceMenu, {
+        orgId,
+        venueId,
+        status: HH_STATUS_DRAFT,
+      });
+    }
+  } catch (error) {
+    console.error('[importOrganizationMenu] clone failed', error);
+    redirectWithError(orgId, venueId, 'organization_menu_import_failed');
+  }
+
+  revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, successCode);
 }
 
 /** Saves editable fields for a menu, including its existing sections and items. */

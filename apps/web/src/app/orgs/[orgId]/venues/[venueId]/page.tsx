@@ -22,6 +22,7 @@ import {
   unpublishHappyHour,
   updateHappyHourMenus,
   createMenu,
+  importOrganizationMenu,
   saveMenu,
   deleteMenu,
   publishMenu,
@@ -87,6 +88,7 @@ type Menu = {
   name: string;
   status?: string;
   is_active: boolean;
+  source_menu_id: string | null;
   menu_sections: MenuSection[] | null;
 };
 
@@ -208,6 +210,9 @@ export default async function VenuePage({
     menu_delete_failed: 'Deleting the menu failed.',
     menu_publish_failed: 'Publishing the menu failed.',
     menu_unpublish_failed: 'Unpublishing the menu failed.',
+    missing_organization_menu_id: 'Choose an organization menu to add.',
+    organization_menu_not_found: "We couldn't find that organization menu.",
+    organization_menu_import_failed: 'Adding that organization menu to this venue failed.',
     missing_menu_name: 'Menu name is required.',
     section_create_failed: 'Creating the menu section failed.',
     section_update_failed: 'Updating the menu section failed.',
@@ -271,10 +276,18 @@ export default async function VenuePage({
   const { data: menus, error: menusErr } = await supabase
     .from('menus')
     .select(
-      'id,name,status,is_active,menu_sections(id,name,sort_order,menu_items(id,name,description,price,is_happy_hour,sort_order))'
+      'id,name,status,is_active,source_menu_id,menu_sections(id,name,sort_order,menu_items(id,name,description,price,is_happy_hour,sort_order))'
     )
     .eq('venue_id', venueId)
+    .eq('scope', 'venue')
     .order('created_at', { ascending: false });
+
+  const { data: organizationMenus, error: organizationMenusErr } = await supabase
+    .from('menus')
+    .select('id,name,status,is_active')
+    .eq('org_id', orgId)
+    .eq('scope', 'organization')
+    .order('name', { ascending: true });
 
   const happyHourIds = (happyHours as HappyHourWindow[] | null)?.map((h) => h.id) ?? [];
   let windowMenus: HappyHourWindowMenu[] = [];
@@ -354,6 +367,11 @@ export default async function VenuePage({
 
   const v = venue;
   const menuList = (menus as Menu[] | null) ?? [];
+  const organizationMenuList =
+    (organizationMenus as Pick<Menu, 'id' | 'name' | 'status' | 'is_active'>[] | null) ?? [];
+  const importedOrganizationMenuIds = new Set(
+    menuList.map((menu) => menu.source_menu_id).filter((id): id is string => !!id),
+  );
   const menuSelections = new Map<string, Set<string>>();
 
   for (const link of windowMenus) {
@@ -466,6 +484,7 @@ export default async function VenuePage({
           venueErr && { title: 'Venue load error', msg: venueErr.message },
           hhErr && { title: 'Happy hour load error', msg: hhErr.message },
           menusErr && { title: 'Menus load error', msg: menusErr.message },
+          organizationMenusErr && { title: 'Organization menus load error', msg: organizationMenusErr.message },
           windowMenusErr && { title: 'Menu mapping error', msg: windowMenusErr.message },
         ]
           .filter(Boolean)
@@ -832,6 +851,35 @@ export default async function VenuePage({
             </form>
           ) : null}
 
+          {canManageVenue && organizationMenuList.length ? (
+            <form className="rounded-md border border-border bg-background/50 p-4 mb-6">
+              <label className="text-body-sm font-medium text-foreground block mb-1.5">
+                Add from organization menus
+              </label>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <select name="organization_menu_id" required className={selectCls + ' flex-1'}>
+                  <option value="">Choose a shared menu</option>
+                  {organizationMenuList.map((menu) => (
+                    <option key={menu.id} value={menu.id}>
+                      {menu.name}
+                      {importedOrganizationMenuIds.has(menu.id) ? ' (refresh existing copy)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <SubmitButton
+                  formAction={importOrganizationMenu.bind(null, orgId, venueId)}
+                  className={btnSecondary + ' shrink-0'}
+                  pendingLabel="Importing..."
+                >
+                  Add to venue
+                </SubmitButton>
+              </div>
+              <p className="text-caption text-muted mt-2">
+                The imported menu becomes this venue's editable copy. Organization-level changes can be synced back to linked copies.
+              </p>
+            </form>
+          ) : null}
+
           {(menus as Menu[] | null)?.length ? (
             <div className="flex flex-col gap-6">
               {(menus as Menu[]).map((m) => {
@@ -867,13 +915,18 @@ export default async function VenuePage({
                       {canManageVenue ? (
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                           <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-                            <input
-                              form={menuFormId}
-                              name="menu_name"
-                              defaultValue={m.name}
-                              required
-                              className={inputCls + ' sm:max-w-xs'}
-                            />
+                            <div className="flex flex-col gap-1 sm:max-w-xs sm:flex-1">
+                              <input
+                                form={menuFormId}
+                                name="menu_name"
+                                defaultValue={m.name}
+                                required
+                                className={inputCls}
+                              />
+                              {m.source_menu_id ? (
+                                <span className="text-caption text-muted">Linked to an organization menu</span>
+                              ) : null}
+                            </div>
                             <label className="flex items-center gap-2 text-body-sm text-muted cursor-pointer">
                               <input
                                 form={menuFormId}

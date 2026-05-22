@@ -632,29 +632,52 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
+          org_id: string
+          scope: string
+          source_menu_id: string | null
           status: string
           updated_at: string
-          venue_id: string
+          venue_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           is_active?: boolean
           name: string
+          org_id: string
+          scope?: string
+          source_menu_id?: string | null
           status?: string
           updated_at?: string
-          venue_id: string
+          venue_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           is_active?: boolean
           name?: string
+          org_id?: string
+          scope?: string
+          source_menu_id?: string | null
           status?: string
           updated_at?: string
-          venue_id?: string
+          venue_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "menus_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menus_source_menu_id_fkey"
+            columns: ["source_menu_id"]
+            isOneToOne: false
+            referencedRelation: "menus"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "menus_venue_id_fkey"
             columns: ["venue_id"]
