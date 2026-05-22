@@ -52,6 +52,14 @@ Optional (media):
 - `NEXT_PUBLIC_MEDIA_CDN_BASE_URL`
 - `NEXT_PUBLIC_MEDIA_PROVIDER`
 
+Server-only (required to delete Cloudinary-backed venue media):
+- `CLOUDINARY_URL` — standard Cloudinary credential URL; use this or the split variables below.
+- `CLOUDINARY_CLOUD_NAME` — optional when `CLOUDINARY_URL` includes the cloud name; defaults to the HappiTime Cloudinary cloud.
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+
+Do not expose Cloudinary API credentials with `NEXT_PUBLIC_` names.
+
 Optional (analytics / error reporting):
 - `NEXT_PUBLIC_ANALYTICS_PROVIDER`
 - `NEXT_PUBLIC_ANALYTICS_DEBUG`
