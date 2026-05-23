@@ -1,9 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getPublicSupabaseEnv } from "@happitime/shared-env";
-import { isGuideAuthoringPath, loginPathFor, safeNextPath } from "@/utils/auth-paths";
+import {
+  LOGIN_PATH,
+  SUPER_USER_LOGIN_PATH,
+  isGuideAuthoringPath,
+  loginPathFor,
+  safeNextPath,
+} from "@/utils/auth-paths";
 
-const PUBLIC_PATHS = ["/", "/login", "/auth", "/forgot-password", "/reset-password", "/invite"];
+const PUBLIC_PATHS = ["/", LOGIN_PATH, SUPER_USER_LOGIN_PATH, "/auth", "/forgot-password", "/reset-password", "/invite"];
 const PROTECTED_PATHS = ["/dashboard", "/admin", "/orgs", "/change-password"];
 
 function isPublicPath(pathname: string) {
@@ -63,12 +69,8 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!user && isProtectedPath(pathname)) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    loginUrl.search = "";
     const next = safeNextPath(`${pathname}${request.nextUrl.search}`);
-    if (next) loginUrl.searchParams.set("next", next);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL(loginPathFor(next), request.url));
   }
 
   // Role gate: guide-authoring paths require role='super_user' or DB allowlisted admin.
@@ -87,8 +89,13 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (user && pathname === "/login" && !request.nextUrl.searchParams.get("error")) {
-    const next = safeNextPath(request.nextUrl.searchParams.get("next")) ?? "/dashboard";
+  if (
+    user &&
+    (pathname === LOGIN_PATH || pathname === SUPER_USER_LOGIN_PATH) &&
+    !request.nextUrl.searchParams.get("error")
+  ) {
+    const fallback = pathname === SUPER_USER_LOGIN_PATH ? "/dashboard/guides" : "/dashboard";
+    const next = safeNextPath(request.nextUrl.searchParams.get("next")) ?? fallback;
     return NextResponse.redirect(new URL(next, request.url));
   }
 

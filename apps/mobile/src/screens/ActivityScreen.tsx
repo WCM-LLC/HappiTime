@@ -1,5 +1,5 @@
 // src/screens/ActivityScreen.tsx
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   TextInput,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { SuperUserBadge } from "../components/SuperUserBadge";
 import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity";
@@ -393,6 +393,14 @@ export const ActivityScreen: React.FC = () => {
     refresh: refreshCheckins,
     togglePrivacy,
   } = useUserCheckins();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (tab === "checkins") {
+        void refreshCheckins();
+      }
+    }, [refreshCheckins, tab])
+  );
   const [requestedUsers, setRequestedUsers] = useState<Record<string, boolean>>({});
   const [friendHandleQuery, setFriendHandleQuery] = useState("");
   const { query: peopleQuery, setQuery: setPeopleQuery, results: peopleResults, loading: peopleLoading } = useUserSearch();

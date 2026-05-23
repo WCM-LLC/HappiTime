@@ -44,10 +44,27 @@ test("/login renders Super User Access", async (t) => {
   assert.equal(res.status, 200);
   const html = await res.text();
   assert.match(html, /Super User Access/);
-  assert.match(html, /href="\/login\?next=%2Fdashboard%2Fguides"/);
+  assert.match(html, /href="\/super-user\/login\?next=%2Fdashboard%2Fguides"/);
+  assert.doesNotMatch(html, /Log in with Apple/);
+  assert.doesNotMatch(html, /Log in with Google/);
 });
 
-test("/dashboard/guides (logged-out) redirects through login with next", async (t) => {
+test("/super-user/login renders app-style auth methods", async (t) => {
+  const res = await tryFetch(`${BASE_URL}/super-user/login?next=%2Fdashboard%2Fguides`);
+  if (res === null) {
+    t.skip(`server not reachable at ${BASE_URL}`);
+    return;
+  }
+
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, /Super User login/);
+  assert.match(html, /Log in with Apple/);
+  assert.match(html, /Log in with Google/);
+  assert.match(html, /Send magic link/);
+});
+
+test("/dashboard/guides (logged-out) redirects through Super User login with next", async (t) => {
   const res = await tryFetch(`${BASE_URL}/dashboard/guides`);
   if (res === null) {
     t.skip(`server not reachable at ${BASE_URL}`);
@@ -55,7 +72,7 @@ test("/dashboard/guides (logged-out) redirects through login with next", async (
   }
 
   const finalUrl = new URL(res.url);
-  assert.equal(finalUrl.pathname, "/login");
+  assert.equal(finalUrl.pathname, "/super-user/login");
   assert.equal(finalUrl.searchParams.get("next"), "/dashboard/guides");
 });
 
@@ -108,7 +125,7 @@ test("/dashboard/guides (non-Super User session) is denied", async (t) => {
   }
 
   const finalUrl = new URL(res.url);
-  assert.equal(finalUrl.pathname, "/login");
+  assert.equal(finalUrl.pathname, "/super-user/login");
   assert.equal(finalUrl.searchParams.get("next"), "/dashboard/guides");
   assert.equal(finalUrl.searchParams.get("error"), "not_authorized");
 });

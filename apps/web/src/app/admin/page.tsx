@@ -14,6 +14,28 @@ const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   org_not_found: 'That organization could not be found.',
 };
 
+type RecentCheckinRow = {
+  id: string;
+  user_id: string;
+  venue_id: string;
+  entered_at: string;
+  source: string | null;
+  is_private: boolean | null;
+  duration_minutes: number | null;
+  exited_at: string | null;
+  rating: number | null;
+  created_at: string | null;
+  venue_name: string;
+  venue_location: string;
+  user_label: string;
+};
+
+function checkinSourceLabel(source: string | null) {
+  if (source === 'auto_proximity') return 'Auto proximity';
+  if (source === 'dwell') return 'Dwell';
+  return source ? source.replace(/_/g, ' ') : 'Manual';
+}
+
 export default async function AdminPage({
   searchParams,
 }: {
@@ -69,6 +91,7 @@ export default async function AdminPage({
     { count: suggestionCount },
     { count: superUserCount },
     { count: pendingGuideCount },
+    { count: checkinCount },
   ] = await Promise.all([
     supabase.from('organizations').select('id', { count: 'exact', head: true }),
     supabase.from('venues').select('id', { count: 'exact', head: true }),
@@ -78,6 +101,7 @@ export default async function AdminPage({
     supabase.from('user_events').select('id', { count: 'exact', head: true }).eq('event_type', 'venue_suggestion'),
     supabase.from('user_profiles').select('user_id', { count: 'exact', head: true }).eq('role', 'super_user'),
     supabase.from('guides').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
+    supabase.from('venue_visits').select('id', { count: 'exact', head: true }),
   ]);
 
   // ─── Organizations ────────────────────────────────────────────────────
@@ -178,6 +202,50 @@ export default async function AdminPage({
     created_at: w.created_at,
   }));
 
+  // ─── Recent Check-ins ────────────────────────────────────────────────
+  const { data: recentCheckinsRaw } = await supabase
+    .from('venue_visits')
+    .select('id, user_id, venue_id, entered_at, source, is_private, duration_minutes, exited_at, rating, created_at, venue:venues(name, org_name, city, state)')
+    .order('entered_at', { ascending: false })
+    .limit(25);
+
+  const checkinUserIds = Array.from(
+    new Set((recentCheckinsRaw ?? []).map((row: any) => row.user_id).filter(Boolean))
+  );
+  const { data: checkinProfilesRaw } = checkinUserIds.length > 0
+    ? await supabase
+        .from('user_profiles')
+        .select('user_id, handle, display_name')
+        .in('user_id', checkinUserIds)
+    : { data: [] as any[] };
+
+  const profileByUserId = new Map(
+    (checkinProfilesRaw ?? []).map((profile: any) => [profile.user_id, profile])
+  );
+
+  const recentCheckins: RecentCheckinRow[] = (recentCheckinsRaw ?? []).map((row: any) => {
+    const profile = profileByUserId.get(row.user_id);
+    const venueName = row.venue?.org_name || row.venue?.name || 'Unknown venue';
+    const location = [row.venue?.city, row.venue?.state].filter(Boolean).join(', ');
+    return {
+      id: row.id,
+      user_id: row.user_id,
+      venue_id: row.venue_id,
+      entered_at: row.entered_at,
+      source: row.source ?? null,
+      is_private: row.is_private ?? null,
+      duration_minutes: row.duration_minutes ?? null,
+      exited_at: row.exited_at ?? null,
+      rating: row.rating ?? null,
+      created_at: row.created_at ?? null,
+      venue_name: venueName,
+      venue_location: location || '—',
+      user_label: profile?.handle
+        ? `@${profile.handle}`
+        : profile?.display_name ?? row.user_id.slice(0, 8),
+    };
+  });
+
   // ─── Users (only owners, managers, hosts) ────────────────────────────
   let users: UserRow[] = [];
   if (!keyError) {
@@ -272,6 +340,7 @@ export default async function AdminPage({
     { label: 'Suggestions', value: suggestionCount ?? 0, icon: '📍', href: '/admin/suggestions' },
     { label: 'Super Users', value: superUserCount ?? 0, icon: 'SU', href: '/admin/users' },
     { label: 'Guide Review', value: pendingGuideCount ?? 0, icon: 'GR', href: '/admin/guides?tab=pending' },
+    { label: 'Check-ins', value: checkinCount ?? 0, icon: 'CI' },
   ];
 
   return (
@@ -414,6 +483,73 @@ export default async function AdminPage({
             </div>
           </section>
         ) : null}
+
+        {/* ── Recent Check-ins ── */}
+        <section className="mb-10">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-heading-sm font-semibold text-foreground">
+                Recent Check-ins <span className="text-muted font-normal">({recentCheckins.length})</span>
+              </h2>
+              <p className="text-body-sm text-muted mt-0.5">
+                Latest mobile venue visits, including private auto check-ins when service-role access is available.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-surface shadow-sm overflow-hidden">
+            {recentCheckins.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-body-sm text-muted">No check-ins found yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-body-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-background/50">
+                      <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">When</th>
+                      <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Venue</th>
+                      <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">User</th>
+                      <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Source</th>
+                      <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Status</th>
+                      <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Dwell</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentCheckins.map((checkin) => (
+                      <tr key={checkin.id} className="border-b border-border last:border-0 hover:bg-background/40 transition-colors">
+                        <td className="px-4 py-3 text-muted whitespace-nowrap">
+                          {new Date(checkin.entered_at).toLocaleString()}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-foreground">{checkin.venue_name}</div>
+                          <div className="text-caption text-muted">{checkin.venue_location}</div>
+                        </td>
+                        <td className="px-4 py-3 text-foreground whitespace-nowrap">{checkin.user_label}</td>
+                        <td className="px-4 py-3 text-muted whitespace-nowrap">{checkinSourceLabel(checkin.source)}</td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span className={checkin.is_private ? 'inline-flex items-center rounded-full bg-background px-2 py-0.5 text-caption font-semibold text-muted border border-border' : 'inline-flex items-center rounded-full bg-success-light px-2 py-0.5 text-caption font-semibold text-success'}>
+                              {checkin.is_private ? 'Private' : 'Friends'}
+                            </span>
+                            {!checkin.exited_at ? (
+                              <span className="inline-flex items-center rounded-full bg-brand-subtle px-2 py-0.5 text-caption font-semibold text-brand-text">
+                                Current
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-muted whitespace-nowrap">
+                          {checkin.duration_minutes != null ? `${checkin.duration_minutes} min` : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </section>
 
         {/* ── Incoming Suggestions ── */}
         <section className="mb-10">

@@ -1,6 +1,5 @@
-import OAuthButtons from '@/components/OAuthButtons';
 import { Logo } from '@/components/ui/Logo';
-import { GUIDE_AUTHORING_PATH, isGuideAuthoringPath, loginPathFor, safeNextPath } from '@/utils/auth-paths';
+import { GUIDE_AUTHORING_PATH, loginPathFor, safeNextPath } from '@/utils/auth-paths';
 import { login } from '../../actions/login-actions';
 
 export default async function LoginPage({
@@ -12,7 +11,6 @@ export default async function LoginPage({
   const error = sp?.error;
   const next = safeNextPath(sp?.next) ?? '';
   const isAdminLogin = next === '/admin';
-  const isSuperUserLogin = isGuideAuthoringPath(next);
 
   const inputCls =
     'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors';
@@ -49,18 +47,12 @@ export default async function LoginPage({
           {/* Heading */}
           <div>
             <h1 className="text-heading-lg font-bold text-foreground tracking-tight">
-              {isAdminLogin
-                ? 'Admin login'
-                : isSuperUserLogin
-                  ? 'Super User login'
-                  : 'Sign in to your account'}
+              {isAdminLogin ? 'Admin login' : 'Sign in to your account'}
             </h1>
             <p className="text-body-sm text-muted mt-1">
               {isAdminLogin
                 ? 'Enter your admin credentials to continue.'
-                : isSuperUserLogin
-                  ? 'Sign in with your HappiTime account to open guide authoring.'
-                  : 'Enter your credentials to continue.'}
+                : 'Enter your credentials to continue.'}
             </p>
           </div>
 
@@ -74,8 +66,8 @@ export default async function LoginPage({
                   : error === 'not_admin'
                     ? 'That account does not have admin access.'
                     : error === 'not_authorized'
-                      ? 'That account is signed in, but it has not been approved for Super User guide authoring.'
-                      : 'Something went wrong. Try again or use a social login.'}
+                      ? 'That account does not have access to this console.'
+                      : 'Something went wrong. Try again.'}
               </p>
             </div>
           ) : null}
@@ -125,18 +117,6 @@ export default async function LoginPage({
               </button>
             </div>
           </form>
-
-          {/* Divider + OAuth */}
-          {!isAdminLogin ? (
-            <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-caption text-muted-light">or continue with</span>
-                <div className="flex-1 h-px bg-border" />
-              </div>
-              <OAuthButtons next={next || undefined} />
-            </div>
-          ) : null}
 
           {/* Footer links */}
           <div className="flex flex-col gap-3 text-center">

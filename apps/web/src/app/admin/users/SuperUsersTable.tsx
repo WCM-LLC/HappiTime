@@ -4,7 +4,7 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useState } from 'react';
 import { promoteToSuperUser, revokeSuperUser, toggleAutoPublish } from '@/actions/admin-user-actions';
 
 export type SuperUserRow = {
@@ -53,14 +53,17 @@ function avatarFallback(row: Pick<SuperUserRow, 'display_name' | 'handle' | 'ema
 }
 
 function ConfirmingForm({
+  action,
   message,
   children,
 }: {
+  action: (formData: FormData) => void | Promise<void>;
   message: string;
   children: ReactNode;
 }) {
   return (
     <form
+      action={action}
       onSubmit={(event) => {
         if (!window.confirm(message)) event.preventDefault();
       }}
@@ -72,7 +75,6 @@ function ConfirmingForm({
 
 export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
   const [query, setQuery] = useState('');
-  const [isPending, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase().replace(/^@/, '');
@@ -154,18 +156,17 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                     <td className="px-4 py-3"><Badge role={row.role} /></td>
                     <td className="px-4 py-3">
                       <ConfirmingForm
+                        action={toggleAutoPublish}
                         message={`${row.auto_publish_enabled ? 'Disable' : 'Enable'} auto-publish for ${row.handle ? `@${row.handle}` : row.display_name ?? 'this user'}?`}
                       >
                         <input type="hidden" name="user_id" value={row.user_id} />
                         <input type="hidden" name="enabled" value={String(!row.auto_publish_enabled)} />
                         <button
-                          formAction={toggleAutoPublish}
-                          disabled={isPending}
+                          type="submit"
                           className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand disabled:opacity-50 ${
                             row.auto_publish_enabled ? 'bg-brand' : 'bg-border-strong'
                           }`}
                           title={row.auto_publish_enabled ? 'Disable auto-publish' : 'Enable auto-publish'}
-                          onClick={() => startTransition(() => {})}
                         >
                           <span
                             className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
@@ -191,13 +192,14 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                         <Link href={`/admin/guides?author=${row.user_id}`} className="text-caption font-medium text-foreground hover:underline">
                           Submissions
                         </Link>
-                        <ConfirmingForm message={`Revoke Super User access for ${row.handle ? `@${row.handle}` : row.display_name ?? 'this user'}?`}>
+                        <ConfirmingForm
+                          action={revokeSuperUser}
+                          message={`Revoke Super User access for ${row.handle ? `@${row.handle}` : row.display_name ?? 'this user'}?`}
+                        >
                           <input type="hidden" name="user_id" value={row.user_id} />
                           <button
-                            formAction={revokeSuperUser}
-                            disabled={isPending}
+                            type="submit"
                             className="text-caption font-medium text-error hover:underline cursor-pointer disabled:opacity-50"
-                            onClick={() => startTransition(() => {})}
                           >
                             Revoke
                           </button>
@@ -245,13 +247,14 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                     <td className="px-4 py-3"><Badge role={row.role} /></td>
                     <td className="px-4 py-3 text-muted">{relativeDate(row.created_at)}</td>
                     <td className="px-4 py-3 text-right">
-                      <ConfirmingForm message={`Promote ${row.handle ? `@${row.handle}` : row.display_name ?? 'this user'} to Super User?`}>
+                      <ConfirmingForm
+                        action={promoteToSuperUser}
+                        message={`Promote ${row.handle ? `@${row.handle}` : row.display_name ?? 'this user'} to Super User?`}
+                      >
                         <input type="hidden" name="user_id" value={row.user_id} />
                         <button
-                          formAction={promoteToSuperUser}
-                          disabled={isPending}
+                          type="submit"
                           className="text-caption font-medium text-brand hover:underline cursor-pointer disabled:opacity-50"
-                          onClick={() => startTransition(() => {})}
                         >
                           Make Super User
                         </button>

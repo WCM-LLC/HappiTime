@@ -38,11 +38,19 @@ type ProximityState = {
   venueId: string;
   venueName: string;
   enteredAt: number;
+  visitId: string | null;
+  dwellConfirmed: boolean;
+} | null;
+
+type DwellTimerState = {
+  venueId: string;
+  timeout: ReturnType<typeof setTimeout>;
 } | null;
 
 // Module-level state accessible from TaskManager background callback
 let _venues: VenuePoint[] = [];
 let _proximityState: ProximityState = null;
+let _dwellTimer: DwellTimerState = null;
 let _userId: string | null = null;
 let _onVisitDetected: ((venueId: string, venueName: string, visitId?: string) => void) | null = null;
 let _notifiedVenues = new Map<string, number>(); // venueId → last-notified timestamp
@@ -115,7 +123,7 @@ async function loadCheckinPrivacyPreference(userId: string) {
   _defaultCheckinPrivacy = data?.default_checkin_privacy === "friends" ? "public" : "private";
 }
 async function registerAutoCheckIn(userId: string, venueId: string, venueName: string) {
-  const { error } = await (supabase as any)
+  const { data, error } = await (supabase as any)
     .from("venue_visits")
     .insert({
       user_id: userId,
@@ -123,13 +131,18 @@ async function registerAutoCheckIn(userId: string, venueId: string, venueName: s
       entered_at: new Date().toISOString(),
       source: "auto_proximity",
       is_private: _defaultCheckinPrivacy !== "public",
-    });
+    })
+    .select("id")
+    .single();
 
   if (error) {
     console.warn("[visit-tracker] auto check-in failed:", error.message);
+    return null;
   } else {
     console.log("[visit-tracker] auto check-in recorded for", venueName);
   }
+
+  return data?.id ?? null;
 }
 
 async function registerVisit(userId: string, venueId: string, venueName: string) {
@@ -153,6 +166,65 @@ async function registerVisit(userId: string, venueId: string, venueName: string)
   return data?.id ?? null;
 }
 
+async function confirmDwellVisit(
+  userId: string,
+  venueId: string,
+  venueName: string,
+  enteredAt: number,
+  visitId: string | null
+) {
+  if (visitId) {
+    const { error } = await (supabase as any)
+      .from("venue_visits")
+      .update({
+        duration_minutes: Math.max(30, Math.round((Date.now() - enteredAt) / 60000)),
+      })
+      .eq("id", visitId)
+      .eq("user_id", userId);
+
+    if (!error) return visitId;
+    console.warn("[visit-tracker] failed to confirm dwell:", error.message);
+  }
+
+  return registerVisit(userId, venueId, venueName);
+}
+
+function clearDwellTimer() {
+  if (_dwellTimer) {
+    clearTimeout(_dwellTimer.timeout);
+    _dwellTimer = null;
+  }
+}
+
+function scheduleDwellTimer(userId: string, venue: VenuePoint) {
+  clearDwellTimer();
+
+  _dwellTimer = {
+    venueId: venue.id,
+    timeout: setTimeout(() => {
+      const state = _proximityState;
+      if (!state || state.venueId !== venue.id || _userId !== userId) return;
+
+      const visitIdPromise = confirmDwellVisit(
+        userId,
+        state.venueId,
+        state.venueName,
+        state.enteredAt,
+        state.visitId
+      );
+      state.dwellConfirmed = true;
+
+      if (_onVisitDetected && !venue.serverRatingPromptsEnabled) {
+        void visitIdPromise.then((visitId) =>
+          _onVisitDetected?.(state.venueId, state.venueName, visitId ?? undefined)
+        );
+      }
+
+      _dwellTimer = null;
+    }, DWELL_TIME_MS),
+  };
+}
+
 async function sendHappyHourNotification(venue: VenuePoint) {
   await Notifications.scheduleNotificationAsync({
     content: {
@@ -172,6 +244,18 @@ async function blockVenueNotification(userId: string, venueId: string) {
     .upsert({ user_id: userId, venue_id: venueId });
   if (error) {
     console.warn("[visit-tracker] failed to save notification block:", error.message);
+  }
+}
+
+async function captureCurrentLocation() {
+  try {
+    const current = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+    handleLocationUpdate([current]);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn("[visit-tracker] current location check failed:", message);
   }
 }
 
@@ -216,12 +300,16 @@ function handleLocationUpdate(locations: Location.LocationObject[]) {
     if (_proximityState && _proximityState.venueId === nearestVenue.id) {
       // Still near the same venue — check dwell time for rating prompt
       const elapsed = now - _proximityState.enteredAt;
-      if (elapsed >= DWELL_TIME_MS) {
-        const { venueId, venueName } = _proximityState;
+      if (elapsed >= DWELL_TIME_MS && !_proximityState.dwellConfirmed) {
+        const { venueId, venueName, enteredAt, visitId } = _proximityState;
+        _proximityState.dwellConfirmed = true;
         _proximityState = null;
-        const visitIdPromise = registerVisit(_userId!, venueId, venueName);
+        clearDwellTimer();
+        const visitIdPromise = confirmDwellVisit(_userId!, venueId, venueName, enteredAt, visitId);
         if (_onVisitDetected && !nearestVenue.serverRatingPromptsEnabled) {
-          void visitIdPromise.then((visitId) => _onVisitDetected?.(venueId, venueName, visitId ?? undefined));
+          void visitIdPromise.then((nextVisitId) =>
+            _onVisitDetected?.(venueId, venueName, nextVisitId ?? undefined)
+          );
         }
       }
     } else {
@@ -230,16 +318,24 @@ function handleLocationUpdate(locations: Location.LocationObject[]) {
         venueId: nearestVenue.id,
         venueName: nearestVenue.name,
         enteredAt: now,
+        visitId: null,
+        dwellConfirmed: false,
       };
+      scheduleDwellTimer(_userId!, nearestVenue);
 
       const lastCheckedIn = _autoCheckedInVenues.get(nearestVenue.id) ?? 0;
       if (now - lastCheckedIn >= AUTO_CHECKIN_COOLDOWN_MS) {
         _autoCheckedInVenues.set(nearestVenue.id, now);
-        void registerAutoCheckIn(_userId!, nearestVenue.id, nearestVenue.name);
+        void registerAutoCheckIn(_userId!, nearestVenue.id, nearestVenue.name).then((visitId) => {
+          if (_proximityState?.venueId === nearestVenue.id) {
+            _proximityState.visitId = visitId;
+          }
+        });
       }
     }
   } else {
     _proximityState = null;
+    clearDwellTimer();
   }
 }
 
@@ -273,6 +369,8 @@ export function useVisitTracker(venues: VenuePoint[]) {
       _blocksLoadedFor = null;
       _notificationBlocks.clear();
       _defaultCheckinPrivacy = "private";
+      _proximityState = null;
+      clearDwellTimer();
     } else if (newId !== _blocksLoadedFor) {
       _blocksLoadedFor = newId;
       _notificationBlocks.clear();
@@ -342,6 +440,7 @@ export function useVisitTracker(venues: VenuePoint[]) {
     }
 
     setIsTracking(true);
+    void captureCurrentLocation();
   }, []);
 
   const stopTracking = useCallback(async () => {
@@ -350,6 +449,7 @@ export function useVisitTracker(venues: VenuePoint[]) {
       await Location.stopLocationUpdatesAsync(BACKGROUND_LOCATION_TASK);
     }
     _proximityState = null;
+    clearDwellTimer();
     setIsTracking(false);
   }, []);
 
