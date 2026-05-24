@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import UserBar from '@/components/layout/UserBar';
 import { createServiceClient } from '@/utils/supabase/server';
+import StagingDetailClient from '../_components/StagingDetailClient';
 
 type StagingDetailRow = {
   id: string;
@@ -76,14 +77,21 @@ export default async function StagingDetailPage({
   const { id } = await params;
   const supabase = createServiceClient();
 
-  const result = (await supabase
-    .from('staging_venues')
-    .select('id, external_ref, payload, status, source, source_run_id, created_at, rejection_reason, match_venue_id, reviewed_at')
-    .eq('id', id)
-    .single()) as unknown as { data: StagingDetailRow | null; error: unknown };
+  const [result, orgsResult] = await Promise.all([
+    supabase
+      .from('staging_venues')
+      .select('id, external_ref, payload, status, source, source_run_id, created_at, rejection_reason, match_venue_id, reviewed_at')
+      .eq('id', id)
+      .single() as unknown as Promise<{ data: StagingDetailRow | null; error: unknown }>,
+    supabase
+      .from('organizations')
+      .select('id, name, slug')
+      .order('name', { ascending: true }),
+  ]);
 
   if (result.error || !result.data) return notFound();
   const row: StagingDetailRow = result.data;
+  const orgs = orgsResult.data ?? [];
 
   const p = (row.payload ?? {}) as Record<string, unknown>;
   const name = str(p.name) || str(p.title) || '(unnamed)';
@@ -137,6 +145,17 @@ export default async function StagingDetailPage({
         </div>
 
         <div className="flex flex-col gap-6">
+          {/* Pending: actions + edit fields */}
+          {row.status === 'pending' && (
+            <StagingDetailClient
+              key={row.id}
+              rowId={row.id}
+              hasNoExternalRef={!row.external_ref}
+              orgs={orgs}
+              payload={p}
+            />
+          )}
+
           {/* Review status banner */}
           {row.status !== 'pending' ? (
             <div className={`rounded-md border px-4 py-3 ${row.status === 'merged' ? 'border-success bg-success-light' : 'border-border bg-background'}`}>

@@ -40,6 +40,7 @@ export async function adminPromoteStagingVenue(stagingId: string, orgId: string)
         .from('staging_venues')
         .update({ status: 'merged', match_venue_id: dup.id, reviewed_at: new Date().toISOString() })
         .eq('id', stagingId);
+      revalidatePath(`/admin/staging/${stagingId}`);
       revalidatePath('/admin/staging');
       revalidatePath('/admin');
       return { venueId: dup.id, alreadyExisted: true };
@@ -111,6 +112,7 @@ export async function adminPromoteStagingVenue(stagingId: string, orgId: string)
     .update({ status: 'merged', match_venue_id: newVenue!.id, reviewed_at: new Date().toISOString() })
     .eq('id', stagingId);
 
+  revalidatePath(`/admin/staging/${stagingId}`);
   revalidatePath('/admin/staging');
   revalidatePath('/admin');
   return { venueId: newVenue!.id, alreadyExisted: false };
@@ -134,6 +136,40 @@ export async function adminRejectStagingVenue(stagingId: string, reason?: string
   if (error) throw new Error(error.message);
   if (!updated || updated.length === 0) throw new Error('No pending staging venue found with that ID');
 
+  revalidatePath(`/admin/staging/${stagingId}`);
   revalidatePath('/admin/staging');
   revalidatePath('/admin');
+}
+
+export async function adminUpdateStagingPayload(
+  stagingId: string,
+  patch: Record<string, string>,
+) {
+  await assertAdmin();
+  const supabase = getAdminClient();
+
+  const { data: staging, error: fetchErr } = await supabase
+    .from('staging_venues')
+    .select('payload, status')
+    .eq('id', stagingId)
+    .single();
+
+  if (fetchErr || !staging) throw new Error('Staging venue not found');
+  if (staging.status !== 'pending') throw new Error('Only pending venues can be edited');
+
+  const cleanPatch = Object.fromEntries(
+    Object.entries(patch).map(([k, v]) => [k, v.trim() === '' ? null : v.trim()]),
+  );
+
+  const updatedPayload = { ...(staging.payload as Record<string, unknown>), ...cleanPatch };
+
+  const { error: updateErr } = await supabase
+    .from('staging_venues')
+    .update({ payload: updatedPayload })
+    .eq('id', stagingId);
+
+  if (updateErr) throw new Error(updateErr.message);
+
+  revalidatePath(`/admin/staging/${stagingId}`);
+  revalidatePath('/admin/staging');
 }
