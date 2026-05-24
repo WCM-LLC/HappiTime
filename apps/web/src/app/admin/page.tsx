@@ -92,6 +92,7 @@ export default async function AdminPage({
     { count: superUserCount },
     { count: pendingGuideCount },
     { count: checkinCount },
+    { count: stagingCount },
   ] = await Promise.all([
     supabase.from('organizations').select('id', { count: 'exact', head: true }),
     supabase.from('venues').select('id', { count: 'exact', head: true }),
@@ -102,6 +103,7 @@ export default async function AdminPage({
     supabase.from('user_profiles').select('user_id', { count: 'exact', head: true }).eq('role', 'super_user'),
     supabase.from('guides').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
     supabase.from('venue_visits').select('id', { count: 'exact', head: true }),
+    supabase.from('staging_venues').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
   ]);
 
   // ─── Organizations ────────────────────────────────────────────────────
@@ -341,6 +343,7 @@ export default async function AdminPage({
     { label: 'Super Users', value: superUserCount ?? 0, icon: 'SU', href: '/admin/users' },
     { label: 'Guide Review', value: pendingGuideCount ?? 0, icon: 'GR', href: '/admin/guides?tab=pending' },
     { label: 'Check-ins', value: checkinCount ?? 0, icon: 'CI' },
+    { label: 'Staging', value: stagingCount ?? 0, icon: 'ST', href: '/admin/staging' },
   ];
 
   return (
