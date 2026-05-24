@@ -875,7 +875,7 @@ export default async function VenuePage({
                 </SubmitButton>
               </div>
               <p className="text-caption text-muted mt-2">
-                The imported menu becomes this venue's editable copy. Organization-level changes can be synced back to linked copies.
+                The imported menu becomes this venue&apos;s editable copy. Organization-level changes can be synced back to linked copies.
               </p>
             </form>
           ) : null}
