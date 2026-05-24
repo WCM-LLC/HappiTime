@@ -1,4 +1,4 @@
--- Enable RLS on six backend-only tables that had it disabled.
+-- Enable RLS on backend-only tables that had it disabled.
 --
 -- Investigation summary (2026-05-24):
 --   All six tables are accessed exclusively by service_role (admin scripts, RPC
@@ -19,37 +19,35 @@
 -- backend access (migrations, RPCs, triggers, edge functions, admin scripts)
 -- continues to work with zero new policies.
 --
+-- NOTE (drift guard): five of these tables — staging_venues,
+-- staging_happy_hour_windows, venues_snapshot, happy_hour_windows_snapshot,
+-- reference_snapshots — currently exist only in the live database and are NOT
+-- created by any committed migration. On a clean `supabase db reset` (CI) they
+-- do not exist, so each ALTER is guarded with to_regclass() and skipped when the
+-- table is absent. On production (where all tables exist) every ALTER runs.
+-- TODO: backfill CREATE TABLE migrations for the five drifted tables, then this
+-- guard can be removed.
+--
 -- Rollback: supabase/snippets/rollback_rls_backend_tables.sql
 
--- ── staging_venues ────────────────────────────────────────────────────────────
--- Backend-only staging table. Used by merge_staging_venues() RPC only.
--- service_role bypasses RLS; no anon/authenticated access intended.
-ALTER TABLE public.staging_venues ENABLE ROW LEVEL SECURITY;
-
--- ── staging_happy_hour_windows ───────────────────────────────────────────────
--- Backend-only staging table. Paired with staging_venues for bulk import review.
--- service_role bypasses RLS; no anon/authenticated access intended.
-ALTER TABLE public.staging_happy_hour_windows ENABLE ROW LEVEL SECURITY;
-
--- ── venues_snapshot ──────────────────────────────────────────────────────────
--- Point-in-time venue snapshots for rollback. Written and read exclusively by
--- capture_reference_snapshot() and restore_venue_from_snapshot() RPCs.
--- service_role bypasses RLS; no anon/authenticated access intended.
-ALTER TABLE public.venues_snapshot ENABLE ROW LEVEL SECURITY;
-
--- ── happy_hour_windows_snapshot ──────────────────────────────────────────────
--- Point-in-time window snapshots. Same access model as venues_snapshot.
--- service_role bypasses RLS; no anon/authenticated access intended.
-ALTER TABLE public.happy_hour_windows_snapshot ENABLE ROW LEVEL SECURITY;
-
--- ── reference_snapshots ──────────────────────────────────────────────────────
--- Parent snapshot header rows. Same access model as the two snapshot detail tables.
--- service_role bypasses RLS; no anon/authenticated access intended.
-ALTER TABLE public.reference_snapshots ENABLE ROW LEVEL SECURITY;
-
--- ── reserved_handles ─────────────────────────────────────────────────────────
--- Blocklist for handle registration. anon/authenticated are already REVOKED
--- (20260518120000_super_users_and_guides.sql). The check_reserved_handle()
--- trigger is SECURITY DEFINER so RLS does not affect it.
--- service_role bypasses RLS; no anon/authenticated access intended.
-ALTER TABLE public.reserved_handles ENABLE ROW LEVEL SECURITY;
+DO $$
+DECLARE
+  t text;
+  backend_tables text[] := ARRAY[
+    'staging_venues',
+    'staging_happy_hour_windows',
+    'venues_snapshot',
+    'happy_hour_windows_snapshot',
+    'reference_snapshots',
+    'reserved_handles'
+  ];
+BEGIN
+  FOREACH t IN ARRAY backend_tables LOOP
+    IF to_regclass('public.' || t) IS NOT NULL THEN
+      EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY;', t);
+      RAISE NOTICE 'Enabled RLS on public.%', t;
+    ELSE
+      RAISE NOTICE 'Skipped public.% (table not present in this database)', t;
+    END IF;
+  END LOOP;
+END $$;
