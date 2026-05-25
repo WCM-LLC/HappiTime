@@ -418,6 +418,7 @@ export const MapScreen: React.FC = () => {
           slug
         `
         )
+        .eq("status", "published")
         .or(filter)
         .limit(DIRECT_VENUE_SEARCH_LIMIT);
 
