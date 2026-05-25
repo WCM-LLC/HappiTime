@@ -4,6 +4,12 @@ export function venueImageUrl(
   media: { storage_bucket: string; storage_path: string; type?: string },
   opts: { w?: number; h?: number; crop?: 'limit' | 'fill' } = {}
 ): string {
+  // Some rows (e.g. the legacy `external` bucket) store a full absolute URL in
+  // storage_path rather than a relative key. Return those as-is — wrapping them
+  // in the Supabase storage path produces a broken 404 and renders blank.
+  if (/^https?:\/\//i.test(media.storage_path)) {
+    return media.storage_path;
+  }
   if (media.storage_bucket === 'cloudinary') {
     if (media.type === 'menu_pdf') {
       return `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/raw/upload/${media.storage_path}`;
