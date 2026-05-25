@@ -35,10 +35,14 @@ export async function fetchPublishedHappyHourWindows(opts?: {
 }): Promise<HappyHourWindowWithVenueAndOffers[]> {
   const supabase = opts?.supabase ?? createSupabaseClient();
 
+  // venues!inner + venue.status filter ensures a published window only surfaces
+  // when its venue is ALSO published. Without this, a draft/archived venue with a
+  // published window leaks into the consumer feed.
   let query = supabase
     .from("happy_hour_windows")
-    .select("*, venue:venues (*, org:organizations (id, name)), offers:happy_hour_offers (*)")
+    .select("*, venue:venues!inner (*, org:organizations (id, name)), offers:happy_hour_offers (*)")
     .eq("status", "published")
+    .eq("venue.status", "published")
     .order("start_time", { ascending: true });
 
   if (opts?.limit) {
