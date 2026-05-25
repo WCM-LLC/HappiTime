@@ -26,6 +26,7 @@ export type MenuTree = {
   name: string;
   status?: string | null;
   is_active: boolean;
+  venue_id?: string | null;
   menu_sections?: MenuSectionTree[] | null;
 };
 
@@ -44,6 +45,23 @@ export async function fetchOrganizationMenuTree(
     .eq('id', menuId)
     .eq('org_id', orgId)
     .eq('scope', 'organization')
+    .maybeSingle();
+}
+
+export async function fetchPublishedVenueMenuTree(
+  supabase: SupabaseLike,
+  orgId: string,
+  currentVenueId: string,
+  sourceMenuId: string,
+) {
+  return supabase
+    .from('menus')
+    .select(`${MENU_TREE_SELECT},venue_id`)
+    .eq('id', sourceMenuId)
+    .eq('org_id', orgId)
+    .eq('scope', 'venue')
+    .eq('status', 'published')
+    .neq('venue_id', currentVenueId)
     .maybeSingle();
 }
 
@@ -122,12 +140,43 @@ export async function cloneOrganizationMenuToVenue(
     status?: 'draft' | 'published';
   },
 ) {
+  return cloneMenuTreeToVenue(supabase, sourceMenu, {
+    ...opts,
+    sourceMenuId: sourceMenu.id,
+  });
+}
+
+export async function cloneVenueMenuToVenue(
+  supabase: SupabaseLike,
+  sourceMenu: MenuTree,
+  opts: {
+    orgId: string;
+    venueId: string;
+    status?: 'draft' | 'published';
+  },
+) {
+  return cloneMenuTreeToVenue(supabase, sourceMenu, {
+    ...opts,
+    sourceMenuId: null,
+  });
+}
+
+async function cloneMenuTreeToVenue(
+  supabase: SupabaseLike,
+  sourceMenu: MenuTree,
+  opts: {
+    orgId: string;
+    venueId: string;
+    status?: 'draft' | 'published';
+    sourceMenuId: string | null;
+  },
+) {
   const { data: insertedMenu, error: menuInsertError } = await supabase
     .from('menus')
     .insert({
       org_id: opts.orgId,
       venue_id: opts.venueId,
-      source_menu_id: sourceMenu.id,
+      source_menu_id: opts.sourceMenuId,
       scope: 'venue',
       name: sourceMenu.name,
       status: opts.status ?? 'draft',

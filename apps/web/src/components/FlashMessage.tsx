@@ -27,6 +27,7 @@ const SUCCESS_LABELS: Record<string, string> = {
   organization_menu_unpublished: 'Organization menu unpublished',
   organization_menu_imported: 'Organization menu added to venue',
   organization_menu_synced: 'Organization menu copies synced',
+  published_menu_imported: 'Published menu copied to venue',
   section_created: 'Section created',
   section_deleted: 'Section deleted',
   item_created: 'Item created',

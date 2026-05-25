@@ -23,6 +23,7 @@ import {
   updateHappyHourMenus,
   createMenu,
   importOrganizationMenu,
+  importPublishedVenueMenu,
   saveMenu,
   deleteMenu,
   publishMenu,
@@ -90,6 +91,17 @@ type Menu = {
   is_active: boolean;
   source_menu_id: string | null;
   menu_sections: MenuSection[] | null;
+};
+
+type PublishedVenueMenuOption = {
+  id: string;
+  name: string;
+  venue_id: string | null;
+  venue: {
+    id: string;
+    name: string;
+    org_name: string | null;
+  } | null;
 };
 
 type EventCount = {
@@ -213,6 +225,9 @@ export default async function VenuePage({
     missing_organization_menu_id: 'Choose an organization menu to add.',
     organization_menu_not_found: "We couldn't find that organization menu.",
     organization_menu_import_failed: 'Adding that organization menu to this venue failed.',
+    missing_source_menu_id: 'Choose a published menu to copy.',
+    source_menu_not_found: "We couldn't find that published menu.",
+    published_menu_import_failed: 'Copying that published menu failed.',
     missing_menu_name: 'Menu name is required.',
     section_create_failed: 'Creating the menu section failed.',
     section_update_failed: 'Updating the menu section failed.',
@@ -288,6 +303,30 @@ export default async function VenuePage({
     .eq('org_id', orgId)
     .eq('scope', 'organization')
     .order('name', { ascending: true });
+
+  let publishedVenueMenus: PublishedVenueMenuOption[] = [];
+  let publishedVenueMenusErr: { message: string } | null = null;
+
+  if (canManageVenue) {
+    let sourceMenuClient = supabase;
+    try {
+      sourceMenuClient = createServiceClient();
+    } catch {
+      // The request client is enough for owners/admins; service role broadens source visibility for assigned managers.
+    }
+
+    const { data: sourceMenus, error: sourceMenusErr } = await sourceMenuClient
+      .from('menus')
+      .select('id,name,venue_id,venue:venues!menus_venue_id_fkey(id,name,org_name)')
+      .eq('org_id', orgId)
+      .eq('scope', 'venue')
+      .eq('status', HH_STATUS_PUBLISHED)
+      .neq('venue_id', venueId)
+      .order('name', { ascending: true });
+
+    publishedVenueMenus = (sourceMenus as PublishedVenueMenuOption[] | null) ?? [];
+    publishedVenueMenusErr = sourceMenusErr;
+  }
 
   const happyHourIds = (happyHours as HappyHourWindow[] | null)?.map((h) => h.id) ?? [];
   let windowMenus: HappyHourWindowMenu[] = [];
@@ -485,6 +524,7 @@ export default async function VenuePage({
           hhErr && { title: 'Happy hour load error', msg: hhErr.message },
           menusErr && { title: 'Menus load error', msg: menusErr.message },
           organizationMenusErr && { title: 'Organization menus load error', msg: organizationMenusErr.message },
+          publishedVenueMenusErr && { title: 'Published menu library load error', msg: publishedVenueMenusErr.message },
           windowMenusErr && { title: 'Menu mapping error', msg: windowMenusErr.message },
         ]
           .filter(Boolean)
@@ -876,6 +916,43 @@ export default async function VenuePage({
               </div>
               <p className="text-caption text-muted mt-2">
                 The imported menu becomes this venue&apos;s editable copy. Organization-level changes can be synced back to linked copies.
+              </p>
+            </form>
+          ) : null}
+
+          {canManageVenue && publishedVenueMenus.length ? (
+            <form className="rounded-md border border-border bg-background/50 p-4 mb-6">
+              <label className="text-body-sm font-medium text-foreground block mb-1.5">
+                Copy a published menu from another venue
+              </label>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <select name="source_menu_id" required className={selectCls + ' flex-1'}>
+                  <option value="">Choose a published menu</option>
+                  {publishedVenueMenus.map((menu) => {
+                    const sourceVenueName = menu.venue?.org_name?.trim() || menu.venue?.name || 'Other venue';
+                    const sourceLocationName =
+                      menu.venue?.org_name?.trim() && menu.venue?.name && menu.venue.org_name !== menu.venue.name
+                        ? ` (${menu.venue.name})`
+                        : '';
+
+                    return (
+                      <option key={menu.id} value={menu.id}>
+                        {sourceVenueName}
+                        {sourceLocationName} - {menu.name}
+                      </option>
+                    );
+                  })}
+                </select>
+                <SubmitButton
+                  formAction={importPublishedVenueMenu.bind(null, orgId, venueId)}
+                  className={btnSecondary + ' shrink-0'}
+                  pendingLabel="Copying..."
+                >
+                  Copy to venue
+                </SubmitButton>
+              </div>
+              <p className="text-caption text-muted mt-2">
+                This creates an independent draft copy. Future edits to the source menu will not sync here.
               </p>
             </form>
           ) : null}

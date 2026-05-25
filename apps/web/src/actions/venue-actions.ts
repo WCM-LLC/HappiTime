@@ -7,7 +7,9 @@ import { isAdminEmail } from '@/utils/admin-emails';
 import { toStr, toNullableStr, toNumberOrNull, redirectWithError, redirectWithSuccess, requireField } from '@/utils/form';
 import {
   cloneOrganizationMenuToVenue,
+  cloneVenueMenuToVenue,
   fetchOrganizationMenuTree,
+  fetchPublishedVenueMenuTree,
   syncVenueMenuFromOrganizationMenu,
 } from './menu-tree';
 
@@ -656,6 +658,53 @@ export async function importOrganizationMenu(orgId: string, venueId: string, for
 
   revalidateVenue(orgId, venueId);
   redirectWithSuccess(orgId, venueId, successCode);
+}
+
+/** Copies a published menu from another venue in the same organization as an independent draft. */
+export async function importPublishedVenueMenu(orgId: string, venueId: string, formData: FormData) {
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  const sourceMenuId = requireField(
+    formData,
+    'source_menu_id',
+    orgId,
+    venueId,
+    'missing_source_menu_id',
+  );
+
+  let sourceLookupSupabase = writeSupabase;
+  try {
+    sourceLookupSupabase = createServiceClient() as SupabaseServerClient;
+  } catch {
+    // If service role is unavailable locally, the request client may still work for owners/admins.
+  }
+
+  const { data: sourceMenu, error: sourceMenuError } = await fetchPublishedVenueMenuTree(
+    sourceLookupSupabase,
+    orgId,
+    venueId,
+    sourceMenuId,
+  );
+
+  if (sourceMenuError) {
+    console.error('[importPublishedVenueMenu] source lookup failed', sourceMenuError);
+    redirectWithError(orgId, venueId, 'published_menu_import_failed');
+  }
+
+  if (!sourceMenu) redirectWithError(orgId, venueId, 'source_menu_not_found');
+
+  try {
+    await cloneVenueMenuToVenue(writeSupabase, sourceMenu, {
+      orgId,
+      venueId,
+      status: HH_STATUS_DRAFT,
+    });
+  } catch (error) {
+    console.error('[importPublishedVenueMenu] clone failed', error);
+    redirectWithError(orgId, venueId, 'published_menu_import_failed');
+  }
+
+  revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'published_menu_imported');
 }
 
 /** Saves editable fields for a menu, including its existing sections and items. */
