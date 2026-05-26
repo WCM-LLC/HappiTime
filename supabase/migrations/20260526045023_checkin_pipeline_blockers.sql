@@ -1,6 +1,9 @@
 -- Make venue_visits the venue-centric source of truth while keeping user_events
 -- as the user-facing activity timeline.
 
+CREATE SCHEMA IF NOT EXISTS app_private;
+REVOKE ALL ON SCHEMA app_private FROM PUBLIC, anon, authenticated;
+
 -- Rename the user-facing visibility value from "friends" to "public" while
 -- accepting legacy rows/clients during rollout.
 ALTER TABLE public.user_preferences
