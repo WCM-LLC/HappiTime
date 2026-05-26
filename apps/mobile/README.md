@@ -46,7 +46,8 @@ pkill -f metro; npx expo start --ios
 
 ### Publishing an OTA update
 
-OTA updates apply to any installed build with a matching `runtimeVersion` (currently `1.0.1`):
+OTA updates apply to any installed build with a matching `runtimeVersion` (currently `1.0.3`).
+Production builds use the `production` EAS channel, which is pointed at the `master` update branch:
 
 ```bash
 eas update --auto --message "your message here"
