@@ -1,9 +1,6 @@
 -- Make venue_visits the venue-centric source of truth while keeping user_events
 -- as the user-facing activity timeline.
 
-CREATE SCHEMA IF NOT EXISTS app_private;
-REVOKE ALL ON SCHEMA app_private FROM PUBLIC, anon, authenticated;
-
 -- Rename the user-facing visibility value from "friends" to "public" while
 -- accepting legacy rows/clients during rollout.
 ALTER TABLE public.user_preferences
@@ -25,10 +22,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS user_events_visit_id_unique_idx
 CREATE INDEX IF NOT EXISTS venue_visits_dedupe_window_idx
   ON public.venue_visits (user_id, venue_id, source, entered_at DESC);
 
-CREATE OR REPLACE FUNCTION app_private.prevent_duplicate_venue_visit()
+CREATE OR REPLACE FUNCTION private.prevent_duplicate_venue_visit()
 RETURNS trigger
 LANGUAGE plpgsql
-SET search_path = public, app_private
+SET search_path = public, private
 AS $$
 BEGIN
   IF EXISTS (
@@ -54,7 +51,7 @@ CREATE TRIGGER venue_visits_prevent_duplicate_window
   BEFORE INSERT OR UPDATE OF user_id, venue_id, source, entered_at
   ON public.venue_visits
   FOR EACH ROW
-  EXECUTE FUNCTION app_private.prevent_duplicate_venue_visit();
+  EXECUTE FUNCTION private.prevent_duplicate_venue_visit();
 
 CREATE OR REPLACE FUNCTION public.record_venue_visit(
   p_venue_id uuid,
@@ -145,11 +142,11 @@ GRANT EXECUTE ON FUNCTION public.record_venue_visit(
   uuid, text, timestamptz, boolean, integer, text, integer, timestamptz
 ) TO authenticated;
 
-CREATE OR REPLACE FUNCTION app_private.sync_venue_visit_user_event()
+CREATE OR REPLACE FUNCTION private.sync_venue_visit_user_event()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, app_private
+SET search_path = public, private
 AS $$
 DECLARE
   v_event_type text;
@@ -193,14 +190,14 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION app_private.sync_venue_visit_user_event() FROM PUBLIC;
+REVOKE ALL ON FUNCTION private.sync_venue_visit_user_event() FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS venue_visits_sync_user_event ON public.venue_visits;
 CREATE TRIGGER venue_visits_sync_user_event
   AFTER INSERT OR UPDATE OF user_id, venue_id, entered_at, source, is_private
   ON public.venue_visits
   FOR EACH ROW
-  EXECUTE FUNCTION app_private.sync_venue_visit_user_event();
+  EXECUTE FUNCTION private.sync_venue_visit_user_event();
 
 DROP POLICY IF EXISTS "user_events_select_owner" ON public.user_events;
 DROP POLICY IF EXISTS "user_events_select_owner_or_public_activity" ON public.user_events;
