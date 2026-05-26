@@ -28,6 +28,18 @@ Items here represent intentional deferrals: features that are partially wired, l
 
 ## Medium Priority
 
+### Clean up deferred optimization warnings from check-in blocker deploy
+**Files:** Supabase RLS policies, `apps/web/src/app/app-preview/orgs/[orgId]/venues/[venueId]/page.tsx`, `apps/web/src/components/VenueMediaUploader.tsx`, `apps/mobile/App.tsx`, `apps/mobile/src/screens/InviteScreen.tsx`, `apps/mobile/app.json`
+**Description:** The check-in blocker deploy left non-blocking optimization warnings that should get a focused cleanup pass:
+- Supabase `auth_rls_initplan` warnings: wrap repeated `auth.uid()` and role helper calls in scalar subqueries such as `(select auth.uid())`.
+- Supabase `multiple_permissive_policies` warnings: consolidate overlapping permissive policies for the same role/action.
+- Supabase `duplicate_index` warning: resolve duplicate `organizations` slug indexes (`organizations_slug_key` vs `organizations_slug_unique`) after confirming which constraint-backed index should remain.
+- Next.js image warnings: replace remaining raw `<img>` usage with `next/image` where appropriate.
+- Mobile lint warnings: fix the `session` hook dependency in `apps/mobile/App.tsx` and remove/use the unused `navigation` variable in `InviteScreen.tsx`.
+- EAS build warning: remove stale local `android.versionCode` because `cli.appVersionSource` is `remote`.
+**Why deferred:** The check-in pipeline blocker and production release were prioritized; these warnings did not block CI, the production DB deploy, OTA publishing, or EAS production builds.
+**Next step:** Address warnings in small batches, run Supabase advisors, `npm run lint`, and a production-profile EAS config check before pushing.
+
 ### Replace `window.confirm()` with accessible modal
 **File:** `apps/web/src/components/ConfirmDeleteForm.tsx`
 **Description:** Uses `window.confirm()` which blocks the main thread and is not accessible. Should be replaced with a focus-trapped modal dialog.
