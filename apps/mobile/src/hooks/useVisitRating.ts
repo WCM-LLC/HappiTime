@@ -12,18 +12,18 @@ export type PendingVisit = {
   source?: "server" | "client";
 };
 
-export function buildFallbackVisitInsert(
-  userId: string,
+export function buildFallbackVisitRpcArgs(
   pendingVisit: PendingVisit,
   rating: number,
   comment?: string
 ) {
   return {
-    user_id: userId,
-    venue_id: pendingVisit.venueId,
-    entered_at: pendingVisit.enteredAt,
-    rating,
-    comment: comment?.trim() || null,
+    p_venue_id: pendingVisit.venueId,
+    p_source: "manual",
+    p_entered_at: pendingVisit.enteredAt,
+    p_is_private: true,
+    p_rating: rating,
+    p_comment: comment?.trim() || null,
   };
 }
 
@@ -94,16 +94,13 @@ export function useVisitRating() {
           // Fallback: insert a new record if we don't have a visitId
           const { data: auth } = await supabase.auth.getUser();
           if (!auth.user) return;
-          const { error } = await supabase.from("venue_visits").insert({
-            user_id: auth.user.id,
-            venue_id: pendingVisit.venueId,
-            entered_at: pendingVisit.enteredAt,
-            rating,
-            comment: comment?.trim() || null,
-          });
+          const { error } = await (supabase as any).rpc(
+            "record_venue_visit",
+            buildFallbackVisitRpcArgs(pendingVisit, rating, comment)
+          );
 
           if (error) {
-            console.warn("[visit-rating] failed to insert:", error.message);
+            console.warn("[visit-rating] failed to record fallback visit:", error.message);
           }
         }
       } finally {

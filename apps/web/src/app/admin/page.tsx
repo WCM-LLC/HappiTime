@@ -533,7 +533,7 @@ export default async function AdminPage({
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <span className={checkin.is_private ? 'inline-flex items-center rounded-full bg-background px-2 py-0.5 text-caption font-semibold text-muted border border-border' : 'inline-flex items-center rounded-full bg-success-light px-2 py-0.5 text-caption font-semibold text-success'}>
-                              {checkin.is_private ? 'Private' : 'Friends'}
+                              {checkin.is_private ? 'Private' : 'Public'}
                             </span>
                             {!checkin.exited_at ? (
                               <span className="inline-flex items-center rounded-full bg-brand-subtle px-2 py-0.5 text-caption font-semibold text-brand-text">

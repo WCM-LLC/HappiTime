@@ -7,10 +7,30 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.1"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -32,6 +52,27 @@ export type Database = {
           created_by?: string | null
           email?: string
           id?: string
+        }
+        Relationships: []
+      }
+      api_rate_limits: {
+        Row: {
+          count: number
+          key: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          updated_at?: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          updated_at?: string
+          window_start?: string
         }
         Relationships: []
       }
@@ -118,27 +159,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      email_signups: {
-        Row: {
-          created_at: string
-          email: string
-          id: number
-          source: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id?: never
-          source?: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: never
-          source?: string
-        }
-        Relationships: []
       }
       event_media: {
         Row: {
@@ -327,6 +347,109 @@ export type Database = {
         }
         Relationships: []
       }
+      happy_hour_menu_item_prices: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          menu_item_id: string
+          updated_at: string
+          window_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          menu_item_id: string
+          updated_at?: string
+          window_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          menu_item_id?: string
+          updated_at?: string
+          window_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "happy_hour_menu_item_prices_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "happy_hour_menu_item_prices_window_id_fkey"
+            columns: ["window_id"]
+            isOneToOne: false
+            referencedRelation: "happy_hour_windows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "happy_hour_menu_item_prices_window_id_fkey"
+            columns: ["window_id"]
+            isOneToOne: false
+            referencedRelation: "published_happy_hour_windows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "happy_hour_menu_item_prices_window_id_fkey"
+            columns: ["window_id"]
+            isOneToOne: false
+            referencedRelation: "published_happy_hour_windows_with_names"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      happy_hour_offer_windows: {
+        Row: {
+          created_at: string
+          offer_id: string
+          window_id: string
+        }
+        Insert: {
+          created_at?: string
+          offer_id: string
+          window_id: string
+        }
+        Update: {
+          created_at?: string
+          offer_id?: string
+          window_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "happy_hour_offer_windows_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "happy_hour_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "happy_hour_offer_windows_window_id_fkey"
+            columns: ["window_id"]
+            isOneToOne: false
+            referencedRelation: "happy_hour_windows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "happy_hour_offer_windows_window_id_fkey"
+            columns: ["window_id"]
+            isOneToOne: false
+            referencedRelation: "published_happy_hour_windows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "happy_hour_offer_windows_window_id_fkey"
+            columns: ["window_id"]
+            isOneToOne: false
+            referencedRelation: "published_happy_hour_windows_with_names"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       happy_hour_offers: {
         Row: {
           category: string
@@ -399,6 +522,133 @@ export type Database = {
           },
         ]
       }
+      happy_hour_places: {
+        Row: {
+          address: string | null
+          average_price: number | null
+          business_url: string | null
+          created_at: string
+          cuisine_type: string | null
+          deal_description: string | null
+          distance_miles: number | null
+          end_time: string | null
+          happy_days: string[]
+          id: number
+          last_confirmed_at: string | null
+          name: string
+          neighborhood: string | null
+          opening_hours: string | null
+          org_name: string | null
+          org_slug: string | null
+          phone: string | null
+          rating: number | null
+          start_time: string | null
+          status: string
+          updated_at: string
+          venue_city: string | null
+          venue_name: string | null
+          venue_state: string | null
+          venue_zip: string | null
+          website_url: string | null
+        }
+        Insert: {
+          address?: string | null
+          average_price?: number | null
+          business_url?: string | null
+          created_at?: string
+          cuisine_type?: string | null
+          deal_description?: string | null
+          distance_miles?: number | null
+          end_time?: string | null
+          happy_days?: string[]
+          id?: number
+          last_confirmed_at?: string | null
+          name: string
+          neighborhood?: string | null
+          opening_hours?: string | null
+          org_name?: string | null
+          org_slug?: string | null
+          phone?: string | null
+          rating?: number | null
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+          venue_city?: string | null
+          venue_name?: string | null
+          venue_state?: string | null
+          venue_zip?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          address?: string | null
+          average_price?: number | null
+          business_url?: string | null
+          created_at?: string
+          cuisine_type?: string | null
+          deal_description?: string | null
+          distance_miles?: number | null
+          end_time?: string | null
+          happy_days?: string[]
+          id?: number
+          last_confirmed_at?: string | null
+          name?: string
+          neighborhood?: string | null
+          opening_hours?: string | null
+          org_name?: string | null
+          org_slug?: string | null
+          phone?: string | null
+          rating?: number | null
+          start_time?: string | null
+          status?: string
+          updated_at?: string
+          venue_city?: string | null
+          venue_name?: string | null
+          venue_state?: string | null
+          venue_zip?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
+      happy_hour_window_days: {
+        Row: {
+          created_at: string
+          dow: number
+          window_id: string
+        }
+        Insert: {
+          created_at?: string
+          dow: number
+          window_id: string
+        }
+        Update: {
+          created_at?: string
+          dow?: number
+          window_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "happy_hour_window_days_window_id_fkey"
+            columns: ["window_id"]
+            isOneToOne: false
+            referencedRelation: "happy_hour_windows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "happy_hour_window_days_window_id_fkey"
+            columns: ["window_id"]
+            isOneToOne: false
+            referencedRelation: "published_happy_hour_windows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "happy_hour_window_days_window_id_fkey"
+            columns: ["window_id"]
+            isOneToOne: false
+            referencedRelation: "published_happy_hour_windows_with_names"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       happy_hour_window_menus: {
         Row: {
           created_at: string
@@ -455,7 +705,6 @@ export type Database = {
           dow: number[]
           end_time: string
           id: string
-          is_verified: boolean
           label: string | null
           last_confirmed_at: string | null
           restaurant_id: string | null
@@ -464,15 +713,12 @@ export type Database = {
           timezone: string
           updated_at: string
           venue_id: string
-          verified_at: string | null
-          verified_by: string | null
         }
         Insert: {
           created_at?: string
           dow?: number[]
           end_time: string
           id?: string
-          is_verified?: boolean
           label?: string | null
           last_confirmed_at?: string | null
           restaurant_id?: string | null
@@ -481,15 +727,12 @@ export type Database = {
           timezone?: string
           updated_at?: string
           venue_id: string
-          verified_at?: string | null
-          verified_by?: string | null
         }
         Update: {
           created_at?: string
           dow?: number[]
           end_time?: string
           id?: string
-          is_verified?: boolean
           label?: string | null
           last_confirmed_at?: string | null
           restaurant_id?: string | null
@@ -498,8 +741,6 @@ export type Database = {
           timezone?: string
           updated_at?: string
           venue_id?: string
-          verified_at?: string | null
-          verified_by?: string | null
         }
         Relationships: [
           {
@@ -518,31 +759,34 @@ export type Database = {
           },
         ]
       }
-      happy_hour_windows_snapshot: {
+      menu_item_base_prices: {
         Row: {
-          captured_at: string
-          data: Json
-          snapshot_id: string
-          window_id: string
+          amount: number
+          created_at: string
+          currency: string
+          menu_item_id: string
+          updated_at: string
         }
         Insert: {
-          captured_at?: string
-          data: Json
-          snapshot_id: string
-          window_id: string
+          amount: number
+          created_at?: string
+          currency?: string
+          menu_item_id: string
+          updated_at?: string
         }
         Update: {
-          captured_at?: string
-          data?: Json
-          snapshot_id?: string
-          window_id?: string
+          amount?: number
+          created_at?: string
+          currency?: string
+          menu_item_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "happy_hour_windows_snapshot_snapshot_id_fkey"
-            columns: ["snapshot_id"]
-            isOneToOne: false
-            referencedRelation: "reference_snapshots"
+            foreignKeyName: "menu_item_base_prices_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: true
+            referencedRelation: "menu_items"
             referencedColumns: ["id"]
           },
         ]
@@ -694,68 +938,41 @@ export type Database = {
           },
         ]
       }
-      neighborhoods: {
+      notion_venue_import: {
         Row: {
-          centroid_lat: number | null
-          centroid_lng: number | null
-          city: string
-          created_at: string
-          description: string | null
-          is_active: boolean
-          label: string
-          parent_slug: string | null
-          slug: string
-          sort_order: number
-          state: string
-          tier: Database["public"]["Enums"]["neighborhood_tier"]
-          updated_at: string
+          Address: string | null
+          "Business URL": string | null
+          "Happy Hour Category": string | null
+          "Happy Hour Details": string | null
+          Name: string | null
+          "Opening Hours": string | null
+          "Phone Number": string | null
+          Rating: number | null
+          "Website URL": string | null
         }
         Insert: {
-          centroid_lat?: number | null
-          centroid_lng?: number | null
-          city?: string
-          created_at?: string
-          description?: string | null
-          is_active?: boolean
-          label: string
-          parent_slug?: string | null
-          slug: string
-          sort_order?: number
-          state?: string
-          tier?: Database["public"]["Enums"]["neighborhood_tier"]
-          updated_at?: string
+          Address?: string | null
+          "Business URL"?: string | null
+          "Happy Hour Category"?: string | null
+          "Happy Hour Details"?: string | null
+          Name?: string | null
+          "Opening Hours"?: string | null
+          "Phone Number"?: string | null
+          Rating?: number | null
+          "Website URL"?: string | null
         }
         Update: {
-          centroid_lat?: number | null
-          centroid_lng?: number | null
-          city?: string
-          created_at?: string
-          description?: string | null
-          is_active?: boolean
-          label?: string
-          parent_slug?: string | null
-          slug?: string
-          sort_order?: number
-          state?: string
-          tier?: Database["public"]["Enums"]["neighborhood_tier"]
-          updated_at?: string
+          Address?: string | null
+          "Business URL"?: string | null
+          "Happy Hour Category"?: string | null
+          "Happy Hour Details"?: string | null
+          Name?: string | null
+          "Opening Hours"?: string | null
+          "Phone Number"?: string | null
+          Rating?: number | null
+          "Website URL"?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "neighborhoods_parent_slug_fkey"
-            columns: ["parent_slug"]
-            isOneToOne: false
-            referencedRelation: "neighborhoods"
-            referencedColumns: ["slug"]
-          },
-          {
-            foreignKeyName: "neighborhoods_parent_slug_fkey"
-            columns: ["parent_slug"]
-            isOneToOne: false
-            referencedRelation: "v_kcmo_neighborhoods"
-            referencedColumns: ["slug"]
-          },
-        ]
+        Relationships: []
       }
       org_invites: {
         Row: {
@@ -833,7 +1050,7 @@ export type Database = {
           first_name?: string | null
           last_name?: string | null
           org_id: string
-          role: string
+          role?: string
           updated_at?: string
           user_id: string
         }
@@ -857,13 +1074,43 @@ export type Database = {
           },
         ]
       }
+      organization_merge_audit: {
+        Row: {
+          canonical_organization_id: string
+          canonical_organization_name: string
+          duplicate_organization_id: string
+          duplicate_organization_name: string
+          id: number
+          merged_at: string
+          normalized_name: string
+        }
+        Insert: {
+          canonical_organization_id: string
+          canonical_organization_name: string
+          duplicate_organization_id: string
+          duplicate_organization_name: string
+          id?: number
+          merged_at?: string
+          normalized_name: string
+        }
+        Update: {
+          canonical_organization_id?: string
+          canonical_organization_name?: string
+          duplicate_organization_id?: string
+          duplicate_organization_name?: string
+          id?: number
+          merged_at?: string
+          normalized_name?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           created_at: string
           created_by: string | null
           id: string
           name: string
-          slug: string | null
+          slug: string
           updated_at: string
         }
         Insert: {
@@ -871,7 +1118,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name: string
-          slug?: string | null
+          slug: string
           updated_at?: string
         }
         Update: {
@@ -879,7 +1126,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name?: string
-          slug?: string | null
+          slug?: string
           updated_at?: string
         }
         Relationships: []
@@ -920,33 +1167,6 @@ export type Database = {
         }
         Relationships: []
       }
-      reference_snapshots: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          id: string
-          label: string
-          notes: string | null
-          row_counts: Json
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          label: string
-          notes?: string | null
-          row_counts?: Json
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          label?: string
-          notes?: string | null
-          row_counts?: Json
-        }
-        Relationships: []
-      }
       reserved_handles: {
         Row: {
           handle: string
@@ -958,141 +1178,6 @@ export type Database = {
           handle?: string
         }
         Relationships: []
-      }
-      staging_happy_hour_windows: {
-        Row: {
-          created_at: string
-          id: string
-          match_venue_id: string | null
-          match_window_id: string | null
-          payload: Json
-          rejection_reason: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          source: string
-          source_run_id: string | null
-          status: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          match_venue_id?: string | null
-          match_window_id?: string | null
-          payload: Json
-          rejection_reason?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          source: string
-          source_run_id?: string | null
-          status?: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          match_venue_id?: string | null
-          match_window_id?: string | null
-          payload?: Json
-          rejection_reason?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          source?: string
-          source_run_id?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staging_happy_hour_windows_match_venue_id_fkey"
-            columns: ["match_venue_id"]
-            isOneToOne: false
-            referencedRelation: "promoted_venues"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staging_happy_hour_windows_match_venue_id_fkey"
-            columns: ["match_venue_id"]
-            isOneToOne: false
-            referencedRelation: "venues"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staging_happy_hour_windows_match_window_id_fkey"
-            columns: ["match_window_id"]
-            isOneToOne: false
-            referencedRelation: "happy_hour_windows"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staging_happy_hour_windows_match_window_id_fkey"
-            columns: ["match_window_id"]
-            isOneToOne: false
-            referencedRelation: "published_happy_hour_windows"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staging_happy_hour_windows_match_window_id_fkey"
-            columns: ["match_window_id"]
-            isOneToOne: false
-            referencedRelation: "published_happy_hour_windows_with_names"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      staging_venues: {
-        Row: {
-          created_at: string
-          external_ref: string | null
-          id: string
-          match_venue_id: string | null
-          payload: Json
-          rejection_reason: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          source: string
-          source_run_id: string | null
-          status: string
-        }
-        Insert: {
-          created_at?: string
-          external_ref?: string | null
-          id?: string
-          match_venue_id?: string | null
-          payload: Json
-          rejection_reason?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          source: string
-          source_run_id?: string | null
-          status?: string
-        }
-        Update: {
-          created_at?: string
-          external_ref?: string | null
-          id?: string
-          match_venue_id?: string | null
-          payload?: Json
-          rejection_reason?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          source?: string
-          source_run_id?: string | null
-          status?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staging_venues_match_venue_id_fkey"
-            columns: ["match_venue_id"]
-            isOneToOne: false
-            referencedRelation: "promoted_venues"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staging_venues_match_venue_id_fkey"
-            columns: ["match_venue_id"]
-            isOneToOne: false
-            referencedRelation: "venues"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       user_events: {
         Row: {
@@ -1188,22 +1273,7 @@ export type Database = {
           following_user_id?: string
           status?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_follows_follower_id_profile_fkey"
-            columns: ["follower_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "user_follows_following_user_id_profile_fkey"
-            columns: ["following_user_id"]
-            isOneToOne: false
-            referencedRelation: "user_profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       user_list_items: {
         Row: {
@@ -1614,14 +1684,11 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
-          migrated_at: string | null
           sort_order: number
           source: string
           status: string
           storage_bucket: string
-          storage_bucket_legacy: string | null
           storage_path: string
-          storage_path_legacy: string | null
           title: string | null
           type: string
           updated_at: string
@@ -1632,14 +1699,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
-          migrated_at?: string | null
           sort_order?: number
           source?: string
           status?: string
-          storage_bucket: string
-          storage_bucket_legacy?: string | null
+          storage_bucket?: string
           storage_path: string
-          storage_path_legacy?: string | null
           title?: string | null
           type: string
           updated_at?: string
@@ -1650,14 +1714,11 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
-          migrated_at?: string | null
           sort_order?: number
           source?: string
           status?: string
           storage_bucket?: string
-          storage_bucket_legacy?: string | null
           storage_path?: string
-          storage_path_legacy?: string | null
           title?: string | null
           type?: string
           updated_at?: string
@@ -1855,9 +1916,13 @@ export type Database = {
           id: string
           is_private: boolean
           rating: number | null
+          rating_prompt_source: string | null
+          rating_prompted_at: string | null
           source: string
+          updated_at: string
           user_id: string
           venue_id: string
+          visited_at: string | null
         }
         Insert: {
           comment?: string | null
@@ -1868,9 +1933,13 @@ export type Database = {
           id?: string
           is_private?: boolean
           rating?: number | null
+          rating_prompt_source?: string | null
+          rating_prompted_at?: string | null
           source?: string
+          updated_at?: string
           user_id: string
           venue_id: string
+          visited_at?: string | null
         }
         Update: {
           comment?: string | null
@@ -1881,9 +1950,13 @@ export type Database = {
           id?: string
           is_private?: boolean
           rating?: number | null
+          rating_prompt_source?: string | null
+          rating_prompted_at?: string | null
           source?: string
+          updated_at?: string
           user_id?: string
           venue_id?: string
+          visited_at?: string | null
         }
         Relationships: [
           {
@@ -1906,7 +1979,7 @@ export type Database = {
         Row: {
           address: string | null
           app_name_preference: string
-          city: string
+          city: string | null
           created_at: string
           cuisine_type: string | null
           data_locked_fields: string[]
@@ -1935,6 +2008,8 @@ export type Database = {
           places_last_synced_at: string | null
           places_next_sync_at: string | null
           places_status: string
+          post_visit_rating_aspects: string[]
+          post_visit_rating_enabled: boolean
           price_tier: number | null
           promotion_ends_at: string | null
           promotion_priority: number
@@ -1944,21 +2019,21 @@ export type Database = {
           rating: number | null
           review_count: number | null
           slug: string
-          state: string
+          state: string | null
           status: string
           tags: string[]
           tiktok_url: string | null
-          timezone: string | null
+          timezone: string
           updated_at: string
           verified_at: string | null
           verified_by: string | null
           website: string | null
-          zip: string
+          zip: string | null
         }
         Insert: {
           address?: string | null
           app_name_preference?: string
-          city: string
+          city?: string | null
           created_at?: string
           cuisine_type?: string | null
           data_locked_fields?: string[]
@@ -1987,6 +2062,8 @@ export type Database = {
           places_last_synced_at?: string | null
           places_next_sync_at?: string | null
           places_status?: string
+          post_visit_rating_aspects?: string[]
+          post_visit_rating_enabled?: boolean
           price_tier?: number | null
           promotion_ends_at?: string | null
           promotion_priority?: number
@@ -1996,21 +2073,21 @@ export type Database = {
           rating?: number | null
           review_count?: number | null
           slug: string
-          state: string
+          state?: string | null
           status?: string
           tags?: string[]
           tiktok_url?: string | null
-          timezone?: string | null
+          timezone?: string
           updated_at?: string
           verified_at?: string | null
           verified_by?: string | null
           website?: string | null
-          zip: string
+          zip?: string | null
         }
         Update: {
           address?: string | null
           app_name_preference?: string
-          city?: string
+          city?: string | null
           created_at?: string
           cuisine_type?: string | null
           data_locked_fields?: string[]
@@ -2039,6 +2116,8 @@ export type Database = {
           places_last_synced_at?: string | null
           places_next_sync_at?: string | null
           places_status?: string
+          post_visit_rating_aspects?: string[]
+          post_visit_rating_enabled?: boolean
           price_tier?: number | null
           promotion_ends_at?: string | null
           promotion_priority?: number
@@ -2048,16 +2127,16 @@ export type Database = {
           rating?: number | null
           review_count?: number | null
           slug?: string
-          state?: string
+          state?: string | null
           status?: string
           tags?: string[]
           tiktok_url?: string | null
-          timezone?: string | null
+          timezone?: string
           updated_at?: string
           verified_at?: string | null
           verified_by?: string | null
           website?: string | null
-          zip?: string
+          zip?: string | null
         }
         Relationships: [
           {
@@ -2069,31 +2148,31 @@ export type Database = {
           },
         ]
       }
-      venues_snapshot: {
+      visit_rating_aspects: {
         Row: {
-          captured_at: string
-          data: Json
-          snapshot_id: string
-          venue_id: string
+          aspect_key: string
+          created_at: string
+          id: string
+          visit_id: string
         }
         Insert: {
-          captured_at?: string
-          data: Json
-          snapshot_id: string
-          venue_id: string
+          aspect_key: string
+          created_at?: string
+          id?: string
+          visit_id: string
         }
         Update: {
-          captured_at?: string
-          data?: Json
-          snapshot_id?: string
-          venue_id?: string
+          aspect_key?: string
+          created_at?: string
+          id?: string
+          visit_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "venues_snapshot_snapshot_id_fkey"
-            columns: ["snapshot_id"]
+            foreignKeyName: "visit_rating_aspects_visit_id_fkey"
+            columns: ["visit_id"]
             isOneToOne: false
-            referencedRelation: "reference_snapshots"
+            referencedRelation: "venue_visits"
             referencedColumns: ["id"]
           },
         ]
@@ -2265,43 +2344,6 @@ export type Database = {
           },
         ]
       }
-      v_kcmo_neighborhoods: {
-        Row: {
-          black_owned_count: number | null
-          centroid_lat: number | null
-          centroid_lng: number | null
-          city: string | null
-          description: string | null
-          draft_count: number | null
-          label: string | null
-          lgbtq_owned_count: number | null
-          parent_slug: string | null
-          published_count: number | null
-          slug: string | null
-          sort_order: number | null
-          state: string | null
-          tier: Database["public"]["Enums"]["neighborhood_tier"] | null
-          venue_count: number | null
-          veteran_owned_count: number | null
-          women_owned_count: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "neighborhoods_parent_slug_fkey"
-            columns: ["parent_slug"]
-            isOneToOne: false
-            referencedRelation: "neighborhoods"
-            referencedColumns: ["slug"]
-          },
-          {
-            foreignKeyName: "neighborhoods_parent_slug_fkey"
-            columns: ["parent_slug"]
-            isOneToOne: false
-            referencedRelation: "v_kcmo_neighborhoods"
-            referencedColumns: ["slug"]
-          },
-        ]
-      }
       venue_event_counts: {
         Row: {
           cnt: number | null
@@ -2335,9 +2377,9 @@ export type Database = {
       }
     }
     Functions: {
-      capture_reference_snapshot: {
-        Args: { p_label: string; p_notes?: string }
-        Returns: string
+      check_rate_limit: {
+        Args: { p_key: string; p_limit: number; p_window_seconds: number }
+        Returns: boolean
       }
       create_organization: { Args: { p_name: string }; Returns: string }
       get_geocode_job_token: { Args: never; Returns: string }
@@ -2347,6 +2389,17 @@ export type Database = {
         Returns: {
           follower_count: number
           user_id: string
+        }[]
+      }
+      get_venue_visit_stats: {
+        Args: { p_since?: string; p_venue_id: string }
+        Returns: {
+          active_count: number
+          average_duration_minutes: number
+          private_count: number
+          recent_count: number
+          total_count: number
+          venue_id: string
         }[]
       }
       has_venue_assignment: { Args: { p_venue_id: string }; Returns: boolean }
@@ -2359,31 +2412,44 @@ export type Database = {
       is_org_member: { Args: { p_org_id: string }; Returns: boolean }
       is_org_owner: { Args: { p_org_id: string }; Returns: boolean }
       is_platform_admin: { Args: never; Returns: boolean }
-      merge_staging_venues: {
-        Args: { p_dry_run?: boolean; p_source_run_id: string }
+      normalize_organization_name: { Args: { input: string }; Returns: string }
+      organization_slugify: { Args: { input: string }; Returns: string }
+      record_venue_visit: {
+        Args: {
+          p_comment?: string
+          p_duration_minutes?: number
+          p_entered_at?: string
+          p_exited_at?: string
+          p_is_private?: boolean
+          p_rating?: number
+          p_source: string
+          p_venue_id: string
+        }
         Returns: {
-          action: string
-          reason: string
-          staging_id: string
-          venue_id: string
+          id: string
+          inserted: boolean
         }[]
       }
-      prune_cron_logs: {
-        Args: never
+      replace_happy_hour_window_menus: {
+        Args: { p_menu_ids?: string[]; p_window_id: string }
         Returns: {
-          deleted_http_responses: number
-          deleted_job_run_details: number
+          created_at: string
+          happy_hour_window_id: string
+          menu_id: string
+          updated_at: string
         }[]
-      }
-      restore_venue_from_snapshot: {
-        Args: { p_snapshot_id: string; p_venue_id: string }
-        Returns: boolean
+        SetofOptions: {
+          from: "*"
+          to: "happy_hour_window_menus"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       venue_slugify: { Args: { input: string }; Returns: string }
       whoami: { Args: never; Returns: Json }
     }
     Enums: {
-      neighborhood_tier: "kcmo" | "metro_mo" | "metro_ks"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2509,9 +2575,10 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
-    Enums: {
-      neighborhood_tier: ["kcmo", "metro_mo", "metro_ks"],
-    },
+    Enums: {},
   },
 } as const

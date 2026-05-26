@@ -3,7 +3,7 @@ import { supabase } from "../api/supabaseClient";
 import { useCurrentUser } from "./useCurrentUser";
 
 export type UserPreferences = {
-  default_checkin_privacy: "private" | "friends" | null;
+  default_checkin_privacy: "private" | "public" | "friends" | null;
   home_city: string | null;
   home_state: string | null;
   home_lat: number | null;
@@ -91,7 +91,9 @@ export function useUserPreferences() {
         ? {
             home_city: d.home_city ?? null,
             default_checkin_privacy:
-              d.default_checkin_privacy === "friends" || d.default_checkin_privacy === "private"
+              d.default_checkin_privacy === "public" ||
+              d.default_checkin_privacy === "friends" ||
+              d.default_checkin_privacy === "private"
                 ? d.default_checkin_privacy
                 : null,
             home_state: d.home_state ?? null,

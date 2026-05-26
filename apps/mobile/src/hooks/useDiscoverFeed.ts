@@ -3,6 +3,7 @@ import { supabase } from "../api/supabaseClient";
 
 export type DiscoverEventType =
   | "auto_checkin"
+  | "venue_checkin"
   | "itinerary_share"
   | "rating"
   | "comment"
@@ -10,6 +11,7 @@ export type DiscoverEventType =
 
 type EventMeta = {
   is_private?: boolean;
+  venue_published?: boolean;
   itinerary_name?: string;
   venue_name?: string;
   comment_text?: string;
@@ -53,6 +55,7 @@ type State = {
 
 const DISCOVER_EVENT_TYPES: DiscoverEventType[] = [
   "auto_checkin",
+  "venue_checkin",
   "itinerary_share",
   "rating",
   "comment",
@@ -83,22 +86,29 @@ export function useDiscoverFeed() {
       return;
     }
 
-    const feed = ((data ?? []) as DiscoverEventRow[]).map((row) => {
-      const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
-      return {
-        id: row.id,
-        eventType: row.event_type,
-        createdAt: row.created_at,
-        userHandle: profile?.handle ?? null,
-        userDisplayName: profile?.display_name ?? null,
-        userAvatar: profile?.avatar_url ?? null,
-        userRole: profile?.role ?? null,
-        itineraryName: row.meta?.itinerary_name ?? null,
-        venueName: row.meta?.venue_name ?? null,
-        commentText: row.meta?.comment_text ?? null,
-        isPrivate: Boolean(row.meta?.is_private),
-      };
-    });
+    const feed = ((data ?? []) as DiscoverEventRow[])
+      .filter((row) => {
+        const isCheckin = row.event_type === "auto_checkin" || row.event_type === "venue_checkin";
+        if (Boolean(row.meta?.is_private)) return false;
+        if (isCheckin && row.meta?.venue_published === false) return false;
+        return true;
+      })
+      .map((row) => {
+        const profile = Array.isArray(row.profile) ? row.profile[0] : row.profile;
+        return {
+          id: row.id,
+          eventType: row.event_type,
+          createdAt: row.created_at,
+          userHandle: profile?.handle ?? null,
+          userDisplayName: profile?.display_name ?? null,
+          userAvatar: profile?.avatar_url ?? null,
+          userRole: profile?.role ?? null,
+          itineraryName: row.meta?.itinerary_name ?? null,
+          venueName: row.meta?.venue_name ?? null,
+          commentText: row.meta?.comment_text ?? null,
+          isPrivate: Boolean(row.meta?.is_private),
+        };
+      });
 
     setState({ feed, loading: false, error: null });
   }, []);

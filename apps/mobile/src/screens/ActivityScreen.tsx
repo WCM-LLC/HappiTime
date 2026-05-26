@@ -20,7 +20,6 @@ import { useInsiderItineraries, type InsiderItinerary } from "../hooks/useInside
 import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
 import { useUserSearch, type UserSearchResult } from "../hooks/useUserSearch";
-import { isFeatureEnabled } from "../lib/featureFlags";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
@@ -295,7 +294,7 @@ const DiscoverFeedCard: React.FC<{ item: DiscoverFeedItem; anonymous?: boolean }
       const itineraryName = item.itineraryName ?? "an itinerary";
       return `${actor} shared their itinerary ${itineraryName}`;
     }
-    if (item.eventType === "auto_checkin") {
+    if (item.eventType === "auto_checkin" || item.eventType === "venue_checkin") {
       if (item.isPrivate) return "a HappiTime user checked in";
       const venueName = item.venueName ?? "a venue";
       return `${actor} checked in at ${venueName}`;
@@ -714,7 +713,7 @@ export const ActivityScreen: React.FC = () => {
           ListHeaderComponent={
             <View style={styles.privacyNote}>
               <Text style={styles.privacyNoteText}>
-                Tap 👁 to make a check-in visible to friends, or 🔒 to keep it private.
+                Tap 👁 to make a check-in public, or 🔒 to keep it private.
               </Text>
             </View>
           }

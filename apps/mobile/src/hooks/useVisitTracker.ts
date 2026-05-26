@@ -120,50 +120,67 @@ async function loadCheckinPrivacyPreference(userId: string) {
     .eq("user_id", userId)
     .maybeSingle();
 
-  _defaultCheckinPrivacy = data?.default_checkin_privacy === "friends" ? "public" : "private";
+  _defaultCheckinPrivacy =
+    data?.default_checkin_privacy === "public" || data?.default_checkin_privacy === "friends"
+      ? "public"
+      : "private";
 }
-async function registerAutoCheckIn(userId: string, venueId: string, venueName: string) {
-  const { data, error } = await (supabase as any)
-    .from("venue_visits")
-    .insert({
-      user_id: userId,
-      venue_id: venueId,
-      entered_at: new Date().toISOString(),
-      source: "auto_proximity",
-      is_private: _defaultCheckinPrivacy !== "public",
-    })
-    .select("id")
-    .single();
 
-  if (error) {
-    console.warn("[visit-tracker] auto check-in failed:", error.message);
+async function recordVenueVisit(
+  venueId: string,
+  source: "auto_proximity" | "dwell" | "manual",
+  options: {
+    enteredAt?: string;
+    isPrivate?: boolean;
+    durationMinutes?: number;
+  } = {}
+) {
+  const { data, error } = await (supabase as any).rpc("record_venue_visit", {
+    p_venue_id: venueId,
+    p_source: source,
+    p_entered_at: options.enteredAt ?? new Date().toISOString(),
+    p_is_private: options.isPrivate ?? _defaultCheckinPrivacy !== "public",
+    p_duration_minutes: options.durationMinutes ?? null,
+  });
+
+  const row = Array.isArray(data) ? data[0] : data;
+
+  return {
+    id: row?.id ?? null,
+    inserted: row?.inserted === true,
+    error,
+  };
+}
+
+async function registerAutoCheckIn(venueId: string, venueName: string) {
+  const result = await recordVenueVisit(venueId, "auto_proximity");
+
+  if (result.error) {
+    console.warn("[visit-tracker] auto check-in failed:", result.error.message);
     return null;
   } else {
-    console.log("[visit-tracker] auto check-in recorded for", venueName);
+    console.log(
+      result.inserted
+        ? "[visit-tracker] auto check-in recorded for"
+        : "[visit-tracker] reused recent auto check-in for",
+      venueName
+    );
   }
 
-  return data?.id ?? null;
+  return result.id;
 }
 
-async function registerVisit(userId: string, venueId: string, venueName: string) {
-  const { data, error } = await (supabase as any)
-    .from("venue_visits")
-    .insert({
-      user_id: userId,
-      venue_id: venueId,
-      entered_at: new Date().toISOString(),
-      source: "dwell",
-      is_private: _defaultCheckinPrivacy !== "public",
-    })
-    .select("id")
-    .single();
+async function registerVisit(venueId: string, venueName: string, durationMinutes?: number) {
+  const result = await recordVenueVisit(venueId, "dwell", {
+    durationMinutes,
+  });
 
-  if (error) {
-    console.warn("[visit-tracker] failed to register visit:", error.message);
+  if (result.error) {
+    console.warn("[visit-tracker] failed to register visit:", result.error.message);
     return null;
   }
 
-  return data?.id ?? null;
+  return result.id;
 }
 
 async function confirmDwellVisit(
@@ -186,7 +203,11 @@ async function confirmDwellVisit(
     console.warn("[visit-tracker] failed to confirm dwell:", error.message);
   }
 
-  return registerVisit(userId, venueId, venueName);
+  return registerVisit(
+    venueId,
+    venueName,
+    Math.max(30, Math.round((Date.now() - enteredAt) / 60000))
+  );
 }
 
 function clearDwellTimer() {
@@ -326,7 +347,7 @@ function handleLocationUpdate(locations: Location.LocationObject[]) {
       const lastCheckedIn = _autoCheckedInVenues.get(nearestVenue.id) ?? 0;
       if (now - lastCheckedIn >= AUTO_CHECKIN_COOLDOWN_MS) {
         _autoCheckedInVenues.set(nearestVenue.id, now);
-        void registerAutoCheckIn(_userId!, nearestVenue.id, nearestVenue.name).then((visitId) => {
+        void registerAutoCheckIn(nearestVenue.id, nearestVenue.name).then((visitId) => {
           if (_proximityState?.venueId === nearestVenue.id) {
             _proximityState.visitId = visitId;
           }

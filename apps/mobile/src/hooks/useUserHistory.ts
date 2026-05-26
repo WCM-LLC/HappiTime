@@ -44,7 +44,7 @@ export function useUserHistory() {
       .from("user_events")
       .select("id, event_type, venue_id, created_at, venue:venues(id, name, address, city, state)")
       .eq("user_id", user.id)
-      .in("event_type", ["venue_view", "venue_save", "venue_checkin"])
+      .in("event_type", ["venue_view", "venue_save", "venue_checkin", "auto_checkin"])
       .order("created_at", { ascending: false })
       .limit(50);
 
@@ -69,7 +69,7 @@ export function useUserHistory() {
    * to HappyHourDetailScreen or when the user taps the follow/save button.
    */
   const recordEvent = useCallback(
-    async (eventType: "venue_view" | "venue_save" | "venue_checkin", venueId: string) => {
+    async (eventType: "venue_view" | "venue_save" | "venue_checkin" | "auto_checkin", venueId: string) => {
       if (!user?.id) return;
       await supabase.from("user_events").insert({
         user_id: user.id,
