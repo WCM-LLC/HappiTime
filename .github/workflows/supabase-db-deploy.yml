@@ -26,5 +26,4 @@ jobs:
             exit 1
           fi
       - name: Apply migrations
-        run: supabase db push --db-url "$SUPABASE_DB_URL"
-
+        run: supabase db push --include-all --db-url "$SUPABASE_DB_URL"
