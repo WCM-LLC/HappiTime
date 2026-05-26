@@ -1,4 +1,7 @@
-const DEFAULT_APP_ORIGIN = 'https://www.happitime.biz';
+const DEFAULT_APP_ORIGINS = [
+  'https://happitime-console.vercel.app',
+  'https://www.happitime.biz',
+];
 
 /** Parses the origin (scheme + host + port) from a URL string; returns null if malformed. */
 function normalizeOrigin(value: string): string | null {
@@ -9,9 +12,9 @@ function normalizeOrigin(value: string): string | null {
   }
 }
 
-/** Builds the set of allowed origins from APP_ALLOWED_ORIGINS; falls back to happitime.biz. */
+/** Builds the set of allowed origins from APP_ALLOWED_ORIGINS; falls back to known console origins. */
 function getAllowedOrigins(): Set<string> {
-  const raw = process.env.APP_ALLOWED_ORIGINS ?? DEFAULT_APP_ORIGIN;
+  const raw = process.env.APP_ALLOWED_ORIGINS ?? DEFAULT_APP_ORIGINS.join(',');
   const origins = raw
     .split(',')
     .map((item) => item.trim())
@@ -20,7 +23,7 @@ function getAllowedOrigins(): Set<string> {
     .filter((item): item is string => !!item);
 
   if (origins.length === 0) {
-    return new Set([DEFAULT_APP_ORIGIN]);
+    return new Set(DEFAULT_APP_ORIGINS);
   }
 
   return new Set(origins);
@@ -33,7 +36,7 @@ export function getSafeAppOrigin(originHeader: string | null): string {
   if (normalized && allowed.has(normalized)) {
     return normalized;
   }
-  return [...allowed][0] ?? DEFAULT_APP_ORIGIN;
+  return [...allowed][0] ?? DEFAULT_APP_ORIGINS[0];
 }
 
 /** Returns true when the given Origin header is in the configured allowlist. */

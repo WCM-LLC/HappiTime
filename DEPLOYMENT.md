@@ -21,7 +21,8 @@ GitHub Actions (DB deploy workflow) expects:
   environment, redeploy, then configure the Stripe webhook endpoint:
   `https://<your-domain>/api/stripe/webhook`
   with `checkout.session.completed`, `customer.subscription.updated`,
-  `customer.subscription.deleted`, and `invoice.payment_failed`.
+  `customer.subscription.deleted`, `invoice.paid`, and
+  `invoice.payment_failed`.
 - Use Stripe test-mode values first. The Basic, Featured, and Premium Stripe
   products should each have one active recurring monthly price.
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createServiceClient } from '@/utils/supabase/server';
 import {
   STRIPE_BILLING_CONFIG_ERROR,
   getStripe,
@@ -7,6 +7,7 @@ import {
   isStripeConfigurationError,
   type SubscriptionPlan,
 } from '@/utils/stripe';
+import { checkVenueBillingAccess } from '@/utils/billing-access';
 import { getSafeAppOrigin, isTrustedBrowserRequest } from '@/utils/security';
 
 export const runtime = 'nodejs';
@@ -30,23 +31,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'venueId, orgId, and a paid plan are required' }, { status: 400 });
     }
 
-    // Verify the user has owner/manager access via the org
-    const { data: member } = await supabase
-      .from('org_members')
-      .select('role')
-      .eq('org_id', orgId)
-      .eq('user_id', user.id)
-      .in('role', ['owner', 'manager'])
-      .single();
-
-    if (!member) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const access = await checkVenueBillingAccess(supabase, user, orgId, venueId);
+    if (!access.allowed) {
+      return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
     const stripe = getStripe();
+    const billingSupabase = access.isPlatformAdmin ? createServiceClient() : supabase;
 
     // Reuse existing Stripe customer if the venue already has one
-    const { data: existingSub } = await supabase
+    const { data: existingSub } = await billingSupabase
       .from('venue_subscriptions')
       .select('stripe_customer_id')
       .eq('venue_id', venueId)
@@ -55,16 +49,10 @@ export async function POST(req: NextRequest) {
     let customerId: string | undefined = existingSub?.stripe_customer_id ?? undefined;
 
     if (!customerId) {
-      const { data: venue } = await supabase
-        .from('venues')
-        .select('name, org_name')
-        .eq('id', venueId)
-        .single();
-
       const customer = await stripe.customers.create({
         email: user.email,
-        name: venue?.org_name ?? venue?.name ?? undefined,
-        metadata: { venue_id: venueId, user_id: user.id },
+        name: access.venue.org_name ?? access.venue.name ?? undefined,
+        metadata: { venue_id: venueId, org_id: orgId, user_id: user.id },
       });
       customerId = customer.id;
     }

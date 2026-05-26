@@ -27,23 +27,31 @@ test("getVenuePlan returns 'free' when no record exists (null data)", async () =
 test("getVenuePlan returns the stored plan when status is 'active'", async () => {
   const plan = await getVenuePlan(
     "venue-uuid-2",
-    makeMockClient({ plan: "pro", status: "active" })
+    makeMockClient({ plan: "basic", status: "active" })
   );
-  assert.equal(plan, "pro");
+  assert.equal(plan, "basic");
 });
 
-test("getVenuePlan returns the stored plan when status is 'trial'", async () => {
+test("getVenuePlan returns the stored plan when status is 'trialing'", async () => {
   const plan = await getVenuePlan(
     "venue-uuid-3",
-    makeMockClient({ plan: "business", status: "trial" })
+    makeMockClient({ plan: "featured", status: "trialing" })
   );
-  assert.equal(plan, "business");
+  assert.equal(plan, "featured");
 });
 
-test("getVenuePlan returns 'free' when status is 'inactive' (fail-open)", async () => {
+test("getVenuePlan returns 'free' when status is 'past_due' (fail-open)", async () => {
   const plan = await getVenuePlan(
     "venue-uuid-4",
-    makeMockClient({ plan: "business", status: "inactive" })
+    makeMockClient({ plan: "premium", status: "past_due" })
+  );
+  assert.equal(plan, "free");
+});
+
+test("getVenuePlan returns 'free' for legacy unknown venue plans", async () => {
+  const plan = await getVenuePlan(
+    "venue-uuid-5",
+    makeMockClient({ plan: "business", status: "active" })
   );
   assert.equal(plan, "free");
 });

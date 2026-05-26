@@ -17,6 +17,7 @@ Server-only (required for venue billing / Stripe checkout):
 - `STRIPE_PRODUCT_FEATURED` — Stripe product ID for the Featured monthly plan.
 - `STRIPE_PRODUCT_PREMIUM` — Stripe product ID for the Premium monthly plan.
 - `STRIPE_WEBHOOK_SECRET` — Stripe webhook signing secret for `/api/stripe/webhook`.
+- `APP_ALLOWED_ORIGINS` — comma-separated console origins allowed to create Stripe Checkout and Portal sessions.
 
 Optional Stripe:
 - `STRIPE_WEBHOOK_SECRET_THIN` — only set this if a second Stripe webhook endpoint/signing secret is configured.

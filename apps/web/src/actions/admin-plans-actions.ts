@@ -3,17 +3,67 @@
 import { revalidatePath } from 'next/cache';
 import { assertAdmin, getAdminClient } from '@/utils/admin';
 
+const VENUE_PLANS = new Set(['free', 'basic', 'featured', 'premium']);
+const VENUE_STATUSES = new Set(['active', 'past_due', 'canceled', 'trialing', 'paused']);
+const PAID_VENUE_PLANS = new Set(['basic', 'featured', 'premium']);
+
+function normalizeVenuePlan(value: string) {
+  const plan = value === 'listed' ? 'free' : value;
+  if (!VENUE_PLANS.has(plan)) throw new Error('Invalid venue plan');
+  return plan;
+}
+
+function normalizeVenueStatus(value: string) {
+  const status = value === 'trial' ? 'trialing' : value === 'inactive' ? 'canceled' : value;
+  if (!VENUE_STATUSES.has(status)) throw new Error('Invalid venue subscription status');
+  return status;
+}
+
+function promotionTierFor(plan: string, status: string) {
+  return (status === 'active' || status === 'trialing') && PAID_VENUE_PLANS.has(plan)
+    ? plan
+    : null;
+}
+
 export async function adminUpsertVenueSubscription(formData: FormData) {
   await assertAdmin();
   const venueId = formData.get('venue_id') as string | null;
-  const plan    = formData.get('plan')     as string | null;
-  const status  = formData.get('status')   as string | null;
-  if (!venueId || !plan || !status) throw new Error('venue_id, plan, and status are required');
+  const rawPlan = formData.get('plan')     as string | null;
+  const rawStatus = formData.get('status')   as string | null;
+  if (!venueId || !rawPlan || !rawStatus) throw new Error('venue_id, plan, and status are required');
+  const plan = normalizeVenuePlan(rawPlan);
+  const status = normalizeVenueStatus(rawStatus);
   const supabase = getAdminClient();
-  const { error } = await supabase
+
+  const { data: venue, error: venueError } = await supabase
+    .from('venues')
+    .select('org_id')
+    .eq('id', venueId)
+    .maybeSingle();
+
+  if (venueError) throw new Error(venueError.message);
+  if (!venue?.org_id) throw new Error('Venue not found');
+
+  const { error } = await (supabase as any)
     .from('venue_subscriptions')
-    .upsert({ venue_id: venueId, plan, status }, { onConflict: 'venue_id' });
+    .upsert(
+      {
+        venue_id: venueId,
+        org_id: venue.org_id,
+        plan,
+        status,
+        manual_override: true,
+      },
+      { onConflict: 'venue_id' },
+    );
   if (error) throw new Error(error.message);
+
+  const { error: tierError } = await supabase
+    .from('venues')
+    .update({ promotion_tier: promotionTierFor(plan, status) } as any)
+    .eq('id', venueId);
+
+  if (tierError) throw new Error(tierError.message);
   revalidatePath('/admin/plans');
 }
 
@@ -41,6 +91,13 @@ export async function adminDeleteVenueSubscription(formData: FormData) {
     .delete()
     .eq('venue_id', venueId);
   if (error) throw new Error(error.message);
+
+  const { error: venueError } = await supabase
+    .from('venues')
+    .update({ promotion_tier: null } as any)
+    .eq('id', venueId);
+
+  if (venueError) throw new Error(venueError.message);
   revalidatePath('/admin/plans');
 }
 

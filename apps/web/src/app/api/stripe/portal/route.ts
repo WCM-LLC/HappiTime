@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
+import { createClient, createServiceClient } from '@/utils/supabase/server';
 import {
   STRIPE_BILLING_CONFIG_ERROR,
   getStripe,
   isStripeConfigurationError,
 } from '@/utils/stripe';
+import { checkVenueBillingAccess } from '@/utils/billing-access';
 import { getSafeAppOrigin, isTrustedBrowserRequest } from '@/utils/security';
 
 export const runtime = 'nodejs';
@@ -23,19 +24,14 @@ export async function POST(req: NextRequest) {
 
     const { venueId, orgId } = await req.json() as { venueId: string; orgId: string };
 
-    const { data: member } = await supabase
-      .from('org_members')
-      .select('role')
-      .eq('org_id', orgId)
-      .eq('user_id', user.id)
-      .in('role', ['owner', 'manager'])
-      .single();
-
-    if (!member) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const access = await checkVenueBillingAccess(supabase, user, orgId, venueId);
+    if (!access.allowed) {
+      return NextResponse.json({ error: access.error }, { status: access.status });
     }
 
-    const { data: sub } = await supabase
+    const billingSupabase = access.isPlatformAdmin ? createServiceClient() : supabase;
+
+    const { data: sub } = await billingSupabase
       .from('venue_subscriptions')
       .select('stripe_customer_id')
       .eq('venue_id', venueId)

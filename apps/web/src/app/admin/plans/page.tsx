@@ -53,6 +53,10 @@ const PLAN_BADGE: Record<string, string> = {
 
 const STATUS_BADGE: Record<string, string> = {
   active:   'bg-green-50 text-green-700',
+  trialing: 'bg-blue-50 text-blue-700',
+  past_due: 'bg-amber-50 text-amber-700',
+  paused:   'bg-surface text-muted border border-border',
+  canceled: 'bg-surface text-muted border border-border',
   inactive: 'bg-surface text-muted border border-border',
   trial:    'bg-blue-50 text-blue-700',
 };
@@ -283,7 +287,7 @@ export default async function PlansPage() {
                     required
                     className="h-9 px-3 rounded-md border border-border bg-background text-body-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand"
                   >
-                    <option value="listed">listed</option>
+                    <option value="free">free</option>
                     <option value="basic">basic</option>
                     <option value="featured">featured</option>
                     <option value="premium">premium</option>
@@ -299,8 +303,10 @@ export default async function PlansPage() {
                     className="h-9 px-3 rounded-md border border-border bg-background text-body-sm text-foreground focus:outline-none focus:ring-1 focus:ring-brand"
                   >
                     <option value="active">active</option>
-                    <option value="trial">trial</option>
-                    <option value="inactive">inactive</option>
+                    <option value="trialing">trialing</option>
+                    <option value="past_due">past_due</option>
+                    <option value="paused">paused</option>
+                    <option value="canceled">canceled</option>
                   </select>
                 </div>
 

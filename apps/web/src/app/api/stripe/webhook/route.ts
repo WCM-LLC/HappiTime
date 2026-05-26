@@ -12,6 +12,10 @@ const TIER_FOR_PLAN: Record<string, string> = {
   premium:  'premium',
 };
 
+const PAID_PLANS = new Set(Object.keys(TIER_FOR_PLAN));
+
+type DbSubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'trialing' | 'paused';
+
 function verifyWebhookEvent(payload: Buffer, sig: string): Stripe.Event | null {
   const stripe = getStripe();
   const secrets = [
@@ -29,6 +33,65 @@ function verifyWebhookEvent(payload: Buffer, sig: string): Stripe.Event | null {
   return null;
 }
 
+function getStripeId(value: string | { id?: string } | null | undefined): string | null {
+  if (typeof value === 'string') return value;
+  return typeof value?.id === 'string' ? value.id : null;
+}
+
+function isPaidPlan(value: unknown): value is 'basic' | 'featured' | 'premium' {
+  return typeof value === 'string' && PAID_PLANS.has(value);
+}
+
+function mapSubscriptionStatus(status: string): DbSubscriptionStatus {
+  switch (status) {
+    case 'active':
+    case 'trialing':
+    case 'past_due':
+    case 'paused':
+      return status;
+    case 'incomplete':
+    case 'unpaid':
+      return 'past_due';
+    case 'canceled':
+    case 'incomplete_expired':
+    default:
+      return 'canceled';
+  }
+}
+
+function grantsPaidAccess(status: DbSubscriptionStatus) {
+  return status === 'active' || status === 'trialing';
+}
+
+function unixSecondsToIso(value: unknown): string | null {
+  return typeof value === 'number' ? new Date(value * 1000).toISOString() : null;
+}
+
+function getSubscriptionPriceId(sub: Stripe.Subscription): string | null {
+  return (sub as any).items?.data?.[0]?.price?.id ?? null;
+}
+
+function subscriptionProductMatchesPlan(sub: Stripe.Subscription, plan: 'basic' | 'featured' | 'premium') {
+  const expectedProduct = process.env[`STRIPE_PRODUCT_${plan.toUpperCase()}`];
+  if (!expectedProduct) return true;
+
+  const items = ((sub as any).items?.data ?? []) as Array<{ price?: { product?: string | { id?: string } } }>;
+  const productIds = items
+    .map((item) => getStripeId(item.price?.product ?? null))
+    .filter((item): item is string => Boolean(item));
+
+  return productIds.length === 0 || productIds.includes(expectedProduct);
+}
+
+function getInvoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
+  const rawInvoice = invoice as any;
+  return (
+    getStripeId(rawInvoice.subscription) ??
+    getStripeId(rawInvoice.parent?.subscription_details?.subscription) ??
+    null
+  );
+}
+
 async function handleSubscriptionUpsert(
   supabase: ReturnType<typeof createServiceClient>,
   sub: Stripe.Subscription,
@@ -36,35 +99,66 @@ async function handleSubscriptionUpsert(
 ) {
   const venueId = sub.metadata?.venue_id;
   const orgId   = sub.metadata?.org_id;
-  const plan    = sub.metadata?.plan as string | undefined;
+  const plan    = sub.metadata?.plan;
 
-  if (!venueId || !orgId || !plan) {
+  if (!venueId || !orgId || !isPaidPlan(plan)) {
     console.warn('[webhook] subscription missing venue_id, org_id, or plan metadata', sub.id);
     return;
   }
 
-  const isActive = sub.status === 'active' || sub.status === 'trialing';
+  if (!subscriptionProductMatchesPlan(sub, plan)) {
+    console.warn('[webhook] subscription product does not match metadata plan', sub.id);
+    return;
+  }
+
+  const { data: venue, error: venueLookupError } = await supabase
+    .from('venues')
+    .select('id')
+    .eq('id', venueId)
+    .eq('org_id', orgId)
+    .maybeSingle();
+
+  if (venueLookupError) {
+    throw new Error(`Venue lookup failed: ${venueLookupError.message}`);
+  }
+
+  if (!venue) {
+    console.warn('[webhook] subscription venue/org metadata did not match a venue', sub.id);
+    return;
+  }
+
+  const status = mapSubscriptionStatus(sub.status);
+  const isActive = grantsPaidAccess(status);
   // null = free/listed tier; matches existing venue rows where promotion_tier is null
   const tier   = isActive ? (TIER_FOR_PLAN[plan] ?? null) : null;
-  const status = isActive ? 'active' : sub.status === 'past_due' ? 'past_due' : 'inactive';
+  const priceId = getSubscriptionPriceId(sub);
+  const currentPeriodStart = unixSecondsToIso((sub as any).current_period_start);
+  const currentPeriodEnd = unixSecondsToIso((sub as any).current_period_end);
+
+  const subscriptionPatch: Record<string, unknown> = {
+    venue_id:               venueId,
+    org_id:                 orgId,
+    plan:                   status === 'canceled' ? 'free' : plan,
+    status,
+    stripe_subscription_id: sub.id,
+    stripe_customer_id:     customerId,
+    manual_override:        false,
+  };
+
+  if (priceId) subscriptionPatch.stripe_price_id = priceId;
+  if (currentPeriodStart) subscriptionPatch.stripe_current_period_start = currentPeriodStart;
+  if (currentPeriodEnd) subscriptionPatch.stripe_current_period_end = currentPeriodEnd;
 
   // Update venue_subscriptions
   const { error: subError } = await (supabase as any)
     .from('venue_subscriptions')
     .upsert(
-      {
-        venue_id:               venueId,
-        org_id:                 orgId,
-        plan:                   isActive ? plan : 'listed',
-        status,
-        stripe_subscription_id: sub.id,
-        stripe_customer_id:     customerId,
-      },
+      subscriptionPatch,
       { onConflict: 'venue_id' }
     );
 
   if (subError) {
-    console.error('[webhook] venue_subscriptions upsert failed', subError.message);
+    throw new Error(`venue_subscriptions upsert failed: ${subError.message}`);
   }
 
   // Keep venues.promotion_tier in sync so mobile push logic stays correct
@@ -74,7 +168,7 @@ async function handleSubscriptionUpsert(
     .eq('id', venueId);
 
   if (venueError) {
-    console.error('[webhook] venues promotion_tier update failed', venueError.message);
+    throw new Error(`venues promotion_tier update failed: ${venueError.message}`);
   }
 }
 
@@ -100,26 +194,62 @@ export async function POST(req: NextRequest) {
         if (session.mode !== 'subscription' || !session.subscription) break;
 
         const sub = await getStripe().subscriptions.retrieve(session.subscription as string);
-        await handleSubscriptionUpsert(supabase, sub, session.customer as string);
+        const customerId = getStripeId(session.customer) ?? getStripeId(sub.customer);
+        if (!customerId) throw new Error('Missing Stripe customer id');
+        await handleSubscriptionUpsert(supabase, sub, customerId);
         break;
       }
 
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
-        await handleSubscriptionUpsert(supabase, sub, sub.customer as string);
+        const customerId = getStripeId(sub.customer);
+        if (!customerId) throw new Error('Missing Stripe customer id');
+        await handleSubscriptionUpsert(supabase, sub, customerId);
+        break;
+      }
+
+      case 'invoice.paid': {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subId = getInvoiceSubscriptionId(invoice);
+        if (!subId) break;
+
+        const sub = await getStripe().subscriptions.retrieve(subId);
+        const customerId = getStripeId(sub.customer);
+        if (!customerId) throw new Error('Missing Stripe customer id');
+        await handleSubscriptionUpsert(supabase, sub, customerId);
         break;
       }
 
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
-        const subId = (invoice as any).subscription as string | undefined;
+        const subId = getInvoiceSubscriptionId(invoice);
         if (!subId) break;
 
-        await (supabase as any)
+        const { data: affectedRows, error: subError } = await (supabase as any)
           .from('venue_subscriptions')
           .update({ status: 'past_due' })
-          .eq('stripe_subscription_id', subId);
+          .eq('stripe_subscription_id', subId)
+          .select('venue_id');
+
+        if (subError) {
+          throw new Error(`invoice payment failure update failed: ${subError.message}`);
+        }
+
+        const affectedVenueIds = Array.from(
+          new Set(((affectedRows ?? []) as Array<{ venue_id: string }>).map((row) => row.venue_id).filter(Boolean)),
+        );
+
+        if (affectedVenueIds.length > 0) {
+          const { error: venueError } = await supabase
+            .from('venues')
+            .update({ promotion_tier: null } as any)
+            .in('id', affectedVenueIds);
+
+          if (venueError) {
+            throw new Error(`invoice payment failure venue update failed: ${venueError.message}`);
+          }
+        }
         break;
       }
 

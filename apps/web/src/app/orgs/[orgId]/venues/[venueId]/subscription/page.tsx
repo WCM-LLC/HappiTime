@@ -3,7 +3,7 @@ import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import { SubscriptionPanel } from '@/components/SubscriptionPanel';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
-import { isAdminEmail } from '@/utils/admin-emails';
+import { checkVenueBillingAccess } from '@/utils/billing-access';
 import type { SubscriptionPlan } from '@/utils/stripe';
 
 export default async function SubscriptionPage({
@@ -21,29 +21,11 @@ export default async function SubscriptionPage({
   const { data: { user } } = await authClient.auth.getUser();
   if (!user) redirect('/login');
 
-  const userIsAdmin = await isAdminEmail(user.email);
-  const supabase = userIsAdmin ? createServiceClient() : await createClient();
+  const access = await checkVenueBillingAccess(authClient, user, orgId, venueId);
+  if (!access.allowed) redirect(`/orgs/${orgId}/venues/${venueId}`);
 
-  // Require owner or manager role
-  const { data: membership } = await (await createClient())
-    .from('org_members')
-    .select('role')
-    .eq('org_id', orgId)
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  const role = membership?.role ?? '';
-  const canAccess = userIsAdmin || role === 'owner' || role === 'manager';
-  if (!canAccess) redirect(`/orgs/${orgId}/venues/${venueId}`);
-
-  // Venue name for breadcrumb
-  const { data: venue } = await supabase
-    .from('venues')
-    .select('name, org_name')
-    .eq('id', venueId)
-    .single();
-
-  const displayName = venue?.org_name?.trim() || venue?.name || 'Venue';
+  const supabase = access.isPlatformAdmin ? createServiceClient() : authClient;
+  const displayName = access.venue.org_name?.trim() || access.venue.name || 'Venue';
 
   // Current subscription
   const { data: venueSub } = await (supabase as any)
