@@ -1,4 +1,5 @@
 export const GUIDE_AUTHORING_PATH = '/dashboard/guides';
+export const GUIDE_EDITOR_PATH = '/dashboard/guides/new';
 export const LOGIN_PATH = '/login';
 export const SUPER_USER_LOGIN_PATH = '/super-user/login';
 

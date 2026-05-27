@@ -46,13 +46,13 @@ test("/login renders Super User Access", async (t) => {
   assert.equal(res.status, 200);
   const html = await res.text();
   assert.match(html, /Super User Access/);
-  assert.match(html, /href="\/super-user\/login\?next=%2Fdashboard%2Fguides"/);
+  assert.match(html, /href="\/super-user\/login\?next=%2Fdashboard%2Fguides%2Fnew"/);
   assert.doesNotMatch(html, /Log in with Apple/);
   assert.doesNotMatch(html, /Log in with Google/);
 });
 
 test("/super-user/login renders app-style auth methods", async (t) => {
-  const res = await tryFetch(`${BASE_URL}/super-user/login?next=%2Fdashboard%2Fguides`);
+  const res = await tryFetch(`${BASE_URL}/super-user/login`);
   if (res === null) {
     t.skip(`server not reachable at ${BASE_URL}`);
     return;
@@ -64,18 +64,22 @@ test("/super-user/login renders app-style auth methods", async (t) => {
   assert.match(html, /Log in with Apple/);
   assert.match(html, /Log in with Google/);
   assert.match(html, /Send magic link/);
+  assert.match(html, /"next":"\/dashboard\/guides\/new"/);
 });
 
 test("Super User OAuth uses the console origin, not the marketing /kc origin", async () => {
-  const superUserLogin = await readFile(
+  const superUserLoginPage = await readFile(
     new URL("app/super-user/login/page.tsx", WEB_SRC),
     "utf8",
   );
   const oauthButtons = await readFile(new URL("components/OAuthButtons.tsx", WEB_SRC), "utf8");
   const callbackRoute = await readFile(new URL("app/auth/callback/route.ts", WEB_SRC), "utf8");
+  const loginPage = await readFile(new URL("app/login/page.tsx", WEB_SRC), "utf8");
 
-  assert.match(superUserLogin, /resolveConsoleOrigin\(await headers\(\)\)/);
-  assert.match(superUserLogin, /redirectOrigin=\{redirectOrigin\}/);
+  assert.match(superUserLoginPage, /resolveConsoleOrigin\(await headers\(\)\)/);
+  assert.match(superUserLoginPage, /redirectOrigin=\{redirectOrigin\}/);
+  assert.match(loginPage, /loginPathFor\(GUIDE_EDITOR_PATH\)/);
+  assert.match(superUserLoginPage, /GUIDE_EDITOR_PATH/);
   assert.match(oauthButtons, /redirectOrigin \?\? window\.location\.origin/);
   assert.match(callbackRoute, /isRecoveryFlow \|\| isGuideAuthoringPath\(next\)/);
 });

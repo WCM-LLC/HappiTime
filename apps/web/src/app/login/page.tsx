@@ -1,5 +1,5 @@
 import { Logo } from '@/components/ui/Logo';
-import { GUIDE_AUTHORING_PATH, loginPathFor, safeNextPath } from '@/utils/auth-paths';
+import { GUIDE_EDITOR_PATH, loginPathFor, safeNextPath } from '@/utils/auth-paths';
 import { login } from '../../actions/login-actions';
 
 export default async function LoginPage({
@@ -135,7 +135,7 @@ export default async function LoginPage({
                   Admin access
                 </a>
                 <a
-                  href={loginPathFor(GUIDE_AUTHORING_PATH)}
+                  href={loginPathFor(GUIDE_EDITOR_PATH)}
                   className="inline-flex items-center justify-center h-10 px-4 rounded-md border border-border bg-surface text-body-sm font-semibold text-foreground hover:bg-background transition-colors"
                 >
                   Super User Access

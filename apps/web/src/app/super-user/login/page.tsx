@@ -2,7 +2,7 @@ import { headers } from 'next/headers';
 import OAuthButtons from '@/components/OAuthButtons';
 import { Logo } from '@/components/ui/Logo';
 import { sendSuperUserMagicLink } from '@/actions/login-actions';
-import { GUIDE_AUTHORING_PATH, isGuideAuthoringPath, safeNextPath } from '@/utils/auth-paths';
+import { GUIDE_EDITOR_PATH, isGuideAuthoringPath, safeNextPath } from '@/utils/auth-paths';
 import { resolveConsoleOrigin } from '@/utils/auth-redirects';
 
 const NOTICE: Record<string, string> = {
@@ -23,7 +23,7 @@ export default async function SuperUserLoginPage({
 }) {
   const sp = await searchParams;
   const safeNext = safeNextPath(sp.next);
-  const next = isGuideAuthoringPath(safeNext) ? safeNext! : GUIDE_AUTHORING_PATH;
+  const next = isGuideAuthoringPath(safeNext) ? safeNext! : GUIDE_EDITOR_PATH;
   const noticeText = sp.notice ? (NOTICE[sp.notice] ?? null) : null;
   const errorText = sp.error ? (ERRORS[sp.error] ?? 'Something went wrong. Try again.') : null;
   const redirectOrigin = resolveConsoleOrigin(await headers());

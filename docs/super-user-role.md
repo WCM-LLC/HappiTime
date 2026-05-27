@@ -25,10 +25,11 @@ Super Users sign in at the **admin console** using the same email and password t
 
 **Console URL:** `https://happitime-console.vercel.app`
 
-1. Go to the console URL and click **Sign in**
-2. Enter the email and password associated with their HappiTime account
-3. After sign-in they land on `/dashboard`
-4. The **Guides** section is visible in the nav — click it to start writing
+**Editor entry:** `https://happitime-console.vercel.app/dashboard/guides/new`
+
+1. Go to the console URL and click **Super User Access**
+2. Sign in with Apple, Google, or the email magic link associated with their HappiTime account
+3. After sign-in they land on `/dashboard/guides/new`
 
 > If a user tries to access `/dashboard/guides` without the Super User role, they are redirected to `/dashboard?error=not_authorized`.
 
@@ -36,7 +37,7 @@ Super Users sign in at the **admin console** using the same email and password t
 
 ## What Super Users can do
 
-### Guide authoring (`/dashboard/guides`)
+### Guide authoring (`/dashboard/guides/new`)
 
 - **Create** a new guide from a markdown editor (title, subtitle, city, tags, body)
 - **Save drafts** at any point — drafts are private and not visible on the directory
@@ -72,7 +73,7 @@ Super Users with `auto_publish_enabled = true` skip the review queue entirely �
 In the console at `/admin/users`:
 
 1. **Search** for a user by handle or display name
-2. Click **Promote** to grant `role = 'super_user'` — they can now access `/dashboard/guides` immediately
+2. Click **Promote** to grant `role = 'super_user'` — they can now access `/dashboard/guides/new` immediately
 3. Click **Revoke** to remove the role — they lose guide authoring access but keep their account
 4. Toggle **Auto-publish** on or off per user — only visible for users who are already Super Users
 
