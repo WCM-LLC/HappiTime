@@ -64,7 +64,7 @@ test("/super-user/login renders app-style auth methods", async (t) => {
   assert.match(html, /Log in with Apple/);
   assert.match(html, /Log in with Google/);
   assert.match(html, /Send magic link/);
-  assert.match(html, /"next":"\/dashboard\/guides\/new"/);
+  assert.match(html, /name="next" value="\/dashboard\/guides\/new"/);
 });
 
 test("Super User OAuth uses the console origin, not the marketing /kc origin", async () => {
@@ -77,6 +77,7 @@ test("Super User OAuth uses the console origin, not the marketing /kc origin", a
   const loginPage = await readFile(new URL("app/login/page.tsx", WEB_SRC), "utf8");
 
   assert.match(superUserLoginPage, /resolveConsoleOrigin\(await headers\(\)\)/);
+  assert.match(superUserLoginPage, /<OAuthButtons next=\{next\}/);
   assert.match(superUserLoginPage, /redirectOrigin=\{redirectOrigin\}/);
   assert.match(loginPage, /loginPathFor\(GUIDE_EDITOR_PATH\)/);
   assert.match(superUserLoginPage, /GUIDE_EDITOR_PATH/);

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import UserBar from '@/components/layout/UserBar';
 import MenuSectionItemAdder from '@/components/MenuSectionItemAdder';
@@ -22,6 +23,7 @@ import {
   unpublishOrganizationMenu,
 } from '../../../actions/organization-actions';
 import { fetchVenuesByOrg, type VenueSummary as VenueRow } from '@happitime/shared-api';
+import { loginPathFor } from '@/utils/auth-paths';
 
 const HH_STATUS_PUBLISHED = 'published';
 
@@ -66,11 +68,7 @@ export default async function OrgPage({
   const user = auth.user;
 
   if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted">Not authenticated.</p>
-      </div>
-    );
+    redirect(loginPathFor(`/orgs/${orgId}`));
   }
 
   const userIsAdmin = await isAdminEmail(user.email);

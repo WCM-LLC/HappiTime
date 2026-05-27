@@ -1,7 +1,9 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import UserBar from '@/components/layout/UserBar';
 import ConfirmDeleteForm from '@/components/ConfirmDeleteForm';
 import { createClient } from '@/utils/supabase/server';
+import { loginPathFor } from '@/utils/auth-paths';
 import {
   cancelOrgInvite,
   createOrgInvite,
@@ -102,11 +104,7 @@ export default async function OrgAccessPage({
   const user = auth.user;
 
   if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted">Not authenticated.</p>
-      </div>
-    );
+    redirect(loginPathFor(`/orgs/${orgId}/access`));
   }
 
   const { data: membership } = await supabase

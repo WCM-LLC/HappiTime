@@ -60,3 +60,22 @@ test("backend RLS migrations keep backend tables and rate-limit function service
   assert.match(functionSql, /REVOKE ALL ON FUNCTION public\.check_rate_limit\(text, integer, integer\) FROM PUBLIC, anon, authenticated/i);
   assert.match(functionSql, /GRANT EXECUTE ON FUNCTION public\.check_rate_limit\(text, integer, integer\) TO service_role/i);
 });
+
+test("avatar bucket repair keeps rendered profile image URLs public", () => {
+  const sql = readMigration("20260527181653_repair_avatar_bucket_and_guide_review_queue.sql");
+
+  assert.match(sql, /UPDATE storage\.buckets\s+SET public = true/i);
+  assert.match(sql, /WHERE id = 'user-avatars'/i);
+  assert.match(sql, /ON CONFLICT \(id\) DO UPDATE\s+SET public = EXCLUDED\.public/i);
+});
+
+test("guide submission repair promotes unresolved submitted drafts into admin review", () => {
+  const sql = readMigration("20260527181653_repair_avatar_bucket_and_guide_review_queue.sql");
+
+  assert.match(sql, /UPDATE public\.guides g\s+SET status = 'pending_review'/i);
+  assert.match(sql, /gs\.submitted_by IS NOT NULL/i);
+  assert.match(sql, /gs\.decision IS NULL/i);
+  assert.match(sql, /CREATE OR REPLACE FUNCTION app_private\.ensure_guide_pending_on_submission/i);
+  assert.match(sql, /CREATE TRIGGER guide_submissions_promote_pending_review/i);
+  assert.doesNotMatch(sql, /SECURITY DEFINER/i);
+});

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import UserBar from '@/components/layout/UserBar';
 import MenuSectionItemAdder from '@/components/MenuSectionItemAdder';
@@ -9,6 +10,7 @@ import type { SubscriptionPlan } from '@/utils/stripe';
 import { PLAN_LABEL } from '@/utils/subscription-features';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
 import { isAdminEmail } from '@/utils/admin-emails';
+import { loginPathFor } from '@/utils/auth-paths';
 import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
 import {
   updateVenue,
@@ -251,11 +253,7 @@ export default async function VenuePage({
   const user = auth.user;
 
   if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted">Not authenticated.</p>
-      </div>
-    );
+    redirect(loginPathFor(`/orgs/${orgId}/venues/${venueId}`));
   }
 
   const userIsAdmin = await isAdminEmail(user.email);

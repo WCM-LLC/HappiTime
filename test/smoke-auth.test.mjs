@@ -40,20 +40,23 @@ test("/dashboard (logged-out) redirects to /login", async (t) => {
   );
 });
 
-test("/orgs (logged-out) redirects to /login", async (t) => {
-  const res = await tryFetch(`${BASE_URL}/orgs`);
+test("/orgs/[orgId] (logged-out) redirects to /login", async (t) => {
+  const protectedPath = "/orgs/00000000-0000-4000-8000-000000000000";
+  const res = await tryFetch(`${BASE_URL}${protectedPath}`);
 
   if (res === null) {
     t.skip(`server not reachable at ${BASE_URL}`);
     return;
   }
 
-  const finalPath = new URL(res.url).pathname;
+  const finalUrl = new URL(res.url);
+  const finalPath = finalUrl.pathname;
   assert.match(
     finalPath,
     /^\/login/,
     `Expected redirect to /login, got: ${res.url}`
   );
+  assert.equal(finalUrl.searchParams.get("next"), protectedPath);
 });
 
 test("/login (logged-out) is publicly accessible", async (t) => {
