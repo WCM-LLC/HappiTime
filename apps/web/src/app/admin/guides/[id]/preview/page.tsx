@@ -98,11 +98,18 @@ export default async function AdminGuidePreviewPage({
               This preview does not publish or expose the guide publicly.
             </p>
           </div>
-          <Link href="/admin/guides">
-            <span className="inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-muted hover:text-foreground hover:bg-background transition-colors cursor-pointer">
-              &larr; Guide Review
-            </span>
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href={`/admin/guides/${guide.id}/edit`}>
+              <span className="inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-muted hover:text-foreground hover:bg-background transition-colors cursor-pointer">
+                Edit guide
+              </span>
+            </Link>
+            <Link href="/admin/guides">
+              <span className="inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-muted hover:text-foreground hover:bg-background transition-colors cursor-pointer">
+                &larr; Guide Review
+              </span>
+            </Link>
+          </div>
         </div>
 
         <div className="rounded-md border border-warning bg-warning-light px-4 py-3 mb-6 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">

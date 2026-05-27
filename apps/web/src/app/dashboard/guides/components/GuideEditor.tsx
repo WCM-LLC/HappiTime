@@ -18,11 +18,17 @@ export type GuideEditorProps = {
   initialSubtitle?: string;
   initialBodyMd?: string;
   initialCity?: string;
+  initialNeighborhood?: string;
   initialTags?: string;
   initialCoverUrl?: string;
   status?: string;
   noticeText?: string | null;
   errorText?: string | null;
+  saveAction?: (formData: FormData) => void | Promise<void>;
+  submitAction?: (formData: FormData) => void | Promise<void>;
+  saveLabel?: string;
+  submitLabel?: string;
+  showSubmit?: boolean;
 };
 
 export function GuideEditor({
@@ -31,14 +37,20 @@ export function GuideEditor({
   initialSubtitle = '',
   initialBodyMd = '',
   initialCity = '',
+  initialNeighborhood = '',
   initialTags = '',
   initialCoverUrl = '',
   status = 'draft',
   noticeText,
   errorText,
+  saveAction = saveDraft,
+  submitAction = submitGuide,
+  saveLabel = 'Save draft',
+  submitLabel = 'Submit for review',
+  showSubmit = true,
 }: GuideEditorProps) {
   const [bodyMd, setBodyMd] = useState(initialBodyMd);
-  const canSubmit = status === 'draft';
+  const canSubmit = showSubmit && status === 'draft';
 
   return (
     <div>
@@ -88,7 +100,7 @@ export function GuideEditor({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* City */}
             <div>
               <label htmlFor="guide-city" className="text-body-sm font-medium text-foreground block mb-1.5">
@@ -99,6 +111,20 @@ export function GuideEditor({
                 name="city"
                 defaultValue={initialCity}
                 placeholder="Kansas City"
+                className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+              />
+            </div>
+
+            {/* Neighborhood */}
+            <div>
+              <label htmlFor="guide-neighborhood" className="text-body-sm font-medium text-foreground block mb-1.5">
+                Neighborhood
+              </label>
+              <input
+                id="guide-neighborhood"
+                name="neighborhood"
+                defaultValue={initialNeighborhood}
+                placeholder="Crossroads"
                 className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
               />
             </div>
@@ -152,17 +178,17 @@ export function GuideEditor({
         {/* Actions */}
         <div className="flex items-center gap-3">
           <button
-            formAction={saveDraft}
+            formAction={saveAction}
             className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer"
           >
-            Save draft
+            {saveLabel}
           </button>
           {canSubmit ? (
             <button
-              formAction={submitGuide}
+              formAction={submitAction}
               className="inline-flex items-center justify-center h-10 px-5 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer"
             >
-              Submit for review
+              {submitLabel}
             </button>
           ) : (
             <span className="text-body-sm text-muted">

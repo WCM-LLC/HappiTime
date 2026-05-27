@@ -201,6 +201,9 @@ export default async function AdminSuperUserDetailsPage({
                       </td>
                       <td className="px-4 py-3 text-muted hidden md:table-cell">{formatDate(guide.updated_at)}</td>
                       <td className="px-4 py-3 text-right">
+                        <Link href={`/admin/guides/${guide.id}/edit`} className="text-caption font-medium text-brand hover:underline mr-3">
+                          Edit
+                        </Link>
                         <Link href={`/admin/guides/${guide.id}/preview`} className="text-caption font-medium text-brand hover:underline">
                           Preview
                         </Link>

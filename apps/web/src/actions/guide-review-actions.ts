@@ -34,6 +34,7 @@ export async function saveAdminGuide(formData: FormData) {
   const subtitle = toStr(formData.get('subtitle')) || null;
   const body_md = toStr(formData.get('body_md'));
   const city = toStr(formData.get('city')) || null;
+  const neighborhood = toStr(formData.get('neighborhood')) || null;
   const cover_image_url = toStr(formData.get('cover_image_url')) || null;
   const tags = parseTags(toStr(formData.get('tags')));
 
@@ -52,7 +53,7 @@ export async function saveAdminGuide(formData: FormData) {
 
   const { error: updateErr } = await (db as any)
     .from('guides')
-    .update({ title, subtitle, body_md, city, cover_image_url, tags })
+    .update({ title, subtitle, body_md, city, neighborhood, cover_image_url, tags })
     .eq('id', id);
 
   if (updateErr) {

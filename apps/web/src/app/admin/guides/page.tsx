@@ -17,6 +17,7 @@ const NOTICE: Record<string, string> = {
 
 const ERRORS: Record<string, string> = {
   missing_guide_id: 'No guide was selected.',
+  guide_not_found: 'Guide not found.',
   approve_failed: 'Approval failed — try again.',
   reject_failed: 'Rejection failed — try again.',
   unpublish_failed: 'Unpublish failed — try again.',

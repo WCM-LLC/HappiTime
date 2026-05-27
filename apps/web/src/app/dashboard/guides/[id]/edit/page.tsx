@@ -35,7 +35,7 @@ export default async function EditGuidePage({
 
   const { data: guide } = await supabase
     .from('guides')
-    .select('id, title, subtitle, body_md, city, tags, cover_image_url, status, slug')
+    .select('id, title, subtitle, body_md, city, neighborhood, tags, cover_image_url, status, slug')
     .eq('id', id)
     .eq('author_id', user.id)
     .maybeSingle();
@@ -74,6 +74,7 @@ export default async function EditGuidePage({
             initialSubtitle={g.subtitle ?? ''}
             initialBodyMd={g.body_md}
             initialCity={g.city ?? ''}
+            initialNeighborhood={g.neighborhood ?? ''}
             initialTags={(g.tags ?? []).join(', ')}
             initialCoverUrl={g.cover_image_url ?? ''}
             status={g.status}

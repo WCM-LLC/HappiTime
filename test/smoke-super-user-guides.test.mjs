@@ -111,6 +111,35 @@ test("Admin guide review actions are bound to forms, not transient click handler
   }
 });
 
+test("Admin guide editing uses an admin-only save path", async () => {
+  const adminEditPage = await readFile(
+    new URL("app/admin/guides/[id]/edit/page.tsx", WEB_SRC),
+    "utf8",
+  );
+  const reviewActions = await readFile(new URL("actions/guide-review-actions.ts", WEB_SRC), "utf8");
+  const editor = await readFile(
+    new URL("app/dashboard/guides/components/GuideEditor.tsx", WEB_SRC),
+    "utf8",
+  );
+  const table = await readFile(new URL("app/admin/guides/AdminGuidesTable.tsx", WEB_SRC), "utf8");
+  const previewPage = await readFile(
+    new URL("app/admin/guides/[id]/preview/page.tsx", WEB_SRC),
+    "utf8",
+  );
+
+  assert.match(reviewActions, /export async function saveAdminGuide\(formData: FormData\)/);
+  assert.match(reviewActions, /await assertAdmin\(\)/);
+  assert.match(reviewActions, /getAdminClient\(\)/);
+  assert.match(reviewActions, /neighborhood/);
+  assert.match(adminEditPage, /saveAction=\{saveAdminGuide\}/);
+  assert.match(adminEditPage, /showSubmit=\{false\}/);
+  assert.match(editor, /saveAction = saveDraft/);
+  assert.match(editor, /submitAction = submitGuide/);
+  assert.match(editor, /name="neighborhood"/);
+  assert.match(table, /href=\{`\/admin\/guides\/\$\{g\.id\}\/edit`\}/);
+  assert.match(previewPage, /href=\{`\/admin\/guides\/\$\{guide\.id\}\/edit`\}/);
+});
+
 test("/dashboard/guides (logged-out) redirects through Super User login with next", async (t) => {
   const res = await tryFetch(`${BASE_URL}/dashboard/guides`);
   if (res === null) {

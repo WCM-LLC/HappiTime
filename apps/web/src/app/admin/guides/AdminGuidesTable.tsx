@@ -195,6 +195,9 @@ export function GuidesReviewTable({
                     <Link href={`/admin/guides/${g.id}/preview`} className="text-caption font-medium text-brand hover:underline">
                       Preview
                     </Link>
+                    <Link href={`/admin/guides/${g.id}/edit`} className="text-caption font-medium text-brand hover:underline">
+                      Edit
+                    </Link>
                     <Link href={`/admin/guides/${g.id}/preview#history`} className="text-caption font-medium text-muted hover:text-foreground hover:underline">
                       History
                     </Link>
@@ -290,6 +293,9 @@ export function GuideAuditTable({ rows }: { rows: GuideAuditRow[] }) {
                   {row.reviewer_email ? <span className="block text-caption text-muted-light">{row.reviewer_email}</span> : null}
                 </td>
                 <td className="px-4 py-3 text-right">
+                  <Link href={`/admin/guides/${row.guide_id}/edit`} className="text-caption font-medium text-brand hover:underline mr-3">
+                    Edit
+                  </Link>
                   <Link href={`/admin/guides/${row.guide_id}/preview#history`} className="text-caption font-medium text-brand hover:underline">
                     History
                   </Link>
