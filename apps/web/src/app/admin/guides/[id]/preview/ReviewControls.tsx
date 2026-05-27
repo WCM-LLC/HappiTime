@@ -1,18 +1,23 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { approveGuide, rejectGuide, unpublishGuide } from '@/actions/guide-review-actions';
 
+type GuideAction = (formData: FormData) => void | Promise<void>;
+
 function ConfirmingForm({
+  action,
   message,
   children,
 }: {
+  action: GuideAction;
   message: string;
   children: ReactNode;
 }) {
   return (
     <form
+      action={action}
       onSubmit={(event) => {
         if (!window.confirm(message)) event.preventDefault();
       }}
@@ -24,18 +29,15 @@ function ConfirmingForm({
 
 export function ReviewControls({ guideId, status }: { guideId: string; status: string }) {
   const [showReject, setShowReject] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
   if (status === 'pending_review') {
     return (
       <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
-          <ConfirmingForm message="Approve and publish this guide?">
+          <ConfirmingForm action={approveGuide} message="Approve and publish this guide?">
             <input type="hidden" name="id" value={guideId} />
             <button
-              formAction={approveGuide}
-              disabled={isPending}
-              onClick={() => startTransition(() => {})}
+              type="submit"
               className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-success text-white text-body-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
             >
               Approve
@@ -51,6 +53,7 @@ export function ReviewControls({ guideId, status }: { guideId: string; status: s
         </div>
         {showReject ? (
           <form
+            action={rejectGuide}
             className="mt-4"
             onSubmit={(event) => {
               if (!window.confirm('Reject this guide and return it to draft?')) event.preventDefault();
@@ -69,9 +72,7 @@ export function ReviewControls({ guideId, status }: { guideId: string; status: s
             />
             <div className="mt-3 flex gap-2">
               <button
-                formAction={rejectGuide}
-                disabled={isPending}
-                onClick={() => startTransition(() => {})}
+                type="submit"
                 className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-error text-white text-body-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
               >
                 Confirm reject
@@ -93,12 +94,10 @@ export function ReviewControls({ guideId, status }: { guideId: string; status: s
   if (status === 'published') {
     return (
       <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
-        <ConfirmingForm message="Unpublish this guide and move it to archived?">
+        <ConfirmingForm action={unpublishGuide} message="Unpublish this guide and move it to archived?">
           <input type="hidden" name="id" value={guideId} />
           <button
-            formAction={unpublishGuide}
-            disabled={isPending}
-            onClick={() => startTransition(() => {})}
+            type="submit"
             className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-error text-white text-body-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
           >
             Unpublish

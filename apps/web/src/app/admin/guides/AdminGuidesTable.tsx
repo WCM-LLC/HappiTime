@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { approveGuide, rejectGuide, unpublishGuide } from '@/actions/guide-review-actions';
+
+type GuideAction = (formData: FormData) => void | Promise<void>;
 
 export type GuideReviewRow = {
   id: string;
@@ -61,14 +63,17 @@ function authorLabel(row: Pick<GuideReviewRow, 'author_handle' | 'author_display
 }
 
 function ConfirmingForm({
+  action,
   message,
   children,
 }: {
+  action: GuideAction;
   message: string;
   children: ReactNode;
 }) {
   return (
     <form
+      action={action}
       onSubmit={(event) => {
         if (!window.confirm(message)) event.preventDefault();
       }}
@@ -79,9 +84,9 @@ function ConfirmingForm({
 }
 
 function RejectForm({ guideId, onCancel }: { guideId: string; onCancel: () => void }) {
-  const [isPending, startTransition] = useTransition();
   return (
     <form
+      action={rejectGuide}
       className="mt-2 p-3 rounded-md border border-border bg-background"
       onSubmit={(event) => {
         if (!window.confirm('Reject this guide and return it to draft?')) event.preventDefault();
@@ -100,9 +105,7 @@ function RejectForm({ guideId, onCancel }: { guideId: string; onCancel: () => vo
       />
       <div className="flex gap-2 mt-2">
         <button
-          formAction={rejectGuide}
-          disabled={isPending}
-          onClick={() => startTransition(() => {})}
+          type="submit"
           className="inline-flex items-center justify-center h-8 px-3 rounded-md bg-error text-white text-caption font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
         >
           Confirm reject
@@ -127,7 +130,6 @@ export function GuidesReviewTable({
   emptyMessage: string;
 }) {
   const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
 
   if (rows.length === 0) {
     return (
@@ -198,12 +200,10 @@ export function GuidesReviewTable({
                     </Link>
                     {g.status === 'pending_review' ? (
                       <>
-                        <ConfirmingForm message="Approve and publish this guide?">
+                        <ConfirmingForm action={approveGuide} message="Approve and publish this guide?">
                           <input type="hidden" name="id" value={g.id} />
                           <button
-                            formAction={approveGuide}
-                            disabled={isPending}
-                            onClick={() => startTransition(() => {})}
+                            type="submit"
                             className="text-caption font-medium text-success hover:underline cursor-pointer disabled:opacity-50"
                           >
                             Approve
@@ -221,12 +221,10 @@ export function GuidesReviewTable({
                       </>
                     ) : null}
                     {g.status === 'published' ? (
-                      <ConfirmingForm message="Unpublish this guide and move it to archived?">
+                      <ConfirmingForm action={unpublishGuide} message="Unpublish this guide and move it to archived?">
                         <input type="hidden" name="id" value={g.id} />
                         <button
-                          formAction={unpublishGuide}
-                          disabled={isPending}
-                          onClick={() => startTransition(() => {})}
+                          type="submit"
                           className="text-caption font-medium text-error hover:underline cursor-pointer disabled:opacity-50"
                         >
                           Unpublish

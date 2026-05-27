@@ -96,6 +96,21 @@ test("Supabase deployment docs require query-safe console auth redirect URLs", a
   assert.match(deployment, /Do not rely on the bare console domain alone/);
 });
 
+test("Admin guide review actions are bound to forms, not transient click handlers", async () => {
+  const table = await readFile(new URL("app/admin/guides/AdminGuidesTable.tsx", WEB_SRC), "utf8");
+  const previewControls = await readFile(
+    new URL("app/admin/guides/[id]/preview/ReviewControls.tsx", WEB_SRC),
+    "utf8",
+  );
+
+  for (const source of [table, previewControls]) {
+    assert.match(source, /<ConfirmingForm action=\{approveGuide\}/);
+    assert.match(source, /<ConfirmingForm action=\{unpublishGuide\}/);
+    assert.match(source, /<form\s+action=\{rejectGuide\}/);
+    assert.doesNotMatch(source, /startTransition\(\(\) => \{\}\)/);
+  }
+});
+
 test("/dashboard/guides (logged-out) redirects through Super User login with next", async (t) => {
   const res = await tryFetch(`${BASE_URL}/dashboard/guides`);
   if (res === null) {
