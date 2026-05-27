@@ -17,9 +17,12 @@ GitHub Actions (DB deploy workflow) expects:
   - For HappiTime console production, include:
     - `https://happitime-console.vercel.app/auth/callback`
     - `https://happitime-console.vercel.app/auth/recovery`
-  - Do not rely on the bare console domain alone. Supabase requires the
-    `redirectTo` URL path to match the allow list; otherwise OAuth and magic
-    links can fall back to the project Site URL (`happitime.biz`).
+    - `https://happitime-console.vercel.app/auth/callback**`
+    - `https://happitime-console.vercel.app/auth/recovery**`
+  - Do not rely on the bare console domain alone. Super User OAuth and magic
+    links include `next` query parameters, so Supabase needs query-safe
+    callback/recovery patterns; otherwise it can fall back to the project Site
+    URL (`happitime.biz`).
 - For Vercel billing setup, set the Stripe server-only env vars in the target
   environment, redeploy, then configure the Stripe webhook endpoint:
   `https://<your-domain>/api/stripe/webhook`
