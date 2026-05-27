@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { breadcrumbJsonLd } from "@/lib/structuredData";
 import { supabase } from "@/lib/supabase";
+import { normalizeGuideCoverImageUrl } from "@/lib/guideCoverUrl";
 
 const BASE = "https://happitime.biz";
 
@@ -29,6 +30,7 @@ export async function generateMetadata({
 
   const canonical = `${BASE}/guides/${slug}/`;
   const description = guide.subtitle ?? `A Super User guide from HappiTime — ${guide.title}`;
+  const coverImageUrl = normalizeGuideCoverImageUrl(guide.cover_image_url);
 
   return {
     title: `${guide.title} | HappiTime`,
@@ -41,7 +43,7 @@ export async function generateMetadata({
       url: canonical,
       type: "article",
       siteName: "HappiTime",
-      ...(guide.cover_image_url ? { images: [{ url: guide.cover_image_url }] } : {}),
+      ...(coverImageUrl ? { images: [{ url: coverImageUrl }] } : {}),
       ...(guide.published_at ? { publishedTime: guide.published_at } : {}),
       ...(guide.updated_at ? { modifiedTime: guide.updated_at } : {}),
     },
@@ -63,6 +65,7 @@ export default async function GuidePage({
   if (!guide) notFound();
 
   const canonical = `${BASE}/guides/${slug}/`;
+  const coverImageUrl = normalizeGuideCoverImageUrl(guide.cover_image_url);
 
   const breadcrumbs = breadcrumbJsonLd([
     { name: "HappiTime", url: `${BASE}/` },
@@ -93,10 +96,10 @@ export default async function GuidePage({
       </nav>
 
       {/* Cover image */}
-      {guide.cover_image_url ? (
+      {coverImageUrl ? (
         <div className="rounded-2xl overflow-hidden mb-8 aspect-[2/1] bg-cream">
           <img
-            src={guide.cover_image_url}
+            src={coverImageUrl}
             alt={guide.title}
             className="w-full h-full object-cover"
           />

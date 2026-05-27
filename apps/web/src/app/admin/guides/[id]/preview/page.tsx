@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import UserBar from '@/components/layout/UserBar';
 import { createServiceClient } from '@/utils/supabase/server';
+import { normalizeGuideCoverImageUrl } from '@/utils/guide-cover-url';
 import { ReviewControls } from './ReviewControls';
 
 export const dynamic = 'force-dynamic';
@@ -74,6 +75,7 @@ export default async function AdminGuidePreviewPage({
   );
 
   const authorLabel = author?.handle ? `@${author.handle}` : author?.display_name ?? 'Unknown author';
+  const coverImageUrl = normalizeGuideCoverImageUrl(guide.cover_image_url);
 
   return (
     <div className="min-h-screen bg-background">
@@ -127,10 +129,10 @@ export default async function AdminGuidePreviewPage({
         </div>
 
         <article className="rounded-lg border border-border bg-surface shadow-sm p-6 md:p-8 mb-8">
-          {guide.cover_image_url ? (
+          {coverImageUrl ? (
             <div className="rounded-lg overflow-hidden mb-8 aspect-[2/1] bg-cream">
               <img
-                src={guide.cover_image_url}
+                src={coverImageUrl}
                 alt={guide.title}
                 className="w-full h-full object-cover"
               />

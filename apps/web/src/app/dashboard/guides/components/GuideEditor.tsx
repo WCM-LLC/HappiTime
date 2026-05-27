@@ -147,14 +147,14 @@ export function GuideEditor({
           {/* Cover image URL */}
           <div>
             <label htmlFor="guide-cover" className="text-body-sm font-medium text-foreground block mb-1.5">
-              Cover image URL <span className="text-muted font-normal">(optional)</span>
+              Cover image URL <span className="text-muted font-normal">(direct image or Instagram post)</span>
             </label>
             <input
               id="guide-cover"
               name="cover_image_url"
               type="url"
               defaultValue={initialCoverUrl}
-              placeholder="https://…"
+              placeholder="https://images.example.com/photo.jpg"
               className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
             />
           </div>
