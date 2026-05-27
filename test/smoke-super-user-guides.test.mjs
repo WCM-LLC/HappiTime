@@ -80,6 +80,14 @@ test("Super User OAuth uses the console origin, not the marketing /kc origin", a
   assert.match(callbackRoute, /isRecoveryFlow \|\| isGuideAuthoringPath\(next\)/);
 });
 
+test("Supabase deployment docs require exact console auth redirect URLs", async () => {
+  const deployment = await readFile(new URL("../DEPLOYMENT.md", import.meta.url), "utf8");
+
+  assert.match(deployment, /https:\/\/happitime-console\.vercel\.app\/auth\/callback/);
+  assert.match(deployment, /https:\/\/happitime-console\.vercel\.app\/auth\/recovery/);
+  assert.match(deployment, /Do not rely on the bare console domain alone/);
+});
+
 test("/dashboard/guides (logged-out) redirects through Super User login with next", async (t) => {
   const res = await tryFetch(`${BASE_URL}/dashboard/guides`);
   if (res === null) {
