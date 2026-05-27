@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { resolveConsoleOrigin } from '@/utils/auth-redirects';
+import { isGuideAuthoringPath } from '@/utils/auth-paths';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -23,13 +24,14 @@ export async function GET(request: Request) {
     next = '/reset-password';
   }
   const isRecoveryFlow = next === '/reset-password';
+  const shouldUseConsoleOrigin = isRecoveryFlow || isGuideAuthoringPath(next);
 
   const supabase = await createClient();
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return redirectToNext(request, origin, next, isRecoveryFlow);
+      return redirectToNext(request, origin, next, shouldUseConsoleOrigin);
     }
     return redirectToAuthError(origin, error.message);
   }
@@ -40,7 +42,7 @@ export async function GET(request: Request) {
       token_hash: tokenHash,
     });
     if (!error) {
-      return redirectToNext(request, origin, next, isRecoveryFlow);
+      return redirectToNext(request, origin, next, shouldUseConsoleOrigin);
     }
     return redirectToAuthError(origin, error.message);
   }

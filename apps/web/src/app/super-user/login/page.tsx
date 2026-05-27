@@ -1,7 +1,9 @@
+import { headers } from 'next/headers';
 import OAuthButtons from '@/components/OAuthButtons';
 import { Logo } from '@/components/ui/Logo';
 import { sendSuperUserMagicLink } from '@/actions/login-actions';
 import { GUIDE_AUTHORING_PATH, isGuideAuthoringPath, safeNextPath } from '@/utils/auth-paths';
+import { resolveConsoleOrigin } from '@/utils/auth-redirects';
 
 const NOTICE: Record<string, string> = {
   magic_link_sent: 'Magic link sent. Check your email to open guide authoring.',
@@ -24,6 +26,7 @@ export default async function SuperUserLoginPage({
   const next = isGuideAuthoringPath(safeNext) ? safeNext! : GUIDE_AUTHORING_PATH;
   const noticeText = sp.notice ? (NOTICE[sp.notice] ?? null) : null;
   const errorText = sp.error ? (ERRORS[sp.error] ?? 'Something went wrong. Try again.') : null;
+  const redirectOrigin = resolveConsoleOrigin(await headers());
 
   const inputCls =
     'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors';
@@ -70,7 +73,7 @@ export default async function SuperUserLoginPage({
             </div>
           ) : null}
 
-          <OAuthButtons next={next} providers={['apple', 'google']} />
+          <OAuthButtons next={next} providers={['apple', 'google']} redirectOrigin={redirectOrigin} />
 
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-border" />

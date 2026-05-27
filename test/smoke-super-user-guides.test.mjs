@@ -9,9 +9,11 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 const BASE_URL = process.env.SMOKE_BASE_URL ?? "http://localhost:3000";
 const DIRECTORY_BASE_URL = process.env.SMOKE_DIRECTORY_BASE_URL ?? "http://localhost:3001";
+const WEB_SRC = new URL("../apps/web/src/", import.meta.url);
 
 async function tryFetch(url, opts = {}) {
   try {
@@ -62,6 +64,20 @@ test("/super-user/login renders app-style auth methods", async (t) => {
   assert.match(html, /Log in with Apple/);
   assert.match(html, /Log in with Google/);
   assert.match(html, /Send magic link/);
+});
+
+test("Super User OAuth uses the console origin, not the marketing /kc origin", async () => {
+  const superUserLogin = await readFile(
+    new URL("app/super-user/login/page.tsx", WEB_SRC),
+    "utf8",
+  );
+  const oauthButtons = await readFile(new URL("components/OAuthButtons.tsx", WEB_SRC), "utf8");
+  const callbackRoute = await readFile(new URL("app/auth/callback/route.ts", WEB_SRC), "utf8");
+
+  assert.match(superUserLogin, /resolveConsoleOrigin\(await headers\(\)\)/);
+  assert.match(superUserLogin, /redirectOrigin=\{redirectOrigin\}/);
+  assert.match(oauthButtons, /redirectOrigin \?\? window\.location\.origin/);
+  assert.match(callbackRoute, /isRecoveryFlow \|\| isGuideAuthoringPath\(next\)/);
 });
 
 test("/dashboard/guides (logged-out) redirects through Super User login with next", async (t) => {

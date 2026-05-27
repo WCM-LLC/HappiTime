@@ -9,6 +9,7 @@ type Provider = 'google' | 'apple';
 type OAuthButtonsProps = {
   next?: string;
   providers?: Provider[];
+  redirectOrigin?: string;
 };
 
 const PROVIDER_LABEL: Record<Provider, string> = {
@@ -40,14 +41,14 @@ function ProviderIcon({ provider }: { provider: Provider }) {
   );
 }
 
-export default function OAuthButtons({ next, providers = ['google'] }: OAuthButtonsProps) {
+export default function OAuthButtons({ next, providers = ['google'], redirectOrigin }: OAuthButtonsProps) {
   const [busy, setBusy] = useState<Provider | null>(null);
 
   async function signIn(provider: Provider) {
     setBusy(provider);
     try {
       const supabase = await createClient();
-      const origin = window.location.origin.replace(/\/+$/, '');
+      const origin = (redirectOrigin ?? window.location.origin).replace(/\/+$/, '');
       const callbackUrl = new URL('/auth/callback', origin);
       const safeNext = safeNextPath(next);
       if (safeNext) callbackUrl.searchParams.set('next', safeNext);
