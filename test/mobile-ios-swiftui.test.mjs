@@ -44,3 +44,11 @@ test("onboarding and profile keep permission state in React Native while using S
   assert.match(profile, /Linking\.openSettings\(\)/);
   assert.match(profile, /HappiTimeIOSPermissionPanel/);
 });
+
+test("native Apple sign-in passes the same nonce to Apple and Supabase", () => {
+  const appleSignIn = read("apps/mobile/src/components/AppleSignInButton.ios.tsx");
+
+  assert.match(appleSignIn, /const nonce = makeNonce\(\)/);
+  assert.match(appleSignIn, /AppleAuthentication\.signInAsync\(\{\s*nonce,/);
+  assert.match(appleSignIn, /signInWithIdToken\(\{\s*provider: "apple",\s*token: credential\.identityToken,\s*nonce,/s);
+});
