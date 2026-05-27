@@ -15,6 +15,59 @@ async function currentAdminUserId(): Promise<string | null> {
   return data.user?.id ?? null;
 }
 
+function parseTags(raw: string): string[] {
+  return raw
+    .split(',')
+    .map((tag) => tag.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+// ── saveAdminGuide ───────────────────────────────────────────────────────────
+
+export async function saveAdminGuide(formData: FormData) {
+  await assertAdmin();
+  const db = getAdminClient();
+  const id = toStr(formData.get('id'));
+  if (!id) redirect('/admin/guides?error=missing_guide_id');
+
+  const title = toStr(formData.get('title'));
+  const subtitle = toStr(formData.get('subtitle')) || null;
+  const body_md = toStr(formData.get('body_md'));
+  const city = toStr(formData.get('city')) || null;
+  const cover_image_url = toStr(formData.get('cover_image_url')) || null;
+  const tags = parseTags(toStr(formData.get('tags')));
+
+  if (!title) redirect(`/admin/guides/${id}/edit?error=title_required`);
+
+  const { data: guide, error: fetchErr } = await (db as any)
+    .from('guides')
+    .select('id, slug')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (fetchErr || !guide) {
+    console.error('[review] admin guide edit fetch failed', fetchErr);
+    redirect('/admin/guides?error=guide_not_found');
+  }
+
+  const { error: updateErr } = await (db as any)
+    .from('guides')
+    .update({ title, subtitle, body_md, city, cover_image_url, tags })
+    .eq('id', id);
+
+  if (updateErr) {
+    console.error('[review] admin guide edit failed', updateErr);
+    redirect(`/admin/guides/${id}/edit?error=save_failed`);
+  }
+
+  revalidatePath('/admin/guides');
+  revalidatePath(`/admin/guides/${id}/edit`);
+  revalidatePath(`/admin/guides/${id}/preview`);
+  revalidatePath('/dashboard/guides');
+  revalidatePath(`/guides/${(guide as any).slug}`);
+  redirect(`/admin/guides/${id}/edit?notice=guide_saved`);
+}
+
 // ── approveGuide ──────────────────────────────────────────────────────────────
 
 export async function approveGuide(formData: FormData) {
