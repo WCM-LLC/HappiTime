@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/utils/supabase/server';
 import { getAdminClient } from '@/utils/admin';
 import { GUIDE_AUTHORING_PATH, loginPathFor } from '@/utils/auth-paths';
-import { normalizeGuideCoverImageUrl } from '@/utils/guide-cover-url';
+import { GuideCoverUploadError, resolveGuideCoverImageUrl } from '@/utils/guide-cover-upload';
 import { slugify } from '@/utils/slugify';
 import { sendGuideSubmissionEmail } from '@/utils/email';
 
@@ -18,6 +18,10 @@ function parseTags(raw: string): string[] {
     .split(',')
     .map((t) => t.trim().toLowerCase())
     .filter(Boolean);
+}
+
+function coverUploadErrorCode(error: unknown) {
+  return error instanceof GuideCoverUploadError ? error.code : 'cover_upload_failed';
 }
 
 async function assertSuperUserOrAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
@@ -60,10 +64,18 @@ export async function saveDraft(formData: FormData) {
   const body_md = toStr(formData.get('body_md'));
   const city = toStr(formData.get('city')) || null;
   const neighborhood = toStr(formData.get('neighborhood')) || null;
-  const cover_image_url = normalizeGuideCoverImageUrl(toStr(formData.get('cover_image_url')));
   const tags = parseTags(toStr(formData.get('tags')));
 
   if (!title) redirect('/dashboard/guides?error=title_required');
+
+  let cover_image_url: string | null;
+  try {
+    cover_image_url = await resolveGuideCoverImageUrl(supabase as any, user.id, formData);
+  } catch (error) {
+    console.error('[guide] cover upload failed', error);
+    const code = coverUploadErrorCode(error);
+    redirect(id ? `/dashboard/guides/${id}/edit?error=${code}` : `/dashboard/guides?error=${code}`);
+  }
 
   if (!id) {
     // New guide — generate a unique slug

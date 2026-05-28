@@ -22,6 +22,7 @@ const ERRORS: Record<string, string> = {
   reject_failed: 'Rejection failed — try again.',
   unpublish_failed: 'Unpublish failed — try again.',
   invalid_status: 'That guide is no longer in the required status for this action.',
+  cover_upload_failed: 'Cover image upload failed — try again.',
 };
 
 const TAB_LABELS: Record<string, string> = {

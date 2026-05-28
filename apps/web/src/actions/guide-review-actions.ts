@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { assertAdmin, getAdminClient } from '@/utils/admin';
-import { normalizeGuideCoverImageUrl } from '@/utils/guide-cover-url';
+import { GuideCoverUploadError, resolveGuideCoverImageUrl } from '@/utils/guide-cover-upload';
 
 function toStr(v: FormDataEntryValue | null | undefined) {
   return String(v ?? '').trim();
@@ -23,23 +23,36 @@ function parseTags(raw: string): string[] {
     .filter(Boolean);
 }
 
+function coverUploadErrorCode(error: unknown) {
+  return error instanceof GuideCoverUploadError ? error.code : 'cover_upload_failed';
+}
+
 // ── saveAdminGuide ───────────────────────────────────────────────────────────
 
 export async function saveAdminGuide(formData: FormData) {
   await assertAdmin();
   const db = getAdminClient();
+  const adminUserId = await currentAdminUserId();
   const id = toStr(formData.get('id'));
   if (!id) redirect('/admin/guides?error=missing_guide_id');
+  if (!adminUserId) redirect(`/admin/guides/${id}/edit?error=not_authorized`);
 
   const title = toStr(formData.get('title'));
   const subtitle = toStr(formData.get('subtitle')) || null;
   const body_md = toStr(formData.get('body_md'));
   const city = toStr(formData.get('city')) || null;
   const neighborhood = toStr(formData.get('neighborhood')) || null;
-  const cover_image_url = normalizeGuideCoverImageUrl(toStr(formData.get('cover_image_url')));
   const tags = parseTags(toStr(formData.get('tags')));
 
   if (!title) redirect(`/admin/guides/${id}/edit?error=title_required`);
+
+  let cover_image_url: string | null;
+  try {
+    cover_image_url = await resolveGuideCoverImageUrl(db, adminUserId, formData);
+  } catch (error) {
+    console.error('[review] admin guide cover upload failed', error);
+    redirect(`/admin/guides/${id}/edit?error=${coverUploadErrorCode(error)}`);
+  }
 
   const { data: guide, error: fetchErr } = await (db as any)
     .from('guides')

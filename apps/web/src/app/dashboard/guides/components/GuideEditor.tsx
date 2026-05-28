@@ -144,19 +144,33 @@ export function GuideEditor({
             </div>
           </div>
 
-          {/* Cover image URL */}
-          <div>
-            <label htmlFor="guide-cover" className="text-body-sm font-medium text-foreground block mb-1.5">
-              Cover image URL <span className="text-muted font-normal">(direct image or Instagram post)</span>
-            </label>
-            <input
-              id="guide-cover"
-              name="cover_image_url"
-              type="url"
-              defaultValue={initialCoverUrl}
-              placeholder="https://images.example.com/photo.jpg"
-              className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
-            />
+          {/* Cover image */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="guide-cover" className="text-body-sm font-medium text-foreground block mb-1.5">
+                Cover image link <span className="text-muted font-normal">(optional)</span>
+              </label>
+              <input
+                id="guide-cover"
+                name="cover_image_url"
+                type="url"
+                defaultValue={initialCoverUrl}
+                placeholder="https://images.example.com/photo.jpg"
+                className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+              />
+            </div>
+            <div>
+              <label htmlFor="guide-cover-file" className="text-body-sm font-medium text-foreground block mb-1.5">
+                Upload cover image <span className="text-muted font-normal">(optional)</span>
+              </label>
+              <input
+                id="guide-cover-file"
+                name="cover_image_file"
+                type="file"
+                accept="image/avif,image/webp,image/jpeg,image/png"
+                className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-brand-subtle file:px-3 file:py-1 file:text-caption file:font-semibold file:text-brand-dark-alt focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+              />
+            </div>
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 const INSTAGRAM_HOSTS = new Set(['instagram.com', 'www.instagram.com', 'instagr.am', 'www.instagr.am']);
 const INSTAGRAM_MEDIA_TYPES = new Set(['p', 'reel', 'tv']);
+const OPTIMIZER_PATH = '/api/images/guide-cover';
 
 export function normalizeGuideCoverImageUrl(value: string | null | undefined): string | null {
   const raw = String(value ?? '').trim();
@@ -22,4 +23,10 @@ export function normalizeGuideCoverImageUrl(value: string | null | undefined): s
   }
 
   return `https://www.instagram.com/${mediaType.toLowerCase()}/${shortcode}/media/?size=l`;
+}
+
+export function guideCoverImageSrc(value: string | null | undefined): string | null {
+  const normalized = normalizeGuideCoverImageUrl(value);
+  if (!normalized) return null;
+  return `${OPTIMIZER_PATH}?url=${encodeURIComponent(normalized)}`;
 }

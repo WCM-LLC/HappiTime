@@ -6,7 +6,11 @@ const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {},
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '6mb',
+    },
+  },
   outputFileTracingRoot: path.join(__dirname, '../../'),
   transpilePackages: ['@uiw/react-md-editor', '@uiw/react-markdown-preview'],
 };

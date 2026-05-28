@@ -11,6 +11,9 @@ const NOTICE: Record<string, string> = {
 const ERRORS: Record<string, string> = {
   save_failed: 'Save failed — try again.',
   submit_failed: 'Submit failed — try again.',
+  cover_file_too_large: 'Cover image must be 5 MB or smaller.',
+  cover_file_type: 'Cover image must be AVIF, WebP, JPG, or PNG.',
+  cover_upload_failed: 'Cover image upload failed — try again.',
 };
 
 export default async function EditGuidePage({

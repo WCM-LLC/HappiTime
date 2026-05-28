@@ -35,6 +35,9 @@ const ERRORS: Record<string, string> = {
   already_published: 'This guide is already published.',
   missing_guide_id: 'No guide selected.',
   not_authorized: 'You need Super User access to author guides.',
+  cover_file_too_large: 'Cover image must be 5 MB or smaller.',
+  cover_file_type: 'Cover image must be AVIF, WebP, JPG, or PNG.',
+  cover_upload_failed: 'Cover image upload failed — try again.',
 };
 
 export default async function GuidesListPage({
