@@ -34,6 +34,7 @@ import { formatDays, formatTimeRange } from "../utils/formatters";
 import { distanceMiles } from "../utils/location";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { SocialIcon } from "../../components/ui/SocialIcon";
+import { ImageLightbox } from "../components/ImageLightbox";
 
 type Props = NativeStackScreenProps<RootStackParamList, "HappyHourDetail">;
 
@@ -89,6 +90,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
     return Array.from(new Set(urls));
   }, [coverUrl, venueGalleries, venueId]);
   const [activeHeroIndex, setActiveHeroIndex] = useState(0);
+  const [lightboxVisible, setLightboxVisible] = useState(false);
   const { titleText, subtitleText } = getHappyHourDisplayNames(window);
 
   const {
@@ -294,12 +296,18 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
                 }}
               >
                 {heroImages.map((url, index) => (
-                  <Image
+                  <Pressable
                     key={`${url}-${index}`}
-                    source={{ uri: url }}
-                    style={[styles.heroImage, { width: heroWidth }]}
-                    resizeMode="cover"
-                  />
+                    onPress={() => setLightboxVisible(true)}
+                    accessibilityRole="imagebutton"
+                    accessibilityLabel="Expand photo"
+                  >
+                    <Image
+                      source={{ uri: url }}
+                      style={[styles.heroImage, { width: heroWidth }]}
+                      resizeMode="cover"
+                    />
+                  </Pressable>
                 ))}
               </ScrollView>
             ) : (
@@ -347,6 +355,12 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
             </Pressable>
           </View>
         </View>
+        <ImageLightbox
+          visible={lightboxVisible}
+          images={heroImages}
+          initialIndex={activeHeroIndex}
+          onClose={() => setLightboxVisible(false)}
+        />
 
         <View style={styles.infoSection}>
           <View style={styles.titleRow}>
