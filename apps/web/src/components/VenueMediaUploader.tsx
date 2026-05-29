@@ -27,6 +27,7 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
   const [coverBusyId, setCoverBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
@@ -40,6 +41,19 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
   }, [supabase, orgId, venueId]);
 
   useEffect(() => { void refresh(); }, [refresh]);
+
+  // Full-screen preview: close on Escape, lock background scroll while open.
+  useEffect(() => {
+    if (!previewSrc) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setPreviewSrc(null); };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [previewSrc]);
 
   async function uploadFile(file: File) {
     setBusy(true);
@@ -336,6 +350,13 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
                     onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
                     onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
                   >
+                    <button
+                      className="secondary"
+                      onClick={() => setPreviewSrc(venueImageUrl(row, { w: 1600 }))}
+                      style={{ fontSize: 11, padding: '5px 10px', width: 'auto' }}
+                    >
+                      View
+                    </button>
                     {!isCover ? (
                       <button
                         className="secondary"
@@ -405,6 +426,54 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
 
       {rows.length === 0 && !busy ? (
         <p className="muted" style={{ margin: 0, fontSize: 14 }}>No media yet.</p>
+      ) : null}
+
+      {/* Full-screen image preview (opened via the "View" overlay button) */}
+      {previewSrc ? (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Expanded image"
+          onClick={() => setPreviewSrc(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.9)',
+            padding: 16,
+          }}
+        >
+          <img
+            src={previewSrc}
+            alt=""
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }}
+          />
+          <button
+            type="button"
+            onClick={() => setPreviewSrc(null)}
+            aria-label="Close image"
+            style={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              width: 40,
+              height: 40,
+              borderRadius: 999,
+              background: 'rgba(0,0,0,0.6)',
+              color: '#fff',
+              border: 'none',
+              fontSize: 22,
+              lineHeight: 1,
+              cursor: 'pointer',
+            }}
+          >
+            ✕
+          </button>
+        </div>
       ) : null}
     </div>
   );
