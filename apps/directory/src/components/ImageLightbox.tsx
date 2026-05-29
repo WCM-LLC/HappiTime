@@ -16,6 +16,7 @@ type LightboxProps = {
 export default function ImageLightbox({ children, className }: LightboxProps) {
   const [src, setSrc] = useState<string | null>(null);
   const [alt, setAlt] = useState('');
+  const [shown, setShown] = useState(false);
 
   const handleClick = useCallback((e: MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -40,14 +41,22 @@ export default function ImageLightbox({ children, className }: LightboxProps) {
     document.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    // Fade in: the overlay mounts at opacity-0; flip it on the next frame.
+    const raf = requestAnimationFrame(() => setShown(true));
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prevOverflow;
+      cancelAnimationFrame(raf);
+      setShown(false);
     };
   }, [src, close]);
 
+  // Signal interactivity on the delegated images (the only affordance — the
+  // <img> elements aren't natively focusable in this delegation pattern).
+  const wrapperClass = ['[&_img]:cursor-zoom-in', className].filter(Boolean).join(' ');
+
   return (
-    <div className={className} onClick={handleClick}>
+    <div className={wrapperClass} onClick={handleClick}>
       {children}
       {src ? (
         <div
@@ -55,7 +64,7 @@ export default function ImageLightbox({ children, className }: LightboxProps) {
           aria-modal="true"
           aria-label="Expanded image"
           onClick={close}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4"
+          className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 transition-opacity duration-200 ${shown ? 'opacity-100' : 'opacity-0'}`}
         >
           <img
             src={src}
