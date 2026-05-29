@@ -32,6 +32,7 @@ export type RootStackParamList = {
   HappyHourDetail: { windowId: string };
   VenuePreview?: { venueId: string };
   InviteScreen: undefined;
+  EventCalendar: undefined;
 };
 
 export type MainTabParamList = {

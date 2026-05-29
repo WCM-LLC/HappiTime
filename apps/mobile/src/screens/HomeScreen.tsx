@@ -610,6 +610,17 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             onViewableItemsChanged={onVenueViewableItemsChanged.current}
           />
         )}
+
+        <Pressable
+          onPress={() => navigation.navigate("EventCalendar")}
+          style={({ pressed }) => [styles.eventsEntryCard, pressed && { opacity: 0.75 }]}
+        >
+          <View style={styles.eventsEntryLeft}>
+            <Text style={styles.eventsEntryTitle}>Upcoming Events</Text>
+            <Text style={styles.eventsEntrySubtitle}>Live music, trivia, specials & more</Text>
+          </View>
+          <Text style={styles.eventsEntryChevron}>›</Text>
+        </Pressable>
       </ScrollView>
 
       {/* Android city picker — iOS uses Alert.prompt above */}
@@ -1313,5 +1324,37 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "700"
-  }
+  },
+  eventsEntryCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    marginTop: spacing.lg,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  eventsEntryLeft: {
+    flex: 1,
+  },
+  eventsEntryTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  eventsEntrySubtitle: {
+    color: colors.textMuted,
+    fontSize: 13,
+  },
+  eventsEntryChevron: {
+    color: colors.primary,
+    fontSize: 22,
+    fontWeight: "300",
+    marginLeft: spacing.sm,
+  },
 });

@@ -456,6 +456,18 @@ export const ActivityScreen: React.FC = () => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           renderItem={({ item }) => <DiscoverFeedCard item={item} anonymous />}
+          ListHeaderComponent={
+            <Pressable
+              onPress={() => navigation.navigate("EventCalendar")}
+              style={({ pressed }) => [styles.eventsEntryCard, pressed && { opacity: 0.75 }]}
+            >
+              <View style={styles.eventsEntryLeft}>
+                <Text style={styles.eventsEntryTitle}>Upcoming Events</Text>
+                <Text style={styles.eventsEntrySubtitle}>Live music, trivia, specials & more</Text>
+              </View>
+              <Text style={styles.eventsEntryChevron}>›</Text>
+            </Pressable>
+          }
           ListEmptyComponent={<Text style={styles.emptyState}>No discovery activity yet.</Text>}
           onRefresh={refreshDiscoverFeed}
           refreshing={discoverLoading}
@@ -1146,5 +1158,35 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 20,
     flexShrink: 0,
+  },
+  eventsEntryCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.md,
+  },
+  eventsEntryLeft: {
+    flex: 1,
+  },
+  eventsEntryTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 2,
+  },
+  eventsEntrySubtitle: {
+    color: colors.textMuted,
+    fontSize: 13,
+  },
+  eventsEntryChevron: {
+    color: colors.primary,
+    fontSize: 22,
+    fontWeight: "300",
+    marginLeft: spacing.sm,
   },
 });

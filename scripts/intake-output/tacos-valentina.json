@@ -1,0 +1,80 @@
+{
+  "source": {
+    "place_id": "ChIJk0BVqwrxwIcRzbzr0NtwCNw",
+    "seed_url": "http://tacosvalentina.com/",
+    "scraped_pages": [
+      "http://tacosvalentina.com/"
+    ]
+  },
+  "draft": {
+    "venue": {
+      "name": "Tacos Valentina",
+      "org_name": "Mesa Valentina LLC",
+      "address": "1708 Campbell St",
+      "city": "Kansas City",
+      "state": "MO",
+      "zip": "64108",
+      "neighborhood": "Crossroads",
+      "phone": "+18166565459",
+      "website": "http://tacosvalentina.com/",
+      "instagram_url": "https://www.instagram.com/tacosvalentina",
+      "price_tier": 2,
+      "tags": [
+        "tacos",
+        "mexican",
+        "taqueria",
+        "cocktails",
+        "beer",
+        "brunch",
+        "crossroads"
+      ],
+      "lat": 39.0925432,
+      "lng": -94.5732977,
+      "google_place_id": "ChIJk0BVqwrxwIcRzbzr0NtwCNw",
+      "google_rating": 4.6,
+      "google_review_count": 136
+    },
+    "happy_hour_windows": [],
+    "happy_hour_offers": [],
+    "_confidence": {
+      "venue.name": "high",
+      "venue.org_name": "high",
+      "venue.address": "high",
+      "venue.city": "high",
+      "venue.state": "high",
+      "venue.zip": "high",
+      "venue.neighborhood": "medium",
+      "venue.phone": "high",
+      "venue.website": "high",
+      "venue.instagram_url": "medium",
+      "venue.price_tier": "low",
+      "venue.tags": "medium"
+    },
+    "_review_flags": [
+      "venue.neighborhood",
+      "venue.phone",
+      "venue.price_tier",
+      "venue.instagram_url",
+      "happy_hour_windows",
+      "happy_hour_offers"
+    ]
+  },
+  "validation": {
+    "errors": [],
+    "ok": true
+  },
+  "usage": {
+    "input_tokens": 2427,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 404,
+    "service_tier": "standard",
+    "inference_geo": "global"
+  },
+  "generated_at": "2026-05-28T18:27:49.312Z",
+  "model": "claude-sonnet-4-6"
+}
