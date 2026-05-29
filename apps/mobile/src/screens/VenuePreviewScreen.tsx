@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,7 @@ import { useVenueEvents } from "../hooks/useVenueEvents";
 import { useVenueMedia } from "../hooks/useVenueMedia";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
+import { ImageLightbox } from "../components/ImageLightbox";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -69,6 +70,8 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
     [media]
   );
   const coverUrl = images[0]?.url ?? null;
+  const [lightboxVisible, setLightboxVisible] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   if (loading && windowsForVenue.length === 0) {
     return (
@@ -94,14 +97,23 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
       <View key="photos" style={styles.section}>
         <Text style={styles.sectionTitle}>Photos</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.photoRow}>
-          {images.map((img) => (
-            <Image
+          {images.map((img, index) => (
+            <Pressable
               key={img.id}
-              source={{ uri: img.url }}
-              style={styles.photoThumb}
-              resizeMode="cover"
-              onError={(e) => console.warn('[img-fail] venue-preview', img.url, e.nativeEvent?.error)}
-            />
+              onPress={() => {
+                setLightboxIndex(index);
+                setLightboxVisible(true);
+              }}
+              accessibilityRole="imagebutton"
+              accessibilityLabel="Expand photo"
+            >
+              <Image
+                source={{ uri: img.url }}
+                style={styles.photoThumb}
+                resizeMode="cover"
+                onError={(e) => console.warn('[img-fail] venue-preview', img.url, e.nativeEvent?.error)}
+              />
+            </Pressable>
           ))}
         </ScrollView>
       </View>
@@ -199,6 +211,12 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           />
         </>
       )}
+      <ImageLightbox
+        visible={lightboxVisible}
+        images={images.map((img) => img.url)}
+        initialIndex={lightboxIndex}
+        onClose={() => setLightboxVisible(false)}
+      />
     </View>
   );
 };
