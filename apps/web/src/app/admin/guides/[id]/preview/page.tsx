@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import UserBar from '@/components/layout/UserBar';
+import ImageLightbox from '@/components/ImageLightbox';
 import { createServiceClient } from '@/utils/supabase/server';
 import { guideCoverImageSrc, normalizeGuideCoverImageUrl } from '@/utils/guide-cover-url';
 import { ReviewControls } from './ReviewControls';
@@ -128,63 +129,65 @@ export default async function AdminGuidePreviewPage({
           <ReviewControls guideId={guide.id} status={guide.status} />
         </div>
 
-        <article className="rounded-lg border border-border bg-surface shadow-sm p-6 md:p-8 mb-8">
-          {coverImageSrc ? (
-            <div className="rounded-lg overflow-hidden mb-8 aspect-[2/1] bg-cream">
-              <Image
-                src={coverImageSrc}
-                alt={guide.title}
-                width={1600}
-                height={800}
-                sizes="(max-width: 768px) 100vw, 1024px"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : null}
-
-          <header className="mb-8">
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              {guide.city ? (
-                <span className="text-caption font-semibold text-brand uppercase tracking-wider">
-                  {guide.city}
-                </span>
-              ) : null}
-              {guide.neighborhood ? (
-                <span className="text-caption text-muted">/ {guide.neighborhood}</span>
-              ) : null}
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-3">
-              {guide.title}
-            </h2>
-            {guide.subtitle ? (
-              <p className="text-lg text-muted leading-relaxed">{guide.subtitle}</p>
-            ) : null}
-            <div className="flex flex-wrap items-center gap-2 mt-4">
-              <span className="text-caption text-muted">By {authorLabel}</span>
-              {author?.auto_publish_enabled ? (
-                <span className="rounded-full bg-brand-subtle px-2 py-0.5 text-caption font-semibold text-brand-dark-alt">
-                  auto-publish enabled
-                </span>
-              ) : null}
-            </div>
-            {guide.tags && guide.tags.length > 0 ? (
-              <div className="flex flex-wrap gap-1.5 mt-4">
-                {guide.tags.map((tag: string) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-border px-3 py-0.5 text-xs font-medium text-muted"
-                  >
-                    {tag}
-                  </span>
-                ))}
+        <ImageLightbox>
+          <article className="rounded-lg border border-border bg-surface shadow-sm p-6 md:p-8 mb-8">
+            {coverImageSrc ? (
+              <div className="rounded-lg overflow-hidden mb-8 aspect-[2/1] bg-cream">
+                <Image
+                  src={coverImageSrc}
+                  alt={guide.title}
+                  width={1600}
+                  height={800}
+                  sizes="(max-width: 768px) 100vw, 1024px"
+                  className="w-full h-full object-cover"
+                />
               </div>
             ) : null}
-          </header>
 
-          <div className="prose prose-gray max-w-none">
-            <ReactMarkdown>{guide.body_md ?? ''}</ReactMarkdown>
-          </div>
-        </article>
+            <header className="mb-8">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                {guide.city ? (
+                  <span className="text-caption font-semibold text-brand uppercase tracking-wider">
+                    {guide.city}
+                  </span>
+                ) : null}
+                {guide.neighborhood ? (
+                  <span className="text-caption text-muted">/ {guide.neighborhood}</span>
+                ) : null}
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-3">
+                {guide.title}
+              </h2>
+              {guide.subtitle ? (
+                <p className="text-lg text-muted leading-relaxed">{guide.subtitle}</p>
+              ) : null}
+              <div className="flex flex-wrap items-center gap-2 mt-4">
+                <span className="text-caption text-muted">By {authorLabel}</span>
+                {author?.auto_publish_enabled ? (
+                  <span className="rounded-full bg-brand-subtle px-2 py-0.5 text-caption font-semibold text-brand-dark-alt">
+                    auto-publish enabled
+                  </span>
+                ) : null}
+              </div>
+              {guide.tags && guide.tags.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5 mt-4">
+                  {guide.tags.map((tag: string) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-border px-3 py-0.5 text-xs font-medium text-muted"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </header>
+
+            <div className="prose prose-gray max-w-none">
+              <ReactMarkdown>{guide.body_md ?? ''}</ReactMarkdown>
+            </div>
+          </article>
+        </ImageLightbox>
 
         <section id="history" className="mb-8 scroll-mt-20">
           <h2 className="text-heading-sm font-semibold text-foreground mb-4">Submission History</h2>

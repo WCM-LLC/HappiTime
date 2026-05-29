@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { fetchVenueEvents, fetchVenueWithWindows, fetchWindowMenus } from '@happitime/shared-api';
 import type { HappyHourWindow, Menu } from '@happitime/shared-types';
 import { createClient } from '@/utils/supabase/server';
+import ImageLightbox from '@/components/ImageLightbox';
 import ScheduledEventsPopout, { type ScheduledPreviewEvent } from './ScheduledEventsPopout';
 import styles from './preview.module.css';
 import { venueImageUrl } from '@/services/media';
@@ -222,7 +223,7 @@ export default async function AppPreviewVenuePage({
             {windowsForVenue.length > 0 ? (
               <>
                 <div className={styles.heroWrap}>
-                  <div className={styles.heroCard}>
+                  <ImageLightbox className={styles.heroCard}>
                     {coverUrl ? (
                       <img
                         src={coverUrl}
@@ -235,7 +236,7 @@ export default async function AppPreviewVenuePage({
                         <div className={styles.heroPlaceholderText}>Photos coming soon</div>
                       </div>
                     )}
-                  </div>
+                  </ImageLightbox>
                   <div className={styles.heroButtons}>
                     <Link className={styles.backButton} href={`/orgs/${orgId}/venues/${venueId}`}>
                       Back
