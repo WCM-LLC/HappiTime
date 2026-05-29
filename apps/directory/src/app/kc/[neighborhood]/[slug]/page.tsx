@@ -7,6 +7,7 @@ import { venueJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 import { PageTracker } from "@/components/PageTracker";
 import { ItineraryButton } from "@/components/ItineraryButton";
 import { venueImageUrl } from "@/lib/mediaUrl";
+import ImageLightbox from "@/components/ImageLightbox";
 
 export const revalidate = 900;
 
@@ -411,24 +412,26 @@ export default async function VenueDetailPage({ params }: Props) {
       {venue.venue_media.filter((m) => m.type === "image").length > 0 && (
         <section className="mb-12">
           <h2 className="text-xl font-bold text-foreground mb-5">Photos</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {venue.venue_media
-              .filter((m) => m.type === "image")
-              .sort((a, b) => a.sort_order - b.sort_order)
-              .map((m) => (
-                <div
-                  key={m.id}
-                  className="aspect-[4/3] rounded-xl overflow-hidden border border-border"
-                >
-                  <img
-                    src={venueImageUrl(m, { w: 800 })}
-                    alt={m.title ?? `${venue.name} photo`}
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </div>
-              ))}
-          </div>
+          <ImageLightbox>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {venue.venue_media
+                .filter((m) => m.type === "image")
+                .sort((a, b) => a.sort_order - b.sort_order)
+                .map((m) => (
+                  <div
+                    key={m.id}
+                    className="aspect-[4/3] rounded-xl overflow-hidden border border-border"
+                  >
+                    <img
+                      src={venueImageUrl(m, { w: 800 })}
+                      alt={m.title ?? `${venue.name} photo`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                ))}
+            </div>
+          </ImageLightbox>
         </section>
       )}
 

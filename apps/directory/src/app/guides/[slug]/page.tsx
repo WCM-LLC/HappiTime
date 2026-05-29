@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { breadcrumbJsonLd } from "@/lib/structuredData";
 import { supabase } from "@/lib/supabase";
 import { guideCoverImageSrc, normalizeGuideCoverImageUrl } from "@/lib/guideCoverUrl";
+import ImageLightbox from "@/components/ImageLightbox";
 
 const BASE = "https://happitime.biz";
 
@@ -97,51 +98,53 @@ export default async function GuidePage({
         </span>
       </nav>
 
-      {/* Cover image */}
-      {coverImageSrc ? (
-        <div className="rounded-2xl overflow-hidden mb-8 aspect-[2/1] bg-cream">
-          <Image
-            src={coverImageSrc}
-            alt={guide.title}
-            width={1200}
-            height={600}
-            sizes="(max-width: 768px) 100vw, 768px"
-            className="w-full h-full object-cover"
-          />
-        </div>
-      ) : null}
-
-      {/* Header */}
-      <header className="mb-8">
-        {guide.city ? (
-          <p className="text-sm font-semibold text-brand uppercase tracking-wider mb-2">
-            {guide.city}
-          </p>
-        ) : null}
-        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-3">
-          {guide.title}
-        </h1>
-        {guide.subtitle ? (
-          <p className="text-lg text-muted leading-relaxed">{guide.subtitle}</p>
-        ) : null}
-        {guide.tags && guide.tags.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5 mt-4">
-            {guide.tags.map((tag: string) => (
-              <span
-                key={tag}
-                className="rounded-full border border-border px-3 py-0.5 text-xs font-medium text-muted"
-              >
-                {tag}
-              </span>
-            ))}
+      <ImageLightbox>
+        {/* Cover image */}
+        {coverImageSrc ? (
+          <div className="rounded-2xl overflow-hidden mb-8 aspect-[2/1] bg-cream">
+            <Image
+              src={coverImageSrc}
+              alt={guide.title}
+              width={1200}
+              height={600}
+              sizes="(max-width: 768px) 100vw, 768px"
+              className="w-full h-full object-cover"
+            />
           </div>
         ) : null}
-      </header>
 
-      {/* Body */}
-      <article className="prose prose-gray max-w-none">
-        <ReactMarkdown>{guide.body_md ?? ""}</ReactMarkdown>
-      </article>
+        {/* Header */}
+        <header className="mb-8">
+          {guide.city ? (
+            <p className="text-sm font-semibold text-brand uppercase tracking-wider mb-2">
+              {guide.city}
+            </p>
+          ) : null}
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-3">
+            {guide.title}
+          </h1>
+          {guide.subtitle ? (
+            <p className="text-lg text-muted leading-relaxed">{guide.subtitle}</p>
+          ) : null}
+          {guide.tags && guide.tags.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 mt-4">
+              {guide.tags.map((tag: string) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-border px-3 py-0.5 text-xs font-medium text-muted"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </header>
+
+        {/* Body */}
+        <article className="prose prose-gray max-w-none">
+          <ReactMarkdown>{guide.body_md ?? ""}</ReactMarkdown>
+        </article>
+      </ImageLightbox>
 
       {/* CTA */}
       <section className="mt-12 rounded-2xl bg-brand-subtle p-8 text-center">
