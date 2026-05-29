@@ -70,6 +70,9 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
     [media]
   );
   const coverUrl = images[0]?.url ?? null;
+  // Stable url array — the lightbox Modal/FlatList stays mounted across opens,
+  // so a fresh array each render would re-render all gallery pages off-screen.
+  const imageUrls = useMemo(() => images.map((img) => img.url), [images]);
   const [lightboxVisible, setLightboxVisible] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
@@ -200,7 +203,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
               <HappyHourCard
                 window={item}
                 coverUrl={coverUrl}
-                imageUrls={images.map((img) => img.url)}
+                imageUrls={imageUrls}
                 onPress={() =>
                   navigation.navigate("HappyHourDetail", {
                     windowId: item.id
@@ -213,7 +216,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
       )}
       <ImageLightbox
         visible={lightboxVisible}
-        images={images.map((img) => img.url)}
+        images={imageUrls}
         initialIndex={lightboxIndex}
         onClose={() => setLightboxVisible(false)}
       />

@@ -14,6 +14,8 @@ import {
   FlatList,
   TextInput,
   KeyboardAvoidingView,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -100,6 +102,15 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
   } = useVenueMenus(venueId, windowId);
 
   const heroWidth = Math.max(1, width - spacing.lg * 2);
+
+  // Track the visible hero photo. Updated on both drag-end and momentum-end:
+  // a slow drag that settles without momentum never fires onMomentumScrollEnd,
+  // which would leave activeHeroIndex stale and open the lightbox on the wrong
+  // photo and mis-highlight the dots.
+  const updateActiveHero = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const nextIndex = Math.round(e.nativeEvent.contentOffset.x / heroWidth);
+    setActiveHeroIndex(Math.max(0, Math.min(nextIndex, heroImages.length - 1)));
+  };
 
   React.useEffect(() => {
     if (activeHeroIndex >= heroImages.length) {
@@ -290,10 +301,8 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
                 disableIntervalMomentum
                 showsHorizontalScrollIndicator={false}
                 style={[styles.heroScroll, { width: heroWidth }]}
-                onMomentumScrollEnd={(event) => {
-                  const nextIndex = Math.round(event.nativeEvent.contentOffset.x / heroWidth);
-                  setActiveHeroIndex(Math.max(0, Math.min(nextIndex, heroImages.length - 1)));
-                }}
+                onScrollEndDrag={updateActiveHero}
+                onMomentumScrollEnd={updateActiveHero}
               >
                 {heroImages.map((url, index) => (
                   <Pressable

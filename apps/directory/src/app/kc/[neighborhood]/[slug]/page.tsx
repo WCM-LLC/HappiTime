@@ -424,6 +424,7 @@ export default async function VenueDetailPage({ params }: Props) {
                   >
                     <img
                       src={venueImageUrl(m, { w: 800 })}
+                      data-lightbox-src={venueImageUrl(m, { w: 1600 })}
                       alt={m.title ?? `${venue.name} photo`}
                       className="w-full h-full object-cover"
                       loading="lazy"

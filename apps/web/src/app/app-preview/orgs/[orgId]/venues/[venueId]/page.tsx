@@ -133,12 +133,12 @@ export default async function AppPreviewVenuePage({
     .limit(1);
 
   const coverRow = mediaRows?.[0] ?? null;
-  const coverUrl = coverRow
-    ? venueImageUrl(
-        { storage_bucket: coverRow.storage_bucket || 'venue-media', storage_path: coverRow.storage_path },
-        { w: 800 }
-      )
+  const coverMedia = coverRow
+    ? { storage_bucket: coverRow.storage_bucket || 'venue-media', storage_path: coverRow.storage_path }
     : null;
+  const coverUrl = coverMedia ? venueImageUrl(coverMedia, { w: 800 }) : null;
+  // Full-res source the lightbox expands to (the rendered cover is only w:800).
+  const coverFullUrl = coverMedia ? venueImageUrl(coverMedia, { w: 1600 }) : null;
 
   let scheduledEvents: ScheduledPreviewEvent[] = [];
   try {
@@ -227,6 +227,7 @@ export default async function AppPreviewVenuePage({
                     {coverUrl ? (
                       <img
                         src={coverUrl}
+                        data-lightbox-src={coverFullUrl ?? undefined}
                         alt={`${primaryName} cover`}
                         className={styles.heroCover}
                       />

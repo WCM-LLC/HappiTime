@@ -24,7 +24,11 @@ export default function ImageLightbox({ children, className }: LightboxProps) {
     if (!img) return;
     // Don't hijack images that are inside a link or button.
     if (target.closest('a, button')) return;
-    const resolved = (img as HTMLImageElement).currentSrc || (img as HTMLImageElement).src;
+    // Prefer an explicit full-res source (data-lightbox-src) when present —
+    // the rendered src/currentSrc is a downscaled thumbnail (e.g. w:800) and
+    // would only upscale when blown up full-screen.
+    const el = img as HTMLImageElement;
+    const resolved = el.dataset.lightboxSrc || el.currentSrc || el.src;
     if (!resolved) return;
     e.preventDefault();
     setSrc(resolved);
@@ -53,7 +57,9 @@ export default function ImageLightbox({ children, className }: LightboxProps) {
 
   // Signal interactivity on the delegated images (the only affordance — the
   // <img> elements aren't natively focusable in this delegation pattern).
-  const wrapperClass = ['[&_img]:cursor-zoom-in', className].filter(Boolean).join(' ');
+  const wrapperClass = ['[&_img]:cursor-zoom-in', '[&_a_img]:cursor-pointer', '[&_button_img]:cursor-auto', className]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <div className={wrapperClass} onClick={handleClick}>
