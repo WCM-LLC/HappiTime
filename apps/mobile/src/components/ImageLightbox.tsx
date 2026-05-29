@@ -26,10 +26,13 @@ export function ImageLightbox({ visible, images, initialIndex = 0, onClose }: Im
   const [width, setWidth] = useState(() => Dimensions.get('window').width);
   const [activeIndex, setActiveIndex] = useState(initialIndex);
 
-  // Reset to the requested image each time the lightbox is opened.
+  // Reset to the requested image each time the lightbox is opened. Modal keeps
+  // its children mounted across visibility toggles, so initialScrollIndex only
+  // applies on first mount — scroll explicitly to the requested image on open.
   useEffect(() => {
     if (visible) {
       setActiveIndex(initialIndex);
+      listRef.current?.scrollToIndex({ index: initialIndex, animated: false });
     }
   }, [visible, initialIndex]);
 
@@ -49,6 +52,7 @@ export function ImageLightbox({ visible, images, initialIndex = 0, onClose }: Im
       <View
         style={styles.backdrop}
         onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+        accessibilityViewIsModal
       >
         {/* Tapping empty space closes. */}
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close image" />

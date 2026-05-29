@@ -351,6 +351,7 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
                     onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}
                   >
                     <button
+                      type="button"
                       className="secondary"
                       onClick={() => setPreviewSrc(venueImageUrl(row, { w: 1600 }))}
                       style={{ fontSize: 11, padding: '5px 10px', width: 'auto' }}
