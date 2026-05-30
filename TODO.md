@@ -12,6 +12,36 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
 
 ---
 
+## Pricing-tier + attribution remodel follow-ups (filed 2026-05-30)
+
+- [ ] **Phase 3 — consumer apps still read OLD tier vocabulary.** The pricing
+  remodel (basic→verified, premium retired) landed in the DB + web console,
+  but these still gate/style on `'premium'`/`'basic'` (no longer valid tiers):
+  `apps/directory/src/components/VenueCard.tsx`, `VenueCardClient.tsx`;
+  `apps/mobile/App.tsx`, `apps/mobile/src/screens/HomeScreen.tsx`
+  (incl. `PromoTier` type), `EventCalendarScreen.tsx`. No live impact yet (all
+  venues `promotion_tier = NULL`); `'featured'` still matches so nothing
+  crashes. Update with Phase 3 tier-aware consumer UI.
+- [ ] **`v_venue_active_tier` bundle override deferred to Phase 4.** Ships as a
+  simple `COALESCE(promotion_tier,'listed')` projection; the approved design's
+  `org_subscriptions` bundle override (active bundle → featured-level) is
+  deferred until bundles are wired. Restore the `LEFT JOIN org_subscriptions`
+  then. Nothing reads the override yet.
+- [ ] **Stripe env var naming.** Tiers renamed but Stripe products reused
+  (`verified`/`founding_pilot` → `STRIPE_PRODUCT_BASIC`, `featured` →
+  `STRIPE_PRODUCT_FEATURED`). `STRIPE_PRODUCT_PREMIUM` is now unused. Optional
+  rename later.
+- [ ] **Latent no-op:** push edge functions guard `status != 'inactive'`, but
+  `inactive` was never a valid `venue_subscriptions.status`. Pre-existing; left
+  as-is to preserve behavior.
+- [ ] **Remote migration-history drift.** `supabase_migrations.schema_migrations`
+  on the remote registers only recent migrations; the ~30 older files in
+  `supabase/migrations/` are not all tracked. A `supabase db push` from a fresh
+  checkout may try to replay them. Pre-existing — needs a one-time
+  `supabase migration repair`/baseline before relying on `db push`.
+
+---
+
 ## Near-term
 
 - [ ] **Add `SUPABASE_SERVICE_ROLE_KEY` to local `.env.local`** for admin features and the events ingest endpoint to work in development.
