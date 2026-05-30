@@ -348,6 +348,24 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+# Edge Function settings. Functions not listed here use CLI defaults
+# (verify_jwt = true). verify_jwt = false marks PUBLIC / custom-auth endpoints
+# reachable WITHOUT a Supabase JWT — do not flip these to true or their real
+# callers (QR scans from phones, cron jobs, webhooks) will 401.
+
+# Public anonymous attribution endpoint: QR scan / push click / organic / in-app
+# check-in. A phone scanning a table-tent QR carries no JWT; the function self-
+# authorizes via the service-role client + check_rate_limit. Deployed false.
+[functions.track-visit]
+verify_jwt = false
+
+# Invoked by cron / the import pipeline without a user JWT (deployed false).
+[functions.geocode-venues]
+verify_jwt = false
+
+[functions.ingest-venues]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
