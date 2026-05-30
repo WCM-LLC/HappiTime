@@ -10,13 +10,13 @@ import {
 } from '@/utils/subscription-features';
 import type { SubscriptionPlan } from '@/utils/stripe';
 
-const ALL_PLANS: SubscriptionPlan[] = ['listed', 'basic', 'featured', 'premium'];
+const ALL_PLANS: SubscriptionPlan[] = ['listed', 'verified', 'featured'];
 
 const PLAN_STYLE: Record<SubscriptionPlan, { card: string; badge: string; btn: string }> = {
-  listed:   { card: 'border-border',           badge: 'bg-surface text-muted border border-border',          btn: 'bg-surface border border-border text-muted hover:bg-background' },
-  basic:    { card: 'border-border',           badge: 'bg-brand-subtle text-brand-dark-alt',                 btn: 'bg-brand text-white hover:bg-brand/90' },
-  featured: { card: 'border-amber-300',        badge: 'bg-amber-50 text-amber-700',                          btn: 'bg-amber-500 text-white hover:bg-amber-600' },
-  premium:  { card: 'border-violet-400 ring-1 ring-violet-200', badge: 'bg-violet-50 text-violet-700',       btn: 'bg-violet-600 text-white hover:bg-violet-700' },
+  listed:         { card: 'border-border',           badge: 'bg-surface text-muted border border-border',          btn: 'bg-surface border border-border text-muted hover:bg-background' },
+  verified:       { card: 'border-border',           badge: 'bg-brand-subtle text-brand-dark-alt',                 btn: 'bg-brand text-white hover:bg-brand/90' },
+  featured:       { card: 'border-amber-300',        badge: 'bg-amber-50 text-amber-700',                          btn: 'bg-amber-500 text-white hover:bg-amber-600' },
+  founding_pilot: { card: 'border-violet-400 ring-1 ring-violet-200', badge: 'bg-violet-50 text-violet-700',       btn: 'bg-violet-600 text-white hover:bg-violet-700' },
 };
 
 type Props = {

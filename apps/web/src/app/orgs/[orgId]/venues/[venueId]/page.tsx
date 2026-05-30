@@ -378,7 +378,7 @@ export default async function VenuePage({
 
   const currentPlan: SubscriptionPlan =
     venueSub?.status === 'active' || venueSub?.status === 'trialing'
-      ? ((['basic', 'featured', 'premium'].includes(venueSub.plan) ? venueSub.plan : 'listed') as SubscriptionPlan)
+      ? ((['verified', 'featured', 'founding_pilot'].includes(venueSub.plan) ? venueSub.plan : 'listed') as SubscriptionPlan)
       : 'listed';
 
   // Staff members for this venue (admin only)
@@ -487,9 +487,9 @@ export default async function VenuePage({
             {canManageVenue && (
               <Link href={`/orgs/${orgId}/venues/${venueId}/subscription`}>
                 <span className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-md border text-body-sm font-medium transition-colors cursor-pointer ${
-                  currentPlan === 'premium'  ? 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100' :
+                  currentPlan === 'founding_pilot' ? 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100' :
                   currentPlan === 'featured' ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100' :
-                  currentPlan === 'basic'    ? 'border-brand/30 bg-brand-subtle text-brand-dark-alt hover:bg-brand-subtle/80' :
+                  currentPlan === 'verified' ? 'border-brand/30 bg-brand-subtle text-brand-dark-alt hover:bg-brand-subtle/80' :
                   'border-border bg-surface text-muted hover:bg-background'
                 }`}>
                   <span className={`inline-block h-2 w-2 rounded-full ${

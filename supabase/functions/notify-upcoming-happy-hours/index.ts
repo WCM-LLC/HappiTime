@@ -65,18 +65,18 @@ Deno.serve(async (req) => {
 
   const venueIds = [...new Set(windows.map((w: any) => w.venue_id).filter(Boolean))];
 
-  const { data: premiumSubs } = await supabase
+  const { data: eligibleSubs } = await supabase
     .from("venue_subscriptions")
     .select("venue_id, plan, status")
-    .eq("plan", "premium")
+    .in("plan", ["featured", "founding_pilot"])
     .neq("status", "inactive")
     .in("venue_id", venueIds);
 
-  const premiumVenueIds = new Set((premiumSubs ?? []).map((r: any) => r.venue_id));
-  const premiumWindows = (windows as any[]).filter((w) => premiumVenueIds.has(w.venue_id));
+  const eligibleVenueIds = new Set((eligibleSubs ?? []).map((r: any) => r.venue_id));
+  const eligibleWindows = (windows as any[]).filter((w) => eligibleVenueIds.has(w.venue_id));
 
-  if (premiumWindows.length === 0) {
-    return new Response(JSON.stringify({ sent: 0, reason: "no premium venues in lookahead window" }));
+  if (eligibleWindows.length === 0) {
+    return new Response(JSON.stringify({ sent: 0, reason: "no push-eligible venues in lookahead window" }));
   }
 
 
@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
   // Build one message per user per venue window
   const messages: ExpoPushMessage[] = [];
   const venueWindowMap = new Map<string, typeof windows[0]>();
-  for (const w of premiumWindows as any[]) {
+  for (const w of eligibleWindows as any[]) {
     venueWindowMap.set(w.venue_id, w);
   }
 

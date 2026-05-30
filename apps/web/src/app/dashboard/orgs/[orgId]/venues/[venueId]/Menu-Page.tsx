@@ -139,9 +139,11 @@ export default async function VenuePage({
     .eq('venue_id', venueId)
     .maybeSingle();
 
-  const isPremiumSubscriber = subRow?.plan === 'premium' && subRow?.status !== 'inactive';
+  // Featured-level perk (featured + founding_pilot grant featured capability).
+  const isFeaturedSubscriber =
+    (subRow?.plan === 'featured' || subRow?.plan === 'founding_pilot') && subRow?.status !== 'inactive';
 
-  const eventCounts = isPremiumSubscriber
+  const eventCounts = isFeaturedSubscriber
     ? (await supabase
         .from('venue_event_counts')
         .select('event_type,cnt')
@@ -537,8 +539,8 @@ export default async function VenuePage({
             This reads from <code>events</code> (user app) via the <code>venue_event_counts</code> view.
           </p>
 
-          {!isPremiumSubscriber ? (
-            <p className="muted">User-event analytics are available on the Premium plan only.</p>
+          {!isFeaturedSubscriber ? (
+            <p className="muted">User-event analytics are available on the Featured plan only.</p>
           ) : (eventCounts as EventCount[] | null)?.length ? (
             <div className="col" style={{ gap: 8 }}>
               {(eventCounts as EventCount[]).map((e) => (

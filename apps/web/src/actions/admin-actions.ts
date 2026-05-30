@@ -63,7 +63,14 @@ export async function adminToggleVenueStatus(venueId: string, currentStatus: str
 
 /* ── Venue Promotion Actions ── */
 
-export type PromotionTier = 'basic' | 'premium' | 'featured' | null;
+// Mirrors the venues.promotion_tier CHECK (verified/featured/founding_pilot/bundle_*) or null.
+export type PromotionTier =
+  | 'verified'
+  | 'featured'
+  | 'founding_pilot'
+  | 'bundle_2_4'
+  | 'bundle_5_plus'
+  | null;
 
 export async function adminSetPromotionTier(
   venueId: string,
@@ -76,7 +83,7 @@ export async function adminSetPromotionTier(
     .from('venues')
     .update({
       promotion_tier: tier,
-      promotion_priority: priority ?? (tier === 'featured' ? 30 : tier === 'premium' ? 20 : tier === 'basic' ? 10 : 0),
+      promotion_priority: priority ?? (tier === 'featured' ? 30 : tier === 'founding_pilot' ? 25 : tier === 'verified' ? 10 : 0),
     })
     .eq('id', venueId)
     .select('id');

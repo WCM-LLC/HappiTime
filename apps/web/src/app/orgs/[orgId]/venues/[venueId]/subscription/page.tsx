@@ -36,7 +36,7 @@ export default async function SubscriptionPage({
 
   const currentPlan: SubscriptionPlan =
     venueSub?.status === 'active' || venueSub?.status === 'trialing'
-      ? ((['basic', 'featured', 'premium'].includes(venueSub.plan) ? venueSub.plan : 'listed') as SubscriptionPlan)
+      ? ((['verified', 'featured', 'founding_pilot'].includes(venueSub.plan) ? venueSub.plan : 'listed') as SubscriptionPlan)
       : 'listed';
 
   return (

@@ -62,10 +62,10 @@ Deno.serve(async (req) => {
     .eq("venue_id", venueId)
     .maybeSingle();
 
-  const isPremium = sub?.plan === "premium" && sub?.status !== "inactive";
-  if (!isPremium) {
+  const isEligible = (sub?.plan === "featured" || sub?.plan === "founding_pilot") && sub?.status !== "inactive";
+  if (!isEligible) {
     return new Response(
-      JSON.stringify({ sent: 0, reason: "venue is not a premium subscriber" })
+      JSON.stringify({ sent: 0, reason: "venue is not a push-eligible subscriber" })
     );
   }
 

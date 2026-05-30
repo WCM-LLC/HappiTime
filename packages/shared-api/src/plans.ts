@@ -11,7 +11,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@happitime/shared-types";
 import { createSupabaseClient } from "./client.js";
 
-export type VenuePlan = "free" | "basic" | "featured" | "premium";
+// Per-venue tiers (freemium model). 'listed' is the free default (was 'free').
+// Org-level bundle tiers live in org_subscriptions, not here.
+export type VenuePlan = "listed" | "verified" | "featured" | "founding_pilot";
 export type UserPlan = "free" | "power";
 export type PlanStatus =
   | "active"
@@ -19,15 +21,16 @@ export type PlanStatus =
   | "past_due"
   | "canceled"
   | "paused"
+  | "pilot"
   | "inactive"
   | "trial";
 
-const ACTIVE_PLAN_STATUSES = new Set<PlanStatus>(["active", "trialing", "trial"]);
-const VENUE_PLANS = new Set<VenuePlan>(["free", "basic", "featured", "premium"]);
+const ACTIVE_PLAN_STATUSES = new Set<PlanStatus>(["active", "trialing", "trial", "pilot"]);
+const VENUE_PLANS = new Set<VenuePlan>(["listed", "verified", "featured", "founding_pilot"]);
 
 /**
  * Returns the active plan for a venue.
- * Returns 'free' when no record exists or when status does not grant access.
+ * Returns 'listed' (free tier) when no record exists or when status does not grant access.
  */
 export async function getVenuePlan(
   venueId: string,
@@ -39,8 +42,8 @@ export async function getVenuePlan(
     .select("plan, status")
     .eq("venue_id", venueId)
     .maybeSingle();
-  if (!data || !ACTIVE_PLAN_STATUSES.has(data.status as PlanStatus)) return "free";
-  return VENUE_PLANS.has(data.plan as VenuePlan) ? (data.plan as VenuePlan) : "free";
+  if (!data || !ACTIVE_PLAN_STATUSES.has(data.status as PlanStatus)) return "listed";
+  return VENUE_PLANS.has(data.plan as VenuePlan) ? (data.plan as VenuePlan) : "listed";
 }
 
 /**

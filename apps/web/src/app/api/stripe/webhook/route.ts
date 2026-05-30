@@ -6,13 +6,23 @@ import { createServiceClient } from '@/utils/supabase/server';
 // Raw body required for Stripe signature verification
 export const runtime = 'nodejs';
 
+// Paid per-venue plan → valid venues.promotion_tier.
+// founding_pilot bills at the verified product but grants featured-level display tier.
 const TIER_FOR_PLAN: Record<string, string> = {
-  basic:    'basic',
-  featured: 'featured',
-  premium:  'premium',
+  verified:       'verified',
+  featured:       'featured',
+  founding_pilot: 'featured',
 };
 
 const PAID_PLANS = new Set(Object.keys(TIER_FOR_PLAN));
+
+// plan → Stripe product env var. Tiers were renamed (basic→verified) but the existing
+// Stripe products are reused, so STRIPE_PRODUCT_VERIFIED does not exist — map explicitly.
+const PLAN_PRODUCT_ENV: Record<string, string> = {
+  verified:       'STRIPE_PRODUCT_BASIC',
+  featured:       'STRIPE_PRODUCT_FEATURED',
+  founding_pilot: 'STRIPE_PRODUCT_BASIC',
+};
 
 type DbSubscriptionStatus = 'active' | 'past_due' | 'canceled' | 'trialing' | 'paused';
 
@@ -38,7 +48,7 @@ function getStripeId(value: string | { id?: string } | null | undefined): string
   return typeof value?.id === 'string' ? value.id : null;
 }
 
-function isPaidPlan(value: unknown): value is 'basic' | 'featured' | 'premium' {
+function isPaidPlan(value: unknown): value is 'verified' | 'featured' | 'founding_pilot' {
   return typeof value === 'string' && PAID_PLANS.has(value);
 }
 
@@ -71,8 +81,8 @@ function getSubscriptionPriceId(sub: Stripe.Subscription): string | null {
   return (sub as any).items?.data?.[0]?.price?.id ?? null;
 }
 
-function subscriptionProductMatchesPlan(sub: Stripe.Subscription, plan: 'basic' | 'featured' | 'premium') {
-  const expectedProduct = process.env[`STRIPE_PRODUCT_${plan.toUpperCase()}`];
+function subscriptionProductMatchesPlan(sub: Stripe.Subscription, plan: 'verified' | 'featured' | 'founding_pilot') {
+  const expectedProduct = process.env[PLAN_PRODUCT_ENV[plan]];
   if (!expectedProduct) return true;
 
   const items = ((sub as any).items?.data ?? []) as Array<{ price?: { product?: string | { id?: string } } }>;
@@ -138,7 +148,7 @@ async function handleSubscriptionUpsert(
   const subscriptionPatch: Record<string, unknown> = {
     venue_id:               venueId,
     org_id:                 orgId,
-    plan:                   status === 'canceled' ? 'free' : plan,
+    plan:                   status === 'canceled' ? 'listed' : plan,
     status,
     stripe_subscription_id: sub.id,
     stripe_customer_id:     customerId,

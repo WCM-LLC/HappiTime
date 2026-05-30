@@ -3,14 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { assertAdmin, getAdminClient } from '@/utils/admin';
 
-const VENUE_PLANS = new Set(['free', 'basic', 'featured', 'premium']);
+const VENUE_PLANS = new Set(['listed', 'verified', 'featured', 'founding_pilot']);
 const VENUE_STATUSES = new Set(['active', 'past_due', 'canceled', 'trialing', 'paused']);
-const PAID_VENUE_PLANS = new Set(['basic', 'featured', 'premium']);
+const PAID_VENUE_PLANS = new Set(['verified', 'featured', 'founding_pilot']);
 
 function normalizeVenuePlan(value: string) {
-  const plan = value === 'listed' ? 'free' : value;
-  if (!VENUE_PLANS.has(plan)) throw new Error('Invalid venue plan');
-  return plan;
+  if (!VENUE_PLANS.has(value)) throw new Error('Invalid venue plan');
+  return value;
 }
 
 function normalizeVenueStatus(value: string) {

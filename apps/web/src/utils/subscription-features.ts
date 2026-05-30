@@ -42,24 +42,26 @@ export const FEATURES: FeatureDef[] = [
 ];
 
 export const PLAN_FEATURES: Record<SubscriptionPlan, Set<FeatureKey>> = {
-  listed:   new Set([]),
-  basic:    new Set(['photo_forward_layout', 'menu_editing']),
-  featured: new Set(['photo_forward_layout', 'menu_editing', 'top_of_category', 'push_notifications']),
-  premium:  new Set(['photo_forward_layout', 'menu_editing', 'top_of_category', 'push_notifications', 'weekly_social_post']),
+  listed:         new Set([]),
+  verified:       new Set(['photo_forward_layout', 'menu_editing']),
+  featured:       new Set(['photo_forward_layout', 'menu_editing', 'top_of_category', 'push_notifications', 'weekly_social_post']),
+  // founding_pilot is a time-limited offer granting featured-level capability at the verified
+  // price; it mirrors the featured feature set.
+  founding_pilot: new Set(['photo_forward_layout', 'menu_editing', 'top_of_category', 'push_notifications', 'weekly_social_post']),
 };
 
 export const PLAN_PRICE: Record<SubscriptionPlan, number | null> = {
-  listed:   null,
-  basic:    49,
-  featured: 99,
-  premium:  199,
+  listed:         null,
+  verified:       49,
+  featured:       99,
+  founding_pilot: 49,
 };
 
 export const PLAN_LABEL: Record<SubscriptionPlan, string> = {
-  listed:   'Listed',
-  basic:    'Basic',
-  featured: 'Featured',
-  premium:  'Premium',
+  listed:         'Listed',
+  verified:       'Verified',
+  featured:       'Featured',
+  founding_pilot: 'Founding Pilot',
 };
 
 /** Returns true if the given plan includes the requested feature. */

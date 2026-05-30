@@ -28,13 +28,17 @@ export function getStripe(): Stripe {
   return _stripe;
 }
 
-export type SubscriptionPlan = 'listed' | 'basic' | 'featured' | 'premium';
+// Per-venue tiers. Org-level bundles (bundle_2_4 / bundle_5_plus) are NOT valid here —
+// they live in org_subscriptions and are checked out through a separate org-level flow.
+export type SubscriptionPlan = 'listed' | 'verified' | 'featured' | 'founding_pilot';
 
-// Map plan name → Stripe product env var
+// Map plan name → Stripe product env var. The tiers were renamed (basic→verified) but the
+// existing Stripe products are reused, so no env-var changes this pass. founding_pilot bills
+// at the verified ($49) product but grants featured-level features (see subscription-features).
 const PLAN_PRODUCT_ENV: Record<Exclude<SubscriptionPlan, 'listed'>, string> = {
-  basic:    'STRIPE_PRODUCT_BASIC',
-  featured: 'STRIPE_PRODUCT_FEATURED',
-  premium:  'STRIPE_PRODUCT_PREMIUM',
+  verified:       'STRIPE_PRODUCT_BASIC',
+  featured:       'STRIPE_PRODUCT_FEATURED',
+  founding_pilot: 'STRIPE_PRODUCT_BASIC',
 };
 
 /**

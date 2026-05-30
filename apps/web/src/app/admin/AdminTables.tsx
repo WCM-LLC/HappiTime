@@ -103,8 +103,10 @@ const badgeBasic = 'inline-flex items-center rounded-full px-2 py-0.5 text-capti
 
 function getPromoBadge(tier: string | null) {
   if (tier === 'featured') return { cls: badgeFeatured, label: '★ Featured' };
-  if (tier === 'premium') return { cls: badgePremium, label: 'Premium' };
-  if (tier === 'basic') return { cls: badgeBasic, label: 'Basic' };
+  if (tier === 'verified') return { cls: badgeBasic, label: 'Verified' };
+  if (tier === 'founding_pilot') return { cls: badgePremium, label: 'Founding Pilot' };
+  if (tier === 'bundle_2_4') return { cls: badgePremium, label: 'Bundle 2–4' };
+  if (tier === 'bundle_5_plus') return { cls: badgePremium, label: 'Bundle 5+' };
   return { cls: badgeGray, label: 'Free' };
 }
 
@@ -597,8 +599,8 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
           label="Tier"
           options={[
             { value: 'featured', label: '★ Featured' },
-            { value: 'premium', label: 'Premium' },
-            { value: 'basic', label: 'Basic' },
+            { value: 'verified', label: 'Verified' },
+            { value: 'founding_pilot', label: 'Founding Pilot' },
             { value: 'none', label: 'Free' },
           ]}
           active={tierFilter}
@@ -667,8 +669,8 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
                         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%236B6B6B' stroke-width='1.5'/%3E%3C/svg%3E")` }}
                       >
                         <option value="">Free</option>
-                        <option value="basic">Basic</option>
-                        <option value="premium">Premium</option>
+                        <option value="verified">Verified</option>
+                        <option value="founding_pilot">Founding Pilot</option>
                         <option value="featured">★ Featured</option>
                       </select>
                     </td>
