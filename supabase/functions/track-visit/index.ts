@@ -14,7 +14,13 @@
 // Response: 200 { ok: true } | 200 { ok: true, deduped: true } (rate-limited)
 //           400 invalid body | 404 unknown venue | 500 server error
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendExpoPush } from "../_shared/expo-push.ts";
+import { buildVenueScanMessage } from "../_shared/scan-message.mjs";
+
+// Provided by the Supabase Edge runtime; keeps background work alive after the
+// response is sent. Declared for the type-checker.
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
 const VALID_SOURCES = new Set(["qr", "app_checkin", "push_click", "organic"]);
 // One attributed event per (venue, source, session) per 4 hours.
@@ -66,6 +72,74 @@ function toFiniteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+/**
+ * Push to the venue's owners + managers that a visit was recorded. Runs in the
+ * background (EdgeRuntime), so any failure here never affects the
+ * track-visit response. Respects the per-user push + venue-scan opt-outs
+ * (a missing user_preferences row counts as opted-in).
+ */
+async function notifyVenueTeam(
+  // deno-lint-ignore no-explicit-any
+  supabase: SupabaseClient<any>,
+  args: { venueId: string; orgId: string; venueName: string; source: string },
+): Promise<void> {
+  try {
+    const { venueId, orgId, venueName, source } = args;
+
+    const { data: members } = await supabase
+      .from("org_members")
+      .select("user_id")
+      .eq("org_id", orgId)
+      .in("role", ["owner", "manager"]);
+    const memberIds = [...new Set((members ?? []).map((m: { user_id: string }) => m.user_id))];
+    if (memberIds.length === 0) return;
+
+    const { data: prefs } = await supabase
+      .from("user_preferences")
+      .select("user_id, notifications_push, notifications_venue_scans")
+      .in("user_id", memberIds);
+    const optedOut = new Set(
+      (prefs ?? [])
+        .filter(
+          (p: { notifications_push?: boolean; notifications_venue_scans?: boolean }) =>
+            p.notifications_push === false || p.notifications_venue_scans === false,
+        )
+        .map((p: { user_id: string }) => p.user_id),
+    );
+    const recipientIds = memberIds.filter((id) => !optedOut.has(id));
+    if (recipientIds.length === 0) return;
+
+    const { data: tokenRows } = await supabase
+      .from("user_push_tokens")
+      .select("expo_push_token")
+      .in("user_id", recipientIds);
+    const tokens = [
+      ...new Set(
+        (tokenRows ?? [])
+          .map((t: { expo_push_token: string }) => t.expo_push_token)
+          .filter((tok) => typeof tok === "string" && tok.startsWith("ExponentPushToken")),
+      ),
+    ];
+    if (tokens.length === 0) return;
+
+    const { title, body } = buildVenueScanMessage(source, venueName);
+    await sendExpoPush(
+      tokens.map((to) => ({
+        to,
+        title,
+        body,
+        sound: "default" as const,
+        data: { type: "venue", venueId },
+      })),
+    );
+  } catch (err) {
+    console.error(
+      "[track-visit] venue-team push failed:",
+      err instanceof Error ? err.message : err,
+    );
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS_HEADERS });
   if (req.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
@@ -103,13 +177,13 @@ Deno.serve(async (req) => {
   // Use limit(1) + data[0] rather than maybeSingle(): the floating supabase-js
   // build can surface PGRST116 ("multiple (or no) rows") from maybeSingle on an
   // empty result, which would turn a legitimate 404 into a 500.
-  const venueQuery = supabase.from("venues").select("id").eq("status", "published").limit(1);
+  const venueQuery = supabase.from("venues").select("id, org_id, name").eq("status", "published").limit(1);
   const { data: venues, error: venueErr } = await (
     venueIdParam ? venueQuery.eq("id", venueIdParam) : venueQuery.eq("slug", venueSlug as string)
   );
 
   if (venueErr) return json({ ok: false, error: "Venue lookup failed" }, 500);
-  const venue = (venues as Array<{ id: string }> | null)?.[0];
+  const venue = (venues as Array<{ id: string; org_id: string; name: string }> | null)?.[0];
   if (!venue) return json({ ok: false, error: "Unknown venue" }, 404);
 
   const venueId = venue.id;
@@ -138,6 +212,16 @@ Deno.serve(async (req) => {
   });
 
   if (insertErr) return json({ ok: false, error: "Insert failed" }, 500);
+
+  // Notify the venue's owners/managers in the background — never blocks the response.
+  EdgeRuntime.waitUntil(
+    notifyVenueTeam(supabase, {
+      venueId,
+      orgId: venue.org_id,
+      venueName: venue.name,
+      source,
+    }),
+  );
 
   return json({ ok: true });
 });

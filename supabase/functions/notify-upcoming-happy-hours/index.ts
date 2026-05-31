@@ -8,18 +8,9 @@
 //     $$SELECT net.http_post(url := '...', headers := ..., body := ...)$$);
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendExpoPush, type ExpoPushMessage } from "../_shared/expo-push.ts";
 
-const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 const LOOKAHEAD_MINUTES = 60;
-const BATCH_SIZE = 100;
-
-type ExpoPushMessage = {
-  to: string;
-  title: string;
-  body: string;
-  data?: Record<string, unknown>;
-  sound?: "default";
-};
 
 Deno.serve(async (req) => {
   // Allow manual triggers via POST; scheduled invocations also POST
@@ -135,18 +126,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ sent: 0, reason: "no valid tokens" }));
   }
 
-  // Send in batches of BATCH_SIZE (Expo limit is 100/request)
-  let totalSent = 0;
-  for (let i = 0; i < messages.length; i += BATCH_SIZE) {
-    const batch = messages.slice(i, i + BATCH_SIZE);
-    const res = await fetch(EXPO_PUSH_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(batch)
-    });
-    if (res.ok) totalSent += batch.length;
-    else console.error("[notify] expo push failed:", await res.text());
-  }
+  const totalSent = await sendExpoPush(messages);
 
   return new Response(JSON.stringify({ sent: totalSent }), {
     headers: { "Content-Type": "application/json" }
