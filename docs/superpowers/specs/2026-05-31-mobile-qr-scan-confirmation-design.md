@@ -117,3 +117,24 @@ ship). So it is **OTA-eligible** via `eas update --channel production`, **provid
 live store build's `runtimeVersion` matches `1.0.3` (policy `appVersion`). Confirm the
 runtime match against the production build before publishing; otherwise it needs a new
 store build, not an OTA.
+
+## Update — on-device verification (2026-05-31)
+
+Verified on the iOS simulator (iPhone 17 Pro, dev build + Metro). Two fixes the
+simulator surfaced that the unit tests / typecheck could not:
+
+1. **Auth-gate drop (critical).** `useVenueDeepLink` mounted inside `AppNavigator`
+   never ran for an unauthenticated user, because `App.tsx` shows a Welcome /
+   AuthScreen gate with `AppNavigator` UNMOUNTED until the user signs in or picks
+   guest mode. Since QR codes target new users, the primary flow was broken.
+   **Fix:** capture the link above the gate (`useVenueLinkCapture`, mounted at the
+   App root like `useMagicLinkListener`), stash it (`lib/pendingVenueLink`), and
+   auto-enter guest mode so the navigator mounts; `useVenueDeepLink` then consumes
+   the stash and routes. New files: `src/hooks/useVenueLinkCapture.ts`,
+   `src/lib/pendingVenueLink.ts`. Verified: a cold-start `happitime://venue/sea-capitan?src=qr`
+   now opens the Sea Capitán screen instead of the sign-in wall.
+2. **`URLSearchParams` portability.** RN lacks a reliable `URLSearchParams.get`;
+   the parser now extracts `src` with a manual regex.
+3. **Banner centering.** `alignSelf:center` doesn't center an absolutely-positioned
+   view; wrapped in a full-width `alignItems:center` container. The "✓ Checked in!"
+   pill renders on QR arrival (display-only, no second `track-visit`).
