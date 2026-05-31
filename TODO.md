@@ -75,10 +75,12 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
         in test mode.** (The downstream `venue_subscriptions`→canceled + `promotion_tier`→null zeroing
         on per-venue cancellation is the PRE-EXISTING per-venue deletion handler, which fires when the
         cancelled sub carries `venue_id` metadata — real per-venue subs do.)
-    - **To ACTIVATE (per environment):**
-      - [ ] Set `STRIPE_PRODUCT_BUNDLE_2_4` / `_5_PLUS` in the target env's config. The IDs above are
-        TEST products — for a LIVE environment, create live products (or keep test until ready) and
-        set the live IDs alongside the live `STRIPE_SECRET_KEY`.
+    - **To ACTIVATE (DECIDED 2026-05-31: defer live wiring until 4-3 ships).** Test mode is fully
+      verified, but production has no UI to trigger a bundle checkout yet, so live products + env
+      vars would arm real billing with no entry point. Wire live ALONGSIDE 4-3, not before:
+      - [ ] When 4-3 ships: create LIVE `bundle_2_4`/`bundle_5_plus` products with the live key and set
+        `STRIPE_PRODUCT_BUNDLE_2_4` / `_5_PLUS` in the production (Vercel) env alongside the live
+        `STRIPE_SECRET_KEY`. (Test product IDs + the live decision are recorded above.)
     - [ ] Revisit whether push edge functions honor bundles (deferred from 4.1).
     - Behavior note for 4-3: because activation cancels per-venue subs and nothing restores them,
       an org that later cancels its bundle drops to all-`listed` (loses its old per-venue tiers).
