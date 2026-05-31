@@ -13,6 +13,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUpcomingEvents, type UpcomingEvent } from "../hooks/useUpcomingEvents";
+import { tierVariant } from "../lib/venueTier";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useUserPreferences } from "../hooks/useUserPreferences";
@@ -166,11 +167,8 @@ function applyFilter(
       });
 
     case "featured":
-      return events.filter(
-        (ev) =>
-          ev.venues?.promotion_tier === "featured" ||
-          ev.venues?.promotion_tier === "premium"
-      );
+      // Featured filter = featured-level tiers (featured / founding_pilot / bundles).
+      return events.filter((ev) => tierVariant(ev.venues?.promotion_tier) === "featured");
   }
 }
 

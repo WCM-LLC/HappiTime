@@ -6,6 +6,7 @@ import { IconSymbol } from "./components/ui/icon-symbol";
 import LoadingView from "./src/components/LoadingView";
 import { VisitRatingModal } from "./src/components/VisitRatingModal";
 import { supabase } from "./src/api/supabaseClient";
+import { isPromotedTier } from "./src/lib/venueTier";
 import { useConfigPushNotifications } from "./src/hooks/useConfigPushNotifications";
 import { useHappyHours } from "./src/hooks/useHappyHours";
 import { useMagicLinkListener } from "./src/hooks/useMagicLinkListener";
@@ -51,8 +52,7 @@ function AuthenticatedApp({ session }: { session: Session }) {
           name: venue.name ?? window.venue_name ?? "Venue",
           lat: venue.lat,
           lng: venue.lng,
-          isPremium:
-            venue.promotion_tier === "premium" || venue.promotion_tier === "featured",
+          isPremium: isPromotedTier(venue.promotion_tier),
           timezone: (window as any).timezone ?? undefined,
           happyHourWindows: [windowSlice],
           serverRatingPromptsEnabled: (venue as any).post_visit_rating_enabled ?? true,

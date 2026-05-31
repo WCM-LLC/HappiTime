@@ -21,6 +21,7 @@ import MapView, { Marker } from "react-native-maps";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
+import { tierVariant } from "../lib/venueTier";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
@@ -103,22 +104,22 @@ const getPriceTier = (window: HappyHourWindow) => {
   return typeof tier === "number" && tier > 0 ? tier : null;
 };
 
-type PromoTier = "featured" | "premium" | "basic" | null;
+// Consumer card variant (Phase 3): featured (incl. founding_pilot/bundles) >
+// verified > listed. Tier mapping lives in ../lib/venueTier.
+type PromoVariant = "featured" | "verified";
 
-const getPromoTier = (window: HappyHourWindow): PromoTier => {
-  const tier = (window.venue as any)?.promotion_tier;
-  if (tier === "featured" || tier === "premium" || tier === "basic") return tier;
-  return null;
+const getPromoVariant = (window: HappyHourWindow): PromoVariant | null => {
+  const v = tierVariant((window.venue as any)?.promotion_tier);
+  return v === "listed" ? null : v;
 };
 
 const getPromoPriority = (window: HappyHourWindow): number => {
   return (window.venue as any)?.promotion_priority ?? 0;
 };
 
-const promoLabel: Record<string, string> = {
+const promoLabel: Record<PromoVariant, string> = {
   featured: "Featured",
-  premium: "Premium",
-  basic: "Promoted",
+  verified: "Verified",
 };
 
 
@@ -702,8 +703,8 @@ const VenueCard: React.FC<VenueCardProps> = ({
   const name = getVenueName(place);
   const locationLabel = getVenueSubtitle(place);
   const priceTier = formatPriceTier(getPriceTier(place));
-  const promoTier = getPromoTier(place);
-  const isPromoted = promoTier != null;
+  const promoVariant = getPromoVariant(place);
+  const isPromoted = promoVariant != null;
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const imageSources = useMemo(() => {
     const urls = [...(imageUrls ?? []), coverUrl]
@@ -741,9 +742,8 @@ const VenueCard: React.FC<VenueCardProps> = ({
         styles.card,
         { width },
         isPromoted && (
-          promoTier === "featured" ? styles.cardPromoFeatured
-          : promoTier === "premium" ? styles.cardPromoPremium
-          : styles.cardPromoBasic
+          promoVariant === "featured" ? styles.cardPromoFeatured
+          : styles.cardPromoVerified
         ),
       ]}
     >
@@ -788,11 +788,10 @@ const VenueCard: React.FC<VenueCardProps> = ({
         {isPromoted && (
           <View style={[
             styles.cardPromoBadge,
-            promoTier === "featured" ? styles.cardPromoBadgeFeatured
-            : promoTier === "premium" ? styles.cardPromoBadgePremium
-            : styles.cardPromoBadgeBasic
+            promoVariant === "featured" ? styles.cardPromoBadgeFeatured
+            : styles.cardPromoBadgeVerified
           ]}>
-            <Text style={styles.cardPromoBadgeText}>{promoLabel[promoTier]}</Text>
+            <Text style={styles.cardPromoBadgeText}>{promoLabel[promoVariant]}</Text>
           </View>
         )}
         {priceTier && (
@@ -1079,12 +1078,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     backgroundColor: colors.promoFeaturedBg,
   },
-  cardPromoPremium: {
-    borderColor: colors.promoPremiumBorder,
-    borderWidth: 1.5,
-    backgroundColor: colors.promoPremiumBg,
-  },
-  cardPromoBasic: {
+  // Verified reuses the blue secondary-promo palette.
+  cardPromoVerified: {
     borderColor: colors.promoBasicBorder,
     borderWidth: 1.5,
     backgroundColor: colors.promoBasicBg,
@@ -1100,10 +1095,7 @@ const styles = StyleSheet.create({
   cardPromoBadgeFeatured: {
     backgroundColor: colors.promoFeaturedBadge,
   },
-  cardPromoBadgePremium: {
-    backgroundColor: colors.promoPremiumBadge,
-  },
-  cardPromoBadgeBasic: {
+  cardPromoBadgeVerified: {
     backgroundColor: colors.promoBasicBadge,
   },
   cardPromoBadgeText: {
