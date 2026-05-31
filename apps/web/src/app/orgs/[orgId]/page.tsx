@@ -100,18 +100,19 @@ export default async function OrgPage({
   const { data: orgBundleRow } = canManageBilling
     ? await (supabase as any)
         .from('org_subscriptions')
-        .select('bundle_tier, status, venue_count, monthly_rate_per_venue_cents, current_period_end')
+        .select('bundle_tier, status, venue_count, monthly_rate_per_venue_cents, current_period_end, stripe_customer_id')
         .eq('org_id', orgId)
         .maybeSingle()
     : { data: null };
 
-  const orgBundle = orgBundleRow
+  const orgBundle = orgBundleRow && orgBundleRow.status !== 'canceled'
     ? {
         tier: orgBundleRow.bundle_tier as 'bundle_2_4' | 'bundle_5_plus',
         status: orgBundleRow.status as string,
         venueCount: orgBundleRow.venue_count as number,
         monthlyRatePerVenueCents: orgBundleRow.monthly_rate_per_venue_cents as number,
         currentPeriodEnd: (orgBundleRow.current_period_end as string | null) ?? null,
+        canManageBilling: Boolean(orgBundleRow.stripe_customer_id),
       }
     : null;
 

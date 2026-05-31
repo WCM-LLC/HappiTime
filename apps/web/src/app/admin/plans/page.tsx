@@ -477,7 +477,7 @@ export default async function PlansPage() {
                     <td className={tdCls}>{b.bundle_tier}</td>
                     <td className={tdCls}>{b.status}</td>
                     <td className={tdCls}>{b.venue_count}</td>
-                    <td className={tdCls}>${b.monthly_total}</td>
+                    <td className={tdCls}>${b.monthly_total.toFixed(2)}</td>
                     <td className={tdCls}>
                       <form action={adminCancelOrgBundle} className="inline">
                         <input type="hidden" name="org_id" value={b.org_id} />

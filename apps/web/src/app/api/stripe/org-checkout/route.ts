@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
       customerEmail: user.email ?? null,
       billingSupabase,
       origin,
+      userId: user.id,
     });
     return NextResponse.json({ url });
   } catch (err) {

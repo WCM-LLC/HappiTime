@@ -14,6 +14,7 @@ export type OrgBundleSummary = {
   venueCount: number;
   monthlyRatePerVenueCents: number;
   currentPeriodEnd: string | null;
+  canManageBilling: boolean;
 };
 
 type Props = {
@@ -52,7 +53,7 @@ export function OrgBundlePanel({ orgId, venueCount, bundle }: Props) {
     <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
       <div className="flex items-start justify-between mb-4">
         <h2 className="text-heading-sm font-semibold text-foreground">Org bundle</h2>
-        {bundle && (
+        {bundle?.canManageBilling && (
           <button
             onClick={() => post('/api/stripe/org-portal')}
             disabled={pending}
@@ -86,7 +87,9 @@ export function OrgBundlePanel({ orgId, venueCount, bundle }: Props) {
             {bundle.currentPeriodEnd ? ` · renews ${new Date(bundle.currentPeriodEnd).toLocaleDateString()}` : ''}
           </p>
           <p className="mt-4 text-caption text-muted">
-            Cancelling your bundle returns all venues to Listed.
+            {bundle.canManageBilling
+              ? 'Cancelling your bundle returns all venues to Listed.'
+              : 'Comped pilot bundle — contact support to change.'}
           </p>
         </div>
       ) : (

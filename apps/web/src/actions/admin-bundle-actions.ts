@@ -23,6 +23,15 @@ export async function adminGrantPilotBundle(formData: FormData) {
   const tier = bundleTierForCount(venueCount);
   if (!tier) throw new Error('A bundle needs at least 2 venues');
 
+  const { data: existing } = await (supabase as any)
+    .from('org_subscriptions')
+    .select('stripe_subscription_id, status')
+    .eq('org_id', orgId)
+    .maybeSingle();
+  if (existing?.stripe_subscription_id && ['active', 'trialing', 'past_due', 'paused'].includes(existing.status)) {
+    throw new Error('Org already has a paid bundle; cancel it first');
+  }
+
   const { error } = await (supabase as any).from('org_subscriptions').upsert(
     {
       org_id: orgId,

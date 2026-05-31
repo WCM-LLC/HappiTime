@@ -9,6 +9,7 @@ type SessionOpts = {
   /** Supabase client used to read/store the org's Stripe customer id. */
   billingSupabase: any;
   origin: string;
+  userId?: string;
 };
 
 /**
@@ -17,7 +18,7 @@ type SessionOpts = {
  * Shared by /api/stripe/org-checkout and the admin "generate link" action.
  */
 export async function createOrgBundleCheckoutSession(opts: SessionOpts): Promise<{ url: string | null; sessionId: string }> {
-  const { orgId, tier, quantity, customerEmail, billingSupabase, origin } = opts;
+  const { orgId, tier, quantity, customerEmail, billingSupabase, origin, userId } = opts;
   const stripe = getStripe();
 
   const { data: existing } = await billingSupabase
@@ -30,7 +31,7 @@ export async function createOrgBundleCheckoutSession(opts: SessionOpts): Promise
   if (!customerId) {
     const customer = await stripe.customers.create({
       email: customerEmail ?? undefined,
-      metadata: { org_id: orgId },
+      metadata: { org_id: orgId, ...(userId ? { user_id: userId } : {}) },
     });
     customerId = customer.id;
   }
