@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   ScrollView,
   Pressable,
   Linking,
-  Alert
+  Alert,
+  Animated,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -77,6 +78,26 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const { media } = useVenueMedia(venueId ?? null);
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
+
+  // One-shot "Checked in!" confirmation when arriving from a QR scan
+  // (route param fromScan). Display-only — the web bridge already recorded the
+  // visit; we just confirm it. Cleared after showing so back-nav won't replay it.
+  const bannerShown = useRef(false);
+  const bannerOpacity = useRef(new Animated.Value(0)).current;
+  const [showScanBanner, setShowScanBanner] = useState(false);
+
+  useEffect(() => {
+    if (bannerShown.current) return;
+    if (route.params?.fromScan !== true) return;
+    bannerShown.current = true;
+    setShowScanBanner(true);
+    navigation.setParams({ fromScan: false });
+    Animated.sequence([
+      Animated.timing(bannerOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.delay(2500),
+      Animated.timing(bannerOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+    ]).start(() => setShowScanBanner(false));
+  }, [route.params, navigation, bannerOpacity]);
 
   // "I'm here" — records an app_checkin attribution event for this venue via the
   // public track-visit edge function. Lightweight: no geofence enforcement yet.
@@ -227,6 +248,14 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
+      {showScanBanner ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.scanBanner, { opacity: bannerOpacity, top: insets.top + spacing.sm }]}
+        >
+          <Text style={styles.scanBannerText}>✓ Checked in!</Text>
+        </Animated.View>
+      ) : null}
       {windowsForVenue.length === 0 && events.length === 0 ? (
         <Text style={styles.emptyText}>
           {venueName} doesn&apos;t have any published happy hours or events yet.
@@ -418,5 +447,19 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 10,
     fontWeight: "700"
-  }
+  },
+  scanBanner: {
+    position: "absolute",
+    alignSelf: "center",
+    zIndex: 10,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    backgroundColor: "#EAF6EC",
+  },
+  scanBannerText: {
+    color: "#1B7A34",
+    fontSize: 15,
+    fontWeight: "600",
+  },
 });
