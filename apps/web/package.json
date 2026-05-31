@@ -16,6 +16,7 @@
     "@happitime/shared-api": "0.0.1",
     "@happitime/shared-env": "0.0.1",
     "@happitime/shared-types": "0.0.1",
+    "@happitime/venue-qr": "*",
     "@supabase/ssr": "^0.5.0",
     "@supabase/supabase-js": "^2.49.0",
     "@uiw/react-md-editor": "^4.1.0",

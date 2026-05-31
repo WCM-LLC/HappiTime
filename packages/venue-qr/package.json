@@ -1,0 +1,17 @@
+{
+  "name": "@happitime/venue-qr",
+  "version": "0.0.1",
+  "type": "module",
+  "main": "index.mjs",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    }
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "pngjs": "^3.4.0"
+  }
+}

@@ -121,9 +121,16 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
   `happitime://venue/{slug}` but the mobile app can't route it yet:
   `apps/mobile/src/navigation/index.tsx` has a bare `NavigationContainer` (no
   React Navigation `linking` config) and `VenuePreview` keys on `venueId`, not
-  slug. Needs a `linking` map (prefixes `happitime://` + `https://happitime.app`)
+  slug. Needs a `linking` map (prefixes `happitime://` + `https://happitime.biz`)
   plus a slug→venueId resolver so the deep link opens the venue screen. The
   `/v/[slug]` web landing and in-app "I'm here" check-in are already shipped.
+  - **In-app scan confirmation (paired with the QR scan indicator).** The web
+    landing now shows a visible "Scan recorded" banner
+    (`apps/directory/.../v/[slug]/VenueLandingClient.tsx`), but when the deep link
+    opens the native app the user sees no confirmation the scan registered. Once
+    the `linking` map above lands, show a check-in toast/confirmation on the venue
+    screen when it's opened via `happitime://venue/{slug}` (e.g. read a `?src=qr`
+    param through the linking config and surface a brief "Checked in ✓").
 - [ ] **Remote migration-history drift.** `supabase_migrations.schema_migrations`
   on the remote registers only recent migrations; the ~30 older files in
   `supabase/migrations/` are not all tracked. A `supabase db push` from a fresh

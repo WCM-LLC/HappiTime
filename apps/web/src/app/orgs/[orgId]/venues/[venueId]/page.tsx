@@ -12,6 +12,7 @@ import { createClient, createServiceClient } from '@/utils/supabase/server';
 import { isAdminEmail } from '@/utils/admin-emails';
 import { loginPathFor } from '@/utils/auth-paths';
 import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
+import { SIZE_PRESETS } from '@happitime/venue-qr';
 import {
   updateVenue,
   publishVenue,
@@ -279,6 +280,14 @@ export default async function VenuePage({
   const canEditMenuItems = canManageVenue || isHost;
 
   const { data: venue, error: venueErr } = await fetchVenueById(supabase as any, venueId, { orgId });
+
+  // fetchVenueById does not select `slug`; fetch it once for the QR download caption.
+  const { data: qrVenue } = await supabase
+    .from('venues')
+    .select('slug')
+    .eq('id', venueId)
+    .maybeSingle();
+  const qrSlug = (qrVenue?.slug as string | null) ?? null;
 
   const { data: happyHours, error: hhErr } = await supabase
     .from('happy_hour_windows')
@@ -1601,6 +1610,41 @@ export default async function VenuePage({
               <p className="text-body-sm text-muted mt-0.5">Upload images, videos, or menu PDFs for this venue.</p>
             </div>
             <VenueMediaUploader orgId={orgId} venueId={venueId} />
+          </div>
+        ) : null}
+
+        {/* ══════════════════════════════════════════════
+            SECTION 4A — QR CODE
+        ══════════════════════════════════════════════ */}
+        {canManageVenue && qrSlug ? (
+          <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+            <div className="mb-5">
+              <h2 className="text-heading-sm font-semibold text-foreground">QR code</h2>
+              <p className="text-body-sm text-muted mt-0.5">
+                Scannable code for your venue. Download, print, and place it in your building.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(SIZE_PRESETS).map(([key, preset]) => (
+                <a
+                  key={key}
+                  href={`/api/orgs/${orgId}/venues/${venueId}/qr?size=${key}`}
+                  download
+                  className={btnSecondary}
+                >
+                  {preset.label}
+                  {preset.inches ? ` (${preset.inches}")` : ''}
+                </a>
+              ))}
+            </div>
+            <p className="text-caption text-muted mt-3">
+              Links to happitime.biz/v/{qrSlug}?src=qr
+            </p>
+            {v?.status !== 'published' ? (
+              <p className="text-caption text-warning mt-1">
+                QR becomes scannable once the venue is published.
+              </p>
+            ) : null}
           </div>
         ) : null}
 

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getVenueBySlug } from "@/lib/queries";
 import { VenueLandingClient } from "./VenueLandingClient";
 
-// QR / deep-link landing: https://happitime.app/v/{slug}?src=qr
+// QR / deep-link landing: https://happitime.biz/v/{slug}?src=qr
 // A phone scanning a table-tent QR lands here. The client component fires the
 // `track-visit` attribution event and attempts to open the native app, with
 // store + "continue in browser" fallbacks. Kept lightweight (no full venue

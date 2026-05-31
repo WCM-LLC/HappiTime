@@ -88,13 +88,13 @@ test("shouldRecord records the first call (not exceeded) and skips once exceeded
 
 test("venueQrUrl builds the public /v/{slug}?src=qr landing URL (imported, not mirrored)", () => {
   assert.equal(
-    venueQrUrl("sea-capitan", "https://happitime.app"),
-    "https://happitime.app/v/sea-capitan?src=qr",
+    venueQrUrl("sea-capitan", "https://happitime.biz"),
+    "https://happitime.biz/v/sea-capitan?src=qr",
   );
   // slug is URL-encoded
   assert.equal(
-    venueQrUrl("a b&c", "https://happitime.app"),
-    "https://happitime.app/v/a%20b%26c?src=qr",
+    venueQrUrl("a b&c", "https://happitime.biz"),
+    "https://happitime.biz/v/a%20b%26c?src=qr",
   );
 });
 
