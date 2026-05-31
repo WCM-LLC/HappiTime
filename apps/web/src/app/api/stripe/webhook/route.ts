@@ -249,18 +249,29 @@ async function handleOrgBundleUpsert(
   // customer.subscription.deleted, whose existing handler zeros venue_subscriptions
   // + promotion_tier. The bundle then supplies the effective tier org-wide (4.1).
   if (isActive) {
-    const { data: venueSubs } = await (supabase as any)
-      .from('venue_subscriptions')
-      .select('stripe_subscription_id, venues!inner(org_id)')
-      .eq('venues.org_id', orgId)
-      .not('stripe_subscription_id', 'is', null)
-      .neq('status', 'canceled');
+    // Two-step (no PostgREST embedded-relationship filter): fetch the org's venue
+    // ids, then the per-venue subs by id. A wrong embed would silently return zero
+    // rows here — i.e. fail to cancel and double-bill — so we avoid it entirely.
+    const { data: orgVenues } = await supabase
+      .from('venues')
+      .select('id')
+      .eq('org_id', orgId);
+    const venueIds = ((orgVenues ?? []) as Array<{ id: string }>).map((v) => v.id);
 
-    for (const row of (venueSubs ?? []) as Array<{ stripe_subscription_id: string }>) {
-      try {
-        await getStripe().subscriptions.cancel(row.stripe_subscription_id);
-      } catch (e) {
-        console.warn('[webhook] per-venue cancel failed', row.stripe_subscription_id, e);
+    if (venueIds.length > 0) {
+      const { data: venueSubs } = await (supabase as any)
+        .from('venue_subscriptions')
+        .select('stripe_subscription_id')
+        .in('venue_id', venueIds)
+        .not('stripe_subscription_id', 'is', null)
+        .neq('status', 'canceled');
+
+      for (const row of (venueSubs ?? []) as Array<{ stripe_subscription_id: string }>) {
+        try {
+          await getStripe().subscriptions.cancel(row.stripe_subscription_id);
+        } catch (e) {
+          console.warn('[webhook] per-venue cancel failed', row.stripe_subscription_id, e);
+        }
       }
     }
   }
