@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   ScrollView,
   Pressable,
   Linking,
-  Alert
+  Alert,
+  Animated,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
@@ -77,6 +78,33 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const { media } = useVenueMedia(venueId ?? null);
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
+
+  // One-shot "Checked in!" confirmation when arriving from a QR scan
+  // (route param fromScan). Display-only — the web bridge already recorded the
+  // visit; we just confirm it. Cleared after showing so back-nav won't replay it.
+  const bannerOpacity = useRef(new Animated.Value(0)).current;
+  const [showScanBanner, setShowScanBanner] = useState(false);
+
+  // Banner is a navigation-arrival concern: show once when this screen is opened
+  // from a QR scan (fromScan param). Runs on mount only, so clearing the param and
+  // the fade sequence aren't interrupted; cleanup stops the animation on unmount.
+  // Known v1 limitation: scanning a second venue while already on this screen won't
+  // replay the banner (would need a per-scan nonce param) — tracked as a follow-up.
+  useEffect(() => {
+    if (route.params?.fromScan !== true) return;
+    navigation.setParams({ fromScan: false });
+    setShowScanBanner(true);
+    const anim = Animated.sequence([
+      Animated.timing(bannerOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
+      Animated.delay(2500),
+      Animated.timing(bannerOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+    ]);
+    anim.start(({ finished }) => {
+      if (finished) setShowScanBanner(false);
+    });
+    return () => anim.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // "I'm here" — records an app_checkin attribution event for this venue via the
   // public track-visit edge function. Lightweight: no geofence enforcement yet.
@@ -227,6 +255,16 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={styles.container}>
+      {showScanBanner ? (
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.scanBannerWrap, { opacity: bannerOpacity, top: insets.top + spacing.sm }]}
+        >
+          <View style={styles.scanBanner}>
+            <Text style={styles.scanBannerText}>📍 Checked in!</Text>
+          </View>
+        </Animated.View>
+      ) : null}
       {windowsForVenue.length === 0 && events.length === 0 ? (
         <Text style={styles.emptyText}>
           {venueName} doesn&apos;t have any published happy hours or events yet.
@@ -418,5 +456,28 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 10,
     fontWeight: "700"
-  }
+  },
+  scanBannerWrap: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    zIndex: 10,
+  },
+  scanBanner: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    backgroundColor: "#EAF6EC",
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  scanBannerText: {
+    color: "#1B7A34",
+    fontSize: 15,
+    fontWeight: "600",
+  },
 });

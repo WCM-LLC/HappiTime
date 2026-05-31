@@ -11,6 +11,7 @@ import { useConfigPushNotifications } from "./src/hooks/useConfigPushNotificatio
 import { useHappyHours } from "./src/hooks/useHappyHours";
 import { useMagicLinkListener } from "./src/hooks/useMagicLinkListener";
 import { useOnboardingStatus } from "./src/hooks/useOnboardingStatus";
+import { useVenueLinkCapture } from "./src/hooks/useVenueLinkCapture";
 import { useUserPreferences } from "./src/hooks/useUserPreferences";
 import { useVisitRating } from "./src/hooks/useVisitRating";
 import { useVisitTracker, type VenuePoint } from "./src/hooks/useVisitTracker";
@@ -198,6 +199,15 @@ function AppRoot() {
   const [handleGate, setHandleGate] = useState<"checking" | "needed" | "satisfied">("checking");
   const onboarding = useOnboardingStatus(session);
   useMagicLinkListener();
+
+  // A scanned venue QR must route even before the user is past the auth/welcome
+  // gate (QR codes target new users). Capture it above the gate and leave the
+  // gate into guest mode; AppNavigator's useVenueDeepLink then opens the venue.
+  const enterGuestForVenueScan = useCallback(
+    () => setGuestChoice((choice) => (choice === "prompt" ? "skip" : choice)),
+    [],
+  );
+  useVenueLinkCapture(enterGuestForVenueScan);
   console.log("App render");
 
   useEffect(() => {

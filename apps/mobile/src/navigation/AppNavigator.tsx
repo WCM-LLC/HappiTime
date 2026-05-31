@@ -6,6 +6,7 @@ import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { useNotificationNavigation } from "../hooks/useNotificationNavigation";
+import { useVenueDeepLink } from "../hooks/useVenueDeepLink";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { ActivityScreen } from "../screens/ActivityScreen";
 import { AuthScreen } from "../screens/AuthScreen";
@@ -107,6 +108,7 @@ function AppTabs({ initialRouteName }: { initialRouteName?: keyof MainTabParamLi
 export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamList } = {}) {
   const navigationRef = useRef<any>(null);
   useNotificationNavigation(navigationRef);
+  useVenueDeepLink(navigationRef);
 
   return (
     <NavigationContainer ref={navigationRef} theme={navTheme}>

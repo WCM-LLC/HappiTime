@@ -30,7 +30,7 @@ export type RootStackParamList = {
   Auth: undefined;
   AppTabs: { screen?: keyof MainTabParamList; params?: Record<string, unknown> } | undefined;
   HappyHourDetail: { windowId: string };
-  VenuePreview?: { venueId: string };
+  VenuePreview?: { venueId: string; fromScan?: boolean };
   InviteScreen: undefined;
   EventCalendar: undefined;
 };
