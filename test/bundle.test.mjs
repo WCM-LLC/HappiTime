@@ -71,3 +71,10 @@ test("stripe.ts resolves bundle prices and guards the bundle env vars", () => {
   assert.match(STRIPE_SRC, /STRIPE_PRODUCT_BUNDLE_5_PLUS/);
   assert.match(STRIPE_SRC, /BUNDLE_2_4\|BUNDLE_5_PLUS|BUNDLE/);
 });
+
+// ── Task 3: org-level billing access ──
+const ACCESS_SRC = readFileSync(resolve(ROOT, "apps/web/src/utils/billing-access.ts"), "utf8");
+test("billing-access exposes an org-level check gated to owner/manager", () => {
+  assert.match(ACCESS_SRC, /export async function checkOrgBillingAccess/);
+  assert.match(ACCESS_SRC, /BILLING_MANAGER_ROLES/);
+});

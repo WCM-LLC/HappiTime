@@ -103,3 +103,45 @@ export async function checkVenueBillingAccess(
     venue: venue as BillingVenue,
   };
 }
+
+export type OrgBillingAccessResult =
+  | { allowed: true; isPlatformAdmin: boolean; role: string | null; venueCount: number }
+  | { allowed: false; status: 400 | 403; error: string };
+
+/** Org-level billing access: platform admin, or org_members.role in {owner, manager}.
+ *  Also returns the org's venue count (all venues under the org). */
+export async function checkOrgBillingAccess(
+  supabase: SupabaseServerClient,
+  user: User,
+  orgId: string,
+): Promise<OrgBillingAccessResult> {
+  if (!orgId) return { allowed: false, status: 400, error: 'orgId is required' };
+
+  const isPlatformAdmin = await isAdminEmail(user.email);
+  const serviceSupabase = isPlatformAdmin ? getOptionalServiceClient() : null;
+  const lookupSupabase = serviceSupabase ?? supabase;
+
+  const { count, error: countError } = await lookupSupabase
+    .from('venues')
+    .select('id', { count: 'exact', head: true })
+    .eq('org_id', orgId);
+  if (countError) return { allowed: false, status: 403, error: 'Forbidden' };
+  const venueCount = count ?? 0;
+
+  if (isPlatformAdmin && serviceSupabase) {
+    return { allowed: true, isPlatformAdmin: true, role: null, venueCount };
+  }
+
+  const { data: membership } = await supabase
+    .from('org_members')
+    .select('role')
+    .eq('org_id', orgId)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const role = String(membership?.role ?? '');
+  if (!BILLING_MANAGER_ROLES.has(role)) {
+    return { allowed: false, status: 403, error: 'Forbidden' };
+  }
+  return { allowed: true, isPlatformAdmin: false, role, venueCount };
+}
