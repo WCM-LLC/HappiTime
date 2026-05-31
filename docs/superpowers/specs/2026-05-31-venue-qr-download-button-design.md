@@ -55,7 +55,7 @@ so the brand mark can never drift.
 
 ```js
 // Public interface
-venueQrUrl(slug, base?) // → "{base}/v/{slug}?src=qr", base default https://happitime.app
+venueQrUrl(slug, base?) // → "{base}/v/{slug}?src=qr", base default https://happitime.biz
 renderVenueQrPng(slug, { size, base }) // → Promise<Buffer> (PNG)
 ```
 

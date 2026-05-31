@@ -1,7 +1,7 @@
 // scripts/generate-venue-qrs.mjs
 //
 // Generates branded HappiTime QR codes for venues. Each QR encodes the public
-// deep-link/landing URL  https://happitime.app/v/{slug}?src=qr  which the
+// deep-link/landing URL  https://happitime.biz/v/{slug}?src=qr  which the
 // directory's /v/[slug] route handles (fires the track-visit attribution event,
 // then deep-links to the app or falls back to the web venue page).
 //
@@ -17,7 +17,7 @@
 // Usage:
 //   node scripts/generate-venue-qrs.mjs --slugs sea-capitan,other-venue
 //   node scripts/generate-venue-qrs.mjs            # all verified/featured/pilot venues
-//   QR_BASE_URL=https://staging.happitime.app node scripts/generate-venue-qrs.mjs --slugs x
+//   QR_BASE_URL=https://staging.happitime.biz node scripts/generate-venue-qrs.mjs --slugs x
 //
 // Requires NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY in env/.env when
 // resolving the venue list from the database (not needed if you pass --slugs and
@@ -32,7 +32,7 @@ import { venueQrUrl, renderVenueQrPng } from '@happitime/venue-qr';
 // Re-exported so existing tests (test/track-visit.test.mjs) keep importing it here.
 export { venueQrUrl };
 
-const BASE_URL = (process.env.QR_BASE_URL || 'https://happitime.app').replace(/\/+$/, '');
+const BASE_URL = (process.env.QR_BASE_URL || 'https://happitime.biz').replace(/\/+$/, '');
 const OUT_DIR = path.resolve('outputs/qr');
 const SIZES = [1200, 300];
 

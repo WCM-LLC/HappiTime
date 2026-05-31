@@ -1638,7 +1638,7 @@ export default async function VenuePage({
               ))}
             </div>
             <p className="text-caption text-muted mt-3">
-              Links to happitime.app/v/{qrSlug}?src=qr
+              Links to happitime.biz/v/{qrSlug}?src=qr
             </p>
             {v?.status !== 'published' ? (
               <p className="text-caption text-warning mt-1">

@@ -9,7 +9,9 @@
 import QRCode from "qrcode";
 import { PNG } from "pngjs";
 
-const DEFAULT_BASE = (process.env.QR_BASE_URL || "https://happitime.app").replace(/\/+$/, "");
+// Default to the directory app's canonical domain (apps/directory metadataBase),
+// which serves the /v/[slug] landing route. Override with QR_BASE_URL for staging.
+const DEFAULT_BASE = (process.env.QR_BASE_URL || "https://happitime.biz").replace(/\/+$/, "");
 const BRAND = { r: 0xc8, g: 0x96, b: 0x5a };
 const WHITE = { r: 0xff, g: 0xff, b: 0xff };
 

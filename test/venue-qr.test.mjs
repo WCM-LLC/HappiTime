@@ -5,8 +5,8 @@ import { venueQrUrl, renderVenueQrPng, SIZE_PRESETS } from "@happitime/venue-qr"
 
 test("venueQrUrl encodes slug and appends src=qr", () => {
   assert.equal(
-    venueQrUrl("sea-capitan", "https://happitime.app"),
-    "https://happitime.app/v/sea-capitan?src=qr",
+    venueQrUrl("sea-capitan", "https://happitime.biz"),
+    "https://happitime.biz/v/sea-capitan?src=qr",
   );
 });
 
