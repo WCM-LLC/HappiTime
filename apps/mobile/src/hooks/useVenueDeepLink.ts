@@ -11,17 +11,22 @@
 //
 // Mirrors useNotificationNavigation / useMagicLinkListener (manual expo-linking
 // listeners + navigationRef), since the app does not use NavigationContainer linking.
+//
+// The cold-start / gated URL is captured above the auth gate by useVenueLinkCapture
+// and stashed (pendingVenueLink); this hook consumes that stash on mount. It also
+// listens for warm links that arrive while the navigator is already mounted.
 
 import { useEffect } from "react";
 import * as Linking from "expo-linking";
 import { supabase } from "../api/supabaseClient";
 import { parseVenueLink } from "../lib/parseVenueLink";
+import { takePendingVenueLink } from "../lib/pendingVenueLink";
 
-// On cold start the deep link can arrive before the navigator is mounted. Poll
-// isReady briefly so the primary (app-launched-by-link) case isn't dropped.
+// The navigator may still be mounting (e.g. just left the auth gate). Poll
+// isReady briefly so the link isn't dropped.
 async function waitForNav(
   navigationRef: React.RefObject<any>,
-  timeoutMs = 3000,
+  timeoutMs = 5000,
 ): Promise<any | null> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
@@ -62,10 +67,16 @@ export function useVenueDeepLink(navigationRef: React.RefObject<any>) {
       }
     }
 
-    Linking.getInitialURL().then((url) => {
-      if (url) handleUrl(url);
+    // Consume a link captured before the navigator mounted (cold start / gate).
+    const pending = takePendingVenueLink();
+    if (pending) handleUrl(pending);
+
+    // Warm links arriving while the navigator is already mounted (e.g. a signed-in
+    // user scans). Clear any stash so it can't replay on a later remount.
+    const sub = Linking.addEventListener("url", ({ url }) => {
+      takePendingVenueLink();
+      handleUrl(url);
     });
-    const sub = Linking.addEventListener("url", ({ url }) => handleUrl(url));
     return () => {
       cancelled = true;
       sub.remove();
