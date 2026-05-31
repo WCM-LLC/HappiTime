@@ -16,6 +16,8 @@ Server-only (required for venue billing / Stripe checkout):
 - `STRIPE_PRODUCT_BASIC` — Stripe product ID for the Basic monthly plan.
 - `STRIPE_PRODUCT_FEATURED` — Stripe product ID for the Featured monthly plan.
 - `STRIPE_PRODUCT_PREMIUM` — Stripe product ID for the Premium monthly plan.
+- `STRIPE_PRODUCT_BUNDLE_2_4` — Stripe product ID for the org bundle of 2–4 venues ($79/venue/mo, recurring per-unit). Required for org bundle checkout (`/api/stripe/org-checkout`).
+- `STRIPE_PRODUCT_BUNDLE_5_PLUS` — Stripe product ID for the org bundle of 5+ venues ($59/venue/mo, recurring per-unit).
 - `STRIPE_WEBHOOK_SECRET` — Stripe webhook signing secret for `/api/stripe/webhook`.
 - `APP_ALLOWED_ORIGINS` — comma-separated console origins allowed to create Stripe Checkout and Portal sessions.
 
