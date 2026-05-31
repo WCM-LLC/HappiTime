@@ -40,21 +40,31 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
     typecheck 0 errors; `npm test` 93 pass. No DB change (same view/grants as 4.1).
     Caveat: `fetchPromotedVenueIds` returns all promoted venues globally — fine at today's
     scale (0), revisit the `.in()` filter if that set grows large.
-  - [~] **4-2 — org bundle billing. BUILT + TYPE-CHECKED, MERGED-BUT-DORMANT — behavior
-    UNVERIFIED.** Spec `docs/superpowers/specs/2026-05-31-phase4-2-org-bundle-billing-design.md`,
+  - [~] **4-2 — org bundle billing. BUILT + CORE PATH LIVE-VERIFIED (test mode); not yet
+    activated in any env.** Spec `docs/superpowers/specs/2026-05-31-phase4-2-org-bundle-billing-design.md`,
     plan `docs/superpowers/plans/2026-05-31-phase4-2-org-bundle-billing.md`. Shipped:
     `utils/bundle.ts` (pure, unit-tested), `getPriceIdForBundle`, `checkOrgBillingAccess`,
     `api/stripe/org-checkout`, webhook org-bundle branch (`org_subscriptions` upsert + cancels
-    per-venue subs), `utils/bundle-sync.ts`, sync wired into venue create/delete. All new tests
-    are source/`grep` drift guards + `bundle.ts` math — **no checkout/webhook/sync logic has
-    executed.** To ACTIVATE + verify (none done yet):
-    - [ ] Create the two Stripe products + set `STRIPE_PRODUCT_BUNDLE_2_4` / `STRIPE_PRODUCT_BUNDLE_5_PLUS`
-      (until then checkout returns the clean config error; nothing activates).
-    - [ ] Stripe **test-mode** checklist (in the plan). **Verify FIRST:** bundle activation actually
-      cancels the org's per-venue subs (the two-step cancel query in `handleOrgBundleUpsert`) —
-      a miss = silent double-billing.
-    - [ ] Then: org venues read featured-level; add venue → quantity bump; cross 4→5 → price swap
-      to `bundle_5_plus`; cancel bundle → reverts.
+    per-venue subs via a dependency-free two-step query), `utils/bundle-sync.ts`, sync wired into
+    venue create/delete.
+    - **Stripe TEST products created** (2026-05-31): `STRIPE_PRODUCT_BUNDLE_2_4=prod_UcH9hy1Lt62p3W`
+      ($79/venue), `STRIPE_PRODUCT_BUNDLE_5_PLUS=prod_UcH90QuzjF6lRq` ($59/venue). Test-mode only.
+    - **Live-verified end-to-end (2026-05-31, throwaway org on prod, fully torn down):** real webhook
+      → `org_subscriptions` upserted (tier/status/`venue_count`/rate); both org venues elevated to
+      `bundle_2_4` in `v_venue_active_tier`; the org's per-venue sub was found + **cancelled in Stripe**
+      (status=canceled) — the double-billing guard works. Price resolution + checkout-session +
+      quantity math also confirmed.
+    - **NOT yet exercised live (remaining verify):**
+      - [ ] `syncBundleQuantity` — add venue → quantity bump; cross 4→5 → price swaps to `bundle_5_plus`.
+      - [ ] `invoice.payment_failed` → bundle `past_due` (read path drops elevation).
+      - [ ] Full hosted checkout (org-checkout route → Stripe Checkout page → completed payment).
+        Note: the downstream `venue_subscriptions`→canceled + `promotion_tier`→null zeroing is the
+        PRE-EXISTING per-venue deletion handler (fires when the cancelled sub carries `venue_id`
+        metadata, which real per-venue subs do; the test sub didn't, so only the cancel was proven).
+    - **To ACTIVATE (per environment):**
+      - [ ] Set `STRIPE_PRODUCT_BUNDLE_2_4` / `_5_PLUS` in the target env's config. The IDs above are
+        TEST products — for a LIVE environment, create live products (or keep test until ready) and
+        set the live IDs alongside the live `STRIPE_SECRET_KEY`.
     - [ ] Revisit whether push edge functions honor bundles (deferred from 4.1).
     - Behavior note for 4-3: because activation cancels per-venue subs and nothing restores them,
       an org that later cancels its bundle drops to all-`listed` (loses its old per-venue tiers).
