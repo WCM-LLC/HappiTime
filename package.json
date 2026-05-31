@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "next": "^16.2.4",
+    "qrcode": "^1.5.4",
     "react-dom": "19.1.0",
     "supabase": "^2.95.6"
   },

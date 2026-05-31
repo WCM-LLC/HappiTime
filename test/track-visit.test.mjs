@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { venueQrUrl } from "../scripts/generate-venue-qrs.mjs";
 
 // ── Inlined mirror of the pure helpers in ─────────────────────────────────────
 //    supabase/functions/track-visit/index.ts
@@ -11,6 +12,10 @@ function isValidSource(source) {
   return typeof source === "string" && VALID_SOURCES.has(source);
 }
 
+function cleanStr(value) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
 function buildRateKey(venueId, source, sessionId) {
   return `track-visit:${venueId}:${source}:${sessionId ?? "anon"}`;
 }
@@ -19,6 +24,16 @@ function shouldRecord(rateLimitExceeded) {
   return rateLimitExceeded !== true;
 }
 // ──────────────────────────────────────────────────────────────────────────────
+
+test("cleanStr trims to a non-empty value, else null", () => {
+  assert.equal(cleanStr("  sea-capitan  "), "sea-capitan");
+  assert.equal(cleanStr("x"), "x");
+  assert.equal(cleanStr("   "), null);
+  assert.equal(cleanStr(""), null);
+  assert.equal(cleanStr(undefined), null);
+  assert.equal(cleanStr(null), null);
+  assert.equal(cleanStr(42), null);
+});
 
 test("isValidSource accepts the four attribution sources", () => {
   for (const s of ["qr", "app_checkin", "push_click", "organic"]) {

@@ -7,8 +7,10 @@
 // client here (the table has no direct anon insert policy), gated by a per
 // (venue, session) rate limit so a single device cannot inflate a venue's counts.
 //
-// Request:  POST { venue_slug: string, source: 'qr'|'app_checkin'|'push_click'|'organic',
+// Request:  POST { venue_slug?: string, venue_id?: string,  // one is required
+//                  source: 'qr'|'app_checkin'|'push_click'|'organic',
 //                  session_id?: string, lat?: number, lng?: number }
+//   The web QR landing has the slug; the mobile app has the venue id. Either resolves.
 // Response: 200 { ok: true } | 200 { ok: true, deduped: true } (rate-limited)
 //           400 invalid body | 404 unknown venue | 500 server error
 
@@ -24,6 +26,11 @@ const RATE_WINDOW_SECONDS = 4 * 60 * 60;
 /** Whether `source` is one of the four accepted attribution sources. */
 function isValidSource(source: unknown): boolean {
   return typeof source === "string" && VALID_SOURCES.has(source);
+}
+
+/** Trims a string field to a non-empty value, or null. */
+function cleanStr(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
 
 /**
@@ -74,35 +81,38 @@ Deno.serve(async (req) => {
     return json({ ok: false, error: "Invalid JSON body" }, 400);
   }
 
-  const venueSlug = typeof body.venue_slug === "string" ? body.venue_slug.trim() : "";
+  const venueSlug = cleanStr(body.venue_slug);
+  const venueIdParam = cleanStr(body.venue_id);
   const source = typeof body.source === "string" ? body.source : "";
-  const sessionId =
-    typeof body.session_id === "string" && body.session_id.trim().length > 0
-      ? body.session_id.trim()
-      : null;
+  const sessionId = cleanStr(body.session_id);
   const lat = toFiniteNumber(body.lat);
   const lng = toFiniteNumber(body.lng);
 
-  if (!venueSlug || !isValidSource(source)) {
-    return json({ ok: false, error: "venue_slug and a valid source are required" }, 400);
+  if ((!venueSlug && !venueIdParam) || !isValidSource(source)) {
+    return json(
+      { ok: false, error: "venue_slug or venue_id, and a valid source, are required" },
+      400,
+    );
   }
 
   const supabase = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false },
   });
 
-  // Resolve slug → venue_id (published venues only).
-  const { data: venue, error: venueErr } = await supabase
-    .from("venues")
-    .select("id")
-    .eq("slug", venueSlug)
-    .eq("status", "published")
-    .maybeSingle();
+  // Resolve to a published venue by id (mobile) or slug (web QR landing).
+  // Use limit(1) + data[0] rather than maybeSingle(): the floating supabase-js
+  // build can surface PGRST116 ("multiple (or no) rows") from maybeSingle on an
+  // empty result, which would turn a legitimate 404 into a 500.
+  const venueQuery = supabase.from("venues").select("id").eq("status", "published").limit(1);
+  const { data: venues, error: venueErr } = await (
+    venueIdParam ? venueQuery.eq("id", venueIdParam) : venueQuery.eq("slug", venueSlug as string)
+  );
 
   if (venueErr) return json({ ok: false, error: "Venue lookup failed" }, 500);
+  const venue = (venues as Array<{ id: string }> | null)?.[0];
   if (!venue) return json({ ok: false, error: "Unknown venue" }, 404);
 
-  const venueId = (venue as { id: string }).id;
+  const venueId = venue.id;
 
   // check_rate_limit RETURNS TRUE WHEN THE LIMIT IS EXCEEDED (v_count > p_limit),
   // i.e. it reports "exceeded", not "allowed". With p_limit=1 the first call in the
