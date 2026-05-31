@@ -88,7 +88,31 @@ export function VenueLandingClient({
   }, [slug, venueId, source, appDeepLink]);
 
   return (
-    <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+    <div className="mt-6 flex flex-col items-center gap-4">
+      {/* Visible scan confirmation. The deep-link to the app fires shortly after
+          mount, so this is what a scanner sees when the app isn't installed or
+          they stay in the browser — without it there was no sign the scan worked. */}
+      <div
+        aria-live="polite"
+        className={
+          "inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-colors " +
+          (tracked
+            ? "bg-[#EAF6EC] text-[#1B7A34]"
+            : "bg-[#F5F0EB] text-[#6B6B6B]")
+        }
+      >
+        {tracked ? (
+          <>
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M5 10.5l3.2 3.2L15 7" stroke="#1B7A34" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Scan recorded
+          </>
+        ) : (
+          "Recording your visit…"
+        )}
+      </div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
       <a
         href={appDeepLink}
         className="inline-flex items-center justify-center rounded-lg bg-[#C8965A] px-5 py-2.5 text-sm font-medium text-white hover:bg-[#b3854f]"
@@ -101,7 +125,6 @@ export function VenueLandingClient({
       >
         Continue in browser
       </a>
-      <span className="sr-only">{tracked ? "Visit recorded" : "Recording visit"}</span>
       <div className="mt-2 flex w-full flex-col gap-2 sm:mt-0 sm:w-auto sm:flex-row">
         <a
           href={appStoreUrl}
@@ -115,6 +138,7 @@ export function VenueLandingClient({
         >
           Google Play
         </a>
+      </div>
       </div>
     </div>
   );
