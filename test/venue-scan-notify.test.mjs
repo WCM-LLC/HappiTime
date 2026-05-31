@@ -40,3 +40,15 @@ test("buildVenueScanMessage: blank venue name has a safe fallback", () => {
   const m = buildVenueScanMessage("qr", "");
   assert.match(m.body, /your venue/);
 });
+
+test("shared expo-push exports sendExpoPush and batches at 100", () => {
+  const src = read("supabase/functions/_shared/expo-push.ts");
+  assert.match(src, /export async function sendExpoPush/);
+  assert.match(src, /BATCH_SIZE = 100/);
+});
+
+test("notify-upcoming-happy-hours uses the shared sender (one sender, not two)", () => {
+  const src = read("supabase/functions/notify-upcoming-happy-hours/index.ts");
+  assert.match(src, /from "\.\.\/_shared\/expo-push\.ts"/);
+  assert.match(src, /sendExpoPush\(/);
+});
