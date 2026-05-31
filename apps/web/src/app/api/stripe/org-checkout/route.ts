@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
 import {
   STRIPE_BILLING_CONFIG_ERROR,
-  getStripe,
-  getPriceIdForBundle,
   isStripeConfigurationError,
 } from '@/utils/stripe';
 import { bundleTierForCount } from '@/utils/bundle';
 import { checkOrgBillingAccess } from '@/utils/billing-access';
 import { getSafeAppOrigin, isTrustedBrowserRequest } from '@/utils/security';
+import { createOrgBundleCheckoutSession } from '@/utils/bundle-checkout';
 
 export const runtime = 'nodejs';
 
@@ -42,37 +41,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const stripe = getStripe();
     const billingSupabase = access.isPlatformAdmin ? createServiceClient() : supabase;
-
-    // Reuse the org's existing Stripe customer if a bundle row already has one
-    const { data: existing } = await billingSupabase
-      .from('org_subscriptions')
-      .select('stripe_customer_id')
-      .eq('org_id', orgId)
-      .maybeSingle() as any;
-
-    let customerId: string | undefined = existing?.stripe_customer_id ?? undefined;
-    if (!customerId) {
-      const customer = await stripe.customers.create({
-        email: user.email,
-        metadata: { org_id: orgId, user_id: user.id },
-      });
-      customerId = customer.id;
-    }
-
-    const priceId = await getPriceIdForBundle(tier);
     const origin = getSafeAppOrigin(req.headers.get('origin'));
-    const session = await stripe.checkout.sessions.create({
-      mode: 'subscription',
-      customer: customerId,
-      line_items: [{ price: priceId, quantity: access.venueCount }],
-      subscription_data: { metadata: { org_id: orgId, bundle_tier: tier } },
-      success_url: `${origin}/orgs/${orgId}?bundle=success`,
-      cancel_url: `${origin}/orgs/${orgId}?bundle=cancelled`,
+    const { url } = await createOrgBundleCheckoutSession({
+      orgId,
+      tier,
+      quantity: access.venueCount,
+      customerEmail: user.email ?? null,
+      billingSupabase,
+      origin,
     });
-
-    return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url });
   } catch (err) {
     console.error('[stripe/org-checkout]', err);
     return NextResponse.json(

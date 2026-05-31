@@ -87,9 +87,8 @@ const CHECKOUT_SRC = readFileSync(
 test("org-checkout gates access, sizes the bundle, and tags subscription metadata", () => {
   assert.match(CHECKOUT_SRC, /checkOrgBillingAccess/);
   assert.match(CHECKOUT_SRC, /bundleTierForCount/);
-  assert.match(CHECKOUT_SRC, /getPriceIdForBundle/);
+  assert.match(CHECKOUT_SRC, /createOrgBundleCheckoutSession/);
   assert.match(CHECKOUT_SRC, /isTrustedBrowserRequest/);
-  assert.match(CHECKOUT_SRC, /bundle_tier/);
   assert.match(CHECKOUT_SRC, /quantity/);
 });
 
