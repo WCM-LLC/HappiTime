@@ -63,11 +63,17 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
         Fixed in `bundle-sync.ts` (also move `metadata.bundle_tier` on swap); re-verified correct.
       - [x] `invoice.payment_failed` → `org_subscriptions` `past_due`; read path then drops all the
         org's venues back to `listed` (active-status gate). Verified via a real failing-charge invoice.
-    - **NOT yet exercised live (remaining):**
-      - [ ] Full hosted checkout (org-checkout route → Stripe Checkout page → completed payment).
-        Note: the downstream `venue_subscriptions`→canceled + `promotion_tier`→null zeroing is the
-        PRE-EXISTING per-venue deletion handler (fires when the cancelled sub carries `venue_id`
-        metadata, which real per-venue subs do; the test sub didn't, so only the cancel was proven).
+      - [x] **org-checkout route** — gates verified live (no/bad Origin → 403; valid Origin, no auth →
+        401). Happy path verified via a temp admin-branch harness: access granted → `venueCount=2` →
+        `bundle_2_4` → a real Checkout Session created with line item price=`bundle_2_4` qty=2 and a
+        hosted URL. (Session retrieve doesn't echo `subscription_data`, but the route sets
+        `{org_id, bundle_tier}` and that metadata→webhook→handler path is already proven live.)
+    - **NOT exercised live — needs a real browser (only remaining):**
+      - [ ] A human completing the **Stripe-hosted Checkout page** (card entry) → `checkout.session.completed`.
+        Not headless-automatable here; the event reuses the `handleOrgBundleUpsert` handler already
+        proven live, and the route emits a correct session. The downstream `venue_subscriptions`→canceled
+        + `promotion_tier`→null zeroing is the PRE-EXISTING per-venue deletion handler (fires when the
+        cancelled sub carries `venue_id` metadata, which real per-venue subs do).
     - **To ACTIVATE (per environment):**
       - [ ] Set `STRIPE_PRODUCT_BUNDLE_2_4` / `_5_PLUS` in the target env's config. The IDs above are
         TEST products — for a LIVE environment, create live products (or keep test until ready) and
