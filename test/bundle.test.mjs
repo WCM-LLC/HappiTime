@@ -62,3 +62,12 @@ test("bundle.ts exports the sizing helpers with the same thresholds/rates", () =
   assert.match(SRC, />=\s*5/);
   assert.match(SRC, />=\s*2/);
 });
+
+// ── Task 2: bundle price resolver in stripe.ts ──
+const STRIPE_SRC = readFileSync(resolve(ROOT, "apps/web/src/utils/stripe.ts"), "utf8");
+test("stripe.ts resolves bundle prices and guards the bundle env vars", () => {
+  assert.match(STRIPE_SRC, /export async function getPriceIdForBundle/);
+  assert.match(STRIPE_SRC, /STRIPE_PRODUCT_BUNDLE_2_4/);
+  assert.match(STRIPE_SRC, /STRIPE_PRODUCT_BUNDLE_5_PLUS/);
+  assert.match(STRIPE_SRC, /BUNDLE_2_4\|BUNDLE_5_PLUS|BUNDLE/);
+});
