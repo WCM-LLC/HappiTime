@@ -57,7 +57,7 @@ export default async function OrgPage({
   searchParams,
 }: {
   params: Promise<{ orgId: string }>;
-  searchParams: Promise<{ error?: string; from?: string }>;
+  searchParams: Promise<{ error?: string; from?: string; bundle?: string }>;
 }) {
   const { orgId } = await params;
   const sp = await searchParams;
@@ -183,7 +183,7 @@ export default async function OrgPage({
         </Suspense>
 
         {canManageBilling && (
-          <OrgBundlePanel orgId={orgId} venueCount={venueCount} bundle={orgBundle} />
+          <OrgBundlePanel orgId={orgId} venueCount={venueCount} bundle={orgBundle} justCheckedOut={sp?.bundle === 'success'} />
         )}
 
         {/* Add Venue Form */}

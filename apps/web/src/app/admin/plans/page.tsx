@@ -8,6 +8,7 @@ import {
   adminDeleteUserPlan,
 } from '@/actions/admin-plans-actions';
 import { adminGrantPilotBundle, adminCancelOrgBundle } from '@/actions/admin-bundle-actions';
+import { AdminBundleLinkButton } from '@/components/AdminBundleLinkButton';
 
 type VenueSubscriptionRow = {
   id: string;
@@ -479,10 +480,13 @@ export default async function PlansPage() {
                     <td className={tdCls}>{b.venue_count}</td>
                     <td className={tdCls}>${b.monthly_total.toFixed(2)}</td>
                     <td className={tdCls}>
-                      <form action={adminCancelOrgBundle} className="inline">
-                        <input type="hidden" name="org_id" value={b.org_id} />
-                        <button className="text-error hover:underline text-body-sm">Cancel</button>
-                      </form>
+                      <div className="flex gap-3 items-center">
+                        <AdminBundleLinkButton orgId={b.org_id} />
+                        <form action={adminCancelOrgBundle} className="inline">
+                          <input type="hidden" name="org_id" value={b.org_id} />
+                          <button className="text-error hover:underline text-body-sm">Cancel</button>
+                        </form>
+                      </div>
                     </td>
                   </tr>
                 ))}

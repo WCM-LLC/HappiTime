@@ -42,3 +42,16 @@ test("admin bundle actions: grant pilot, generate link, cancel", () => {
   assert.match(src, /subscriptions\.cancel/);
   assert.match(src, /'canceled'/);
 });
+
+// ── Loose ends: bundle=success finalize state + admin generate-link button ──
+test("finalize state + admin generate-link button are wired", () => {
+  const panel = read("apps/web/src/components/OrgBundlePanel.tsx");
+  assert.match(panel, /justCheckedOut/);
+  assert.match(panel, /router\.refresh/);
+
+  const linkBtn = read("apps/web/src/components/AdminBundleLinkButton.tsx");
+  assert.match(linkBtn, /adminCreateBundleCheckoutLink/);
+
+  const adminPage = read("apps/web/src/app/admin/plans/page.tsx");
+  assert.match(adminPage, /AdminBundleLinkButton/);
+});

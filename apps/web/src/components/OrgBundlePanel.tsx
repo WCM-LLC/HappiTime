@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { bundleTierForCount, rateForBundleTier, type BundleTier } from '@/utils/bundle';
 
 const TIER_LABEL: Record<BundleTier, string> = {
@@ -21,15 +22,34 @@ type Props = {
   orgId: string;
   venueCount: number;
   bundle: OrgBundleSummary | null;
+  /** True right after a checkout redirect (?bundle=success). */
+  justCheckedOut?: boolean;
 };
 
 function dollars(cents: number) {
   return `$${(cents / 100).toFixed(0)}`;
 }
 
-export function OrgBundlePanel({ orgId, venueCount, bundle }: Props) {
+const MAX_FINALIZE_TRIES = 3;
+
+export function OrgBundlePanel({ orgId, venueCount, bundle, justCheckedOut }: Props) {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  // After checkout, the webhook that writes org_subscriptions can land ~1s after
+  // Stripe redirects back. Soft-refresh a few times so the active bundle appears
+  // without a manual reload; give up after a few tries and fall back to Start.
+  const [finalizeTries, setFinalizeTries] = useState(0);
+  const finalizing = Boolean(justCheckedOut) && !bundle && finalizeTries < MAX_FINALIZE_TRIES;
+  useEffect(() => {
+    if (!finalizing) return;
+    const t = setTimeout(() => {
+      router.refresh();
+      setFinalizeTries((n) => n + 1);
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [finalizing, router]);
 
   function post(url: string) {
     setError(null);
@@ -92,6 +112,8 @@ export function OrgBundlePanel({ orgId, venueCount, bundle }: Props) {
               : 'Comped pilot bundle — contact support to change.'}
           </p>
         </div>
+      ) : finalizing ? (
+        <p className="text-body-sm text-muted">Finalizing your bundle… this page updates automatically.</p>
       ) : (
         <StartBundle orgId={orgId} venueCount={venueCount} pending={pending} onStart={() => post('/api/stripe/org-checkout')} />
       )}
