@@ -483,6 +483,33 @@ While signed out (or as a non-member), request `/api/orgs/{orgId}/venues/{venueI
 
 - [ ] **Step 6: Record the verification result** (PASS/FAIL with captured evidence).
 
+### Verification Record (2026-05-31)
+
+**Build / bundling (the plan's flagged risk):** `npm run -w web build` → **PASS**, exit 0. The
+route `/api/orgs/[orgId]/venues/[venueId]/qr` compiled as a dynamic function with no
+`qrcode`/`pngjs` bundling error. `transpilePackages: ['@happitime/venue-qr']` was sufficient —
+the `serverExternalPackages` fallback in Self-Review notes was **not** needed.
+
+**Unit tests:** `npm test` → **PASS** (111 pass, 0 fail). Includes the 4 new `test/venue-qr.test.mjs`
+cases (`venueQrUrl` encoding, `renderVenueQrPng` 300px PNG, postcard-cap assertion).
+
+**Type-check:** `npm run -w web typecheck` (tsc --noEmit) → **PASS**. Required adding hand-written
+`packages/venue-qr/index.d.ts` (+ a `types` export condition) — the package ships plain ESM and
+the web app's strict TS rejected the implicit `any`. (Deviation from plan, necessary.)
+
+**Auth probes (autonomous, dev server :3007):**
+- Unauthenticated `?size=postcard` → **401** `{"error":"Unauthorized"}` ✓
+- `?size=billboard` (invalid preset) → **400** ✓ (preset validated before auth)
+
+**Still needs the user (real credentials / device required — NOT verified here):**
+- Sign in as owner/manager, open the venue page, confirm the "QR code" subsection + 5 buttons + caption.
+- Download each preset; confirm pixel dims (1200/900/750/600/300²) via `sips -g pixelWidth ...`.
+- Scan a PNG with a phone → resolves to `https://happitime.app/v/{slug}?src=qr`.
+- 403 (signed-in non-member) and 404 (venueId from another org) — need a real member/non-member.
+
+**Overall:** implementation + build + unit tests + unauthenticated auth gating **PASS**; the
+authenticated/device-dependent click-through is handed to the user.
+
 ---
 
 ## Self-Review notes
