@@ -34,6 +34,13 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
 - [ ] **Latent no-op:** push edge functions guard `status != 'inactive'`, but
   `inactive` was never a valid `venue_subscriptions.status`. Pre-existing; left
   as-is to preserve behavior.
+- [ ] **Mobile deep-link routing (Phase 2 leftover).** The QR landing emits
+  `happitime://venue/{slug}` but the mobile app can't route it yet:
+  `apps/mobile/src/navigation/index.tsx` has a bare `NavigationContainer` (no
+  React Navigation `linking` config) and `VenuePreview` keys on `venueId`, not
+  slug. Needs a `linking` map (prefixes `happitime://` + `https://happitime.app`)
+  plus a slug→venueId resolver so the deep link opens the venue screen. The
+  `/v/[slug]` web landing and in-app "I'm here" check-in are already shipped.
 - [ ] **Remote migration-history drift.** `supabase_migrations.schema_migrations`
   on the remote registers only recent migrations; the ~30 older files in
   `supabase/migrations/` are not all tracked. A `supabase db push` from a fresh

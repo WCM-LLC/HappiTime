@@ -7,11 +7,14 @@ import {
   Image,
   ScrollView,
   Pressable,
-  Linking
+  Linking,
+  Alert
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { RootStackParamList } from "../navigation/types";
+import { supabase } from "../api/supabaseClient";
 import { useHappyHours } from "../hooks/useHappyHours";
 import { HappyHourCard } from "../components/HappyHourCard";
 import { useVenueEvents } from "../hooks/useVenueEvents";
@@ -52,12 +55,53 @@ const EVENT_TYPE_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+// Persisted anonymous device id, used to dedupe attribution events server-side.
+const SESSION_KEY = "happitime_session_id";
+async function getSessionId(): Promise<string> {
+  try {
+    const existing = await AsyncStorage.getItem(SESSION_KEY);
+    if (existing) return existing;
+    const id = `sess-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    await AsyncStorage.setItem(SESSION_KEY, id);
+    return id;
+  } catch {
+    return `sess-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  }
+}
+
 export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const { venueId } = route.params;
   const insets = useSafeAreaInsets();
   const { data, loading, error, refreshing, refresh } = useHappyHours();
   const { data: events } = useVenueEvents(venueId ?? null);
   const { media } = useVenueMedia(venueId ?? null);
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [checkedIn, setCheckedIn] = useState(false);
+
+  // "I'm here" — records an app_checkin attribution event for this venue via the
+  // public track-visit edge function. Lightweight: no geofence enforcement yet.
+  async function handleCheckIn() {
+    if (!venueId || checkingIn || checkedIn) return;
+    setCheckingIn(true);
+    try {
+      const { data: res, error: fnError } = await supabase.functions.invoke("track-visit", {
+        body: {
+          venue_id: venueId,
+          source: "app_checkin",
+          session_id: await getSessionId(),
+        },
+      });
+      if (fnError || (res && (res as { ok?: boolean }).ok === false)) {
+        Alert.alert("Couldn't check in", "Please try again in a moment.");
+        return;
+      }
+      setCheckedIn(true);
+    } catch {
+      Alert.alert("Couldn't check in", "Please check your connection and try again.");
+    } finally {
+      setCheckingIn(false);
+    }
+  }
 
   const windowsForVenue = useMemo(
     () => data.filter((w) => w.venue_id === venueId),
@@ -192,6 +236,22 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.title}>{venueName}</Text>
           <Text style={styles.subtitle}>Tap below to see Menus</Text>
 
+          <Pressable
+            onPress={handleCheckIn}
+            disabled={checkingIn || checkedIn}
+            accessibilityRole="button"
+            accessibilityLabel={checkedIn ? "Checked in" : "Check in at this venue"}
+            style={({ pressed }) => [
+              styles.checkInButton,
+              (checkingIn || checkedIn) && styles.checkInButtonDisabled,
+              pressed && styles.checkInButtonPressed
+            ]}
+          >
+            <Text style={styles.checkInButtonText}>
+              {checkedIn ? "You're here ✓" : checkingIn ? "Checking in…" : "I'm here 🍻"}
+            </Text>
+          </Pressable>
+
           <FlatList
             data={windowsForVenue}
             keyExtractor={(item) => item.id}
@@ -243,6 +303,25 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 14,
     marginBottom: spacing.lg
+  },
+  checkInButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.lg
+  },
+  checkInButtonPressed: {
+    opacity: 0.85
+  },
+  checkInButtonDisabled: {
+    opacity: 0.6
+  },
+  checkInButtonText: {
+    color: colors.surface,
+    fontSize: 15,
+    fontWeight: "700"
   },
   listContent: {
     paddingBottom: spacing.xl
