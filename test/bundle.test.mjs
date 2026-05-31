@@ -104,3 +104,12 @@ test("webhook routes bundle subs to the org path and cancels per-venue subs", ()
   assert.match(WEBHOOK_SRC, /org_subscriptions/);
   assert.match(WEBHOOK_SRC, /subscriptions\.cancel/);
 });
+
+// ── Task 6: quantity sync ──
+const SYNC_SRC = readFileSync(resolve(ROOT, "apps/web/src/utils/bundle-sync.ts"), "utf8");
+test("bundle-sync updates Stripe quantity and swaps price on tier change", () => {
+  assert.match(SYNC_SRC, /export async function syncBundleQuantity/);
+  assert.match(SYNC_SRC, /bundleTierForCount/);
+  assert.match(SYNC_SRC, /getPriceIdForBundle/);
+  assert.match(SYNC_SRC, /subscriptions\.update|subscriptionItems\.update/);
+});
