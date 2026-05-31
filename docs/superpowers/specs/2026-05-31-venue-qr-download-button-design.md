@@ -14,7 +14,7 @@ the QR for their venue. This feature gives venue owners/managers a
 self-service download from the venue admin page.
 
 The scan-side flow is already built and verified: the QR encodes
-`https://happitime.app/v/{slug}?src=qr`, which the directory's
+`https://happitime.biz/v/{slug}?src=qr`, which the directory's
 `/v/[slug]` route handles (fires `track-visit`, deep-links to the app or
 falls back to the web venue page). This feature only adds artifact
 generation + download; it does not touch the scan flow.
@@ -92,7 +92,7 @@ path in this monorepo and matches `@happitime/shared-api`.
   `Content-Disposition: attachment; filename="{slug}-qr-{preset}.png"`,
   `Cache-Control: private, max-age=0, must-revalidate`.
 - Base URL from the same env the script uses (`QR_BASE_URL`, default
-  `https://happitime.app`) so the button and printed sheets encode
+  `https://happitime.biz`) so the button and printed sheets encode
   identical URLs.
 - No internal error detail leaked in response bodies.
 
@@ -106,7 +106,7 @@ code" subsection with
   Coaster / Sticker / Digital, with the printed inches as helper text),
 - a **Download** action — a plain `<a download>` pointing at
   `/api/orgs/{orgId}/venues/{venueId}/qr?size={preset}`,
-- a caption showing the encoded URL `happitime.app/v/{slug}?src=qr`,
+- a caption showing the encoded URL `happitime.biz/v/{slug}?src=qr`,
 - if `venue.status !== 'published'`, a muted note: "QR becomes scannable
   once the venue is published."
 

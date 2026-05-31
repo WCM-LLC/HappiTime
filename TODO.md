@@ -121,7 +121,7 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
   `happitime://venue/{slug}` but the mobile app can't route it yet:
   `apps/mobile/src/navigation/index.tsx` has a bare `NavigationContainer` (no
   React Navigation `linking` config) and `VenuePreview` keys on `venueId`, not
-  slug. Needs a `linking` map (prefixes `happitime://` + `https://happitime.app`)
+  slug. Needs a `linking` map (prefixes `happitime://` + `https://happitime.biz`)
   plus a slug→venueId resolver so the deep link opens the venue screen. The
   `/v/[slug]` web landing and in-app "I'm here" check-in are already shipped.
 - [ ] **Remote migration-history drift.** `supabase_migrations.schema_migrations`

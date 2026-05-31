@@ -44,8 +44,8 @@ import { venueQrUrl, renderVenueQrPng, SIZE_PRESETS } from "@happitime/venue-qr"
 
 test("venueQrUrl encodes slug and appends src=qr", () => {
   assert.equal(
-    venueQrUrl("sea-capitan", "https://happitime.app"),
-    "https://happitime.app/v/sea-capitan?src=qr",
+    venueQrUrl("sea-capitan", "https://happitime.biz"),
+    "https://happitime.biz/v/sea-capitan?src=qr",
   );
 });
 
@@ -110,7 +110,7 @@ Create `packages/venue-qr/index.mjs` (the `setPixel`/`fillRect`/`drawCenterMark`
 import QRCode from "qrcode";
 import { PNG } from "pngjs";
 
-const DEFAULT_BASE = (process.env.QR_BASE_URL || "https://happitime.app").replace(/\/+$/, "");
+const DEFAULT_BASE = (process.env.QR_BASE_URL || "https://happitime.biz").replace(/\/+$/, "");
 const BRAND = { r: 0xc8, g: 0x96, b: 0x5a };
 const WHITE = { r: 0xff, g: 0xff, b: 0xff };
 
@@ -254,7 +254,7 @@ Expected: PASS — the existing `test/track-visit.test.mjs` `venueQrUrl` coverag
 - [ ] **Step 4: Smoke-test the script still generates a PNG**
 
 Run: `node scripts/generate-venue-qrs.mjs --slugs sea-capitan --no-db`
-Expected: prints `✓ sea-capitan https://happitime.app/v/sea-capitan?src=qr` and writes `outputs/qr/sea-capitan-1200.png` + `sea-capitan-300.png`.
+Expected: prints `✓ sea-capitan https://happitime.biz/v/sea-capitan?src=qr` and writes `outputs/qr/sea-capitan-1200.png` + `sea-capitan-300.png`.
 
 - [ ] **Step 5: Commit**
 
@@ -432,7 +432,7 @@ Inside the `canManageVenue` branding/media area, add this block (uses plain `<a 
       ))}
     </div>
     <p className="mt-2 text-xs text-gray-400">
-      Links to happitime.app/v/{qrSlug}?src=qr
+      Links to happitime.biz/v/{qrSlug}?src=qr
     </p>
     {v?.status !== 'published' && (
       <p className="mt-1 text-xs text-amber-600">
@@ -475,7 +475,7 @@ Click each button. For each downloaded file confirm the dimensions match the pre
 
 - [ ] **Step 4: Confirm the QR scans to the right URL**
 
-Scan one downloaded PNG with a phone. Expected: resolves to `https://happitime.app/v/{slug}?src=qr` (or the `QR_BASE_URL` you have configured).
+Scan one downloaded PNG with a phone. Expected: resolves to `https://happitime.biz/v/{slug}?src=qr` (or the `QR_BASE_URL` you have configured).
 
 - [ ] **Step 5: Probe authorization**
 
@@ -504,7 +504,7 @@ the web app's strict TS rejected the implicit `any`. (Deviation from plan, neces
 **Still needs the user (real credentials / device required — NOT verified here):**
 - Sign in as owner/manager, open the venue page, confirm the "QR code" subsection + 5 buttons + caption.
 - Download each preset; confirm pixel dims (1200/900/750/600/300²) via `sips -g pixelWidth ...`.
-- Scan a PNG with a phone → resolves to `https://happitime.app/v/{slug}?src=qr`.
+- Scan a PNG with a phone → resolves to `https://happitime.biz/v/{slug}?src=qr`.
 - 403 (signed-in non-member) and 404 (venueId from another org) — need a real member/non-member.
 
 **Overall:** implementation + build + unit tests + unauthenticated auth gating **PASS**; the
