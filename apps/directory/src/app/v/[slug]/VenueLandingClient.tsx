@@ -56,7 +56,7 @@ export function VenueLandingClient({
   playStoreUrl,
 }: Props) {
   const fired = useRef(false);
-  const [tracked, setTracked] = useState(false);
+  const [scan, setScan] = useState<"pending" | "ok" | "error">("pending");
 
   useEffect(() => {
     if (fired.current) return; // guard against double-invoke in React StrictMode
@@ -76,8 +76,8 @@ export function VenueLandingClient({
           session_id: getSessionId(),
         },
       })
-      .then(() => setTracked(true))
-      .catch(() => setTracked(true)); // never block the UI on attribution
+      .then(() => setScan("ok"))
+      .catch(() => setScan("error")); // never block the UI; show a neutral state, not a false success
 
     // Attempt to open the native app. If it isn't installed nothing happens and
     // the store/browser fallback below stays on screen.
@@ -96,18 +96,21 @@ export function VenueLandingClient({
         aria-live="polite"
         className={
           "inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-colors " +
-          (tracked
+          (scan === "ok"
             ? "bg-[#EAF6EC] text-[#1B7A34]"
             : "bg-[#F5F0EB] text-[#6B6B6B]")
         }
       >
-        {tracked ? (
+        {scan === "ok" ? (
           <>
             <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M5 10.5l3.2 3.2L15 7" stroke="#1B7A34" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             Scan recorded
           </>
+        ) : scan === "error" ? (
+          // Attribution failed — stay friendly and honest, don't claim success.
+          "Welcome!"
         ) : (
           "Recording your visit…"
         )}
