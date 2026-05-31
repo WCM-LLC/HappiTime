@@ -30,3 +30,15 @@ test("org-portal route gates by org access and opens the billing portal for the 
   assert.match(src, /stripe_customer_id/);
   assert.match(src, /billingPortal\.sessions\.create/);
 });
+
+test("admin bundle actions: grant pilot, generate link, cancel", () => {
+  const src = read("apps/web/src/actions/admin-bundle-actions.ts");
+  assert.match(src, /export async function adminGrantPilotBundle/);
+  assert.match(src, /export async function adminCreateBundleCheckoutLink/);
+  assert.match(src, /export async function adminCancelOrgBundle/);
+  assert.match(src, /assertAdmin/);
+  assert.match(src, /'pilot'/);
+  assert.match(src, /createOrgBundleCheckoutSession/);
+  assert.match(src, /subscriptions\.cancel/);
+  assert.match(src, /'canceled'/);
+});
