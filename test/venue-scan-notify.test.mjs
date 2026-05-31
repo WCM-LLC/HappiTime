@@ -52,3 +52,21 @@ test("notify-upcoming-happy-hours uses the shared sender (one sender, not two)",
   assert.match(src, /from "\.\.\/_shared\/expo-push\.ts"/);
   assert.match(src, /sendExpoPush\(/);
 });
+
+test("track-visit selects org_id + name and notifies the team AFTER a recorded insert", () => {
+  const src = read("supabase/functions/track-visit/index.ts");
+  assert.match(src, /select\("id, org_id, name"\)/);
+  assert.match(src, /EdgeRuntime\.waitUntil\(\s*\n?\s*notifyVenueTeam/);
+  const insertIdx = src.indexOf('from("venue_attribution_events")');
+  const waitIdx = src.indexOf("EdgeRuntime.waitUntil");
+  assert.ok(insertIdx > 0 && waitIdx > insertIdx, "push hook must come after the insert");
+});
+
+test("track-visit targets owners/managers, respects prefs, and opens the venue", () => {
+  const src = read("supabase/functions/track-visit/index.ts");
+  assert.match(src, /\.in\("role", \["owner", "manager"\]\)/);
+  assert.match(src, /notifications_venue_scans/);
+  assert.match(src, /notifications_push/);
+  assert.match(src, /type: "venue"/);
+  assert.match(src, /ExponentPushToken/);
+});
