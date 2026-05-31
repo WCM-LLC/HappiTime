@@ -64,9 +64,25 @@ export function VenueLandingClient({
 
     const cleanSource = VALID_SOURCES.has(source) ? source : "qr";
 
-    // Fire-and-forget: the visit must be counted even if the app opens next.
-    // Using the shared client (not a hand-rolled fetch on process.env) guarantees
-    // the request is configured exactly like every other Supabase call in the app.
+    // Open the native app exactly once. We delay this until the scan result is
+    // on screen so an app-installed user actually SEES "Scan recorded" before the
+    // OS switches away — otherwise the redirect backgrounds this page instantly
+    // and the confirmation is never observed.
+    const timers: number[] = [];
+    let redirected = false;
+    const openApp = () => {
+      if (redirected) return;
+      redirected = true;
+      window.location.href = appDeepLink; // no-op if the app isn't installed
+    };
+
+    const HOLD_AFTER_RESULT_MS = 1000; // keep the result visible this long...
+    const MAX_WAIT_MS = 1500; // ...but never delay the hand-off past this ceiling.
+
+    // Hard ceiling: hand off even if attribution is slow or never resolves.
+    timers.push(window.setTimeout(openApp, MAX_WAIT_MS));
+
+    // Count the visit (shared client = same config as every other Supabase call).
     void supabase.functions
       .invoke("track-visit", {
         body: {
@@ -77,21 +93,20 @@ export function VenueLandingClient({
         },
       })
       .then(() => setScan("ok"))
-      .catch(() => setScan("error")); // never block the UI; show a neutral state, not a false success
+      .catch(() => setScan("error")) // never block the UI; show a neutral state, not a false success
+      .finally(() => {
+        // Result is now rendered — hold briefly so it registers, then open the app.
+        timers.push(window.setTimeout(openApp, HOLD_AFTER_RESULT_MS));
+      });
 
-    // Attempt to open the native app. If it isn't installed nothing happens and
-    // the store/browser fallback below stays on screen.
-    const t = window.setTimeout(() => {
-      window.location.href = appDeepLink;
-    }, 350);
-    return () => window.clearTimeout(t);
+    return () => timers.forEach((id) => window.clearTimeout(id));
   }, [slug, venueId, source, appDeepLink]);
 
   return (
     <div className="mt-6 flex flex-col items-center gap-4">
-      {/* Visible scan confirmation. The deep-link to the app fires shortly after
-          mount, so this is what a scanner sees when the app isn't installed or
-          they stay in the browser — without it there was no sign the scan worked. */}
+      {/* Visible scan confirmation. The app hand-off is held until this shows
+          (see effect above), so an app-installed scanner sees "Scan recorded"
+          before the app opens — and it stays for the no-app / stay-in-browser case. */}
       <div
         aria-live="polite"
         className={
