@@ -75,11 +75,16 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
         in test mode.** (The downstream `venue_subscriptions`→canceled + `promotion_tier`→null zeroing
         on per-venue cancellation is the PRE-EXISTING per-venue deletion handler, which fires when the
         cancelled sub carries `venue_id` metadata — real per-venue subs do.)
-    - **To ACTIVATE — now UNBLOCKED (4-3 shipped 2026-05-31).** The org bundle UI exists, so production
-      now has an entry point. Recommended order: do the 4-3 manual click-through (test mode) first, then:
-      - [ ] Create LIVE `bundle_2_4`/`bundle_5_plus` products with the live key and set
-        `STRIPE_PRODUCT_BUNDLE_2_4` / `_5_PLUS` in the production (Vercel) env alongside the live
-        `STRIPE_SECRET_KEY`. (Test product IDs recorded above.)
+    - [x] **LIVE wiring DONE (2026-05-31).** Created LIVE Stripe products
+      `STRIPE_PRODUCT_BUNDLE_2_4=prod_UcJq1bUfXByWv0` ($79/venue) and
+      `STRIPE_PRODUCT_BUNDLE_5_PLUS=prod_UcJqYC8xytwYPi` ($59/venue), and set both as Production env
+      vars on the `happitime/happitime-console` Vercel project. Activates on the next prod deploy
+      (auto-deploys from `master`). The live webhook is already covered — bundle events use the same
+      `/api/stripe/webhook` endpoint + `STRIPE_WEBHOOK_SECRET` as the per-venue flow (no new webhook
+      config). Test product IDs (different): `prod_UcH9hy1Lt62p3W` / `prod_UcH90QuzjF6lRq`.
+      - [ ] **Final live confirmation (your call — real money).** A real org owner completing a live
+        bundle checkout with a real card is the only thing not exercised; test mode was fully verified
+        end-to-end. Do a small real purchase + immediate cancel if you want production proof.
     - [ ] Revisit whether push edge functions honor bundles (deferred from 4.1).
     - Behavior note for 4-3: because activation cancels per-venue subs and nothing restores them,
       an org that later cancels its bundle drops to all-`listed` (loses its old per-venue tiers).
