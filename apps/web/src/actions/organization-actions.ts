@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 import { hasAdminEmailsConfigured, isAdmin, getAdminClient } from '@/utils/admin';
 import { toNullableStr, toNumberOrNull, toStr } from '@/utils/form';
+import { syncBundleQuantity } from '@/utils/bundle-sync';
 import {
   fetchOrganizationMenuTree,
   syncOrganizationMenuCopies,
@@ -152,6 +153,9 @@ export async function createVenue(orgId: string, formData: FormData) {
     redirect(`/orgs/${orgId}?error=venue_create_failed`);
   }
 
+  // Venue count changed → keep any active org bundle's quantity/tier in sync.
+  await syncBundleQuantity(orgId);
+
   revalidatePath(`/orgs/${orgId}`);
   redirect(`/orgs/${orgId}/venues/${venue!.id}`);
 }
@@ -194,6 +198,9 @@ export async function deleteVenue(orgId: string, formData: FormData) {
     console.error(error);
     redirect(`/orgs/${orgId}?error=venue_delete_failed`);
   }
+
+  // Venue count changed → keep any active org bundle's quantity/tier in sync.
+  await syncBundleQuantity(orgId);
 
   revalidatePath(`/orgs/${orgId}`);
 }
