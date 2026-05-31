@@ -23,6 +23,14 @@ export function parseVenueLink(url: unknown): ParsedVenueLink | null {
   }
   if (!slug) return null;
   const query = rest.split("#")[0];
-  const src = new URLSearchParams(query).get("src");
-  return { slug, src: src ?? null };
+  const srcMatch = query.match(/(?:^|&)src=([^&]*)/i);
+  let src: string | null = null;
+  if (srcMatch) {
+    try {
+      src = decodeURIComponent(srcMatch[1]);
+    } catch {
+      src = srcMatch[1];
+    }
+  }
+  return { slug, src };
 }
