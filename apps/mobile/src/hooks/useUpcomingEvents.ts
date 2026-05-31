@@ -1,6 +1,7 @@
 // src/hooks/useUpcomingEvents.ts
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
+import { fetchEffectiveTiers } from "../lib/effectiveTier";
 
 export type UpcomingEvent = {
   id: string;
@@ -51,8 +52,23 @@ export function useUpcomingEvents(limit = 40) {
         .limit(limit);
 
       if (error) throw error;
+
+      // Override each event venue's promotion_tier with the effective tier
+      // (folds in the active org-bundle override). Keyed by event.venue_id since
+      // the nested venues embed carries no id. Fail-open: empty map → raw tier.
+      const events = (data ?? []) as UpcomingEvent[];
+      const tierMap = await fetchEffectiveTiers(events.map((e) => e.venue_id));
+      const eventsWithTiers =
+        tierMap.size === 0
+          ? events
+          : events.map((e) =>
+              e.venues && tierMap.has(e.venue_id)
+                ? { ...e, venues: { ...e.venues, promotion_tier: tierMap.get(e.venue_id)! } }
+                : e
+            );
+
       setState({
-        data: (data ?? []) as UpcomingEvent[],
+        data: eventsWithTiers,
         loading: false,
         error: null,
       });

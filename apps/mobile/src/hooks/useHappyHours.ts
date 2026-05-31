@@ -7,6 +7,7 @@ import type {
 } from "@happitime/shared-types";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
+import { fetchEffectiveTiers } from "../lib/effectiveTier";
 
 export type HappyHourWindow = HappyHourWindowRow & {
   name?: string | null;
@@ -166,8 +167,24 @@ export function useHappyHours() {
         };
       });
 
+      // Override each venue's promotion_tier with the effective tier (folds in
+      // the active org-bundle override). Fail-open: empty map → raw tier kept.
+      const tierMap = await fetchEffectiveTiers(
+        windowsWithOrgMeta
+          .map((w) => w.venue?.id)
+          .filter((id): id is string => Boolean(id))
+      );
+      const windowsWithTiers =
+        tierMap.size === 0
+          ? windowsWithOrgMeta
+          : windowsWithOrgMeta.map((w) =>
+              w.venue && tierMap.has(w.venue.id)
+                ? { ...w, venue: { ...w.venue, promotion_tier: tierMap.get(w.venue.id)! } }
+                : w
+            );
+
       setState({
-        data: windowsWithOrgMeta,
+        data: windowsWithTiers,
         loading: false,
         error: null,
         refreshing: false

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
+import { fetchPromotedVenueIds } from "../lib/effectiveTier";
 import { useCurrentUser } from "./useCurrentUser";
 
 export type ActivityItem = {
@@ -122,14 +123,25 @@ export function useFriendActivity() {
       return;
     }
 
-    // 3. Fetch venue_visits for followed users at partner venues (promotion_tier is not null)
+    // 3. Fetch venue_visits for followed users at partner venues. "Partner" now
+    // keys on the EFFECTIVE tier (v_venue_active_tier), so a venue elevated by an
+    // active org bundle counts even when its raw promotion_tier is null. We derive
+    // the promoted venue-id set from the view and filter on it (replacing the old
+    // raw `promotion_tier is not null` embed filter). Empty set → no partner
+    // activity, matching the pre-bundle behavior.
+    const promotedVenueIds = await fetchPromotedVenueIds();
+    if (promotedVenueIds.length === 0) {
+      setState({ activities: [], loading: false, error: null });
+      return;
+    }
+
     const { data: visits, error: visitsError } = await supabase
       .from("venue_visits")
       .select(
         "id, user_id, venue_id, visited_at, rating, comment, is_private, venue:venues!inner(id, name, promotion_tier)"
       )
       .in("user_id", visibleIds)
-      .not("venue.promotion_tier", "is", null)
+      .in("venue_id", promotedVenueIds)
       .order("visited_at", { ascending: false })
       .limit(50);
 

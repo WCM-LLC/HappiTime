@@ -78,6 +78,41 @@ test("queries.ts exports mergeEffectiveTiers and reads the active-tier view", ()
   );
 });
 
+// ── Mobile (4-1b): separate workspace, its own effectiveTier helper ───────────
+// Mobile cannot import the directory's queries.ts, so it duplicates the pure
+// merge. Guard the copy keeps the same shape and reads the same remote view.
+test("mobile effectiveTier exports mergeEffectiveTiers and reads the active-tier view", () => {
+  const src = readFileSync(resolve(ROOT, "apps/mobile/src/lib/effectiveTier.ts"), "utf8");
+  assert.ok(
+    /export function mergeEffectiveTiers/.test(src),
+    "mobile effectiveTier must export mergeEffectiveTiers",
+  );
+  assert.ok(
+    src.includes("v_venue_active_tier"),
+    "mobile effectiveTier must read v_venue_active_tier",
+  );
+});
+
+test("all six mobile tier-reading sites consume the effective tier", () => {
+  // Each site must route its promotion_tier through the effective-tier helper so
+  // bundle elevation reaches mobile. Guard against a site silently regressing to
+  // the raw column. (friend-activity derives its partner set from the view.)
+  const sites = {
+    "hooks/useHappyHours.ts": /effectiveTier/,
+    "hooks/useUpcomingEvents.ts": /effectiveTier/,
+    "hooks/useUserLists.ts": /effectiveTier/,
+    "hooks/useFriendActivity.ts": /effectiveTier|v_venue_active_tier/,
+    "screens/MapScreen.tsx": /effectiveTier/,
+    // EventCalendar reads its events through useUpcomingEvents (already migrated),
+    // so its tierVariant filter runs on the effective tier via delegation.
+    "screens/EventCalendarScreen.tsx": /useUpcomingEvents/,
+  };
+  for (const [rel, pattern] of Object.entries(sites)) {
+    const src = readFileSync(resolve(ROOT, "apps/mobile/src", rel), "utf8");
+    assert.match(src, pattern, `${rel} must consume the effective tier`);
+  }
+});
+
 // ── Migration guard: the view recreation folds in the org bundle override ──────
 function readBundleOverrideMigration() {
   const dir = resolve(ROOT, "supabase/migrations");

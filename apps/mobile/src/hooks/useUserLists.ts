@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
+import { fetchEffectiveTiers } from "../lib/effectiveTier";
 import { useCurrentUser } from "./useCurrentUser";
 
 export type UserList = {
@@ -165,6 +166,24 @@ export function useUserLists() {
         updated_at: row.updated_at,
       };
     });
+
+    // Override each list item's venue promotion_tier with the effective tier
+    // (folds in the active org-bundle override). item_preview shares the same
+    // item references as items, so an in-place write updates both. Fail-open.
+    const tierMap = await fetchEffectiveTiers(
+      lists.flatMap((l) =>
+        l.items.map((it) => it.venue?.id).filter((id): id is string => Boolean(id))
+      )
+    );
+    if (tierMap.size > 0) {
+      for (const l of lists) {
+        for (const it of l.items) {
+          if (it.venue && tierMap.has(it.venue.id)) {
+            it.venue.promotion_tier = tierMap.get(it.venue.id)!;
+          }
+        }
+      }
+    }
 
     setState({ lists, loading: false, error: null });
   }, [user?.id]);

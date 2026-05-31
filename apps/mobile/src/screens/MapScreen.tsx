@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MapView, { Marker, Region } from "react-native-maps";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { supabase } from "../api/supabaseClient";
+import { fetchEffectiveTierRows, mergeEffectiveTiers } from "../lib/effectiveTier";
 import type { ItineraryMapVenue } from "../navigation/types";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useUserLocation } from "../hooks/useUserLocation";
@@ -356,7 +357,10 @@ export const MapScreen: React.FC = () => {
         setFetchedItineraryVenues([]);
         return;
       }
-      setFetchedItineraryVenues(venueRows ?? []);
+      const itineraryRows = (venueRows ?? []) as ItineraryMapVenue[];
+      const itineraryTiers = await fetchEffectiveTierRows(itineraryRows.map((v) => v.id));
+      if (!mounted) return;
+      setFetchedItineraryVenues(mergeEffectiveTiers(itineraryRows, itineraryTiers));
     };
 
     void loadItineraryVenues();
@@ -428,7 +432,10 @@ export const MapScreen: React.FC = () => {
         setSearchedVenues([]);
         return;
       }
-      setSearchedVenues((venueRows ?? []).map(normalizeMapVenue));
+      const searchRows = (venueRows ?? []) as ItineraryMapVenue[];
+      const searchTiers = await fetchEffectiveTierRows(searchRows.map((v) => v.id));
+      if (!mounted) return;
+      setSearchedVenues(mergeEffectiveTiers(searchRows, searchTiers).map(normalizeMapVenue));
     };
 
     void loadSearchVenues();
