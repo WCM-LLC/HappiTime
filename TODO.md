@@ -54,9 +54,16 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
       `bundle_2_4` in `v_venue_active_tier`; the org's per-venue sub was found + **cancelled in Stripe**
       (status=canceled) — the double-billing guard works. Price resolution + checkout-session +
       quantity math also confirmed.
-    - **NOT yet exercised live (remaining verify):**
-      - [ ] `syncBundleQuantity` — add venue → quantity bump; cross 4→5 → price swaps to `bundle_5_plus`.
-      - [ ] `invoice.payment_failed` → bundle `past_due` (read path drops elevation).
+    - **Live-verified (2026-05-31, throwaway org on prod, torn down):**
+      - [x] `syncBundleQuantity` — recount 2→5 bumped Stripe quantity AND swapped the item price to
+        `bundle_5_plus`; `org_subscriptions` reconciled to `bundle_5_plus`/`venue_count=5`/rate 5900.
+        **Bug found + fixed during this run:** the swap updated the item price but not
+        `sub.metadata.bundle_tier`, so the reconciling webhook wrote a STALE tier/rate to
+        `org_subscriptions` (recorded `bundle_2_4`/$79 while Stripe billed `bundle_5_plus`/$59).
+        Fixed in `bundle-sync.ts` (also move `metadata.bundle_tier` on swap); re-verified correct.
+      - [x] `invoice.payment_failed` → `org_subscriptions` `past_due`; read path then drops all the
+        org's venues back to `listed` (active-status gate). Verified via a real failing-charge invoice.
+    - **NOT yet exercised live (remaining):**
       - [ ] Full hosted checkout (org-checkout route → Stripe Checkout page → completed payment).
         Note: the downstream `venue_subscriptions`→canceled + `promotion_tier`→null zeroing is the
         PRE-EXISTING per-venue deletion handler (fires when the cancelled sub carries `venue_id`

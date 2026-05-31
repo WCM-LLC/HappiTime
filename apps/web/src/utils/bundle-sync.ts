@@ -40,6 +40,10 @@ export async function syncBundleQuantity(orgId: string): Promise<void> {
     const update: any = { items: [{ id: item.id, quantity: newCount }] };
     if (newTier !== bundle.bundle_tier) {
       update.items[0].price = await getPriceIdForBundle(newTier);
+      // Also move metadata.bundle_tier so the reconciling subscription.updated
+      // webhook (handleOrgBundleUpsert reads sub.metadata.bundle_tier) writes the
+      // NEW tier + rate to org_subscriptions — otherwise they go stale on a swap.
+      update.metadata = { ...sub.metadata, bundle_tier: newTier };
     }
     await stripe.subscriptions.update(bundle.stripe_subscription_id, update);
   } catch (e) {
