@@ -35,6 +35,17 @@ test("returns null when the slug is missing", () => {
   assert.equal(parseVenueLink("happitime://venue/"), null);
 });
 
+test("rejects a look-alike domain", () => {
+  assert.equal(parseVenueLink("https://evil.com/v/sea-capitan?src=qr"), null);
+});
+
+test("accepts a happitime.biz subdomain (staging)", () => {
+  assert.deepEqual(parseVenueLink("https://staging.happitime.biz/v/sea-capitan?src=qr"), {
+    slug: "sea-capitan",
+    src: "qr",
+  });
+});
+
 test("returns null for non-string input", () => {
   assert.equal(parseVenueLink(undefined), null);
 });

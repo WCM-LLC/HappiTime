@@ -13,7 +13,7 @@ export function parseVenueLink(url: unknown): ParsedVenueLink | null {
   const [base, rest = ""] = url.split("?");
   const match =
     base.match(/^happitime:\/\/venue\/([^/?#]+)/i) ||
-    base.match(/^https?:\/\/[^/]+\/v\/([^/?#]+)/i);
+    base.match(/^https:\/\/(?:[a-z0-9-]+\.)?happitime\.biz\/v\/([^/?#]+)/i);
   if (!match) return null;
   let slug: string;
   try {
