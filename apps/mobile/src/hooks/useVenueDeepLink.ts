@@ -45,15 +45,20 @@ export function useVenueDeepLink(navigationRef: React.RefObject<any>) {
           .select("id")
           .eq("slug", parsed.slug)
           .maybeSingle();
-        if (cancelled || error || !data?.id) return;
+        if (cancelled) return;
+        if (error || !data?.id) {
+          console.warn("[useVenueDeepLink] no venue for slug:", parsed.slug, error?.message ?? "");
+          return;
+        }
         const nav = await waitForNav(navigationRef);
         if (cancelled || !nav) return;
         nav.navigate("VenuePreview", {
           venueId: data.id as string,
           fromScan: parsed.src === "qr",
         });
-      } catch {
+      } catch (e) {
         // Never block the app open on a failed resolve.
+        console.warn("[useVenueDeepLink] resolve failed:", e);
       }
     }
 

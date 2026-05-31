@@ -82,22 +82,29 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   // One-shot "Checked in!" confirmation when arriving from a QR scan
   // (route param fromScan). Display-only — the web bridge already recorded the
   // visit; we just confirm it. Cleared after showing so back-nav won't replay it.
-  const bannerShown = useRef(false);
   const bannerOpacity = useRef(new Animated.Value(0)).current;
   const [showScanBanner, setShowScanBanner] = useState(false);
 
+  // Banner is a navigation-arrival concern: show once when this screen is opened
+  // from a QR scan (fromScan param). Runs on mount only, so clearing the param and
+  // the fade sequence aren't interrupted; cleanup stops the animation on unmount.
+  // Known v1 limitation: scanning a second venue while already on this screen won't
+  // replay the banner (would need a per-scan nonce param) — tracked as a follow-up.
   useEffect(() => {
-    if (bannerShown.current) return;
     if (route.params?.fromScan !== true) return;
-    bannerShown.current = true;
-    setShowScanBanner(true);
     navigation.setParams({ fromScan: false });
-    Animated.sequence([
+    setShowScanBanner(true);
+    const anim = Animated.sequence([
       Animated.timing(bannerOpacity, { toValue: 1, duration: 250, useNativeDriver: true }),
       Animated.delay(2500),
       Animated.timing(bannerOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
-    ]).start(() => setShowScanBanner(false));
-  }, [route.params, navigation, bannerOpacity]);
+    ]);
+    anim.start(({ finished }) => {
+      if (finished) setShowScanBanner(false);
+    });
+    return () => anim.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // "I'm here" — records an app_checkin attribution event for this venue via the
   // public track-visit edge function. Lightweight: no geofence enforcement yet.
