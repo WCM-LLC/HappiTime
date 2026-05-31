@@ -68,12 +68,13 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
         `bundle_2_4` → a real Checkout Session created with line item price=`bundle_2_4` qty=2 and a
         hosted URL. (Session retrieve doesn't echo `subscription_data`, but the route sets
         `{org_id, bundle_tier}` and that metadata→webhook→handler path is already proven live.)
-    - **NOT exercised live — needs a real browser (only remaining):**
-      - [ ] A human completing the **Stripe-hosted Checkout page** (card entry) → `checkout.session.completed`.
-        Not headless-automatable here; the event reuses the `handleOrgBundleUpsert` handler already
-        proven live, and the route emits a correct session. The downstream `venue_subscriptions`→canceled
-        + `promotion_tier`→null zeroing is the PRE-EXISTING per-venue deletion handler (fires when the
-        cancelled sub carries `venue_id` metadata, which real per-venue subs do).
+      - [x] **Full hosted checkout — completed test payment (2026-05-31).** A real Stripe-hosted
+        Checkout page was paid with test card 4242 ($0). `checkout.session.completed` → webhook →
+        `handleOrgBundleUpsert` wrote `org_subscriptions` (`bundle_2_4`/active/`venue_count=2`) and
+        both org venues elevated to `bundle_2_4` in the read view. **4-2 is now fully behavior-verified
+        in test mode.** (The downstream `venue_subscriptions`→canceled + `promotion_tier`→null zeroing
+        on per-venue cancellation is the PRE-EXISTING per-venue deletion handler, which fires when the
+        cancelled sub carries `venue_id` metadata — real per-venue subs do.)
     - **To ACTIVATE (per environment):**
       - [ ] Set `STRIPE_PRODUCT_BUNDLE_2_4` / `_5_PLUS` in the target env's config. The IDs above are
         TEST products — for a LIVE environment, create live products (or keep test until ready) and
