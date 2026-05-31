@@ -102,12 +102,10 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
       panel: start → Stripe Checkout (4242) → active card → "Manage billing" opens the portal. Admin table:
       lists the bundle → Cancel → `customer.subscription.deleted` → `status=canceled`, venues back to
       `listed`, and the panel re-offers "Start" (confirmed the review-fixed status-aware behavior live).
-    Remaining for 4-3 (minor, non-blocking):
-    - [ ] **`?bundle=success` finalize state** — after Checkout, Stripe redirects back ~1s before the webhook
-      writes `org_subscriptions`, so the panel briefly shows "Start" until a refresh. Add an optimistic
-      "finalizing…" state or a short poll on the `bundle=success` param. (Inherent Stripe async-webhook timing.)
-    - [ ] **Admin "generate checkout link" display button** — the `adminCreateBundleCheckoutLink` action
-      exists + is guard-tested, but no client button surfaces the returned URL yet (deferred in the plan).
+    - [x] **`?bundle=success` finalize state** DONE (`63cba02`) — panel shows "Finalizing…" + soft-refreshes
+      (`router.refresh`) up to 3× after checkout so the active bundle appears without a manual reload.
+    - [x] **Admin "generate checkout link" button** DONE (`63cba02`) — `AdminBundleLinkButton` surfaces the
+      `adminCreateBundleCheckoutLink` action in the admin Org Bundles table.
   - [ ] **Remote migration-history note:** `20260531000000` was applied via MCP then the
     view/fn were corrected in-session via `execute_sql` (the anon fix), so the remote
     history's recorded SQL for that version is the pre-fix text; the live objects + the
