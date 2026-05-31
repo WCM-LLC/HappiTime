@@ -261,7 +261,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           style={[styles.scanBannerWrap, { opacity: bannerOpacity, top: insets.top + spacing.sm }]}
         >
           <View style={styles.scanBanner}>
-            <Text style={styles.scanBannerText}>✓ Checked in!</Text>
+            <Text style={styles.scanBannerText}>📍 Checked in!</Text>
           </View>
         </Animated.View>
       ) : null}
