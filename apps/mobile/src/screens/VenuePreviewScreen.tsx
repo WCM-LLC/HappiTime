@@ -25,6 +25,7 @@ import { ErrorState } from "../components/ErrorState";
 import { ImageLightbox } from "../components/ImageLightbox";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
+import { IconSymbol } from "../../components/ui/icon-symbol";
 
 type Props = NativeStackScreenProps<RootStackParamList, "VenuePreview">;
 
@@ -261,7 +262,8 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           style={[styles.scanBannerWrap, { opacity: bannerOpacity, top: insets.top + spacing.sm }]}
         >
           <View style={styles.scanBanner}>
-            <Text style={styles.scanBannerText}>📍 Checked in!</Text>
+            <IconSymbol name="mappin.circle.fill" size={16} color="#1B7A34" />
+            <Text style={styles.scanBannerText}>Checked in!</Text>
           </View>
         </Animated.View>
       ) : null}
@@ -465,6 +467,9 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   scanBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: 999,
