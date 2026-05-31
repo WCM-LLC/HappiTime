@@ -75,17 +75,29 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
         in test mode.** (The downstream `venue_subscriptions`→canceled + `promotion_tier`→null zeroing
         on per-venue cancellation is the PRE-EXISTING per-venue deletion handler, which fires when the
         cancelled sub carries `venue_id` metadata — real per-venue subs do.)
-    - **To ACTIVATE (DECIDED 2026-05-31: defer live wiring until 4-3 ships).** Test mode is fully
-      verified, but production has no UI to trigger a bundle checkout yet, so live products + env
-      vars would arm real billing with no entry point. Wire live ALONGSIDE 4-3, not before:
-      - [ ] When 4-3 ships: create LIVE `bundle_2_4`/`bundle_5_plus` products with the live key and set
+    - **To ACTIVATE — now UNBLOCKED (4-3 shipped 2026-05-31).** The org bundle UI exists, so production
+      now has an entry point. Recommended order: do the 4-3 manual click-through (test mode) first, then:
+      - [ ] Create LIVE `bundle_2_4`/`bundle_5_plus` products with the live key and set
         `STRIPE_PRODUCT_BUNDLE_2_4` / `_5_PLUS` in the production (Vercel) env alongside the live
-        `STRIPE_SECRET_KEY`. (Test product IDs + the live decision are recorded above.)
+        `STRIPE_SECRET_KEY`. (Test product IDs recorded above.)
     - [ ] Revisit whether push edge functions honor bundles (deferred from 4.1).
     - Behavior note for 4-3: because activation cancels per-venue subs and nothing restores them,
       an org that later cancels its bundle drops to all-`listed` (loses its old per-venue tiers).
       Inherent in the "bundle cancels per-venue" decision — surface it deliberately in the UI.
-  - [ ] **4-3 — org bundle management UI** (admin + org-owner view/manage a bundle).
+  - [x] **4-3 — org bundle management UI.** DONE + merged (`993145c`). Spec
+    `docs/superpowers/specs/2026-05-31-phase4-3-org-bundle-management-ui-design.md`, plan
+    `docs/superpowers/plans/2026-05-31-phase4-3-org-bundle-management-ui.md`. Shipped: shared
+    `createOrgBundleCheckoutSession` (org-checkout refactored to use it), `OrgBundlePanel` (owner
+    start/manage on the org page), `/api/stripe/org-portal` route, admin actions
+    (`adminGrantPilotBundle` / `adminCreateBundleCheckoutLink` / `adminCancelOrgBundle`), and an
+    admin Org Bundles table. Built subagent-driven (TDD guard tests) with a full code review that
+    caught + fixed two real UI bugs (status-aware panel: canceled rows re-offer Start; pilot comps
+    have no portal so "Manage billing" is hidden). Verified: `npm test` 106 pass; web tsc 0 errors.
+    Remaining for 4-3:
+    - [ ] **Manual UI click-through (test mode)** — render the owner panel, start→checkout, manage→portal,
+      and the admin table comp/cancel. Code-level verified only (tsc + guards), not yet clicked.
+    - [ ] **Admin "generate checkout link" display button** — the `adminCreateBundleCheckoutLink` action
+      exists + is guard-tested, but no client button surfaces the returned URL yet (deferred in the plan).
   - [ ] **Remote migration-history note:** `20260531000000` was applied via MCP then the
     view/fn were corrected in-session via `execute_sql` (the anon fix), so the remote
     history's recorded SQL for that version is the pre-fix text; the live objects + the
