@@ -12,7 +12,7 @@ const nextConfig = {
     },
   },
   outputFileTracingRoot: path.join(__dirname, '../../'),
-  transpilePackages: ['@uiw/react-md-editor', '@uiw/react-markdown-preview'],
+  transpilePackages: ['@uiw/react-md-editor', '@uiw/react-markdown-preview', '@happitime/venue-qr'],
 };
 
 export default nextConfig;
