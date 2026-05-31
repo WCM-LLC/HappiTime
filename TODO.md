@@ -21,11 +21,29 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
   the retired `'premium'`/`'basic'` vocabulary is gone. Verified: mobile
   typecheck 0 errors; `npm test` 82 pass / 0 fail. Split-out (NOT Phase 3):
   guide-eligibility gating, per-tier photo-size redesign.
-- [ ] **`v_venue_active_tier` bundle override deferred to Phase 4.** Ships as a
-  simple `COALESCE(promotion_tier,'listed')` projection; the approved design's
-  `org_subscriptions` bundle override (active bundle → featured-level) is
-  deferred until bundles are wired. Restore the `LEFT JOIN org_subscriptions`
-  then. Nothing reads the override yet.
+- [x] **Phase 4.1 — `v_venue_active_tier` bundle override + directory read.** DONE
+  (branch `feature/phase4-bundle-tier-read-path`). Spec:
+  `docs/superpowers/specs/2026-05-30-phase4-bundle-tier-read-path-design.md`. The view
+  now elevates an org's venues to featured-level when the org has an active bundle
+  (`status active/trialing/pilot`), read via a `SECURITY DEFINER`
+  `org_active_bundle_tier()` fn so the **anon** directory role gets the override
+  without exposing rates (the view stays `security_invoker`). `queries.ts` reads the
+  effective tier (`mergeEffectiveTiers`/`withEffectiveTiers`); cards unchanged.
+  Verified no-op today (0 bundles) + live anon override (7/7 venues) on remote.
+  Remaining Phase 4 sub-projects (own specs):
+  - [ ] **4-1b — mobile feed-query migration.** Apply the effective tier to mobile's
+    ~6 `promotion_tier` readers (`useHappyHours`, `useUpcomingEvents`, `useUserLists`,
+    `MapScreen`, `useFriendActivity`, `App.tsx`, `EventCalendarScreen`). Mobile won't
+    reflect bundles until this lands (fine — none sold yet).
+  - [ ] **4-2 — org bundle billing.** Stripe org-level checkout route + webhook handler
+    populating `org_subscriptions` (mirror the per-venue flow in
+    `app/api/stripe/{checkout,webhook}`). Revisit whether the push edge functions honor
+    bundles (deferred from 4.1).
+  - [ ] **4-3 — org bundle management UI** (admin + org-owner view/manage a bundle).
+  - [ ] **Remote migration-history note:** `20260531000000` was applied via MCP then the
+    view/fn were corrected in-session via `execute_sql` (the anon fix), so the remote
+    history's recorded SQL for that version is the pre-fix text; the live objects + the
+    committed migration file are correct. Folds into the existing migration-drift item.
 - [ ] **Stripe env var naming.** Tiers renamed but Stripe products reused
   (`verified`/`founding_pilot` → `STRIPE_PRODUCT_BASIC`, `featured` →
   `STRIPE_PRODUCT_FEATURED`). `STRIPE_PRODUCT_PREMIUM` is now unused. Optional
