@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getStripe } from '@/utils/stripe';
+import { rateForBundleTier, type BundleTier } from '@/utils/bundle';
 import { createServiceClient } from '@/utils/supabase/server';
 
 // Raw body required for Stripe signature verification
@@ -182,6 +183,89 @@ async function handleSubscriptionUpsert(
   }
 }
 
+// ── Org bundle (Phase 4-2) ────────────────────────────────────────────────────
+// Org-level bundle subs carry metadata.bundle_tier (and no venue_id). They write
+// org_subscriptions (org-wide elevation via 4.1) and, on activation, cancel the
+// org's per-venue subs so the org isn't double-billed.
+
+function isOrgBundleSub(sub: Stripe.Subscription): boolean {
+  return Boolean(sub.metadata?.bundle_tier) && !sub.metadata?.venue_id;
+}
+
+function isBundleTier(value: unknown): value is BundleTier {
+  return value === 'bundle_2_4' || value === 'bundle_5_plus';
+}
+
+function getSubscriptionQuantity(sub: Stripe.Subscription): number {
+  return (sub as any).items?.data?.[0]?.quantity ?? 0;
+}
+
+async function handleOrgBundleUpsert(
+  supabase: ReturnType<typeof createServiceClient>,
+  sub: Stripe.Subscription,
+  customerId: string,
+) {
+  const orgId = sub.metadata?.org_id;
+  const tier = sub.metadata?.bundle_tier;
+
+  if (!orgId || !isBundleTier(tier)) {
+    console.warn('[webhook] bundle sub missing org_id or valid bundle_tier', sub.id);
+    return;
+  }
+
+  const { data: org, error: orgErr } = await supabase
+    .from('organizations')
+    .select('id')
+    .eq('id', orgId)
+    .maybeSingle();
+  if (orgErr) throw new Error(`org lookup failed: ${orgErr.message}`);
+  if (!org) {
+    console.warn('[webhook] bundle org not found', sub.id);
+    return;
+  }
+
+  const status = mapSubscriptionStatus(sub.status);
+  const isActive = grantsPaidAccess(status);
+  const venueCount = getSubscriptionQuantity(sub);
+  const currentPeriodEnd = unixSecondsToIso((sub as any).current_period_end);
+
+  const patch: Record<string, unknown> = {
+    org_id:                 orgId,
+    bundle_tier:            tier,
+    monthly_rate_per_venue_cents: rateForBundleTier(tier),
+    venue_count:            venueCount,
+    status,
+    stripe_subscription_id: sub.id,
+    stripe_customer_id:     customerId,
+  };
+  if (currentPeriodEnd) patch.current_period_end = currentPeriodEnd;
+
+  const { error: upsertErr } = await (supabase as any)
+    .from('org_subscriptions')
+    .upsert(patch, { onConflict: 'org_id' });
+  if (upsertErr) throw new Error(`org_subscriptions upsert failed: ${upsertErr.message}`);
+
+  // On activation, cancel the org's per-venue Stripe subs. Cancelling fires
+  // customer.subscription.deleted, whose existing handler zeros venue_subscriptions
+  // + promotion_tier. The bundle then supplies the effective tier org-wide (4.1).
+  if (isActive) {
+    const { data: venueSubs } = await (supabase as any)
+      .from('venue_subscriptions')
+      .select('stripe_subscription_id, venues!inner(org_id)')
+      .eq('venues.org_id', orgId)
+      .not('stripe_subscription_id', 'is', null)
+      .neq('status', 'canceled');
+
+    for (const row of (venueSubs ?? []) as Array<{ stripe_subscription_id: string }>) {
+      try {
+        await getStripe().subscriptions.cancel(row.stripe_subscription_id);
+      } catch (e) {
+        console.warn('[webhook] per-venue cancel failed', row.stripe_subscription_id, e);
+      }
+    }
+  }
+}
+
 export async function POST(req: NextRequest) {
   const sig = req.headers.get('stripe-signature');
   if (!sig) {
@@ -206,7 +290,11 @@ export async function POST(req: NextRequest) {
         const sub = await getStripe().subscriptions.retrieve(session.subscription as string);
         const customerId = getStripeId(session.customer) ?? getStripeId(sub.customer);
         if (!customerId) throw new Error('Missing Stripe customer id');
-        await handleSubscriptionUpsert(supabase, sub, customerId);
+        if (isOrgBundleSub(sub)) {
+          await handleOrgBundleUpsert(supabase, sub, customerId);
+        } else {
+          await handleSubscriptionUpsert(supabase, sub, customerId);
+        }
         break;
       }
 
@@ -215,7 +303,11 @@ export async function POST(req: NextRequest) {
         const sub = event.data.object as Stripe.Subscription;
         const customerId = getStripeId(sub.customer);
         if (!customerId) throw new Error('Missing Stripe customer id');
-        await handleSubscriptionUpsert(supabase, sub, customerId);
+        if (isOrgBundleSub(sub)) {
+          await handleOrgBundleUpsert(supabase, sub, customerId);
+        } else {
+          await handleSubscriptionUpsert(supabase, sub, customerId);
+        }
         break;
       }
 
@@ -227,7 +319,11 @@ export async function POST(req: NextRequest) {
         const sub = await getStripe().subscriptions.retrieve(subId);
         const customerId = getStripeId(sub.customer);
         if (!customerId) throw new Error('Missing Stripe customer id');
-        await handleSubscriptionUpsert(supabase, sub, customerId);
+        if (isOrgBundleSub(sub)) {
+          await handleOrgBundleUpsert(supabase, sub, customerId);
+        } else {
+          await handleSubscriptionUpsert(supabase, sub, customerId);
+        }
         break;
       }
 
@@ -235,6 +331,13 @@ export async function POST(req: NextRequest) {
         const invoice = event.data.object as Stripe.Invoice;
         const subId = getInvoiceSubscriptionId(invoice);
         if (!subId) break;
+
+        // A bundle sub failing payment: drop it past_due so the read path's
+        // active-status gate stops elevating the org's venues. No-op for venue subs.
+        await (supabase as any)
+          .from('org_subscriptions')
+          .update({ status: 'past_due' })
+          .eq('stripe_subscription_id', subId);
 
         const { data: affectedRows, error: subError } = await (supabase as any)
           .from('venue_subscriptions')

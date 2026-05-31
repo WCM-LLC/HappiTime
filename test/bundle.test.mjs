@@ -92,3 +92,15 @@ test("org-checkout gates access, sizes the bundle, and tags subscription metadat
   assert.match(CHECKOUT_SRC, /bundle_tier/);
   assert.match(CHECKOUT_SRC, /quantity/);
 });
+
+// ── Task 5: webhook org-bundle branch ──
+const WEBHOOK_SRC = readFileSync(
+  resolve(ROOT, "apps/web/src/app/api/stripe/webhook/route.ts"),
+  "utf8",
+);
+test("webhook routes bundle subs to the org path and cancels per-venue subs", () => {
+  assert.match(WEBHOOK_SRC, /function isOrgBundleSub/);
+  assert.match(WEBHOOK_SRC, /handleOrgBundleUpsert/);
+  assert.match(WEBHOOK_SRC, /org_subscriptions/);
+  assert.match(WEBHOOK_SRC, /subscriptions\.cancel/);
+});
