@@ -39,8 +39,13 @@ policy (a migration — risky given the open production migration-history drift)
 reads with the **service-role client gated by the existing app-level role check**
 (`canEditMenuItems`), mirroring the QR-download route's "authorize, then service read."
 The data never reaches an unauthorized user because the page only renders the element
-when `canEditMenuItems` is true and only queries that one venue's events. RLS hardening
-is a noted fast-follow.
+when `canEditMenuItems` is true (owner/manager/admin/editor/host) and only queries that
+one venue's events. RLS hardening is a noted fast-follow.
+
+**Zero migration drift (required):** this feature adds **no migration** — so it
+contributes zero drift, consistent with the standing "0 drift at all times" rule. (The
+separate pre-existing prod↔repo drift is tracked elsewhere and must be reconciled on its
+own; it does not block this web-only feature.)
 
 ## Components (web only — no migration, no native change)
 
