@@ -78,3 +78,17 @@ test("billing-access exposes an org-level check gated to owner/manager", () => {
   assert.match(ACCESS_SRC, /export async function checkOrgBillingAccess/);
   assert.match(ACCESS_SRC, /BILLING_MANAGER_ROLES/);
 });
+
+// ── Task 4: org checkout route ──
+const CHECKOUT_SRC = readFileSync(
+  resolve(ROOT, "apps/web/src/app/api/stripe/org-checkout/route.ts"),
+  "utf8",
+);
+test("org-checkout gates access, sizes the bundle, and tags subscription metadata", () => {
+  assert.match(CHECKOUT_SRC, /checkOrgBillingAccess/);
+  assert.match(CHECKOUT_SRC, /bundleTierForCount/);
+  assert.match(CHECKOUT_SRC, /getPriceIdForBundle/);
+  assert.match(CHECKOUT_SRC, /isTrustedBrowserRequest/);
+  assert.match(CHECKOUT_SRC, /bundle_tier/);
+  assert.match(CHECKOUT_SRC, /quantity/);
+});
