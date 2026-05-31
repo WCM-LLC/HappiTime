@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseVenueLink } from "../apps/mobile/src/lib/parseVenueLink.ts";
+import { parseVenueLink } from "../apps/mobile/src/lib/parseVenueLink.mjs";
 
 test("parses the custom-scheme venue link with src", () => {
   assert.deepEqual(parseVenueLink("happitime://venue/sea-capitan?src=qr"), {
