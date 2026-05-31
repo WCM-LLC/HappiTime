@@ -7,6 +7,7 @@ import {
   adminDeleteVenueSubscription,
   adminDeleteUserPlan,
 } from '@/actions/admin-plans-actions';
+import { adminGrantPilotBundle, adminCancelOrgBundle } from '@/actions/admin-bundle-actions';
 
 type VenueSubscriptionRow = {
   id: string;
@@ -76,6 +77,7 @@ export default async function PlansPage() {
   let userPlans: UserPlanRow[] = [];
   let venueOptions: VenueOption[] = [];
   let fetchError: string | null = null;
+  let orgBundles: { org_id: string; org_name: string; bundle_tier: string; status: string; venue_count: number; monthly_total: number; current_period_end: string | null }[] = [];
 
   if (!keyError) {
     const supabase = createServiceClient();
@@ -137,6 +139,20 @@ export default async function PlansPage() {
 
     userPlans   = rawPlans;
     venueOptions = (venuesResult.data ?? []) as VenueOption[];
+
+    const { data: orgBundleRows } = await (supabase as any)
+      .from('org_subscriptions')
+      .select('org_id, bundle_tier, status, venue_count, monthly_rate_per_venue_cents, current_period_end, organizations(name)')
+      .order('created_at', { ascending: false });
+    orgBundles = ((orgBundleRows ?? []) as any[]).map((r) => ({
+      org_id: r.org_id as string,
+      org_name: (r.organizations?.name as string) ?? r.org_id,
+      bundle_tier: r.bundle_tier as string,
+      status: r.status as string,
+      venue_count: r.venue_count as number,
+      monthly_total: ((r.monthly_rate_per_venue_cents as number) * (r.venue_count as number)) / 100,
+      current_period_end: (r.current_period_end as string | null) ?? null,
+    }));
   }
 
   return (
@@ -439,6 +455,44 @@ export default async function PlansPage() {
               </form>
             </div>
           )}
+        </section>
+
+        {/* ══════════════════════════════════════════════
+            ORG BUNDLES
+        ══════════════════════════════════════════════ */}
+        <section className="mb-10">
+          <h2 className="text-heading-sm font-semibold text-foreground mb-3">Org bundles</h2>
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-surface">
+                <tr>
+                  <th className={thCls}>Org</th><th className={thCls}>Tier</th><th className={thCls}>Status</th>
+                  <th className={thCls}>Venues</th><th className={thCls}>$/mo</th><th className={thCls}>Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border bg-background">
+                {orgBundles.map((b) => (
+                  <tr key={b.org_id}>
+                    <td className={tdCls}>{b.org_name}</td>
+                    <td className={tdCls}>{b.bundle_tier}</td>
+                    <td className={tdCls}>{b.status}</td>
+                    <td className={tdCls}>{b.venue_count}</td>
+                    <td className={tdCls}>${b.monthly_total}</td>
+                    <td className={tdCls}>
+                      <form action={adminCancelOrgBundle} className="inline">
+                        <input type="hidden" name="org_id" value={b.org_id} />
+                        <button className="text-error hover:underline text-body-sm">Cancel</button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <form action={adminGrantPilotBundle} className="mt-3 flex gap-2 items-center">
+            <input name="org_id" placeholder="org_id to comp a pilot bundle" className="h-9 px-3 rounded-md border border-border bg-surface text-body-sm w-96" />
+            <button className="h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium">Grant pilot</button>
+          </form>
         </section>
 
       </main>
