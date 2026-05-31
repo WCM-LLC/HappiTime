@@ -40,7 +40,7 @@ export async function fetchPublishedHappyHourWindows(opts?: {
   // published window leaks into the consumer feed.
   let query = supabase
     .from("happy_hour_windows")
-    .select("*, venue:venues!inner (*, org:organizations (id, name)), offers:happy_hour_offers (*)")
+    .select("*, venue:venues!inner (*, org:organizations (id, name), venue_tags(approved_tags(slug, label, category))), offers:happy_hour_offers (*)")
     .eq("status", "published")
     .eq("venue.status", "published")
     .order("start_time", { ascending: true });

@@ -30,6 +30,8 @@ import { getHappyHourDisplayNames } from "../utils/happyHourDisplay";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
 import { SearchableOptionSheet } from "../components/SearchableOptionSheet";
+import { TagFilterChips } from "../components/TagFilterChips";
+import { useApprovedTags } from "../hooks/useApprovedTags";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
@@ -37,8 +39,6 @@ import { distanceMiles } from "../utils/location";
 import { nativeMapViewProps } from "../utils/mapViewProps";
 
 type Props = NativeStackScreenProps<RootStackParamList, "Home">;
-
-type CuisineMode = "tags" | "offers";
 
 const formatTagLabel = (tag: string) =>
   tag
@@ -48,24 +48,31 @@ const formatTagLabel = (tag: string) =>
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
-const formatCuisineLabel = (value: string, mode: CuisineMode) => {
-  if (value === "all") return "All";
-  if (mode === "offers") {
-    if (value === "food") return "Food";
-    if (value === "drinks") return "Drinks";
-    if (value === "both") return "Both";
+const getPlaceTagSlugs = (window: HappyHourWindow): string[] => {
+  const joined = (window.venue as any)?.venue_tags;
+  if (!Array.isArray(joined)) return [];
+  const slugs: string[] = [];
+  for (const row of joined) {
+    const tag = row?.approved_tags;
+    if (tag?.slug) slugs.push(tag.slug);
   }
-  return formatTagLabel(value);
+  return slugs;
 };
 
-const normalizeCuisine = (value: string) =>
-  value
-    .replace(/[_-]+/g, " ")
-    .trim()
-    .toLowerCase();
-
-const getPlaceCuisines = (window: HappyHourWindow) =>
-  (window.venue?.tags ?? []).map(normalizeCuisine).filter(Boolean);
+const getPlaceTagsByCategory = (
+  window: HappyHourWindow
+): Record<string, Set<string>> => {
+  const joined = (window.venue as any)?.venue_tags;
+  const out: Record<string, Set<string>> = {};
+  if (!Array.isArray(joined)) return out;
+  for (const row of joined) {
+    const tag = row?.approved_tags;
+    if (!tag?.slug || !tag?.category) continue;
+    const bucket = out[tag.category] ?? (out[tag.category] = new Set());
+    bucket.add(tag.slug);
+  }
+  return out;
+};
 
 const getVenueName = (window: HappyHourWindow) => {
   const { titleText } = getHappyHourDisplayNames(window);
@@ -125,6 +132,7 @@ const promoLabel: Record<PromoVariant, string> = {
 
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { data, loading, error, refreshing, refresh } = useHappyHours();
+  const { byCategory: tagsByCategory } = useApprovedTags();
   const { preferences, savePreferences } = useUserPreferences();
   const { coords, error: locationError } = useUserLocation({
     requestOnMount: preferences.location_enabled,
@@ -133,12 +141,37 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { width } = useWindowDimensions();
 
   const [query, setQuery] = useState("");
-  const [selectedCuisine, setSelectedCuisine] = useState("all");
+  const [selectedTagSlugs, setSelectedTagSlugs] = useState<Set<string>>(
+    () => new Set()
+  );
   const [selectedPrice, setSelectedPrice] = useState<number | "all">("all");
   const [cityPickerVisible, setCityPickerVisible] = useState(false);
   const [cityDraft, setCityDraft] = useState("");
   const [venueCarouselScrollEnabled, setVenueCarouselScrollEnabled] = useState(true);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+
+  const toggleTagSlug = React.useCallback((slug: string) => {
+    setSelectedTagSlugs((current) => {
+      const next = new Set(current);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
+  }, []);
+
+  // Pre-compute the per-category slug sets the filter step needs.
+  const selectedByCategory = useMemo(() => {
+    const result: Record<string, Set<string>> = {};
+    for (const slug of selectedTagSlugs) {
+      const category = Object.keys(tagsByCategory).find((cat) =>
+        tagsByCategory[cat].some((t) => t.slug === slug)
+      );
+      if (!category) continue;
+      const bucket = result[category] ?? (result[category] = new Set());
+      bucket.add(slug);
+    }
+    return result;
+  }, [selectedTagSlugs, tagsByCategory]);
 
   // GPS coords with fallback to saved home location for sorting/centering
   const effectiveCoords = React.useMemo(() => {
@@ -204,22 +237,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       });
   }, [dedupedByVenue, effectiveCoords]);
 
-  const cuisineMeta = useMemo(() => {
-    const cuisineSet = new Set<string>();
-
-    for (const place of dedupedByVenue) {
-      for (const cuisine of getPlaceCuisines(place)) {
-        cuisineSet.add(cuisine);
-      }
-    }
-
-    const cuisines = Array.from(cuisineSet).sort((a, b) => a.localeCompare(b));
-    return {
-      mode: "tags" as CuisineMode,
-      options: cuisines.length > 0 ? ["all", ...cuisines] : ["all"]
-    };
-  }, [dedupedByVenue]);
-
   const priceOptions = useMemo(() => {
     const tiers = new Set<number>();
     for (const place of dedupedByVenue) {
@@ -267,10 +284,24 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       });
     }
 
-    if (selectedCuisine !== "all") {
-      list = list.filter((place) =>
-        getPlaceCuisines(place).includes(selectedCuisine)
-      );
+    if (selectedTagSlugs.size > 0) {
+      list = list.filter((place) => {
+        const placeTags = getPlaceTagsByCategory(place);
+        // AND across categories, OR within category.
+        for (const [category, wantedSlugs] of Object.entries(selectedByCategory)) {
+          const placeSlugs = placeTags[category];
+          if (!placeSlugs || placeSlugs.size === 0) return false;
+          let hit = false;
+          for (const slug of wantedSlugs) {
+            if (placeSlugs.has(slug)) {
+              hit = true;
+              break;
+            }
+          }
+          if (!hit) return false;
+        }
+        return true;
+      });
     }
 
     if (selectedPrice !== "all") {
@@ -280,7 +311,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
     }
 
     return list;
-  }, [withDistance, query, selectedCuisine, selectedPrice]);
+  }, [withDistance, query, selectedTagSlugs, selectedByCategory, selectedPrice]);
 
   const filteredVenueIds = useMemo(
     () => filtered.map(getVenueId).filter((id): id is string => !!id),
@@ -445,16 +476,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <IconSymbol name="chevron.down" size={18} color={colors.primary} />
             </Pressable>
             <SearchableOptionSheet
-              label="Cuisine"
-              value={selectedCuisine}
-              options={cuisineMeta.options}
-              onChange={setSelectedCuisine}
-              formatOptionLabel={(option) => formatCuisineLabel(option, cuisineMeta.mode)}
-              searchPlaceholder="Search cuisines"
-              style={styles.filterRailControl}
-              onOpenChange={setFilterDropdownOpen}
-            />
-            <SearchableOptionSheet
               label="Price"
               value={String(selectedPrice)}
               options={priceFilterOptions}
@@ -469,6 +490,31 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
               onOpenChange={setFilterDropdownOpen}
             />
           </View>
+
+          {(tagsByCategory.cuisine?.length ?? 0) > 0 && (
+            <TagFilterChips
+              tags={tagsByCategory.cuisine ?? []}
+              selectedSlugs={selectedTagSlugs}
+              onToggle={toggleTagSlug}
+              categoryLabel="Cuisine"
+            />
+          )}
+          {(tagsByCategory.vibe?.length ?? 0) > 0 && (
+            <TagFilterChips
+              tags={tagsByCategory.vibe ?? []}
+              selectedSlugs={selectedTagSlugs}
+              onToggle={toggleTagSlug}
+              categoryLabel="Vibe"
+            />
+          )}
+          {((tagsByCategory.feature?.length ?? 0) + (tagsByCategory.drink_type?.length ?? 0)) > 0 && (
+            <TagFilterChips
+              tags={[...(tagsByCategory.feature ?? []), ...(tagsByCategory.drink_type ?? [])]}
+              selectedSlugs={selectedTagSlugs}
+              onToggle={toggleTagSlug}
+              categoryLabel="Feature"
+            />
+          )}
 
           {locationError && (
             <Text style={styles.locationHint}>

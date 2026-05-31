@@ -9,6 +9,25 @@ import { getHappyHourDisplayNames } from "../utils/happyHourDisplay";
 import { formatDays, formatTimeRange } from "../utils/formatters";
 import { timeAgo } from "../utils/time";
 
+type CardTag = { slug: string; label: string };
+
+const MAX_CARD_TAGS = 3;
+
+/** Pull joined approved_tags off venue.venue_tags; ignore legacy text[]. */
+const getCardTags = (venue: unknown): CardTag[] => {
+  const joined = (venue as { venue_tags?: unknown })?.venue_tags;
+  if (!Array.isArray(joined)) return [];
+  const out: CardTag[] = [];
+  const seen = new Set<string>();
+  for (const row of joined) {
+    const tag = (row as { approved_tags?: { slug?: string; label?: string } } | null)?.approved_tags;
+    if (!tag?.slug || !tag?.label || seen.has(tag.slug)) continue;
+    seen.add(tag.slug);
+    out.push({ slug: tag.slug, label: tag.label });
+  }
+  return out;
+};
+
 type HappyHourCardProps = {
   window: any;
   coverUrl?: string | null;
@@ -200,6 +219,29 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
             )}
           </View>
         )}
+
+        {(() => {
+          const cardTags = getCardTags(venue);
+          if (cardTags.length === 0) return null;
+          const visible = cardTags.slice(0, MAX_CARD_TAGS);
+          const overflow = cardTags.length - visible.length;
+          return (
+            <View style={styles.tagRow}>
+              {visible.map((tag) => (
+                <View key={tag.slug} style={styles.tagChip}>
+                  <Text style={styles.tagChipText} numberOfLines={1}>
+                    {tag.label}
+                  </Text>
+                </View>
+              ))}
+              {overflow > 0 ? (
+                <View style={styles.tagChipMore}>
+                  <Text style={styles.tagChipMoreText}>+{overflow} more</Text>
+                </View>
+              ) : null}
+            </View>
+          );
+        })()}
 
         <View style={styles.divider} />
 
@@ -478,5 +520,36 @@ const styles = StyleSheet.create({
   },
   socialButtonPressed: {
     opacity: 0.6,
+  },
+  tagRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  tagChip: {
+    backgroundColor: colors.brandSubtle,
+    borderRadius: 999,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+  },
+  tagChipText: {
+    color: colors.brandDark,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  tagChipMore: {
+    backgroundColor: colors.surface,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+  },
+  tagChipMoreText: {
+    color: colors.textMuted,
+    fontSize: 11,
+    fontWeight: "600",
   },
 });
