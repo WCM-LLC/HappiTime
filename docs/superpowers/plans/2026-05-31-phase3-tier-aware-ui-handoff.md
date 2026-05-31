@@ -1,6 +1,7 @@
 # Phase 3 — Tier-Aware Consumer UI — Handoff
 
-**Status:** ✅ COMPLETE — directory + mobile both DONE, verified, committed, pushed.
+**Status:** ✅ COMPLETE — directory + mobile both DONE, verified, and **merged to `master`
+(`46a0ddb`, fast-forward).** Branch `feature/phase3-tier-aware-ui` deleted post-merge.
 **Branch HEAD = `eca1c44`** (origin/WCM-LLC). The HomeScreen tier-helper edit
 silently failed to apply several times under a degraded output channel and was
 wrongly reported fixed in intermediate commits (`9ceea4c`, `4cf9e89`); it was
@@ -55,27 +56,25 @@ no `'premium'`/`'basic'` literals remain in either card.
 
 ---
 
-## TODO — Mobile half (NOT started)
+## DONE — Mobile half (committed in `46a0ddb`)
 
-Mobile is a **separate workspace** — it CANNOT import `@/lib/venueTier` from the directory app.
-Create a mobile equivalent and wire these sites:
+Mobile is a **separate workspace** — it CANNOT import `@/lib/venueTier` from the directory app,
+so it got its own copy (kept in sync by the drift guards in `test/venue-tier.test.mjs`).
 
-1. **Create `apps/mobile/src/lib/venueTier.ts`** — port `tierVariant` + the sort/cap helpers
-   (RN has no Tailwind classes; return variant + label, let the screen map to `StyleSheet`).
-2. **`apps/mobile/src/screens/HomeScreen.tsx`** (~1360 lines) — replace:
-   - `type PromoTier = "featured" | "premium" | "basic" | null;` (~L106)
-   - `getPromoTier()` (~L108) — currently accepts `featured|premium|basic`
-   - `promoLabel` map (~L118)
-   - card style branches (~L744 `cardPromoFeatured/Premium/Basic`, ~L791 badge styles)
-   Map to: featured (incl. founding_pilot/bundles), verified, listed. Drop premium/basic.
-3. **`apps/mobile/App.tsx`** (~L55) — `promotion_tier === "premium" || === "featured"` →
-   use the new featured-level check.
-4. **`apps/mobile/src/screens/EventCalendarScreen.tsx`** (~L171-172) —
-   `promotion_tier === "featured" || === "premium"` → featured-level check.
+1. **`apps/mobile/src/lib/venueTier.ts`** (NEW) — `tierVariant` / `tierLabel` / `isPromotedTier` /
+   `tierRank` (featured incl. founding_pilot/bundles > verified > listed). Screen maps to `StyleSheet`.
+2. **`apps/mobile/src/screens/HomeScreen.tsx`** — `PromoVariant` + `getPromoVariant` +
+   featured/verified `promoLabel`; card + badge style branches collapsed to featured / verified
+   (`cardPromoVerified` reuses the blue secondary palette). Dropped premium/basic.
+3. **`apps/mobile/App.tsx`** — `isPremium = isPromotedTier(promotion_tier)`.
+4. **`apps/mobile/src/screens/EventCalendarScreen.tsx`** — "featured" event filter uses
+   `tierVariant === "featured"`.
 
-**Verify mobile with:** `npm run typecheck --workspace mobile`
-(NOT in-dir `npx tsc` — react is hoisted to the ROOT `node_modules`, so in-dir tsc falsely
-reports ~345 "cannot find module 'react'" across untouched files).
+**Verified:** `npm run typecheck --workspace mobile` 0 errors; `npm test` 82 pass / 0 fail;
+no `'premium'`/`'basic'` literals remain in the mobile files.
+(Verify mobile with `npm run typecheck --workspace mobile`, NOT in-dir `npx tsc` — react is
+hoisted to the ROOT `node_modules`, so in-dir tsc falsely reports ~345 "cannot find module
+'react'" across untouched files.)
 
 Other tier readers that are pure pass-throughs (no variant logic, leave alone unless typing
 forces a change): `apps/mobile/src/hooks/{useHappyHours,useUserLists,useUpcomingEvents,useFriendActivity}.ts`,

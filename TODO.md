@@ -14,14 +14,13 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
 
 ## Pricing-tier + attribution remodel follow-ups (filed 2026-05-30)
 
-- [ ] **Phase 3 — consumer apps still read OLD tier vocabulary.** The pricing
-  remodel (basic→verified, premium retired) landed in the DB + web console,
-  but these still gate/style on `'premium'`/`'basic'` (no longer valid tiers):
-  `apps/directory/src/components/VenueCard.tsx`, `VenueCardClient.tsx`;
-  `apps/mobile/App.tsx`, `apps/mobile/src/screens/HomeScreen.tsx`
-  (incl. `PromoTier` type), `EventCalendarScreen.tsx`. No live impact yet (all
-  venues `promotion_tier = NULL`); `'featured'` still matches so nothing
-  crashes. Update with Phase 3 tier-aware consumer UI.
+- [x] **Phase 3 — tier-aware consumer UI.** DONE + merged to `master` (`46a0ddb`).
+  Directory (`venueTier.ts`, `VenueCard`/`VenueCardClient`, `NeighborhoodVenues`,
+  `FilterableVenueGrid`) and mobile (its own `venueTier.ts`, `HomeScreen`,
+  `App.tsx`, `EventCalendarScreen`) now read `featured`/`verified`/`listed` —
+  the retired `'premium'`/`'basic'` vocabulary is gone. Verified: mobile
+  typecheck 0 errors; `npm test` 82 pass / 0 fail. Split-out (NOT Phase 3):
+  guide-eligibility gating, per-tier photo-size redesign.
 - [ ] **`v_venue_active_tier` bundle override deferred to Phase 4.** Ships as a
   simple `COALESCE(promotion_tier,'listed')` projection; the approved design's
   `org_subscriptions` bundle override (active bundle → featured-level) is
