@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { VenueWithWindows } from "@/lib/queries";
+import { orderVenuesForDisplay } from "@/lib/venueTier";
 import { VenueCardClient } from "./VenueCardClient";
 
 const DOW_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -31,13 +32,10 @@ export function NeighborhoodVenues({
         )
       : venues;
 
-  // Sort promoted venues to the top, then by name
-  const filteredVenues = [...dayFiltered].sort((a, b) => {
-    const aPrio = a.promotion_priority ?? 0;
-    const bPrio = b.promotion_priority ?? 0;
-    if (aPrio !== bPrio) return bPrio - aPrio;
-    return a.name.localeCompare(b.name);
-  });
+  // Tier-aware ordering (Phase 3): featured → verified → listed, then
+  // promotion_priority, then rating; featured runs capped at 3 to avoid a
+  // wall-of-featured. See @/lib/venueTier.
+  const filteredVenues = orderVenuesForDisplay(dayFiltered);
 
   // The active day for highlighting — selected day, or today if nothing selected
   const activeDay = selectedDay ?? todayIndex;

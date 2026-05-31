@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import type { VenueWithWindows } from "@/lib/queries";
 import type { Neighborhood } from "@/lib/neighborhoods";
+import { orderVenuesForDisplay } from "@/lib/venueTier";
 import { VenueCardClient } from "./VenueCardClient";
 
 type Props = {
@@ -58,7 +59,7 @@ export function FilterableVenueGrid({
 
   // Apply filters
   const filtered = useMemo(() => {
-    return venues.filter((v) => {
+    const matched = venues.filter((v) => {
       // Search
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
@@ -96,6 +97,9 @@ export function FilterableVenueGrid({
 
       return true;
     });
+    // Tier-aware ordering (Phase 3): featured → verified → listed, priority,
+    // rating; featured runs capped at 3. See @/lib/venueTier.
+    return orderVenuesForDisplay(matched);
   }, [
     venues,
     searchQuery,

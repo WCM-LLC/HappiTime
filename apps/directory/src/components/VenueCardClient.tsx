@@ -1,6 +1,7 @@
 "use client";
 
 import type { VenueWithWindows } from "@/lib/queries";
+import { tierPresentation } from "@/lib/venueTier";
 import { ItineraryButton } from "./ItineraryButton";
 
 const DOW_SHORT = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -30,33 +31,20 @@ export function VenueCardClient({ venue, neighborhoodSlug, todayIndex }: Props) 
     w.dow.map(Number).includes(todayIndex)
   );
   const hasHappyHourToday = todayWindows.length > 0;
-  const promoTier = venue.promotion_tier;
-  const isPromoted = promoTier != null;
+  // Tier-aware presentation (Phase 3): featured (incl. founding_pilot/bundles) >
+  // verified > listed. Variant rules live in @/lib/venueTier.
+  const { variant, label: promoLabel, showMenuPreview } = tierPresentation(venue.promotion_tier);
+  const isPromoted = variant !== "listed";
 
   const promoBorderClass =
-    promoTier === "featured"
+    variant === "featured"
       ? "border-brand bg-[#FFF8F0]"
-      : promoTier === "premium"
-        ? "border-[#8B5CF6] bg-[#F5F3FF]"
-        : promoTier === "basic"
-          ? "border-[#60A5FA] bg-[#EFF6FF]"
-          : "border-border bg-surface";
+      : variant === "verified"
+        ? "border-[#60A5FA] bg-[#EFF6FF]"
+        : "border-border bg-surface";
 
   const promoBadgeClass =
-    promoTier === "featured"
-      ? "bg-brand text-white"
-      : promoTier === "premium"
-        ? "bg-[#7C3AED] text-white"
-        : "bg-[#2563EB] text-white";
-
-  const promoLabel =
-    promoTier === "featured"
-      ? "★ Featured"
-      : promoTier === "premium"
-        ? "Premium"
-        : promoTier === "basic"
-          ? "Promoted"
-          : null;
+    variant === "featured" ? "bg-brand text-white" : "bg-[#2563EB] text-white";
 
   const hasSocial = venue.facebook_url || venue.instagram_url || venue.tiktok_url;
 
@@ -182,13 +170,13 @@ export function VenueCardClient({ venue, neighborhoodSlug, todayIndex }: Props) 
         ))}
       </div>
 
-      {todayWindows.length > 0 && todayWindows[0].menu_items.length > 0 && (
+      {showMenuPreview && todayWindows.length > 0 && todayWindows[0].menu_items.length > 0 && (
         <div className="mt-3 pt-3 border-t border-border">
           <p className="text-[10px] uppercase tracking-wider text-muted-light font-semibold mb-1.5">
             Featured deals
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {todayWindows[0].menu_items.slice(0, 4).map((item) => (
+            {todayWindows[0].menu_items.slice(0, 3).map((item) => (
               <span
                 key={item.id}
                 className="text-xs bg-brand-subtle text-brand-text rounded-full px-2 py-0.5 font-medium"
