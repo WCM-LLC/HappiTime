@@ -171,6 +171,46 @@ function shapeVenue(raw: any): VenueWithWindows {
 }
 
 /**
+ * Override each venue's promotion_tier with the effective tier from
+ * v_venue_active_tier (which folds in the active org-bundle override). A present
+ * view row wins; a missing row leaves the venue untouched, so a failed/empty view
+ * fetch degrades to the raw promotion_tier (fail-open). Pure + unit-tested in
+ * test/venue-active-tier.test.mjs.
+ */
+export function mergeEffectiveTiers<T extends { id: string; promotion_tier: string | null }>(
+  venues: T[],
+  tierRows: { venue_id: string; tier: string | null }[]
+): T[] {
+  const byId = new Map(tierRows.map((r) => [r.venue_id, r.tier]));
+  return venues.map((v) =>
+    byId.has(v.id) ? { ...v, promotion_tier: byId.get(v.id) ?? v.promotion_tier } : v
+  );
+}
+
+/**
+ * Fetch effective tiers from v_venue_active_tier for the given venues and merge
+ * them in. One extra batched query per listing; on error the venues pass through
+ * unchanged (fail-open).
+ */
+async function withEffectiveTiers(
+  venues: VenueWithWindows[]
+): Promise<VenueWithWindows[]> {
+  if (venues.length === 0) return venues;
+
+  const { data, error } = await supabase
+    .from("v_venue_active_tier")
+    .select("venue_id, tier")
+    .in("venue_id", venues.map((v) => v.id));
+
+  if (error) {
+    console.error("[directory] active-tier query failed:", error.message);
+    return venues;
+  }
+
+  return mergeEffectiveTiers(venues, (data ?? []) as { venue_id: string; tier: string | null }[]);
+}
+
+/**
  * Fetch menu items for a set of happy hour window IDs.
  * Uses the join table chain: happy_hour_window_menus → menus → menu_sections → menu_items.
  * Returns a map of windowId → MenuItem[].
@@ -244,7 +284,7 @@ export async function getVenuesByNeighborhood(
     return [];
   }
 
-  return (data ?? []).map(shapeVenue);
+  return withEffectiveTiers((data ?? []).map(shapeVenue));
 }
 
 /**
@@ -285,7 +325,10 @@ export async function getVenueBySlug(
     w.menu_items = menuMap[w.id] ?? [];
   }
 
-  return venue;
+  // Override promotion_tier with the effective tier (shares the windows array,
+  // so the menu items attached above are preserved on the returned object).
+  const [venueWithTier] = await withEffectiveTiers([venue]);
+  return venueWithTier;
 }
 
 /**
@@ -306,5 +349,5 @@ export async function getAllKCVenues(): Promise<VenueWithWindows[]> {
     return [];
   }
 
-  return (data ?? []).map(shapeVenue);
+  return withEffectiveTiers((data ?? []).map(shapeVenue));
 }
