@@ -24,6 +24,7 @@ import {
 } from '../../../actions/organization-actions';
 import { fetchVenuesByOrg, type VenueSummary as VenueRow } from '@happitime/shared-api';
 import { loginPathFor } from '@/utils/auth-paths';
+import { OrgBundlePanel } from '@/components/OrgBundlePanel';
 
 const HH_STATUS_PUBLISHED = 'published';
 
@@ -93,6 +94,27 @@ export default async function OrgPage({
     .single();
 
   const { data: venues, error: venuesErr } = await fetchVenuesByOrg(supabase as any, orgId);
+
+  const venueCount = (venues ?? []).length;
+  const canManageBilling = isOwner || role === 'manager' || userIsAdmin;
+  const { data: orgBundleRow } = canManageBilling
+    ? await (supabase as any)
+        .from('org_subscriptions')
+        .select('bundle_tier, status, venue_count, monthly_rate_per_venue_cents, current_period_end')
+        .eq('org_id', orgId)
+        .maybeSingle()
+    : { data: null };
+
+  const orgBundle = orgBundleRow
+    ? {
+        tier: orgBundleRow.bundle_tier as 'bundle_2_4' | 'bundle_5_plus',
+        status: orgBundleRow.status as string,
+        venueCount: orgBundleRow.venue_count as number,
+        monthlyRatePerVenueCents: orgBundleRow.monthly_rate_per_venue_cents as number,
+        currentPeriodEnd: (orgBundleRow.current_period_end as string | null) ?? null,
+      }
+    : null;
+
   const { data: organizationMenus, error: organizationMenusErr } = await supabase
     .from('menus')
     .select(
@@ -158,6 +180,10 @@ export default async function OrgPage({
         <Suspense>
           <FlashMessage />
         </Suspense>
+
+        {canManageBilling && (
+          <OrgBundlePanel orgId={orgId} venueCount={venueCount} bundle={orgBundle} />
+        )}
 
         {/* Add Venue Form */}
         {isOwner ? (
