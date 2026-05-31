@@ -7,12 +7,12 @@
 //
 // Output: outputs/qr/{slug}-1200.png and outputs/qr/{slug}-300.png
 //   - error-correction level H (~30%) so the centered brand mark never breaks
-//     scannability
-//   - a brand-colored center badge with a white "H" drawn programmatically
-//     (no logo asset / no image library needed)
+//     scannability (guarded by a jsQR decode test at the smallest preset)
+//   - the HappiTime "iTi" brand mark on a brand-colored disc (from
+//     @happitime/venue-qr; glyph art base64-inlined, composited via pngjs)
 //
-// Dependencies: `qrcode` (PNG render) + its bundled `pngjs` (compositing). No
-// puppeteer, no sharp, no new heavy deps — per the project constraints.
+// Dependencies: rendering lives in `@happitime/venue-qr` (`qrcode` + `pngjs`).
+// No puppeteer, no runtime sharp — per the project constraints.
 //
 // Usage:
 //   node scripts/generate-venue-qrs.mjs --slugs sea-capitan,other-venue
