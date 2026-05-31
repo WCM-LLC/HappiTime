@@ -258,9 +258,11 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
       {showScanBanner ? (
         <Animated.View
           pointerEvents="none"
-          style={[styles.scanBanner, { opacity: bannerOpacity, top: insets.top + spacing.sm }]}
+          style={[styles.scanBannerWrap, { opacity: bannerOpacity, top: insets.top + spacing.sm }]}
         >
-          <Text style={styles.scanBannerText}>✓ Checked in!</Text>
+          <View style={styles.scanBanner}>
+            <Text style={styles.scanBannerText}>✓ Checked in!</Text>
+          </View>
         </Animated.View>
       ) : null}
       {windowsForVenue.length === 0 && events.length === 0 ? (
@@ -455,14 +457,23 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700"
   },
-  scanBanner: {
+  scanBannerWrap: {
     position: "absolute",
-    alignSelf: "center",
+    left: 0,
+    right: 0,
+    alignItems: "center",
     zIndex: 10,
+  },
+  scanBanner: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: 999,
     backgroundColor: "#EAF6EC",
+    shadowColor: "#000",
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   scanBannerText: {
     color: "#1B7A34",
