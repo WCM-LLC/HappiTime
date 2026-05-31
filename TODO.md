@@ -31,10 +31,15 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
   effective tier (`mergeEffectiveTiers`/`withEffectiveTiers`); cards unchanged.
   Verified no-op today (0 bundles) + live anon override (7/7 venues) on remote.
   Remaining Phase 4 sub-projects (own specs):
-  - [ ] **4-1b — mobile feed-query migration.** Apply the effective tier to mobile's
-    ~6 `promotion_tier` readers (`useHappyHours`, `useUpcomingEvents`, `useUserLists`,
-    `MapScreen`, `useFriendActivity`, `App.tsx`, `EventCalendarScreen`). Mobile won't
-    reflect bundles until this lands (fine — none sold yet).
+  - [x] **4-1b — mobile feed-query migration.** DONE (branch
+    `feature/phase4-1b-mobile-tier-read`). Mobile reads the effective tier via its own
+    `apps/mobile/src/lib/effectiveTier.ts` (mirrors web, drift-guarded). Wired:
+    `useHappyHours`, `useUpcomingEvents`, `useUserLists`, `MapScreen` (both queries),
+    `useFriendActivity` (partner set now from the view); `App.tsx` + `HomeScreen` inherit
+    via `useHappyHours`, `EventCalendarScreen` via `useUpcomingEvents`. Verified: mobile
+    typecheck 0 errors; `npm test` 93 pass. No DB change (same view/grants as 4.1).
+    Caveat: `fetchPromotedVenueIds` returns all promoted venues globally — fine at today's
+    scale (0), revisit the `.in()` filter if that set grows large.
   - [ ] **4-2 — org bundle billing.** Stripe org-level checkout route + webhook handler
     populating `org_subscriptions` (mirror the per-venue flow in
     `app/api/stripe/{checkout,webhook}`). Revisit whether the push edge functions honor
