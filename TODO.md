@@ -93,9 +93,14 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
     admin Org Bundles table. Built subagent-driven (TDD guard tests) with a full code review that
     caught + fixed two real UI bugs (status-aware panel: canceled rows re-offer Start; pilot comps
     have no portal so "Manage billing" is hidden). Verified: `npm test` 106 pass; web tsc 0 errors.
-    Remaining for 4-3:
-    - [ ] **Manual UI click-through (test mode)** — render the owner panel, start→checkout, manage→portal,
-      and the admin table comp/cancel. Code-level verified only (tsc + guards), not yet clicked.
+    - [x] **Manual UI click-through (test mode, 2026-05-31)** — DONE, throwaway org, fully torn down. Owner
+      panel: start → Stripe Checkout (4242) → active card → "Manage billing" opens the portal. Admin table:
+      lists the bundle → Cancel → `customer.subscription.deleted` → `status=canceled`, venues back to
+      `listed`, and the panel re-offers "Start" (confirmed the review-fixed status-aware behavior live).
+    Remaining for 4-3 (minor, non-blocking):
+    - [ ] **`?bundle=success` finalize state** — after Checkout, Stripe redirects back ~1s before the webhook
+      writes `org_subscriptions`, so the panel briefly shows "Start" until a refresh. Add an optimistic
+      "finalizing…" state or a short poll on the `bundle=success` param. (Inherent Stripe async-webhook timing.)
     - [ ] **Admin "generate checkout link" display button** — the `adminCreateBundleCheckoutLink` action
       exists + is guard-tested, but no client button surfaces the returned URL yet (deferred in the plan).
   - [ ] **Remote migration-history note:** `20260531000000` was applied via MCP then the
