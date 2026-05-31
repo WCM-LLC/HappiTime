@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { supabase } from "@/lib/supabase";
 
 /**
  * Client half of the QR/deep-link landing. On mount it:
@@ -10,7 +11,10 @@ import { useEffect, useRef, useState } from "react";
  * Store buttons + "Continue in browser" are always rendered as the fallback.
  *
  * Attribution fires regardless of whether the app opens — the whole point is to
- * count the scan. The edge function is public (no auth), so this is a plain fetch.
+ * count the scan. It goes through the app's shared Supabase client (the same one
+ * tracking.ts/PageTracker use sitewide), so it inherits the configured project
+ * URL + anon key and never depends on env vars being inlined into this
+ * component's own bundle. track-visit is a public (verify_jwt=false) function.
  */
 
 const VALID_SOURCES = new Set(["qr", "app_checkin", "push_click", "organic"]);
@@ -59,28 +63,21 @@ export function VenueLandingClient({
     fired.current = true;
 
     const cleanSource = VALID_SOURCES.has(source) ? source : "qr";
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (supabaseUrl) {
-      // Fire-and-forget: the visit must be counted even if the app opens next.
-      fetch(`${supabaseUrl}/functions/v1/track-visit`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(anonKey ? { apikey: anonKey } : {}),
-        },
-        body: JSON.stringify({
+    // Fire-and-forget: the visit must be counted even if the app opens next.
+    // Using the shared client (not a hand-rolled fetch on process.env) guarantees
+    // the request is configured exactly like every other Supabase call in the app.
+    void supabase.functions
+      .invoke("track-visit", {
+        body: {
           venue_id: venueId,
           venue_slug: slug,
           source: cleanSource,
           session_id: getSessionId(),
-        }),
-        keepalive: true,
+        },
       })
-        .then(() => setTracked(true))
-        .catch(() => setTracked(true)); // never block the UI on attribution
-    }
+      .then(() => setTracked(true))
+      .catch(() => setTracked(true)); // never block the UI on attribution
 
     // Attempt to open the native app. If it isn't installed nothing happens and
     // the store/browser fallback below stays on screen.
