@@ -6,9 +6,9 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
 
 ## Immediate
 
-- [ ] **`HappyHourDetailScreen.tsx`** — Fix `colors.textTertiary` (TS2339). Replace with `colors.inputPlaceholder` or add `textTertiary` to the color palette. Two occurrences at lines 508 and 516.
+- [x] **`HappyHourDetailScreen.tsx`** — `colors.textTertiary` (TS2339): resolved. No `textTertiary` reference remains in `apps/mobile/src`; mobile `tsc` is 0 errors (verified 2026-05-31).
 
-- [ ] **`venue_subscriptions` / `user_plans` types** — Run `npm run supabase:gen-types` after confirming these tables exist in Supabase. Removes the `as any` casts in `shared-api/plans.ts` and `admin-plans-actions.ts`.
+- [ ] **`venue_subscriptions` / `user_plans` types** — Run `npm run supabase:gen-types` to drop the 3 `as any` casts in `apps/web/src/actions/admin-plans-actions.ts` (lines 46/62/96). `shared-api/plans.ts` no longer has casts (stale). NOTE: `gen-types` uses `--local`, so it needs `supabase start` + a clean migration apply; do it deliberately and inspect the 76KB `generated.ts` diff given the open "Remote migration-history drift" item — not a blind run. Non-blocking (0 type errors today).
 
 ---
 
@@ -151,6 +151,6 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
 
 - [ ] **`ConfirmDeleteForm.tsx`** — Replace `window.confirm()` with shadcn `<Dialog>` for accessibility. See BACKLOG.md.
 
-- [ ] **`access-actions.ts`** — Import `toStr` from `@/utils/form` to eliminate the local copy. Low risk, file-local change.
+- [x] **`access-actions.ts`** — Now imports `toStr` from `@/utils/form`; local copy removed (2026-05-31).
 
-- [ ] **`apps/mobile/src/screens/HappyHourDetailScreen.tsx`** — VenuePreviewScreen no longer uses `getMediaPublicUrl` (it was removed from `useVenueMedia`). Confirm no other screens import the function; clean up any lingering import attempts.
+- [x] **`apps/mobile/src/screens/HappyHourDetailScreen.tsx`** — `getMediaPublicUrl` cleanup: resolved. No `getMediaPublicUrl` references remain in `apps/mobile/src` (verified 2026-05-31).

@@ -5,13 +5,10 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { randomUUID } from 'crypto';
 import { createClient, createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
+import { toStr } from '@/utils/form';
 
 const INVITE_ROLE_VALUES = new Set(['owner', 'manager', 'host']);
 const INVITE_PASSWORD_MIN_LENGTH = 8;
-
-function toStr(value: FormDataEntryValue | null | undefined) {
-  return String(value ?? '').trim();
-}
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
