@@ -40,10 +40,25 @@ Immediate and near-term action items. For deferred or larger items see BACKLOG.m
     typecheck 0 errors; `npm test` 93 pass. No DB change (same view/grants as 4.1).
     Caveat: `fetchPromotedVenueIds` returns all promoted venues globally — fine at today's
     scale (0), revisit the `.in()` filter if that set grows large.
-  - [ ] **4-2 — org bundle billing.** Stripe org-level checkout route + webhook handler
-    populating `org_subscriptions` (mirror the per-venue flow in
-    `app/api/stripe/{checkout,webhook}`). Revisit whether the push edge functions honor
-    bundles (deferred from 4.1).
+  - [~] **4-2 — org bundle billing. BUILT + TYPE-CHECKED, MERGED-BUT-DORMANT — behavior
+    UNVERIFIED.** Spec `docs/superpowers/specs/2026-05-31-phase4-2-org-bundle-billing-design.md`,
+    plan `docs/superpowers/plans/2026-05-31-phase4-2-org-bundle-billing.md`. Shipped:
+    `utils/bundle.ts` (pure, unit-tested), `getPriceIdForBundle`, `checkOrgBillingAccess`,
+    `api/stripe/org-checkout`, webhook org-bundle branch (`org_subscriptions` upsert + cancels
+    per-venue subs), `utils/bundle-sync.ts`, sync wired into venue create/delete. All new tests
+    are source/`grep` drift guards + `bundle.ts` math — **no checkout/webhook/sync logic has
+    executed.** To ACTIVATE + verify (none done yet):
+    - [ ] Create the two Stripe products + set `STRIPE_PRODUCT_BUNDLE_2_4` / `STRIPE_PRODUCT_BUNDLE_5_PLUS`
+      (until then checkout returns the clean config error; nothing activates).
+    - [ ] Stripe **test-mode** checklist (in the plan). **Verify FIRST:** bundle activation actually
+      cancels the org's per-venue subs (the two-step cancel query in `handleOrgBundleUpsert`) —
+      a miss = silent double-billing.
+    - [ ] Then: org venues read featured-level; add venue → quantity bump; cross 4→5 → price swap
+      to `bundle_5_plus`; cancel bundle → reverts.
+    - [ ] Revisit whether push edge functions honor bundles (deferred from 4.1).
+    - Behavior note for 4-3: because activation cancels per-venue subs and nothing restores them,
+      an org that later cancels its bundle drops to all-`listed` (loses its old per-venue tiers).
+      Inherent in the "bundle cancels per-venue" decision — surface it deliberately in the UI.
   - [ ] **4-3 — org bundle management UI** (admin + org-owner view/manage a bundle).
   - [ ] **Remote migration-history note:** `20260531000000` was applied via MCP then the
     view/fn were corrected in-session via `execute_sql` (the anon fix), so the remote
