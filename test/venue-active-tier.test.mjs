@@ -86,16 +86,28 @@ function readBundleOverrideMigration() {
   return readFileSync(resolve(dir, file), "utf8");
 }
 
-test("the view recreation folds in the active org-bundle override", () => {
+test("the bundle lookup is a SECURITY DEFINER function anon may execute", () => {
+  const sql = readBundleOverrideMigration();
+
+  // anon cannot read org_subscriptions (authenticated-only + org-member RLS), so the
+  // bundle check goes through a definer function that returns ONLY the bundle_tier —
+  // no rates/Stripe ids leak, and the view stays security_invoker for venues RLS.
+  assert.match(sql, /create or replace function public\.org_active_bundle_tier/i);
+  assert.match(sql, /security definer/i);
+  assert.match(sql, /set search_path/i);
+  // the function (not the view) holds the org_subscriptions read + active-status gate
+  assert.match(sql, /from public\.org_subscriptions/i);
+  assert.match(sql, /status in \('active',\s*'trialing',\s*'pilot'\)/i);
+  assert.match(sql, /grant execute on function public\.org_active_bundle_tier\(uuid\) to anon, authenticated/i);
+});
+
+test("the view recreation folds in the active org-bundle override via the function", () => {
   const sql = readBundleOverrideMigration();
 
   assert.match(sql, /create view public\.v_venue_active_tier/i);
   assert.match(sql, /security_invoker\s*=\s*true/i);
-  assert.match(sql, /left join public\.org_subscriptions/i);
-  // active bundle = status only (active / trialing / pilot)
-  assert.match(sql, /status in \('active',\s*'trialing',\s*'pilot'\)/i);
-  // self-paid featured-level wins; bundle yields its bundle_tier
+  // self-paid featured-level wins; otherwise the function supplies the bundle tier
   assert.match(sql, /'featured',\s*'bundle_2_4',\s*'bundle_5_plus'/i);
-  assert.match(sql, /os\.bundle_tier/i);
+  assert.match(sql, /public\.org_active_bundle_tier\(v\.org_id\)/i);
   assert.match(sql, /grant select on public\.v_venue_active_tier to anon, authenticated/i);
 });
