@@ -35,6 +35,18 @@ test("rendered QR still decodes to the landing URL with the iTi mark (300px wors
   assert.equal(result.data, venueQrUrl(slug));
 });
 
+test("rendered QR decodes with a long slug (denser QR, same fixed center mark)", async () => {
+  // venues.slug is uncapped `text`; a long venue name slugifies to a long slug,
+  // producing a higher-version QR with smaller modules under the SAME 22% disc.
+  // This is the real worst case for occlusion, not the short demo slug above.
+  const slug = "the-original-pancake-house-north-oak-trafficway-kansas-city-mo";
+  const buf = await renderVenueQrPng(slug, { size: 300 });
+  const png = PNG.sync.read(buf);
+  const result = jsQR(Uint8ClampedArray.from(png.data), png.width, png.height);
+  assert.ok(result, `dense QR (${slug.length}-char slug) failed to decode — mark too big for high-version QRs`);
+  assert.equal(result.data, venueQrUrl(slug));
+});
+
 test("rendered QR decodes at the largest (postcard 1200px) size too", async () => {
   const slug = "sea-capitan";
   const buf = await renderVenueQrPng(slug, { size: SIZE_PRESETS.postcard.px });
