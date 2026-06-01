@@ -36,8 +36,13 @@ jobs:
   # continue-on-error and mark this a required check). Needs a READ-ONLY prod
   # connection string in the SUPABASE_DB_URL_RO secret (see database-change-policy.md).
   schema-parity:
+    # Nightly + on-demand only — NOT on PRs. A PR that adds a new migration legitimately makes
+    # the replay differ from CURRENT prod (the migration deploys on merge), so PR-time parity
+    # is meaningless. The real drift gate is the nightly run against master (== prod after
+    # deploys): a failure means out-of-band prod DDL that must be back-filled. Reconciliation
+    # reached parity 2026-06-01, so this is now a hard failure (no continue-on-error).
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    continue-on-error: true   # TODO: remove after reconciliation Stage 10 reaches parity
     env:
       PROD_URL: ${{ secrets.SUPABASE_DB_URL_RO }}   # via env (never interpolate secrets into run:)
     steps:
