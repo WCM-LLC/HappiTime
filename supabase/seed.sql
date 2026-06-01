@@ -129,53 +129,8 @@ values (
 )
 on conflict (id) do nothing;
 
-insert into public.happy_hour_places (
-  id,
-  name,
-  status,
-  happy_days,
-  start_time,
-  end_time,
-  deal_description,
-  cuisine_type,
-  average_price,
-  distance_miles,
-  address,
-  neighborhood,
-  venue_name,
-  venue_city,
-  venue_state,
-  venue_zip,
-  org_name,
-  org_slug,
-  phone,
-  rating,
-  website_url,
-  business_url
-)
-values (
-  1,
-  'Demo Happy Hour Place',
-  'verified',
-  array['Mon','Tue','Wed','Thu','Fri']::text[],
-  '16:00',
-  '18:00',
-  'Half-price apps and drink specials.',
-  'American',
-  15,
-  1.2,
-  '123 Main St',
-  'Downtown',
-  'Demo Taproom',
-  'Chicago',
-  'IL',
-  '60601',
-  'HappiTime Demo',
-  'happitime-demo',
-  '555-555-5555',
-  4.6,
-  'https://example.com',
-  null
-)
-on conflict (id) do nothing;
+-- (removed) seed for public.happy_hour_places — that table was dropped in the BCNF
+-- reconciliation (20260601130000_reconcile_drop_dead_bcnf.sql) to match prod, which
+-- redesigned the happy-hour domain into happy_hour_windows / happy_hour_offers /
+-- happy_hour_window_menus.
 
