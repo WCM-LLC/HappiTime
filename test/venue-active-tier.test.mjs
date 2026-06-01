@@ -113,16 +113,24 @@ test("all six mobile tier-reading sites consume the effective tier", () => {
   }
 });
 
-// ── Migration guard: the view recreation folds in the org bundle override ──────
-function readBundleOverrideMigration() {
+// ── Migration guard: the live view recreation folds in the org bundle override ──
+// Migrations are append-only; the latest one that (re)creates v_venue_active_tier
+// defines the live view. Prod ran an earlier plain-join version (20260531041653) that
+// is buggy for anon; the forward definer migration (20260531235900) supersedes it. Read
+// the latest view-creating migration so this guard always tracks the current definition.
+function readActiveTierViewMigration() {
   const dir = resolve(ROOT, "supabase/migrations");
-  const file = readdirSync(dir).find((f) => f.includes("venue_active_tier_bundle_override"));
-  assert.ok(file, "missing venue_active_tier_bundle_override migration");
+  const file = readdirSync(dir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .reverse()
+    .find((f) => readFileSync(resolve(dir, f), "utf8").includes("create view public.v_venue_active_tier"));
+  assert.ok(file, "missing a migration that creates v_venue_active_tier");
   return readFileSync(resolve(dir, file), "utf8");
 }
 
 test("the bundle lookup is a SECURITY DEFINER function anon may execute", () => {
-  const sql = readBundleOverrideMigration();
+  const sql = readActiveTierViewMigration();
 
   // anon cannot read org_subscriptions (authenticated-only + org-member RLS), so the
   // bundle check goes through a definer function that returns ONLY the bundle_tier —
@@ -137,7 +145,7 @@ test("the bundle lookup is a SECURITY DEFINER function anon may execute", () => 
 });
 
 test("the view recreation folds in the active org-bundle override via the function", () => {
-  const sql = readBundleOverrideMigration();
+  const sql = readActiveTierViewMigration();
 
   assert.match(sql, /create view public\.v_venue_active_tier/i);
   assert.match(sql, /security_invoker\s*=\s*true/i);
