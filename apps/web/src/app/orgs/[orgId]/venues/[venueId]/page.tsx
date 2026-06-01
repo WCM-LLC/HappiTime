@@ -13,6 +13,8 @@ import { isAdminEmail } from '@/utils/admin-emails';
 import { loginPathFor } from '@/utils/auth-paths';
 import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
 import { SIZE_PRESETS } from '@happitime/venue-qr';
+import { VenueScanAnalytics } from '@/components/VenueScanAnalytics';
+import { summarizeScans, computeWindows, type ScanSummary, type ScanEvent } from '@/utils/scan-analytics';
 import {
   updateVenue,
   publishVenue,
@@ -288,6 +290,21 @@ export default async function VenuePage({
     .eq('id', venueId)
     .maybeSingle();
   const qrSlug = (qrVenue?.slug as string | null) ?? null;
+
+  // Scan activity for venue staff (owner/manager/admin/editor/host). venue_attribution_events
+  // is RLS-locked, so read with the service client — gated by the app-level canEditMenuItems
+  // check (the only authorization needed; we query just this one venue's events).
+  let scanSummary: ScanSummary | null = null;
+  if (canEditMenuItems && venue) {
+    const scanWindows = computeWindows(venue?.timezone ?? 'UTC', new Date());
+    const { data: scanEvents } = await createServiceClient()
+      .from('venue_attribution_events')
+      .select('source, created_at')
+      .eq('venue_id', venueId)
+      .gte('created_at', scanWindows.monthStart)
+      .order('created_at', { ascending: false });
+    scanSummary = summarizeScans((scanEvents ?? []) as ScanEvent[], scanWindows);
+  }
 
   const { data: happyHours, error: hhErr } = await supabase
     .from('happy_hour_windows')
@@ -1646,6 +1663,13 @@ export default async function VenuePage({
               </p>
             ) : null}
           </div>
+        ) : null}
+
+        {/* ══════════════════════════════════════════════
+            SECTION 4S — SCAN ACTIVITY
+        ══════════════════════════════════════════════ */}
+        {canEditMenuItems && scanSummary ? (
+          <VenueScanAnalytics summary={scanSummary} />
         ) : null}
 
         {/* ══════════════════════════════════════════════
