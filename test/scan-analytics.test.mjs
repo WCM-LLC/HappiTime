@@ -82,3 +82,12 @@ test("VenueScanAnalytics renders windows/sources/empty state and uses the util",
   assert.match(src, /last 30 days/);
   assert.match(src, /Check-in/);
 });
+
+test("venue page reads scan events (gated) and renders the analytics card", () => {
+  const src = read("apps/web/src/app/orgs/[orgId]/venues/[venueId]/page.tsx");
+  assert.match(src, /from ['"]@\/components\/VenueScanAnalytics['"]/);
+  assert.match(src, /venue_attribution_events/);
+  assert.match(src, /computeWindows\(/);
+  assert.match(src, /summarizeScans\(/);
+  assert.match(src, /canEditMenuItems && scanSummary/);
+});
