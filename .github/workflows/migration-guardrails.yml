@@ -1,0 +1,56 @@
+name: Migration Guardrails
+
+# Layer 2 (immutability) + Layer 3 (drift detection) from docs/database-change-policy.md.
+on:
+  pull_request:
+    paths: ['supabase/migrations/**', 'scripts/reconcile/**', '.github/workflows/migration-guardrails.yml']
+  schedule:
+    - cron: '17 7 * * *'   # nightly drift sweep (07:17 UTC)
+  workflow_dispatch:
+
+jobs:
+  # ── Layer 2: applied migrations are immutable; PRs may only ADD new files ──
+  migration-immutability:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      BASE_REF: ${{ github.base_ref }}   # via env (never interpolate refs into run:)
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Block edits/deletes/renames of existing migrations
+        run: |
+          set -euo pipefail
+          git fetch origin "$BASE_REF" --depth=1
+          # Any migration file Modified, Deleted, or Renamed relative to base is forbidden.
+          violations="$(git diff --diff-filter=MDR --name-status "origin/$BASE_REF"...HEAD -- supabase/migrations/ || true)"
+          if [ -n "$violations" ]; then
+            echo "::error::Migrations are append-only. Files already applied to prod must NOT be edited, deleted, or renamed — add a NEW forward migration instead:"
+            echo "$violations"
+            exit 1
+          fi
+          echo "OK — this PR only ADDS migration files."
+
+  # ── Layer 3: does a clean replay reproduce prod's schema? ──
+  # INFORMATIONAL until the schema-drift reconciliation completes (then drop
+  # continue-on-error and mark this a required check). Needs a READ-ONLY prod
+  # connection string in the SUPABASE_DB_URL_RO secret (see database-change-policy.md).
+  schema-parity:
+    runs-on: ubuntu-latest
+    continue-on-error: true   # TODO: remove after reconciliation Stage 10 reaches parity
+    env:
+      PROD_URL: ${{ secrets.SUPABASE_DB_URL_RO }}   # via env (never interpolate secrets into run:)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with: { version: 2.95.6 }
+      - name: Start Supabase (db only)
+        run: supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Verify migration replay == prod schema
+        run: |
+          set -euo pipefail
+          if [ -z "${PROD_URL:-}" ]; then
+            echo "SUPABASE_DB_URL_RO not set — skipping parity check (configure it to enable drift detection)."
+            exit 0
+          fi
+          bash scripts/reconcile/verify-parity.sh --db-url "$PROD_URL"
