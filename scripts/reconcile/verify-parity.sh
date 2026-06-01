@@ -24,12 +24,22 @@ echo "==> Building migration-replay shadow (supabase db reset)…"
 supabase db reset --local >/dev/null
 
 echo "==> Dumping shadow + prod schemas…"
-supabase db dump --local --schema "$SCHEMAS" -f "$TMP/shadow.sql" >/dev/null
 if [ "$MODE" = "--db-url" ]; then
   [ -n "$PROD_URL" ] || { echo "ERROR: --db-url requires a URL"; exit 2; }
-  supabase db dump --db-url "$PROD_URL" --schema "$SCHEMAS" -f "$TMP/prod.sql" >/dev/null
+  # Read-only / CI path: plain pg_dump issues no `SET ROLE postgres`, so it works with a
+  # least-privilege read-only role (pg_read_all_data) — `supabase db dump` does not. Use the
+  # SAME command + flags for BOTH sides so the output format is identical;
+  # --quote-all-identifiers matches the object extractors below. Needs pg_dump 17 on PATH.
+  command -v pg_dump >/dev/null || { echo "ERROR: pg_dump (postgresql-client-17) not found"; exit 2; }
+  shadow_url="$(supabase status -o env 2>/dev/null | sed -nE 's/^DB_URL=\"?([^\"]+)\"?$/\1/p')"
+  : "${shadow_url:=postgresql://postgres:postgres@127.0.0.1:54322/postgres}"
+  PGD="pg_dump --schema-only --no-owner --no-privileges --quote-all-identifiers -n public -n cron -n archive -n app_private -n private"
+  $PGD "$shadow_url" > "$TMP/shadow.sql"
+  $PGD "$PROD_URL"   > "$TMP/prod.sql"
 else
-  supabase db dump --linked --schema "$SCHEMAS" -f "$TMP/prod.sql" >/dev/null
+  # Local dev path: supabase db dump (postgres creds available via the linked project).
+  supabase db dump --local  --schema "$SCHEMAS" -f "$TMP/shadow.sql" >/dev/null
+  supabase db dump --linked --schema "$SCHEMAS" -f "$TMP/prod.sql"  >/dev/null
 fi
 
 # --- object-set extraction (matches the audit methodology) ---
