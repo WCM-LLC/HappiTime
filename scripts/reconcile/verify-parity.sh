@@ -39,8 +39,9 @@ ids() {
   grep -oE '^CREATE (OR REPLACE )?VIEW "[a-z_]+"\."[^"]+"'        "$1" 2>/dev/null | sed -E 's/^CREATE (OR REPLACE )?VIEW //; s/"//g'        | sed 's/^/view   /' || true
   grep -oE '^CREATE (OR REPLACE )?FUNCTION "[a-z_]+"\."[^"]+"\([^)]*\)' "$1" 2>/dev/null | sed -E 's/^CREATE (OR REPLACE )?FUNCTION //; s/"//g' | sed 's/^/func   /' || true
   grep -oE '^CREATE TYPE "[a-z_]+"\."[^"]+"'                      "$1" 2>/dev/null | sed -E 's/^CREATE TYPE //; s/"//g'                      | sed 's/^/type   /' || true
-  grep -oE '^CREATE( UNIQUE)? INDEX "[^"]+"'                      "$1" 2>/dev/null | sed -E 's/^CREATE( UNIQUE)? INDEX //; s/"//g'           | sed 's/^/index  /' || true
+  grep -oE '^CREATE( UNIQUE)? INDEX "[^"]+" ON "[a-z_]+"\."[^"]+"' "$1" 2>/dev/null | sed -E 's/^CREATE( UNIQUE)? INDEX //; s/ ON / on /; s/"//g'  | sed 's/^/index  /' || true
   grep -oE '^CREATE POLICY "[^"]+" ON "[a-z_]+"\."[^"]+"'         "$1" 2>/dev/null | sed -E 's/^CREATE POLICY //; s/"//g'                     | sed 's/^/policy /' || true
+  sed -nE 's/^CREATE (OR REPLACE )?(CONSTRAINT )?TRIGGER "([^"]+)".* ON "([a-z_]+)"\."([^"]+)".*/trigger \3 on \4.\5/p' "$1" 2>/dev/null || true
 }
 cols() { awk '
   /^CREATE TABLE (IF NOT EXISTS )?"/ { t=$0; sub(/^CREATE TABLE (IF NOT EXISTS )?/,"",t); gsub(/"/,"",t); sub(/ .*/,"",t); intbl=1; next }
