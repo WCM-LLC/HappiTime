@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { summarizeScans, computeWindows, formatRelativeTime } from "../apps/web/src/utils/scan-analytics.mjs";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const read = (p) => readFileSync(join(root, p), "utf8");
 
 const W = (now) => ({
   todayStart: new Date(now - 3 * 3600 * 1000).toISOString(), // 3h ago
@@ -66,4 +72,13 @@ test("formatRelativeTime", () => {
   assert.equal(formatRelativeTime(new Date(now.getTime() - 5 * 60 * 1000).toISOString(), now), "5m ago");
   assert.equal(formatRelativeTime(new Date(now.getTime() - 3 * 3600 * 1000).toISOString(), now), "3h ago");
   assert.equal(formatRelativeTime(new Date(now.getTime() - 2 * 24 * 3600 * 1000).toISOString(), now), "2d ago");
+});
+
+test("VenueScanAnalytics renders windows/sources/empty state and uses the util", () => {
+  const src = read("apps/web/src/components/VenueScanAnalytics.tsx");
+  assert.match(src, /Scan activity/);
+  assert.match(src, /from ['"]@\/utils\/scan-analytics['"]/);
+  assert.match(src, /No scans yet/);
+  assert.match(src, /last 30 days/);
+  assert.match(src, /Check-in/);
 });
