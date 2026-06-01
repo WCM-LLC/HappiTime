@@ -69,7 +69,7 @@ export function useVisitRating() {
   }, []);
 
   const submitRating = useCallback(
-    async (rating: number, comment?: string, aspects: string[] = []) => {
+    async (rating: number, comment?: string, _aspects: string[] = []) => {
       if (!pendingVisit) return;
       setSubmitting(true);
 
@@ -84,12 +84,9 @@ export function useVisitRating() {
           if (error) {
             console.warn("[visit-rating] failed to update:", error.message);
           }
-          if (aspects.length > 0) {
-            await (supabase as any).from("visit_rating_aspects").upsert(
-              aspects.map((aspect) => ({ visit_id: pendingVisit.visitId, aspect_key: aspect })),
-              { onConflict: "visit_id,aspect_key" }
-            );
-          }
+          // NOTE: visit_rating_aspects was retired on prod and dropped from the migrations to
+          // match (schema-drift reconciliation). Aspect tags are no longer persisted; the
+          // rating/comment above is the source of truth.
         } else {
           // Fallback: insert a new record if we don't have a visitId
           const { data: auth } = await supabase.auth.getUser();
