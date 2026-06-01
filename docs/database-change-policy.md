@@ -23,9 +23,12 @@ applied. To change something, add a new forward migration.
    fails any PR that modifies/deletes/renames an existing migration file.
 3. **Drift detection (CI, nightly + PR).** Same workflow's `schema-parity` job runs
    `scripts/reconcile/verify-parity.sh`: builds a clean migration replay and diffs its
-   `pg_dump` against prod by object set. Any divergence ⇒ alert. This is the safety net —
-   even an emergency dashboard change is caught within ~24h and must be back-filled into a
-   migration. *(Informational until the reconciliation reaches parity, then made required.)*
+   `pg_dump` against prod by object set. Any divergence ⇒ the run fails (hard). This is the
+   safety net — even an emergency dashboard change is caught within ~24h and must be back-filled
+   into a migration. **Runs nightly + on-demand only, NOT on PRs** (a PR's new migration isn't on
+   prod until merge, so PR-time parity is meaningless — the `supabase-migrations` job already
+   proves migrations apply). Reconciliation reached parity 2026-06-01, so a red nightly run now
+   means real out-of-band drift to investigate.
 4. **Security gate (review).** Every RLS policy / grant change is now code-reviewed in the PR
    (vs. today's unreviewed dashboard edits). Run Supabase **advisors** (security + performance)
    before merging RLS changes; treat new `USING (true)` reads and `SECURITY DEFINER` without a
@@ -44,14 +47,14 @@ that reproduces the change idempotently (`IF [NOT] EXISTS`, `CREATE OR REPLACE`,
 - [ ] **Restrict prod DDL.** In the Supabase dashboard (Org → Team), set most members to a
       read-only / non-DDL role; reserve schema-changing access for a small owner set. Treat the
       SQL editor against prod as break-glass only.
-- [ ] **Add the `SUPABASE_DB_URL_RO` GitHub secret** — a **read-only** Postgres connection
-      string for prod (create a read-only role; don't reuse the read-write deploy secret). This
-      turns on the Layer-3 drift detector.
-- [ ] **Branch protection on `master`:** require the `node`, `supabase-migrations`,
-      `migration-immutability`, and (after reconciliation) `schema-parity` checks to pass; no
-      direct pushes.
-- [ ] **After reconciliation Stage 10 reaches parity:** remove `continue-on-error` from the
-      `schema-parity` job and add it to required checks.
+- [x] **Add the `SUPABASE_DB_URL_RO` GitHub secret** — DONE (read-only `ci_readonly` role); the
+      Layer-3 drift detector is live.
+- [ ] **Branch protection on `master`:** require the `node`, `supabase-migrations`, and
+      `migration-immutability` checks to pass; no direct pushes. (Do NOT require `schema-parity`
+      — it runs nightly against master, not on PRs.)
+- [x] **schema-parity is now a hard nightly gate** (reconciliation reached parity 2026-06-01;
+      `continue-on-error` removed). Watch the nightly "Migration Guardrails" run — a failure
+      means out-of-band prod drift to back-fill. Optionally wire it to a notification.
 
 ## For contributors
 
