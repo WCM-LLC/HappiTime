@@ -295,7 +295,7 @@ export default async function VenuePage({
   // is RLS-locked, so read with the service client — gated by the app-level canEditMenuItems
   // check (the only authorization needed; we query just this one venue's events).
   let scanSummary: ScanSummary | null = null;
-  if (canEditMenuItems) {
+  if (canEditMenuItems && venue) {
     const scanWindows = computeWindows(venue?.timezone ?? 'UTC', new Date());
     const { data: scanEvents } = await createServiceClient()
       .from('venue_attribution_events')
