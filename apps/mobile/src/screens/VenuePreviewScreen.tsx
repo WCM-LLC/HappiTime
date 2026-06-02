@@ -86,11 +86,11 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!venueId) return;
     let active = true;
     fetchVenueById(supabase as any, venueId)
-      .then(({ data }) => {
-        if (active && data?.name) setFetchedVenueName(data.name);
+      .then(({ data: venueData }) => {
+        if (active && venueData?.name) setFetchedVenueName(venueData.name);
       })
-      .catch(() => {
-        /* name falls back to the window-derived value */
+      .catch((err) => {
+        console.warn('[VenuePreview] fetchVenueById failed, using fallback name', err);
       });
     return () => {
       active = false;
