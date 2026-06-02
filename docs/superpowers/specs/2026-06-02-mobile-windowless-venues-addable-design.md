@@ -47,6 +47,33 @@ This is not a regression or a data bug — it is a structural product gap. Desir
 behavior (confirmed with user): **any published venue should be fully searchable and
 addable on mobile, independent of whether it has a happy hour.**
 
+### Regression hypothesis ruled out (evidence)
+
+"No longer show up" was investigated as a possible regression (both rows share an
+identical `updated_at` of 2026-06-02 17:37, and `ingest-venues/index.ts` is
+modified-uncommitted). Ruled out:
+
+- `ingest-venues` never touches `happy_hour_windows` (writes only `venues` /
+  `staging_venues`); its uncommitted diff is pure TypeScript type annotations, no
+  logic change.
+- `happy_hour_windows` has no soft-delete columns; no sibling/duplicate venue holds
+  windows for these names; zero window rows of any status reference these venue IDs.
+- 49 of 223 Places-imported venues are window-less (22%); all 18 non-Places venues
+  have windows. These two are part of a large population, not singled out.
+- The 17:37 update touched only these 2 venues, but `places_last_synced_at` is
+  2026-05-28 — not a Places sync, and irrelevant to windows.
+
+### Delivery phasing
+
+- **Phase 1 (this plan — the reported fix):** `AddToItinerarySheet` extraction +
+  reuse on `VenuePreviewScreen`; MapScreen G1 search-merge; `VenuePreviewScreen`
+  renders the venue **name + Add button above the empty-state gate** so window-less
+  venues are addable. Plus simulator verification in itinerary mode.
+- **Phase 2 (follow-up plan/PR):** full venue-detail parity for window-less venues
+  (address, phone, website, socials, media via `fetchVenueById`), decoupling
+  `VenuePreviewScreen`'s identity source from happy-hour windows. Net-new venue-header
+  UI affecting all venues — out of scope for the reported bug.
+
 ## Approach
 
 Approach 1 (selected): universal "Add to Itinerary" on the venue detail screen, plus
@@ -68,6 +95,14 @@ tracking, and the create-list flow.
   and delete the inline copy (behavior unchanged).
 - Add `<AddToItinerarySheet venueId={venueId} />` to `VenuePreviewScreen`
   (`venueId` already available from `route.params`).
+  **Caveat:** `VenuePreviewScreen.tsx:268` gates the *entire* screen behind
+  `windowsForVenue.length === 0 && events.length === 0`, and derives the venue name
+  from `windowsForVenue[0]?.venue?.name` (line 139). For a window-less venue this
+  shows only "doesn't have any published happy hours or events yet" — no name, no
+  actions. Phase 1 therefore also: fetches the venue name by `venueId` (e.g.
+  `fetchVenueById` from `@happitime/shared-api`) and renders the **name + Add button
+  above** the empty-state conditional, leaving only the happy-hours/events *list*
+  behind the gate. (Full header parity — address/phone/socials/media — is Phase 2.)
 
 Isolation win: one tested implementation, two consumers, net less code.
 
