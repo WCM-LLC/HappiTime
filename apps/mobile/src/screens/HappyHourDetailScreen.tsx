@@ -995,26 +995,12 @@ const styles = StyleSheet.create({
   actions: {
     paddingHorizontal: spacing.lg
   },
-  actionButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 999,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    alignItems: "center",
-    marginBottom: spacing.sm
-  },
   actionButtonPressed: {
     opacity: 0.9,
     transform: [{ scale: 0.98 }],
   },
   actionButtonDisabled: {
     opacity: 0.6
-  },
-  actionText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 0.3,
   },
   actionSecondaryRow: {
     flexDirection: "row",
