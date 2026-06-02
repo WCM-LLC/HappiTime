@@ -574,11 +574,28 @@ Deno.serve(async (req)=>{
   });
   const items = await dsRes.json();
   const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
-  const [{ data: venues }, { data: staged }] = await Promise.all([
-    supabase.from("venues").select("id,name,lat,lng,places_id"),
+  const [venueRows, { data: staged }] = await Promise.all([
+    // PostgREST caps a single select at the project's max-rows (commonly 1000), so the dedup
+    // sets MUST be paged — otherwise venues beyond the first page are invisible and an
+    // incoming item matching one of them is wrongly staged as a duplicate. Advance by the
+    // actual batch length and stop on an empty page so this is correct for any server cap.
+    (async ()=>{
+      const rows = [], pageSize = 1000;
+      for (let from = 0;;){
+        const { data, error } = await supabase.from("venues").select("id,name,lat,lng,places_id").range(from, from + pageSize - 1);
+        if (error) throw error;
+        const batch = data ?? [];
+        rows.push(...batch);
+        from += batch.length;
+        // Stop only on an empty page — advancing by the actual batch length keeps this correct
+        // even if the server's max-rows cap is smaller than pageSize (a `< pageSize` break would
+        // truncate in that case). Costs one trailing empty request; correctness over a round-trip.
+        if (batch.length === 0) break;
+      }
+      return rows;
+    })(),
     supabase.from("staging_venues").select("external_ref").not("external_ref", "is", null)
   ]);
-  const venueRows = venues ?? [];
   const existing = new Set([
     ...venueRows.map((v)=>v.places_id).filter(Boolean),
     ...(staged ?? []).map((s)=>s.external_ref)
@@ -603,15 +620,19 @@ Deno.serve(async (req)=>{
         if (d <= bestD && sharesNameToken(it.title, v.name)) { best = v; bestD = d; }
       }
       if (best) {
-        const { error: linkErr } = await supabase.from("venues").update({ places_id: it.placeId }).eq("id", best.id).is("places_id", null);
-        if (!linkErr) {
+        // .is("places_id", null) is a guard, not just a filter: a concurrent ingest run may have
+        // already claimed this venue between our read and write. In that case the update matches
+        // ZERO rows but returns NO error, so we MUST check the returning rows — not just linkErr —
+        // before skipping the stage, or this candidate is silently dropped instead of inserted.
+        const { data: linkedRows, error: linkErr } = await supabase.from("venues").update({ places_id: it.placeId }).eq("id", best.id).is("places_id", null).select("id");
+        if (!linkErr && linkedRows && linkedRows.length > 0) {
           best.places_id = it.placeId; // keep in-memory dedup state consistent for the rest of this run
           existing.add(it.placeId);
           seen.add(it.placeId);
           linked += 1;
           continue; // matched an existing venue — do NOT stage a duplicate
         }
-        // link failed (e.g. a concurrent writer claimed it) — fall through and stage normally
+        // link failed or matched no row (a concurrent writer claimed it) — fall through and stage normally
       }
     }
     seen.add(it.placeId);
