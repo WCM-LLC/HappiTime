@@ -10,10 +10,6 @@ import {
   Image,
   Platform,
   Alert,
-  Modal,
-  FlatList,
-  TextInput,
-  KeyboardAvoidingView,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
 } from "react-native";
@@ -22,7 +18,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { RootStackParamList } from "../navigation/types";
 import { useHappyHours } from "../hooks/useHappyHours";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
-import { useUserLists } from "../hooks/useUserLists";
 import { useVenueMenus } from "../hooks/useVenueMenus";
 import { useVenueMediaGalleries } from "../hooks/useVenueCovers";
 import { useUserLocation } from "../hooks/useUserLocation";
@@ -37,6 +32,7 @@ import { distanceMiles } from "../utils/location";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { SocialIcon } from "../../components/ui/SocialIcon";
 import { ImageLightbox } from "../components/ImageLightbox";
+import { AddToItinerarySheet } from "../components/AddToItinerarySheet";
 
 type Props = NativeStackScreenProps<RootStackParamList, "HappyHourDetail">;
 
@@ -66,15 +62,6 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
     savingVenueId,
     toggleFollow
   } = useUserFollowedVenues();
-  const { lists, addVenue, createList } = useUserLists();
-  const [showItineraryPicker, setShowItineraryPicker] = useState(false);
-  const [addedToIds, setAddedToIds] = useState<Set<string>>(new Set());
-  const [addingToId, setAddingToId] = useState<string | null>(null);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newListName, setNewListName] = useState("");
-  const [newListDesc, setNewListDesc] = useState("");
-  const [newListVisibility, setNewListVisibility] = useState<"private" | "friends" | "public">("private");
-  const [creatingList, setCreatingList] = useState(false);
 
   const window = useMemo(
     () => data.find((w) => w.id === windowId),
@@ -587,15 +574,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
         )}
 
         <View style={styles.actions}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.actionButton,
-              pressed && styles.actionButtonPressed
-            ]}
-            onPress={() => setShowItineraryPicker(true)}
-          >
-            <Text style={styles.actionText}>Add to Itinerary</Text>
-          </Pressable>
+          <AddToItinerarySheet venueId={venueId} />
           <View style={styles.actionSecondaryRow}>
             {venue.phone && (
               <Pressable
@@ -641,167 +620,6 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
         </View>
       </ScrollView>
 
-      <Modal
-        visible={showItineraryPicker}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setShowItineraryPicker(false)}
-      >
-        <KeyboardAvoidingView
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          style={pickerStyles.modalRoot}
-        >
-          <Pressable
-            style={pickerStyles.backdrop}
-            onPress={() => setShowItineraryPicker(false)}
-          />
-          <View style={pickerStyles.sheet}>
-            <View style={pickerStyles.handle} />
-            <Text style={pickerStyles.title}>Add to Itinerary</Text>
-
-            {/* Create-list form — shown when no lists OR user taps "+ New" */}
-            {(lists.length === 0 || showCreateForm) ? (
-              <ScrollView
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={pickerStyles.createForm}
-              >
-                <Text style={pickerStyles.createLabel}>Create a new itinerary</Text>
-                <TextInput
-                  style={pickerStyles.input}
-                  placeholder="Name (e.g. Friday Night Crawl)"
-                  placeholderTextColor={colors.textMutedLight}
-                  value={newListName}
-                  onChangeText={setNewListName}
-                  autoFocus
-                />
-                <TextInput
-                  style={[pickerStyles.input, { height: 60 }]}
-                  placeholder="Description (optional)"
-                  placeholderTextColor={colors.textMutedLight}
-                  value={newListDesc}
-                  onChangeText={setNewListDesc}
-                  multiline
-                />
-                <View style={pickerStyles.visRow}>
-                  {(["private", "friends", "public"] as const).map((v) => (
-                    <Pressable
-                      key={v}
-                      style={[
-                        pickerStyles.visChip,
-                        newListVisibility === v && pickerStyles.visChipActive,
-                      ]}
-                      onPress={() => setNewListVisibility(v)}
-                    >
-                      <Text
-                        style={[
-                          pickerStyles.visChipText,
-                          newListVisibility === v && pickerStyles.visChipTextActive,
-                        ]}
-                      >
-                        {v === "private" ? "Private" : v === "friends" ? "Friends" : "Public"}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <Pressable
-                  style={[
-                    pickerStyles.createBtn,
-                    (!newListName.trim() || creatingList) && { opacity: 0.5 },
-                  ]}
-                  disabled={!newListName.trim() || creatingList}
-                  onPress={async () => {
-                    setCreatingList(true);
-                    const { error, listId } = await createList(newListName, newListDesc || undefined);
-                    let addError: Error | null = null;
-                    if (!error && listId && venueId) {
-                      const result = await addVenue(listId, venueId);
-                      addError = result.error;
-                    }
-                    setCreatingList(false);
-                    if (error) {
-                      Alert.alert("Error", error.message);
-                    } else if (addError) {
-                      Alert.alert("Itinerary created", `Couldn't add this venue yet: ${addError.message}`);
-                    } else {
-                      if (listId) {
-                        setAddedToIds((prev) => new Set(prev).add(listId));
-                      }
-                      setNewListName("");
-                      setNewListDesc("");
-                      setNewListVisibility("private");
-                      setShowCreateForm(false);
-                    }
-                  }}
-                >
-                  <Text style={pickerStyles.createBtnText}>
-                    {creatingList ? "Creating…" : "Create Itinerary"}
-                  </Text>
-                </Pressable>
-                {lists.length > 0 && (
-                  <Pressable onPress={() => setShowCreateForm(false)}>
-                    <Text style={pickerStyles.cancelText}>Cancel</Text>
-                  </Pressable>
-                )}
-              </ScrollView>
-            ) : (
-              <>
-                <FlatList
-                  data={lists}
-                  keyExtractor={(item) => item.id}
-                  keyboardShouldPersistTaps="handled"
-                  ItemSeparatorComponent={() => <View style={pickerStyles.sep} />}
-                  renderItem={({ item }) => {
-                    const added = addedToIds.has(item.id);
-                    const adding = addingToId === item.id;
-                    return (
-                      <Pressable
-                        style={({ pressed }) => [
-                          pickerStyles.row,
-                          pressed && { opacity: 0.75 },
-                        ]}
-                        disabled={added || adding}
-                        onPress={async () => {
-                          if (!venueId) return;
-                          setAddingToId(item.id);
-                          const { error } = await addVenue(item.id, venueId);
-                          setAddingToId(null);
-                          if (error) {
-                            Alert.alert("Couldn't add", error.message);
-                          } else {
-                            setAddedToIds((prev) => new Set(prev).add(item.id));
-                          }
-                        }}
-                      >
-                        <View style={pickerStyles.rowText}>
-                          <Text style={pickerStyles.rowName}>{item.name}</Text>
-                          {item.description ? (
-                            <Text style={pickerStyles.rowDesc} numberOfLines={1}>
-                              {item.description}
-                            </Text>
-                          ) : null}
-                        </View>
-                        <Text style={[
-                          pickerStyles.rowAction,
-                          added && pickerStyles.rowActionDone,
-                        ]}>
-                          {adding ? "…" : added ? "Added ✓" : "Add"}
-                        </Text>
-                      </Pressable>
-                    );
-                  }}
-                />
-                <Pressable
-                  style={pickerStyles.newListBtn}
-                  onPress={() => setShowCreateForm(true)}
-                >
-                  <Text style={pickerStyles.newListBtnText}>+ New Itinerary</Text>
-                </Pressable>
-              </>
-            )}
-          </View>
-        </KeyboardAvoidingView>
-      </Modal>
     </View>
   );
 };
@@ -1177,26 +995,12 @@ const styles = StyleSheet.create({
   actions: {
     paddingHorizontal: spacing.lg
   },
-  actionButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 999,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    alignItems: "center",
-    marginBottom: spacing.sm
-  },
   actionButtonPressed: {
     opacity: 0.9,
     transform: [{ scale: 0.98 }],
   },
   actionButtonDisabled: {
     opacity: 0.6
-  },
-  actionText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 0.3,
   },
   actionSecondaryRow: {
     flexDirection: "row",
@@ -1227,154 +1031,3 @@ const styles = StyleSheet.create({
   },
 });
 
-const pickerStyles = StyleSheet.create({
-  modalRoot: {
-    flex: 1,
-    justifyContent: "flex-end",
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.4)",
-  },
-  sheet: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xl + spacing.lg,
-    paddingTop: spacing.sm,
-    maxHeight: "60%",
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-    alignSelf: "center",
-    marginBottom: spacing.md,
-  },
-  title: {
-    color: colors.text,
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: spacing.md,
-  },
-  empty: {
-    color: colors.textMuted,
-    fontSize: 14,
-    textAlign: "center",
-    paddingVertical: spacing.lg,
-  },
-  sep: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.border,
-  },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: spacing.md,
-  },
-  rowText: {
-    flex: 1,
-  },
-  rowName: {
-    color: colors.text,
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  rowDesc: {
-    color: colors.textMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  rowAction: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    fontWeight: "700",
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: 999,
-    overflow: "hidden",
-  },
-  rowActionDone: {
-    backgroundColor: colors.surface,
-    color: colors.textMuted,
-  },
-  createForm: {
-    paddingVertical: spacing.sm,
-  },
-  createLabel: {
-    color: colors.textMuted,
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: spacing.md,
-  },
-  input: {
-    backgroundColor: colors.surface,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    color: colors.text,
-    fontSize: 15,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  visRow: {
-    flexDirection: "row" as const,
-    gap: spacing.xs,
-    marginBottom: spacing.md,
-    marginTop: spacing.xs,
-  },
-  visChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  visChipActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  visChipText: {
-    fontSize: 13,
-    fontWeight: "600" as const,
-    color: colors.textMuted,
-  },
-  visChipTextActive: {
-    color: "#FFFFFF",
-  },
-  createBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 10,
-    paddingVertical: spacing.sm + 2,
-    alignItems: "center" as const,
-    marginTop: spacing.xs,
-  },
-  createBtnText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700" as const,
-  },
-  cancelText: {
-    color: colors.textMuted,
-    fontSize: 14,
-    textAlign: "center" as const,
-    marginTop: spacing.md,
-  },
-  newListBtn: {
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-    paddingVertical: spacing.md,
-    alignItems: "center" as const,
-    marginTop: spacing.xs,
-  },
-  newListBtnText: {
-    color: colors.primary,
-    fontSize: 15,
-    fontWeight: "600" as const,
-  },
-});
