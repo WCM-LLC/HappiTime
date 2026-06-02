@@ -492,7 +492,7 @@ export const MapScreen: React.FC = () => {
       itineraryWindows.push(createVenueWindow(venue));
     }
 
-    const sortedItinerary = itineraryWindows.sort((a, b) => {
+    const sortedItinerary = itineraryWindows.slice().sort((a, b) => {
       const aIndex = itineraryVenueIds.indexOf(getWindowVenueId(a) ?? "");
       const bIndex = itineraryVenueIds.indexOf(getWindowVenueId(b) ?? "");
       return aIndex - bIndex;
