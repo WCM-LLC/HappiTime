@@ -380,7 +380,7 @@ export const MapScreen: React.FC = () => {
   useEffect(() => {
     let mounted = true;
 
-    if (hasItineraryFilter || directVenueSearchNeedles.length === 0) {
+    if (directVenueSearchNeedles.length === 0) {
       setSearchedVenues([]);
       return;
     }
@@ -443,7 +443,7 @@ export const MapScreen: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, [directVenueSearchKey, directVenueSearchNeedles, hasItineraryFilter]);
+  }, [directVenueSearchKey, directVenueSearchNeedles]);
 
   // All windows that have geocoded venues
   const mappableWindows = useMemo(() => {
@@ -492,11 +492,27 @@ export const MapScreen: React.FC = () => {
       itineraryWindows.push(createVenueWindow(venue));
     }
 
-    return itineraryWindows.sort((a, b) => {
+    const sortedItinerary = itineraryWindows.sort((a, b) => {
       const aIndex = itineraryVenueIds.indexOf(getWindowVenueId(a) ?? "");
       const bIndex = itineraryVenueIds.indexOf(getWindowVenueId(b) ?? "");
       return aIndex - bIndex;
     });
+
+    // merge searched venues (appended after the itinerary, deduped, coords required)
+    const withSearch = [...sortedItinerary];
+    for (const venue of searchedVenues) {
+      if (
+        !venue.id ||
+        seenVenueIds.has(venue.id) ||
+        venue.lat == null ||
+        venue.lng == null
+      ) {
+        continue;
+      }
+      seenVenueIds.add(venue.id);
+      withSearch.push(createVenueWindow(venue));
+    }
+    return withSearch;
   }, [
     combinedItineraryVenues,
     data,
@@ -560,10 +576,18 @@ export const MapScreen: React.FC = () => {
 
   const itineraryCoordinates = useMemo(() => {
     if (!hasItineraryFilter) return [];
-    return filtered
-      .map(getWindowCoordinate)
-      .filter((coord): coord is { latitude: number; longitude: number } => coord != null);
-  }, [filtered, hasItineraryFilter]);
+    return combinedItineraryVenues
+      .map((venue) => {
+        const latitude = toNullableCoordinate(venue.lat);
+        const longitude = toNullableCoordinate(venue.lng);
+        if (latitude == null || longitude == null) return null;
+        if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
+        return { latitude, longitude };
+      })
+      .filter(
+        (coord): coord is { latitude: number; longitude: number } => coord != null
+      );
+  }, [combinedItineraryVenues, hasItineraryFilter]);
   const itineraryCoordinateKey = itineraryCoordinates
     .map((coord) => `${coord.latitude},${coord.longitude}`)
     .join("|");

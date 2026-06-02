@@ -37,3 +37,15 @@ test("VenuePreviewScreen fetches venue by id and renders Add above the empty-sta
   // Name no longer depends solely on a happy-hour window.
   assert.match(src, /fetchedVenueName/);
 });
+
+test("MapScreen runs venue search even with an itinerary open (G1)", () => {
+  const src = read("apps/mobile/src/screens/MapScreen.tsx");
+  // The search effect must no longer bail out just because an itinerary is open.
+  assert.doesNotMatch(
+    src,
+    /if \(hasItineraryFilter \|\| directVenueSearchNeedles\.length === 0\)/
+  );
+  assert.match(src, /if \(directVenueSearchNeedles\.length === 0\)/);
+  // Itinerary-mode pin list merges searched venues.
+  assert.match(src, /merge searched venues/i);
+});
