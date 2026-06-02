@@ -658,7 +658,9 @@ const refreshVenueMedia = async (
   }
 
   if (uploads.length > 0) {
-    const { error: insertError } = await supabase.from("venue_media").insert(
+    // Upsert (not insert) so a concurrent import run racing on the same venue no-ops on the
+    // venue_media_venue_source_sort_key unique constraint instead of doubling every photo.
+    const { error: insertError } = await supabase.from("venue_media").upsert(
       uploads.map((upload) => ({
         venue_id: venueId,
         type: "image",
@@ -668,7 +670,8 @@ const refreshVenueMedia = async (
         storage_bucket: "cloudinary",
         storage_path: upload.path,
         sort_order: upload.sortOrder
-      }))
+      })),
+      { onConflict: "venue_id,source,sort_order", ignoreDuplicates: true }
     );
 
     if (insertError) {
