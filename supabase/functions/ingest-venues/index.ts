@@ -517,6 +517,33 @@ function extractTags(it, attrs) {
     ...tags
   ];
 }
+// Tokens used to decide whether two venue names refer to the same business. Generic
+// venue-type words are stripped so a shared token signals the *brand*, not the category.
+const NAME_STOPWORDS = new Set([
+  "the", "a", "an", "and", "of", "on", "at", "in", "to", "co", "kc", "amp",
+  "bar", "grill", "lounge", "restaurant", "kitchen", "cafe", "tavern", "pub",
+  "company", "house", "room", "club", "social"
+]);
+function nameTokens(s) {
+  return new Set((s ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((t)=>t.length >= 3 && !NAME_STOPWORDS.has(t)));
+}
+function sharesNameToken(a, b) {
+  const tb = nameTokens(b);
+  for (const t of nameTokens(a))if (tb.has(t)) return true;
+  return false;
+}
+// Great-circle distance in meters; returns Infinity when either point lacks coordinates.
+function distanceMeters(aLat, aLng, bLat, bLng) {
+  if (aLat == null || aLng == null || bLat == null || bLng == null) return Infinity;
+  const R = 6371000, toRad = (d)=>d * Math.PI / 180;
+  const dLat = toRad(bLat - aLat), dLng = toRad(bLng - aLng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+// A curated venue and an incoming pull item are the same place only when they are both
+// physically co-located AND share a brand token — co-located-but-distinct neighbors
+// (food courts, multi-tenant buildings) must NOT be merged.
+const MATCH_RADIUS_M = 75;
 Deno.serve(async (req)=>{
   const secret = Deno.env.get("INGEST_SECRET");
   if (!secret || req.headers.get("x-ingest-secret") !== secret) {
@@ -547,19 +574,67 @@ Deno.serve(async (req)=>{
   });
   const items = await dsRes.json();
   const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
-  const [{ data: venues }, { data: staged }] = await Promise.all([
-    supabase.from("venues").select("places_id").not("places_id", "is", null),
+  const [venueRows, { data: staged }] = await Promise.all([
+    // PostgREST caps a single select at the project's max-rows (commonly 1000), so the dedup
+    // sets MUST be paged — otherwise venues beyond the first page are invisible and an
+    // incoming item matching one of them is wrongly staged as a duplicate. Advance by the
+    // actual batch length and stop on an empty page so this is correct for any server cap.
+    (async ()=>{
+      const rows = [], pageSize = 1000;
+      for (let from = 0;;){
+        const { data, error } = await supabase.from("venues").select("id,name,lat,lng,places_id").range(from, from + pageSize - 1);
+        if (error) throw error;
+        const batch = data ?? [];
+        rows.push(...batch);
+        from += batch.length;
+        // Stop only on an empty page — advancing by the actual batch length keeps this correct
+        // even if the server's max-rows cap is smaller than pageSize (a `< pageSize` break would
+        // truncate in that case). Costs one trailing empty request; correctness over a round-trip.
+        if (batch.length === 0) break;
+      }
+      return rows;
+    })(),
     supabase.from("staging_venues").select("external_ref").not("external_ref", "is", null)
   ]);
   const existing = new Set([
-    ...(venues ?? []).map((v)=>v.places_id),
+    ...venueRows.map((v)=>v.places_id).filter(Boolean),
     ...(staged ?? []).map((s)=>s.external_ref)
   ]);
   const seen = new Set();
   const toInsert = [];
+  let linked = 0;
   for (const it of items){
     if (!inScope(it)) continue;
     if (existing.has(it.placeId) || seen.has(it.placeId)) continue;
+
+    // Dedup gap fix: a curated venue without a places_id (manual/seed entry) is invisible to
+    // the places_id check above, so the pull would re-create it as a duplicate. Instead, link
+    // the pull to the nearest co-located venue that shares a brand token and backfill its
+    // places_id — future pulls then dedup by places_id and never duplicate it again.
+    const ilat = it.location?.lat ?? null, ilng = it.location?.lng ?? null;
+    if (ilat != null && ilng != null) {
+      let best = null, bestD = MATCH_RADIUS_M;
+      for (const v of venueRows){
+        if (v.places_id) continue;
+        const d = distanceMeters(ilat, ilng, v.lat, v.lng);
+        if (d <= bestD && sharesNameToken(it.title, v.name)) { best = v; bestD = d; }
+      }
+      if (best) {
+        // .is("places_id", null) is a guard, not just a filter: a concurrent ingest run may have
+        // already claimed this venue between our read and write. In that case the update matches
+        // ZERO rows but returns NO error, so we MUST check the returning rows — not just linkErr —
+        // before skipping the stage, or this candidate is silently dropped instead of inserted.
+        const { data: linkedRows, error: linkErr } = await supabase.from("venues").update({ places_id: it.placeId }).eq("id", best.id).is("places_id", null).select("id");
+        if (!linkErr && linkedRows && linkedRows.length > 0) {
+          best.places_id = it.placeId; // keep in-memory dedup state consistent for the rest of this run
+          existing.add(it.placeId);
+          seen.add(it.placeId);
+          linked += 1;
+          continue; // matched an existing venue — do NOT stage a duplicate
+        }
+        // link failed or matched no row (a concurrent writer claimed it) — fall through and stage normally
+      }
+    }
     seen.add(it.placeId);
     const attrs = flattenAttrs(it.additionalInfo);
     const tags = extractTags(it, attrs);
@@ -624,7 +699,8 @@ Deno.serve(async (req)=>{
     ok: true,
     dataset: datasetId,
     candidates: items.length,
-    inserted
+    inserted,
+    linked
   }), {
     headers: {
       "Content-Type": "application/json"

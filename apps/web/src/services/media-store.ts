@@ -193,16 +193,29 @@ export async function setCoverPhoto(
   }
 
   const others = allRows.filter((r) => r.id !== coverId);
-  const updates = [
-    { id: coverId, sort_order: 0 },
-    ...others.map((row, idx) => ({ id: row.id, sort_order: idx + 1 })),
-  ];
+  const ordered = [coverId, ...others.map((r) => r.id)];
 
-  for (const u of updates) {
+  // venue_media has a UNIQUE(venue_id, source, sort_order) index that Postgres checks per
+  // statement (it is intentionally NOT deferrable — the import-places upsert relies on it as an
+  // ON CONFLICT arbiter). Renumbering rows one at a time would therefore transiently collide:
+  // moving the new cover to sort_order 0 while another same-source row still holds 0 is rejected.
+  // Two-phase fix: first park every row at a distinct NEGATIVE slot (negatives can never collide
+  // with the 0..N final targets or any existing non-negative row), then assign final positions.
+  // `allRows` is the venue's full media list, so no row outside this batch retains a value the
+  // second pass could collide with.
+  for (let i = 0; i < ordered.length; i++) {
     const { error } = await supabase
       .from(table)
-      .update({ sort_order: u.sort_order })
-      .eq('id', u.id);
+      .update({ sort_order: -(i + 1) })
+      .eq('id', ordered[i]);
+    if (error) return { error: error.message ?? 'reorder_failed' };
+  }
+
+  for (let i = 0; i < ordered.length; i++) {
+    const { error } = await supabase
+      .from(table)
+      .update({ sort_order: i })
+      .eq('id', ordered[i]);
     if (error) return { error: error.message ?? 'reorder_failed' };
   }
 
