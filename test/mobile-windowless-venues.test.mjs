@@ -28,3 +28,12 @@ test("HappyHourDetailScreen delegates add-to-itinerary to the shared component",
   assert.doesNotMatch(src, /setShowItineraryPicker/);
   assert.doesNotMatch(src, /const pickerStyles = StyleSheet\.create/);
 });
+
+test("VenuePreviewScreen fetches venue by id and renders Add above the empty-state gate", () => {
+  const src = read("apps/mobile/src/screens/VenuePreviewScreen.tsx");
+  assert.match(src, /import \{ AddToItinerarySheet \}/);
+  assert.match(src, /fetchVenueById/);
+  assert.match(src, /<AddToItinerarySheet\s+venueId=\{venueId\}\s*\/>/);
+  // Name no longer depends solely on a happy-hour window.
+  assert.match(src, /fetchedVenueName/);
+});

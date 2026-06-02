@@ -23,6 +23,8 @@ import { useVenueMedia } from "../hooks/useVenueMedia";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
 import { ImageLightbox } from "../components/ImageLightbox";
+import { fetchVenueById } from "@happitime/shared-api";
+import { AddToItinerarySheet } from "../components/AddToItinerarySheet";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -78,6 +80,22 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const { media } = useVenueMedia(venueId ?? null);
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
+  const [fetchedVenueName, setFetchedVenueName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!venueId) return;
+    let active = true;
+    fetchVenueById(supabase as any, venueId)
+      .then(({ data }) => {
+        if (active && data?.name) setFetchedVenueName(data.name);
+      })
+      .catch(() => {
+        /* name falls back to the window-derived value */
+      });
+    return () => {
+      active = false;
+    };
+  }, [venueId]);
 
   // One-shot "Checked in!" confirmation when arriving from a QR scan
   // (route param fromScan). Display-only — the web bridge already recorded the
@@ -136,7 +154,8 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
     [data, venueId]
   );
 
-  const venueName = windowsForVenue[0]?.venue?.name ?? "This venue";
+  const venueName =
+    windowsForVenue[0]?.venue?.name ?? fetchedVenueName ?? "This venue";
   const images = useMemo(
     () => [...media].sort((a, b) => a.sort_order - b.sort_order),
     [media]
@@ -265,13 +284,14 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         </Animated.View>
       ) : null}
+      <Text style={styles.title}>{venueName}</Text>
+      <AddToItinerarySheet venueId={venueId} />
       {windowsForVenue.length === 0 && events.length === 0 ? (
         <Text style={styles.emptyText}>
           {venueName} doesn&apos;t have any published happy hours or events yet.
         </Text>
       ) : (
         <>
-          <Text style={styles.title}>{venueName}</Text>
           <Text style={styles.subtitle}>Tap below to see Menus</Text>
 
           <Pressable
