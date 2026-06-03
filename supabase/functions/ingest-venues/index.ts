@@ -172,11 +172,11 @@ const CHAIN_FRAGMENTS = [
   "wawa",
   "sheetz"
 ];
-function isChain(title) {
+function isChain(title: any) {
   const t = (title ?? "").toLowerCase();
   return CHAIN_FRAGMENTS.some((c)=>t.includes(c));
 }
-function inScope(it) {
+function inScope(it: { placeId: any; permanentlyClosed: any; temporarilyClosed: any; categoryName: any; title: any; totalScore: number; }) {
   if (!it?.placeId) return false;
   if (it.permanentlyClosed || it.temporarilyClosed) return false;
   if (NOISE.has(it.categoryName ?? "")) return false;
@@ -492,8 +492,8 @@ const TAG_MAP = [
     "private-events"
   ]
 ];
-function flattenAttrs(ai) {
-  const out = [];
+function flattenAttrs(ai: { [s: string]: unknown; } | ArrayLike<unknown>) {
+  const out: string[] = [];
   if (!ai || typeof ai !== "object") return out;
   for (const section of Object.values(ai)){
     if (!Array.isArray(section)) continue;
@@ -505,7 +505,7 @@ function flattenAttrs(ai) {
   }
   return out;
 }
-function extractTags(it, attrs) {
+function extractTags(it: { categoryName: any; categories: any; }, attrs: string[]) {
   const blob = [
     it.categoryName,
     ...it.categories ?? [],
@@ -524,18 +524,18 @@ const NAME_STOPWORDS = new Set([
   "bar", "grill", "lounge", "restaurant", "kitchen", "cafe", "tavern", "pub",
   "company", "house", "room", "club", "social"
 ]);
-function nameTokens(s) {
-  return new Set((s ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((t)=>t.length >= 3 && !NAME_STOPWORDS.has(t)));
+function nameTokens(s: any) {
+  return new Set((s ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter((t: string)=>t.length >= 3 && !NAME_STOPWORDS.has(t)));
 }
-function sharesNameToken(a, b) {
+function sharesNameToken(a: any, b: any) {
   const tb = nameTokens(b);
   for (const t of nameTokens(a))if (tb.has(t)) return true;
   return false;
 }
 // Great-circle distance in meters; returns Infinity when either point lacks coordinates.
-function distanceMeters(aLat, aLng, bLat, bLng) {
+function distanceMeters(aLat: number | null, aLng: number | null, bLat: number | null, bLng: number | null) {
   if (aLat == null || aLng == null || bLat == null || bLng == null) return Infinity;
-  const R = 6371000, toRad = (d)=>d * Math.PI / 180;
+  const R = 6371000, toRad = (d: number)=>d * Math.PI / 180;
   const dLat = toRad(bLat - aLat), dLng = toRad(bLng - aLng);
   const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLng / 2) ** 2;
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
@@ -573,7 +573,7 @@ Deno.serve(async (req)=>{
     status: 502
   });
   const items = await dsRes.json();
-  const supabase = createClient(Deno.env.get("SUPABASE_URL"), Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"));
+  const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
   const [venueRows, { data: staged }] = await Promise.all([
     // PostgREST caps a single select at the project's max-rows (commonly 1000), so the dedup
     // sets MUST be paged — otherwise venues beyond the first page are invisible and an
