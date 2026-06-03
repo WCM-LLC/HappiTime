@@ -32,6 +32,7 @@
     "data:fetch-covers": "node scripts/fetch-venue-covers.mjs",
     "data:assign-placeholders": "node scripts/assign-placeholder-covers.mjs",
     "data:migrate-guides": "npx tsx scripts/migrate-static-guides-to-db.ts",
+    "data:seed-new-guides": "npx tsx scripts/seed-new-guides.ts",
     "auth:apple-secret": "node scripts/generate-apple-secret.mjs"
   },
   "devDependencies": {
