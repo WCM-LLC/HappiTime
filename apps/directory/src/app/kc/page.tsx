@@ -7,6 +7,7 @@ import {
 } from "@/lib/seoNeighborhoods";
 import { getAllKCVenues } from "@/lib/queries";
 import type { VenueWithWindows } from "@/lib/queries";
+import { itemListJsonLd } from "@/lib/structuredData";
 import { KCMapPage } from "@/components/KCMapPage";
 
 // Revalidate every 15 minutes — keeps venue data fresh
@@ -142,7 +143,7 @@ export default async function KCPage() {
     bestNeighborhoodSlugMap[v.id] = bestNeighborhoodSlug(v);
   }
 
-  const itemListJsonLd = {
+  const neighborhoodItemListJsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: "Kansas City Happy Hour Neighborhoods",
@@ -159,6 +160,15 @@ export default async function KCPage() {
       }`,
     })),
   };
+
+  // Enumerate the venues shown on the page so AI/search crawlers can read
+  // the full list. Canonical venue URL matches VenueCard: /kc/[hood]/[slug]/.
+  const venueItemListJsonLd = itemListJsonLd(
+    venues.map((v) => ({
+      name: v.name,
+      url: `https://happitime.biz/kc/${bestNeighborhoodSlugMap[v.id]}/${v.slug}/`,
+    }))
+  );
 
   const webPageJsonLd = {
     "@context": "https://schema.org",
@@ -198,7 +208,15 @@ export default async function KCPage() {
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(neighborhoodItemListJsonLd),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(venueItemListJsonLd).replace(/</g, "\\u003c"),
+        }}
       />
       <script
         type="application/ld+json"
