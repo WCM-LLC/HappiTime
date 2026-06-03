@@ -11,9 +11,8 @@ const BODY = `# HappiTime — Kansas City Happy Hour Guide
 ## URL map
 
 - https://happitime.biz/kc/ — Kansas City home: featured venues and neighborhood index.
-- https://happitime.biz/kc/[neighborhood]/ — happy hours within a specific KC neighborhood.
+- https://happitime.biz/happy-hour/[neighborhood]-kansas-city/ — canonical happy-hour landing page for a specific KC neighborhood.
 - https://happitime.biz/kc/[neighborhood]/[slug]/ — an individual venue's happy hour detail page.
-- https://happitime.biz/happy-hour/[neighborhood]-kansas-city/ — canonical neighborhood happy-hour landing pages.
 - https://happitime.biz/guides/ — editorial guides to happy hours and daycap in Kansas City.
 - https://happitime.biz/guides/[slug]/ — an individual guide.
 - https://happitime.biz/v/[slug]/ — short canonical venue links.
