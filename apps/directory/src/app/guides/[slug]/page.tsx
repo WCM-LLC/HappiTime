@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import { breadcrumbJsonLd } from "@/lib/structuredData";
+import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 import { supabase } from "@/lib/supabase";
 import { guideCoverImageSrc, normalizeGuideCoverImageUrl } from "@/lib/guideCoverUrl";
 import ImageLightbox from "@/components/ImageLightbox";
@@ -76,11 +76,24 @@ export default async function GuidePage({
     { name: guide.title, url: canonical },
   ]);
 
+  const article = articleJsonLd({
+    title: guide.title,
+    description: guide.subtitle ?? guide.title,
+    url: canonical,
+    imageUrl: coverImageUrl ?? undefined,
+    publishedTime: guide.published_at ?? undefined,
+    modifiedTime: guide.updated_at ?? undefined,
+  });
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(article) }}
       />
 
       {/* Breadcrumb nav */}

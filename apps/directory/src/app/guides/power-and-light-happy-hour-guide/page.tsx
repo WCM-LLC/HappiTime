@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { breadcrumbJsonLd } from "@/lib/structuredData";
+import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 
 const BASE = "https://happitime.biz";
 const CANONICAL = `${BASE}/guides/power-and-light-happy-hour-guide/`;
@@ -80,11 +80,22 @@ export default function PowerAndLightGuide() {
     { name: "Power & Light Happy Hour Guide", url: CANONICAL },
   ]);
 
+  const article = articleJsonLd({
+    title: "Power & Light District Happy Hour Guide",
+    description:
+      "Your guide to happy hour in the Power & Light District — rooftop bars, craft cocktails, and downtown KC's best after-work deals. Updated for 2026.",
+    url: CANONICAL,
+  });
+
   return (
     <article className="mx-auto max-w-3xl px-6 py-12">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(article) }}
       />
       <script
         type="application/ld+json"
@@ -105,7 +116,7 @@ export default function PowerAndLightGuide() {
       </h1>
       <p className="text-muted text-lg mb-10 max-w-2xl">
         The{" "}
-        <a href="/kc/power-and-light/" className="text-brand font-medium hover:underline">
+        <a href="/happy-hour/power-light-kansas-city/" className="text-brand font-medium hover:underline">
           Power &amp; Light District
         </a>{" "}
         is downtown Kansas City&apos;s premier entertainment block — two
@@ -175,9 +186,9 @@ export default function PowerAndLightGuide() {
           After happy hour, consider walking to:
         </p>
         <ul className="list-disc list-inside text-muted space-y-1 text-sm">
-          <li><a href="/kc/crossroads/" className="text-brand hover:underline">Crossroads Arts District</a> — 10 min walk south for creative cocktails</li>
-          <li><a href="/kc/river-market/" className="text-brand hover:underline">River Market</a> — 10 min walk north for brewery taprooms</li>
-          <li><a href="/kc/downtown/" className="text-brand hover:underline">Downtown KC</a> — surrounding blocks with steakhouses and lounges</li>
+          <li><a href="/happy-hour/crossroads-kansas-city/" className="text-brand hover:underline">Crossroads Arts District</a> — 10 min walk south for creative cocktails</li>
+          <li><a href="/happy-hour/river-market-kansas-city/" className="text-brand hover:underline">River Market</a> — 10 min walk north for brewery taprooms</li>
+          <li><a href="/happy-hour/downtown-kansas-city/" className="text-brand hover:underline">Downtown KC</a> — surrounding blocks with steakhouses and lounges</li>
         </ul>
       </section>
 
@@ -201,7 +212,7 @@ export default function PowerAndLightGuide() {
           </div>
           <div>
             <h3 className="font-semibold text-foreground">How does P&amp;L compare to Westport?</h3>
-            <p className="text-muted text-sm leading-relaxed mt-1">P&amp;L is more upscale with bigger discounts on premium drinks. <a href="/kc/westport/" className="text-brand hover:underline">Westport</a> has more variety and lower baseline prices — better for casual crawls.</p>
+            <p className="text-muted text-sm leading-relaxed mt-1">P&amp;L is more upscale with bigger discounts on premium drinks. <a href="/happy-hour/westport-kansas-city/" className="text-brand hover:underline">Westport</a> has more variety and lower baseline prices — better for casual crawls.</p>
           </div>
         </div>
       </section>
@@ -216,7 +227,7 @@ export default function PowerAndLightGuide() {
         </p>
         <div className="flex items-center justify-center gap-3">
           <a
-            href="/kc/power-and-light/"
+            href="/happy-hour/power-light-kansas-city/"
             className="inline-block rounded-full border border-brand px-6 py-2.5 text-brand font-semibold text-sm hover:bg-brand hover:text-white transition-colors"
           >
             Power &amp; Light Happy Hours

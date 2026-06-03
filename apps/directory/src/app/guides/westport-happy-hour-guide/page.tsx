@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { breadcrumbJsonLd } from "@/lib/structuredData";
+import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 
 const BASE = "https://happitime.biz";
 const CANONICAL = `${BASE}/guides/westport-happy-hour-guide/`;
@@ -72,11 +72,22 @@ export default function WestportGuide() {
     { name: "Westport Happy Hour Guide", url: CANONICAL },
   ]);
 
+  const article = articleJsonLd({
+    title: "Westport Happy Hour Guide — Best Bars & Deals",
+    description:
+      "The complete guide to happy hour in Westport, Kansas City. Best bars, cheapest drinks, walkable crawl routes, and daily deal breakdowns — updated for 2026.",
+    url: CANONICAL,
+  });
+
   return (
     <article className="mx-auto max-w-3xl px-6 py-12">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(article) }}
       />
       <script
         type="application/ld+json"
@@ -96,7 +107,7 @@ export default function WestportGuide() {
         <span className="text-brand">Best Bars &amp; Deals</span>
       </h1>
       <p className="text-muted text-lg mb-10 max-w-2xl">
-        <a href="/kc/westport/" className="text-brand font-medium hover:underline">Westport</a>{" "}
+        <a href="/happy-hour/westport-kansas-city/" className="text-brand font-medium hover:underline">Westport</a>{" "}
         is Kansas City&apos;s original entertainment district and arguably its
         best happy hour destination. A dense strip of bars, restaurants, and
         lounges means competitive pricing and an easy walk from one deal to
@@ -213,7 +224,7 @@ export default function WestportGuide() {
         </p>
         <div className="flex items-center justify-center gap-3">
           <a
-            href="/kc/westport/"
+            href="/happy-hour/westport-kansas-city/"
             className="inline-block rounded-full border border-brand px-6 py-2.5 text-brand font-semibold text-sm hover:bg-brand hover:text-white transition-colors"
           >
             Westport Happy Hours

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { breadcrumbJsonLd } from "@/lib/structuredData";
+import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 
 const BASE = "https://happitime.biz";
 const CANONICAL = `${BASE}/guides/friday-happy-hours-kansas-city/`;
@@ -80,11 +80,22 @@ export default function FridayHappyHours() {
     { name: "Friday Happy Hours in KC", url: CANONICAL },
   ]);
 
+  const article = articleJsonLd({
+    title: "Friday Happy Hours in Kansas City — Where to Go This Weekend",
+    description:
+      "The best Friday happy hours in Kansas City — early starts, extended deals, and the neighborhoods that do Fridays best. Plan your weekend kickoff with HappiTime.",
+    url: CANONICAL,
+  });
+
   return (
     <article className="mx-auto max-w-3xl px-6 py-12">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(article) }}
       />
       <script
         type="application/ld+json"
@@ -137,7 +148,7 @@ export default function FridayHappyHours() {
           Power &amp; Light — The After-Work Surge
         </h3>
         <p className="text-muted leading-relaxed mb-3">
-          <a href="/kc/power-and-light/" className="text-brand font-medium hover:underline">Power &amp; Light</a>{" "}
+          <a href="/happy-hour/power-light-kansas-city/" className="text-brand font-medium hover:underline">Power &amp; Light</a>{" "}
           draws the biggest Friday crowd in KC. Office workers pour out of
           downtown towers into the pedestrian district by 4 PM. Rooftop
           patios are the first to fill. If you want a seat outdoors, plan to
@@ -148,7 +159,7 @@ export default function FridayHappyHours() {
           Westport — Crawl-Ready
         </h3>
         <p className="text-muted leading-relaxed mb-3">
-          <a href="/kc/westport/" className="text-brand font-medium hover:underline">Westport</a>{" "}
+          <a href="/happy-hour/westport-kansas-city/" className="text-brand font-medium hover:underline">Westport</a>{" "}
           is the best Friday option if you want to move between bars. The
           neighborhood&apos;s walkability means you can start with cheap
           drafts on a patio, shift to a cocktail spot, and end up at a live
@@ -160,7 +171,7 @@ export default function FridayHappyHours() {
         </h3>
         <p className="text-muted leading-relaxed mb-3">
           The{" "}
-          <a href="/kc/crossroads/" className="text-brand font-medium hover:underline">Crossroads</a>{" "}
+          <a href="/happy-hour/crossroads-kansas-city/" className="text-brand font-medium hover:underline">Crossroads</a>{" "}
           shines on the first Friday of every month, when gallery openings
           and street vendors create a festival atmosphere. Bars and
           restaurants capitalize with extended specials and special menus.
@@ -174,9 +185,9 @@ export default function FridayHappyHours() {
         <p className="text-muted leading-relaxed">
           If the Friday crowds at P&amp;L and Westport are not your speed,
           the{" "}
-          <a href="/kc/river-market/" className="text-brand font-medium hover:underline">River Market</a>{" "}
+          <a href="/happy-hour/river-market-kansas-city/" className="text-brand font-medium hover:underline">River Market</a>{" "}
           and{" "}
-          <a href="/kc/midtown/" className="text-brand font-medium hover:underline">Midtown</a>{" "}
+          <a href="/happy-hour/midtown-kansas-city/" className="text-brand font-medium hover:underline">Midtown</a>{" "}
           offer a mellower Friday experience — brewery taprooms, neighborhood
           bars, and patio seating without the wait.
         </p>
@@ -212,7 +223,7 @@ export default function FridayHappyHours() {
           </div>
           <div>
             <h3 className="font-semibold text-foreground">Where is the best neighborhood for Friday happy hour?</h3>
-            <p className="text-muted text-sm leading-relaxed mt-1">Power &amp; Light for the biggest crowd, <a href="/kc/westport/" className="text-brand hover:underline">Westport</a> for crawl-friendly vibes, and the Crossroads for creative cocktails (especially on First Fridays).</p>
+            <p className="text-muted text-sm leading-relaxed mt-1">Power &amp; Light for the biggest crowd, <a href="/happy-hour/westport-kansas-city/" className="text-brand hover:underline">Westport</a> for crawl-friendly vibes, and the Crossroads for creative cocktails (especially on First Fridays).</p>
           </div>
           <div>
             <h3 className="font-semibold text-foreground">Can I transition from happy hour into nightlife?</h3>
