@@ -8,6 +8,13 @@ import { FlashMessage } from '@/components/FlashMessage';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import VenueDashboardShell, { type ShellTab } from '@/components/venue/VenueDashboardShell';
 import AccessManager, { type InviteRow, type MemberRow } from '@/components/venue/AccessManager';
+import Disclosure from '@/components/venue/Disclosure';
+import ConfirmDeleteToast from '@/components/venue/ConfirmDeleteToast';
+import VenueMenusManager, {
+  type VMM_Menu,
+  type VMM_PublishedVenueMenuOption,
+} from '@/components/venue/VenueMenusManager';
+import { MENU_TREE_SELECT } from '@/actions/menu-tree';
 import { createClient } from '@/utils/supabase/server';
 import { createServiceClient } from '@/utils/supabase/server';
 import { isAdminEmail } from '@/utils/admin-emails';
@@ -26,6 +33,25 @@ import {
   unpublishOrganizationMenu,
 } from '../../../actions/organization-actions';
 import { deleteOrganization, saveOrgNotificationPrefs, updateOrganization } from '@/actions/dashboard-actions';
+import {
+  addHappyHour,
+  updateHappyHour,
+  deleteHappyHour,
+  publishHappyHour,
+  unpublishHappyHour,
+  updateHappyHourMenus,
+  createMenu,
+  importOrganizationMenu,
+  importPublishedVenueMenu,
+  saveMenu,
+  publishMenu,
+  unpublishMenu,
+  deleteMenu,
+  createSection,
+  deleteSection,
+  createItem,
+  deleteItem,
+} from '@/actions/venue-actions';
 import { fetchVenuesByOrg, type VenueSummary as VenueRow } from '@happitime/shared-api';
 import { loginPathFor } from '@/utils/auth-paths';
 import { OrgBundlePanel } from '@/components/OrgBundlePanel';
@@ -37,13 +63,21 @@ const HH_STATUS_PUBLISHED = 'published';
 const DOW_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 type HHWindow = {
+  id: string;
   venue_id: string;
   dow: number[] | null;
   start_time: string | null;
   end_time: string | null;
   timezone: string | null;
   status: string | null;
+  label: string | null;
 };
+
+/** Normalizes a stored time string to the "HH:MM" value an <input type="time"> expects. */
+function hhTimeForInput(t: string | null): string {
+  if (!t) return '';
+  return t.length >= 5 ? t.slice(0, 5) : t;
+}
 
 function hhTimeToMinutes(t: string | null): number | null {
   if (!t) return null;
@@ -259,13 +293,17 @@ export default async function OrgPage({
     assignmentsByUser.set(row.user_id, list);
   }
 
-  // ── Happy-hour windows for the org's venues (drives the Hours status rollup) ──
+  // ── Happy-hour windows for the org's venues ──
+  //  These now drive an inline editor (not just a status rollup), so we pull the
+  //  window id + label, each venue's own menus, the window→menu associations,
+  //  and each venue's street address — everything the per-window editor needs.
   const venueIdList = venueRows.map((v) => v.id);
   const { data: hhWindows } = venueIdList.length
     ? await supabase
         .from('happy_hour_windows')
-        .select('venue_id,dow,start_time,end_time,timezone,status')
+        .select('id,venue_id,dow,start_time,end_time,timezone,status,label')
         .in('venue_id', venueIdList)
+        .order('start_time', { ascending: true })
     : { data: null };
   const windowsByVenue = new Map<string, HHWindow[]>();
   for (const w of (hhWindows as HHWindow[] | null) ?? []) {
@@ -274,8 +312,83 @@ export default async function OrgPage({
     windowsByVenue.set(w.venue_id, list);
   }
 
+  // Venue-scoped menus, grouped by venue — the "menus to attach" options.
+  const { data: venueMenusData } = venueIdList.length
+    ? await supabase
+        .from('menus')
+        .select('id,name,venue_id')
+        .in('venue_id', venueIdList)
+        .eq('scope', 'venue')
+        .order('name', { ascending: true })
+    : { data: null };
+  const menusByVenue = new Map<string, { id: string; name: string }[]>();
+  for (const m of (venueMenusData as { id: string; name: string; venue_id: string }[] | null) ?? []) {
+    const list = menusByVenue.get(m.venue_id) ?? [];
+    list.push({ id: m.id, name: m.name });
+    menusByVenue.set(m.venue_id, list);
+  }
+
+  // Which menus are already attached to each window.
+  const windowIdList = (hhWindows as HHWindow[] | null)?.map((w) => w.id) ?? [];
+  const { data: windowMenuLinks } = windowIdList.length
+    ? await supabase
+        .from('happy_hour_window_menus')
+        .select('happy_hour_window_id,menu_id')
+        .in('happy_hour_window_id', windowIdList)
+    : { data: null };
+  const menusByWindow = new Map<string, Set<string>>();
+  for (const l of (windowMenuLinks as { happy_hour_window_id: string; menu_id: string }[] | null) ?? []) {
+    const set = menusByWindow.get(l.happy_hour_window_id) ?? new Set<string>();
+    set.add(l.menu_id);
+    menusByWindow.set(l.happy_hour_window_id, set);
+  }
+
+  // Street address per venue (VenueSummary only carries city/state) for the
+  // venue label shown on each window when the org has more than one location.
+  const { data: venueAddrData } = venueIdList.length
+    ? await supabase.from('venues').select('id,address,city,state,zip').in('id', venueIdList)
+    : { data: null };
+  const addressByVenue = new Map<string, string>();
+  for (const v of (venueAddrData as { id: string; address: string | null; city: string | null; state: string | null; zip: string | null }[] | null) ?? []) {
+    const cityState = [v.city, v.state].filter(Boolean).join(', ');
+    const full = [v.address, cityState, v.zip].filter(Boolean).join(' · ');
+    if (full) addressByVenue.set(v.id, full);
+  }
+
+  // ── Venue-scoped menu trees, so the Menus tab can manage every venue's menus
+  //  inline (the same editor as the per-venue page, via VenueMenusManager) ──
+  const { data: venueMenuTreeData } = venueIdList.length
+    ? await supabase
+        .from('menus')
+        .select(`${MENU_TREE_SELECT},source_menu_id,venue_id`)
+        .in('venue_id', venueIdList)
+        .eq('scope', 'venue')
+        .order('created_at', { ascending: false })
+    : { data: null };
+  const venueMenusByVenue = new Map<string, (VMM_Menu & { venue_id: string })[]>();
+  for (const m of (venueMenuTreeData as (VMM_Menu & { venue_id: string })[] | null) ?? []) {
+    const list = venueMenusByVenue.get(m.venue_id) ?? [];
+    list.push(m);
+    venueMenusByVenue.set(m.venue_id, list);
+  }
+
+  // Published venue menus across the org — the "copy from another venue" source
+  // list. Filtered per venue (to exclude its own) at render time.
+  const { data: publishedVenueMenuData } = venueIdList.length
+    ? await supabase
+        .from('menus')
+        .select('id,name,venue_id,venue:venues!menus_venue_id_fkey(id,name,org_name)')
+        .eq('org_id', orgId)
+        .eq('scope', 'venue')
+        .eq('status', HH_STATUS_PUBLISHED)
+        .order('name', { ascending: true })
+    : { data: null };
+  const allPublishedVenueMenus = (publishedVenueMenuData as VMM_PublishedVenueMenuOption[] | null) ?? [];
+
   const inputCls =
     'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors';
+  const selectCls =
+    'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors appearance-none';
   const btnPrimary =
     'inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer';
   const btnSecondary =
@@ -443,7 +556,10 @@ export default async function OrgPage({
   // ════════════════════════════════════════════════════════════════════
   const menuPanel = (
     <div>
-      <PanelHeader title="Menu" desc="Shared menu templates that venues can copy and customize locally." />
+      <PanelHeader title="Menus" desc="Organization-wide shared templates and each venue's own menus — all in one place." />
+
+      <h3 className="text-body-md font-semibold text-foreground mb-1">Organization (shared) menus</h3>
+      <p className="text-body-sm text-muted mb-4">Templates that venues can copy and customize locally.</p>
 
       {organizationMenusErr ? (
         <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-5">
@@ -737,66 +853,328 @@ export default async function OrgPage({
           <p className="text-body-sm text-muted mt-1">Create a shared menu here, then import it into any venue.</p>
         </div>
       )}
+
+      {/* ── Per-venue menus — the same editor as each venue's page, so every
+          saved menu (including the ones you attach to happy hour windows) lives
+          here under the Menus tab. Edits post back to this tab. ── */}
+      {venueRows.length ? (
+        <div className="mt-10 flex flex-col gap-8">
+          <div className="border-t border-border pt-8">
+            <h3 className="text-body-md font-semibold text-foreground">Venue menus</h3>
+            <p className="text-body-sm text-muted mt-0.5">
+              Each venue&rsquo;s own menus — these are what you attach to happy hour windows.
+            </p>
+          </div>
+          {venueRows.map((v) => {
+            const venueMenus = venueMenusByVenue.get(v.id) ?? [];
+            const importedOrganizationMenuIds = new Set(
+              venueMenus.map((m) => m.source_menu_id).filter((id): id is string => !!id),
+            );
+            const publishedFromOtherVenues = allPublishedVenueMenus.filter((m) => m.venue_id !== v.id);
+            const venueAddress = addressByVenue.get(v.id) ?? '';
+            return (
+              <VenueMenusManager
+                key={v.id}
+                title={v.name}
+                description={venueAddress || 'Menus for this venue.'}
+                menus={venueMenus}
+                organizationMenuList={organizationMenuList.map((m) => ({
+                  id: m.id,
+                  name: m.name,
+                  status: m.status,
+                  is_active: m.is_active,
+                }))}
+                publishedVenueMenus={publishedFromOtherVenues}
+                importedOrganizationMenuIds={importedOrganizationMenuIds}
+                canManageVenue={canManageOrganizationMenus}
+                canEditMenuItems={canManageOrganizationMenus}
+                redirectTo={`/orgs/${orgId}`}
+                classNames={{ input: inputCls, select: selectCls, btnPrimary, btnSecondary, btnDanger }}
+                actions={{
+                  createMenu: createMenu.bind(null, orgId, v.id),
+                  importOrganizationMenu: importOrganizationMenu.bind(null, orgId, v.id),
+                  importPublishedVenueMenu: importPublishedVenueMenu.bind(null, orgId, v.id),
+                  saveMenu: saveMenu.bind(null, orgId, v.id),
+                  publishMenu: publishMenu.bind(null, orgId, v.id),
+                  unpublishMenu: unpublishMenu.bind(null, orgId, v.id),
+                  deleteMenu: deleteMenu.bind(null, orgId, v.id),
+                  createSection: createSection.bind(null, orgId, v.id),
+                  deleteSection: deleteSection.bind(null, orgId, v.id),
+                  createItem: createItem.bind(null, orgId, v.id),
+                  deleteItem: deleteItem.bind(null, orgId, v.id),
+                }}
+              />
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 
   // ════════════════════════════════════════════════════════════════════
-  //  HAPPY HOURS PANEL  (org-level overview → per-venue management)
-  //  Happy-hour windows are venue-scoped, so this tab routes you to each
-  //  venue's hours editor. (See follow-up walkthrough for aggregation.)
+  //  HAPPY HOURS PANEL  (inline, org-wide window editor)
+  //  Every venue's happy-hour windows are managed right here: expand a window
+  //  to edit its schedule + attached menus, publish/unpublish, or delete it
+  //  (with a toast confirm). Each window's editor reuses the per-venue happy-
+  //  hour actions, but passes redirect_to=/orgs/{orgId} so saving lands back on
+  //  this tab instead of bouncing to the standalone venue page. When the org has
+  //  more than one venue, each group is labelled with its venue name + address.
   // ════════════════════════════════════════════════════════════════════
+  const canManageHours = canManageOrganizationMenus;
+  const isMultiVenue = venueRows.length > 1;
+  const hoursReturnTo = `/orgs/${orgId}`;
+  const hhStatusPill = (status: string | null) =>
+    (status ?? '').toLowerCase() === HH_STATUS_PUBLISHED
+      ? 'bg-success-light text-success'
+      : 'bg-warning-light text-warning';
+
   const hoursPanel = (
     <div>
       <PanelHeader
         title="Happy Hours"
-        desc="Happy hour windows are set per venue. Pick a location to manage its schedule."
+        desc="Edit windows, attach menus, publish, and delete — all without leaving this page."
       />
       {venueRows.length ? (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-8">
           {venueRows.map((v) => {
-            // Identify each venue by its own name (not org_name) so owners can tell them apart.
-            const venueName = v.name;
-            const { kind, label, count, summary } = computeHoursStatus(windowsByVenue.get(v.id) ?? []);
-            const subtitle = count
-              ? `${count} window${count === 1 ? '' : 's'}${summary ? ` · ${summary}` : ''}`
-              : 'Add a happy hour';
-            const pillCls: Record<HHStatusKind, string> = {
+            const windows = windowsByVenue.get(v.id) ?? [];
+            const venueMenus = menusByVenue.get(v.id) ?? [];
+            const venueAddress = addressByVenue.get(v.id) ?? '';
+            const { kind, label: rollupLabel } = computeHoursStatus(windows);
+            const rollupPill: Record<HHStatusKind, string> = {
               live: 'bg-success-light text-success',
               soon: 'bg-brand-subtle text-brand-dark-alt',
               scheduled: 'bg-background text-muted border border-border',
               draft: 'bg-warning-light text-warning',
               none: 'bg-warning-light text-warning',
             };
-            const venueHref = fromAdmin
-              ? `/orgs/${orgId}/venues/${v.id}?from=admin`
-              : `/orgs/${orgId}/venues/${v.id}`;
+
             return (
-              <Link
-                key={v.id}
-                href={venueHref}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface shadow-sm hover:shadow-md transition-shadow p-5"
-              >
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-10 h-10 rounded-md bg-brand-subtle flex items-center justify-center shrink-0">
-                    <span className="text-heading-sm font-bold text-brand-dark">
-                      {venueName.charAt(0).toUpperCase()}
-                    </span>
+              <div key={v.id} className="flex flex-col gap-3">
+                {/* Venue label — only when the org has multiple venues, so each
+                    window is unambiguously tied to its location + address. */}
+                {isMultiVenue ? (
+                  <div className="flex items-center justify-between gap-3 px-1">
+                    <div className="min-w-0">
+                      <h3 className="text-body-md font-semibold text-foreground truncate">{v.name}</h3>
+                      {venueAddress ? (
+                        <p className="text-caption text-muted truncate">{venueAddress}</p>
+                      ) : null}
+                    </div>
+                    {windows.length ? (
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-caption font-medium shrink-0 ${rollupPill[kind]}`}>
+                        {kind === 'live' ? <span className="w-1.5 h-1.5 rounded-full bg-success" /> : null}
+                        {rollupLabel}
+                      </span>
+                    ) : null}
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="text-body-md font-semibold text-foreground truncate">{venueName}</h3>
-                    <p className="text-caption text-muted truncate">{subtitle}</p>
+                ) : null}
+
+                {windows.length ? (
+                  <div className="flex flex-col gap-3">
+                    {windows.map((w) => {
+                      const isPublished = (w.status ?? '').toLowerCase() === HH_STATUS_PUBLISHED;
+                      const selectedMenus = menusByWindow.get(w.id) ?? new Set<string>();
+                      const summary = (
+                        <div className="flex items-center gap-4 min-w-0">
+                          <div className="w-10 h-10 rounded-md bg-brand-subtle flex items-center justify-center shrink-0">
+                            <span className="text-heading-sm font-bold text-brand-dark">&#9200;</span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-body-md font-semibold text-foreground truncate">
+                              {hhFmtDays(w.dow) || 'No days set'}
+                            </div>
+                            <p className="text-body-sm text-muted truncate">
+                              {hhFmtRange(w.start_time, w.end_time) || '—'}
+                              {w.label ? <span className="text-muted-light"> · {w.label}</span> : null}
+                            </p>
+                            {/* When the org has several venues, name + address ride on
+                                each window so it's never ambiguous which location it's for. */}
+                            {isMultiVenue ? (
+                              <p className="text-caption text-muted-light truncate">
+                                {v.name}
+                                {venueAddress ? ` · ${venueAddress}` : ''}
+                              </p>
+                            ) : null}
+                            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium mt-1 ${hhStatusPill(w.status)}`}>
+                              {isPublished ? 'Published' : 'Draft'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+
+                      return (
+                        <Disclosure key={w.id} summary={summary}>
+                          {canManageHours ? (
+                            <div className="flex flex-col gap-5">
+                              {/* ── Edit schedule ── */}
+                              <form className="flex flex-col gap-4">
+                                <input type="hidden" name="hh_id" value={w.id} />
+                                <input type="hidden" name="redirect_to" value={hoursReturnTo} />
+                                <div>
+                                  <p className="text-caption font-medium text-muted mb-2">Days</p>
+                                  <div className="flex flex-wrap gap-x-4 gap-y-2">
+                                    {DOW_LABELS.map((d, i) => (
+                                      <label key={d} className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
+                                        <input
+                                          type="checkbox"
+                                          name="dow"
+                                          value={i}
+                                          defaultChecked={(w.dow ?? []).includes(i)}
+                                          className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                                        />
+                                        {d}
+                                      </label>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                  <div>
+                                    <label className="text-caption font-medium text-muted block mb-1">Start</label>
+                                    <input name="start_time" type="time" defaultValue={hhTimeForInput(w.start_time)} required className={inputCls} />
+                                  </div>
+                                  <div>
+                                    <label className="text-caption font-medium text-muted block mb-1">End</label>
+                                    <input name="end_time" type="time" defaultValue={hhTimeForInput(w.end_time)} required className={inputCls} />
+                                  </div>
+                                  <div className="col-span-2">
+                                    <label className="text-caption font-medium text-muted block mb-1">Label (optional)</label>
+                                    <input name="label" defaultValue={w.label ?? ''} placeholder="e.g., Late night, Brunch" className={inputCls} />
+                                  </div>
+                                </div>
+                                <div>
+                                  <SubmitButton formAction={updateHappyHour.bind(null, orgId, v.id)} className={btnSecondary} pendingLabel="Saving…">
+                                    Save
+                                  </SubmitButton>
+                                </div>
+                              </form>
+
+                              {/* ── Menus to attach ── */}
+                              <div className="border-t border-border pt-4">
+                                <p className="text-body-sm font-medium text-foreground mb-2">Menus available in this window</p>
+                                {venueMenus.length ? (
+                                  <form action={updateHappyHourMenus.bind(null, orgId, v.id)} className="flex flex-col gap-3">
+                                    <input type="hidden" name="hh_id" value={w.id} />
+                                    <input type="hidden" name="redirect_to" value={hoursReturnTo} />
+                                    <div className="flex flex-wrap gap-x-4 gap-y-2">
+                                      {venueMenus.map((menu) => (
+                                        <label key={menu.id} className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
+                                          <input
+                                            type="checkbox"
+                                            name="menu_ids"
+                                            value={menu.id}
+                                            defaultChecked={selectedMenus.has(menu.id)}
+                                            className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                                          />
+                                          {menu.name}
+                                        </label>
+                                      ))}
+                                    </div>
+                                    <div>
+                                      <SubmitButton type="submit" className={btnSecondary} pendingLabel="Saving…">
+                                        Save menus
+                                      </SubmitButton>
+                                    </div>
+                                  </form>
+                                ) : (
+                                  <p className="text-caption text-muted">
+                                    No menus for this venue yet. Add one from the venue&rsquo;s Menu tab, then attach it here.
+                                  </p>
+                                )}
+                              </div>
+
+                              {/* ── Status + delete ── */}
+                              <div className="border-t border-border pt-4 flex items-center gap-2">
+                                <form>
+                                  <input type="hidden" name="hh_id" value={w.id} />
+                                  <input type="hidden" name="redirect_to" value={hoursReturnTo} />
+                                  {isPublished ? (
+                                    <SubmitButton className={btnSecondary} formAction={unpublishHappyHour.bind(null, orgId, v.id)} pendingLabel="Updating…">
+                                      Unpublish
+                                    </SubmitButton>
+                                  ) : (
+                                    <SubmitButton className={btnPrimary} formAction={publishHappyHour.bind(null, orgId, v.id)} pendingLabel="Publishing…">
+                                      Publish
+                                    </SubmitButton>
+                                  )}
+                                </form>
+                                <ConfirmDeleteToast
+                                  action={deleteHappyHour.bind(null, orgId, v.id)}
+                                  hiddenFields={{ hh_id: w.id, redirect_to: hoursReturnTo }}
+                                  message="Delete this happy hour window? This can't be undone."
+                                  className={btnDanger}
+                                >
+                                  Delete
+                                </ConfirmDeleteToast>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-body-sm text-muted">You don&rsquo;t have permission to edit this window.</p>
+                          )}
+                        </Disclosure>
+                      );
+                    })}
                   </div>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
-                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-caption font-medium ${pillCls[kind]}`}>
-                    {kind === 'live' ? <span className="w-1.5 h-1.5 rounded-full bg-success" /> : null}
-                    {label}
-                  </span>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="text-muted-light">
-                    <path d="m9 18 6-6-6-6" />
-                  </svg>
-                </div>
-              </Link>
+                ) : (
+                  <div className="rounded-lg border border-dashed border-border-strong bg-surface/50 p-8 text-center">
+                    <div className="text-muted-light text-display-md mb-2">&#9200;</div>
+                    <p className="text-body-sm font-medium text-foreground">No happy hour windows yet</p>
+                    <p className="text-body-sm text-muted mt-1">Add your first window below to get started.</p>
+                  </div>
+                )}
+
+                {/* ── Add a window ── */}
+                {canManageHours ? (
+                  <details className="rounded-lg border border-border bg-surface shadow-sm">
+                    <summary className="flex items-center gap-2 p-4 cursor-pointer text-body-sm font-medium text-foreground select-none list-none">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" className="text-brand">
+                        <line x1="12" y1="5" x2="12" y2="19" />
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                      </svg>
+                      Add a window{isMultiVenue ? ` to ${v.name}` : ''}
+                    </summary>
+                    <form className="flex flex-col gap-4 border-t border-border p-5">
+                      <input type="hidden" name="redirect_to" value={hoursReturnTo} />
+                      <div>
+                        <p className="text-caption font-medium text-muted mb-2">Days</p>
+                        <div className="flex flex-wrap gap-x-4 gap-y-2">
+                          {DOW_LABELS.map((d, i) => (
+                            <label key={d} className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
+                              <input
+                                type="checkbox"
+                                name="dow"
+                                value={i}
+                                defaultChecked={i === 1}
+                                className="h-4 w-4 rounded border-border text-brand focus:ring-brand"
+                              />
+                              {d}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div>
+                          <label className="text-caption font-medium text-muted block mb-1">Start</label>
+                          <input name="start_time" type="time" required className={inputCls} />
+                        </div>
+                        <div>
+                          <label className="text-caption font-medium text-muted block mb-1">End</label>
+                          <input name="end_time" type="time" required className={inputCls} />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="text-caption font-medium text-muted block mb-1">Label (optional)</label>
+                          <input name="label" placeholder="e.g., Late night, Brunch" className={inputCls} />
+                        </div>
+                      </div>
+                      <div>
+                        <SubmitButton formAction={addHappyHour.bind(null, orgId, v.id)} className={btnPrimary} pendingLabel="Adding…">
+                          Add window (draft)
+                        </SubmitButton>
+                      </div>
+                    </form>
+                  </details>
+                ) : null}
+              </div>
             );
           })}
         </div>
@@ -919,7 +1297,7 @@ export default async function OrgPage({
   const tabs: ShellTab[] = [
     { id: 'venues', label: 'Venues', content: venuesPanel },
     { id: 'hours', label: 'Happy Hours', content: hoursPanel },
-    { id: 'menu', label: 'Menu', content: menuPanel },
+    { id: 'menu', label: 'Menus', content: menuPanel },
     { id: 'team', label: 'Team', content: teamPanel, show: canManageAccess },
     { id: 'settings', label: 'Settings', content: settingsPanel, show: isOwner },
   ];

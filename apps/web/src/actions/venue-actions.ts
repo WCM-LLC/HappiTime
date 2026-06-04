@@ -112,10 +112,23 @@ async function requireVenueContentAccess(orgId: string, venueId: string) {
   return requireVenueScopedWriteAccess(orgId, venueId, VENUE_CONTENT_ROLES);
 }
 
-/** Invalidates the Next.js cache for the venue management page. */
-function revalidateVenue(orgId: string, venueId: string) {
+/** Invalidates the Next.js cache for the venue management page (and, when the
+ * action was invoked from the org dashboard, that page too). */
+function revalidateVenue(orgId: string, venueId: string, redirectTo?: string) {
   revalidatePath(`/orgs/${orgId}/venues/${venueId}`);
   revalidatePath(`/app-preview/orgs/${orgId}/venues/${venueId}`);
+  if (redirectTo) revalidatePath(redirectTo);
+}
+
+/**
+ * Reads an optional caller-supplied return path from a happy-hour form. The org
+ * dashboard's Happy Hours tab passes `redirect_to=/orgs/{orgId}` so edits land
+ * back on that tab instead of the per-venue page. Constrained to the org's own
+ * page; anything else is ignored (falls back to the venue page).
+ */
+function orgDashboardReturnPath(orgId: string, formData: FormData): string | undefined {
+  const raw = toStr(formData.get('redirect_to'));
+  return raw === `/orgs/${orgId}` ? raw : undefined;
 }
 
 function assertMutationRows(
@@ -125,15 +138,16 @@ function assertMutationRows(
   orgId: string,
   venueId: string,
   failureCode: string,
+  redirectTo?: string,
 ) {
   if (error) {
     console.error(`[${operation}] write failed`, error);
-    redirectWithError(orgId, venueId, failureCode);
+    redirectWithError(orgId, venueId, failureCode, redirectTo);
   }
 
   if (!rows || rows.length === 0) {
     console.warn(`[${operation}] zero rows affected`, { orgId, venueId });
-    redirectWithError(orgId, venueId, 'not_authorized');
+    redirectWithError(orgId, venueId, 'not_authorized', redirectTo);
   }
 }
 
@@ -349,6 +363,7 @@ export async function updateVenueRatingSettings(orgId: string, venueId: string, 
 /** Creates a new happy hour window in 'draft' status for the given venue. */
 export async function addHappyHour(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
 
   const { data: venue, error: vErr } = await writeSupabase
     .from('venues')
@@ -359,7 +374,7 @@ export async function addHappyHour(orgId: string, venueId: string, formData: For
 
   if (vErr || !venue) {
     console.error(vErr);
-    redirectWithError(orgId, venueId, 'venue_not_found');
+    redirectWithError(orgId, venueId, 'venue_not_found', redirectTo);
   }
 
   const dow = parseDowArray(formData);
@@ -368,8 +383,8 @@ export async function addHappyHour(orgId: string, venueId: string, formData: For
   const label = toNullableStr(formData.get('label'));
   const timezone = toStr(formData.get('timezone')) || venue.timezone || 'America/Chicago';
 
-  if (!dow.length) redirectWithError(orgId, venueId, 'missing_dow');
-  if (!start_time || !end_time) redirectWithError(orgId, venueId, 'missing_time');
+  if (!dow.length) redirectWithError(orgId, venueId, 'missing_dow', redirectTo);
+  if (!start_time || !end_time) redirectWithError(orgId, venueId, 'missing_time', redirectTo);
 
   const { data: inserted, error } = await writeSupabase.from('happy_hour_windows').insert({
     venue_id: venueId,
@@ -381,24 +396,25 @@ export async function addHappyHour(orgId: string, venueId: string, formData: For
     label,
   }).select('id');
 
-  assertMutationRows('addHappyHour', inserted, error, orgId, venueId, 'happyhour_create_failed');
+  assertMutationRows('addHappyHour', inserted, error, orgId, venueId, 'happyhour_create_failed', redirectTo);
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'hh_created');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'hh_created', redirectTo);
 }
 
 /** Updates schedule fields (dow, start_time, end_time, label) for an existing happy hour window. */
 export async function updateHappyHour(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
 
-  const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
+  const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id', redirectTo);
   const dow = parseDowArray(formData);
   const start_time = toStr(formData.get('start_time'));
   const end_time = toStr(formData.get('end_time'));
   const label = toNullableStr(formData.get('label'));
 
-  if (!dow.length) redirectWithError(orgId, venueId, 'missing_dow');
-  if (!start_time || !end_time) redirectWithError(orgId, venueId, 'missing_time');
+  if (!dow.length) redirectWithError(orgId, venueId, 'missing_dow', redirectTo);
+  if (!start_time || !end_time) redirectWithError(orgId, venueId, 'missing_time', redirectTo);
 
   const { data: updated, error } = await writeSupabase
     .from('happy_hour_windows')
@@ -407,16 +423,17 @@ export async function updateHappyHour(orgId: string, venueId: string, formData: 
     .eq('venue_id', venueId)
     .select('id');
 
-  assertMutationRows('updateHappyHour', updated, error, orgId, venueId, 'happyhour_update_failed');
+  assertMutationRows('updateHappyHour', updated, error, orgId, venueId, 'happyhour_update_failed', redirectTo);
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'hh_saved');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'hh_saved', redirectTo);
 }
 
 /** Deletes a happy hour window and its associated records. */
 export async function deleteHappyHour(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
-  const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
+  const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id', redirectTo);
 
   const { data: deleted, error } = await writeSupabase
     .from('happy_hour_windows')
@@ -425,16 +442,17 @@ export async function deleteHappyHour(orgId: string, venueId: string, formData: 
     .eq('venue_id', venueId)
     .select('id');
 
-  assertMutationRows('deleteHappyHour', deleted, error, orgId, venueId, 'happyhour_delete_failed');
+  assertMutationRows('deleteHappyHour', deleted, error, orgId, venueId, 'happyhour_delete_failed', redirectTo);
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'hh_deleted');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'hh_deleted', redirectTo);
 }
 
 /** Sets a happy hour window status to 'published', making it visible in the directory and mobile app. */
 export async function publishHappyHour(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
-  const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
+  const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id', redirectTo);
 
   const { data: updated, error } = await writeSupabase
     .from('happy_hour_windows')
@@ -443,18 +461,19 @@ export async function publishHappyHour(orgId: string, venueId: string, formData:
     .eq('venue_id', venueId)
     .select('id');
 
-  assertMutationRows('publishHappyHour', updated, error, orgId, venueId, 'happyhour_publish_failed');
+  assertMutationRows('publishHappyHour', updated, error, orgId, venueId, 'happyhour_publish_failed', redirectTo);
   await ensureVenuePublished(writeSupabase, orgId, venueId);
   await publishMenusForWindow(writeSupabase, orgId, venueId, hh_id, 'happyhour_publish_failed');
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'hh_published');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'hh_published', redirectTo);
 }
 
 /** Sets a happy hour window status back to 'draft', hiding it from public views. */
 export async function unpublishHappyHour(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
-  const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
+  const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id', redirectTo);
 
   const { data: updated, error } = await writeSupabase
     .from('happy_hour_windows')
@@ -463,10 +482,10 @@ export async function unpublishHappyHour(orgId: string, venueId: string, formDat
     .eq('venue_id', venueId)
     .select('id');
 
-  assertMutationRows('unpublishHappyHour', updated, error, orgId, venueId, 'happyhour_unpublish_failed');
+  assertMutationRows('unpublishHappyHour', updated, error, orgId, venueId, 'happyhour_unpublish_failed', redirectTo);
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'hh_unpublished');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'hh_unpublished', redirectTo);
 }
 
 /**
@@ -475,7 +494,8 @@ export async function unpublishHappyHour(orgId: string, venueId: string, formDat
  */
 export async function updateHappyHourMenus(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
-  const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id');
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
+  const hh_id = requireField(formData, 'hh_id', orgId, venueId, 'missing_hh_id', redirectTo);
 
   const menuIds = formData.getAll('menu_ids').map((value) => toStr(value)).filter(Boolean);
   const uniqueMenuIds = Array.from(new Set(menuIds));
@@ -489,7 +509,7 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
 
   if (windowErr || !window) {
     console.error(windowErr);
-    redirectWithError(orgId, venueId, 'happyhour_not_found');
+    redirectWithError(orgId, venueId, 'happyhour_not_found', redirectTo);
   }
 
   const { data: menus, error: menusErr } = uniqueMenuIds.length
@@ -502,7 +522,7 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
 
   if (menusErr) {
     console.error('[updateHappyHourMenus] menu validation failed', menusErr);
-    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
+    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed', redirectTo);
   }
 
   const validMenuIds = (menus ?? []).map((menu: any) => menu.id).filter(Boolean);
@@ -514,7 +534,7 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
       expected: uniqueMenuIds.length,
       actual: validMenuIds.length,
     });
-    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
+    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed', redirectTo);
   }
 
   const { error: deleteErr } = await writeSupabase
@@ -524,7 +544,7 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
 
   if (deleteErr) {
     console.error('[updateHappyHourMenus] delete failed', deleteErr);
-    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
+    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed', redirectTo);
   }
 
   if (validMenuIds.length) {
@@ -533,7 +553,7 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
 
     if (insertErr) {
       console.error('[updateHappyHourMenus] insert failed', insertErr);
-      redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
+      redirectWithError(orgId, venueId, 'happyhour_menus_update_failed', redirectTo);
     }
   }
 
@@ -544,7 +564,7 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
 
   if (verifyErr) {
     console.error('[updateHappyHourMenus] verify failed', verifyErr);
-    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
+    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed', redirectTo);
   }
 
   const savedMenuIds = new Set((savedLinks ?? []).map((link: any) => link.menu_id));
@@ -561,7 +581,7 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
       expected: validMenuIds,
       saved: Array.from(savedMenuIds),
     });
-    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed');
+    redirectWithError(orgId, venueId, 'happyhour_menus_update_failed', redirectTo);
   }
 
   if ((window.status ?? '').toLowerCase() === HH_STATUS_PUBLISHED) {
@@ -575,14 +595,15 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
     );
   }
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'hh_menus_saved');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'hh_menus_saved', redirectTo);
 }
 
 /** Creates a new menu in 'draft' status for a venue. */
 export async function createMenu(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
-  const name = requireField(formData, 'menu_name', orgId, venueId, 'missing_menu_name');
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
+  const name = requireField(formData, 'menu_name', orgId, venueId, 'missing_menu_name', redirectTo);
 
   const { data: inserted, error } = await writeSupabase.from('menus').insert({
     org_id: orgId,
@@ -593,22 +614,22 @@ export async function createMenu(orgId: string, venueId: string, formData: FormD
     is_active: true,
   }).select('id');
 
-  assertMutationRows('createMenu', inserted, error, orgId, venueId, 'menu_create_failed');
+  assertMutationRows('createMenu', inserted, error, orgId, venueId, 'menu_create_failed', redirectTo);
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'menu_created');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'menu_created', redirectTo);
 }
 
 /** Imports an organization menu as a venue-owned copy, or refreshes an existing copy. */
 export async function importOrganizationMenu(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
   const organizationMenuId = requireField(
     formData,
     'organization_menu_id',
     orgId,
     venueId,
-    'missing_organization_menu_id',
-  );
+    'missing_organization_menu_id', redirectTo);
 
   const { data: sourceMenu, error: sourceMenuError } = await fetchOrganizationMenuTree(
     writeSupabase,
@@ -618,10 +639,10 @@ export async function importOrganizationMenu(orgId: string, venueId: string, for
 
   if (sourceMenuError) {
     console.error('[importOrganizationMenu] source lookup failed', sourceMenuError);
-    redirectWithError(orgId, venueId, 'organization_menu_import_failed');
+    redirectWithError(orgId, venueId, 'organization_menu_import_failed', redirectTo);
   }
 
-  if (!sourceMenu) redirectWithError(orgId, venueId, 'organization_menu_not_found');
+  if (!sourceMenu) redirectWithError(orgId, venueId, 'organization_menu_not_found', redirectTo);
 
   const { data: existingCopy, error: existingCopyError } = await writeSupabase
     .from('menus')
@@ -634,7 +655,7 @@ export async function importOrganizationMenu(orgId: string, venueId: string, for
 
   if (existingCopyError) {
     console.error('[importOrganizationMenu] existing copy lookup failed', existingCopyError);
-    redirectWithError(orgId, venueId, 'organization_menu_import_failed');
+    redirectWithError(orgId, venueId, 'organization_menu_import_failed', redirectTo);
   }
 
   const successCode = existingCopy?.id
@@ -653,23 +674,23 @@ export async function importOrganizationMenu(orgId: string, venueId: string, for
     }
   } catch (error) {
     console.error('[importOrganizationMenu] clone failed', error);
-    redirectWithError(orgId, venueId, 'organization_menu_import_failed');
+    redirectWithError(orgId, venueId, 'organization_menu_import_failed', redirectTo);
   }
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, successCode);
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, successCode, redirectTo);
 }
 
 /** Copies a published menu from another venue in the same organization as an independent draft. */
 export async function importPublishedVenueMenu(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
   const sourceMenuId = requireField(
     formData,
     'source_menu_id',
     orgId,
     venueId,
-    'missing_source_menu_id',
-  );
+    'missing_source_menu_id', redirectTo);
 
   let sourceLookupSupabase = writeSupabase;
   try {
@@ -687,10 +708,10 @@ export async function importPublishedVenueMenu(orgId: string, venueId: string, f
 
   if (sourceMenuError) {
     console.error('[importPublishedVenueMenu] source lookup failed', sourceMenuError);
-    redirectWithError(orgId, venueId, 'published_menu_import_failed');
+    redirectWithError(orgId, venueId, 'published_menu_import_failed', redirectTo);
   }
 
-  if (!sourceMenu) redirectWithError(orgId, venueId, 'source_menu_not_found');
+  if (!sourceMenu) redirectWithError(orgId, venueId, 'source_menu_not_found', redirectTo);
 
   try {
     await cloneVenueMenuToVenue(writeSupabase, sourceMenu, {
@@ -700,17 +721,18 @@ export async function importPublishedVenueMenu(orgId: string, venueId: string, f
     });
   } catch (error) {
     console.error('[importPublishedVenueMenu] clone failed', error);
-    redirectWithError(orgId, venueId, 'published_menu_import_failed');
+    redirectWithError(orgId, venueId, 'published_menu_import_failed', redirectTo);
   }
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'published_menu_imported');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'published_menu_imported', redirectTo);
 }
 
 /** Saves editable fields for a menu, including its existing sections and items. */
 export async function saveMenu(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueContentAccess(orgId, venueId);
-  const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
+  const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id', redirectTo);
 
   const { data: menu, error: menuLookupError } = await writeSupabase
     .from('menus')
@@ -721,16 +743,16 @@ export async function saveMenu(orgId: string, venueId: string, formData: FormDat
 
   if (menuLookupError) {
     console.error('[saveMenu] menu lookup failed', menuLookupError);
-    redirectWithError(orgId, venueId, 'menu_update_failed');
+    redirectWithError(orgId, venueId, 'menu_update_failed', redirectTo);
   }
 
-  if (!menu) redirectWithError(orgId, venueId, 'not_authorized');
+  if (!menu) redirectWithError(orgId, venueId, 'not_authorized', redirectTo);
 
   if (formData.has('menu_name')) {
     const name = toStr(formData.get('menu_name'));
     const is_active = formData.get('menu_is_active') === 'on';
 
-    if (!name) redirectWithError(orgId, venueId, 'missing_menu_name');
+    if (!name) redirectWithError(orgId, venueId, 'missing_menu_name', redirectTo);
 
     const { data: updatedMenu, error: menuError } = await writeSupabase
       .from('menus')
@@ -739,7 +761,7 @@ export async function saveMenu(orgId: string, venueId: string, formData: FormDat
       .eq('venue_id', venueId)
       .select('id');
 
-    assertMutationRows('saveMenu:menu', updatedMenu, menuError, orgId, venueId, 'menu_update_failed');
+    assertMutationRows('saveMenu:menu', updatedMenu, menuError, orgId, venueId, 'menu_update_failed', redirectTo);
   }
 
   const sectionIds = Array.from(new Set(
@@ -752,8 +774,7 @@ export async function saveMenu(orgId: string, venueId: string, formData: FormDat
       `section_name_${sectionId}`,
       orgId,
       venueId,
-      'missing_section_fields',
-    );
+      'missing_section_fields', redirectTo);
 
     const { data: updatedSection, error: sectionError } = await writeSupabase
       .from('menu_sections')
@@ -769,6 +790,7 @@ export async function saveMenu(orgId: string, venueId: string, formData: FormDat
       orgId,
       venueId,
       'section_update_failed',
+      redirectTo,
     );
   }
 
@@ -782,7 +804,7 @@ export async function saveMenu(orgId: string, venueId: string, formData: FormDat
     const price = toNumberOrNull(formData.get(`item_price_${itemId}`));
     const is_happy_hour = formData.get(`item_is_happy_hour_${itemId}`) === 'on';
 
-    if (!itemName) redirectWithError(orgId, venueId, 'missing_item_fields');
+    if (!itemName) redirectWithError(orgId, venueId, 'missing_item_fields', redirectTo);
 
     const { data: item } = await writeSupabase
       .from('menu_items')
@@ -791,7 +813,7 @@ export async function saveMenu(orgId: string, venueId: string, formData: FormDat
       .eq('menu_sections.menu_id', menu_id)
       .maybeSingle();
 
-    if (!item) redirectWithError(orgId, venueId, 'not_authorized');
+    if (!item) redirectWithError(orgId, venueId, 'not_authorized', redirectTo);
 
     const { data: updatedItem, error: itemError } = await writeSupabase
       .from('menu_items')
@@ -799,17 +821,18 @@ export async function saveMenu(orgId: string, venueId: string, formData: FormDat
       .eq('id', itemId)
       .select('id');
 
-    assertMutationRows('saveMenu:item', updatedItem, itemError, orgId, venueId, 'item_update_failed');
+    assertMutationRows('saveMenu:item', updatedItem, itemError, orgId, venueId, 'item_update_failed', redirectTo);
   }
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'menu_saved');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'menu_saved', redirectTo);
 }
 
 /** Sets a menu's status to 'published'. */
 export async function publishMenu(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
-  const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
+  const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id', redirectTo);
 
   const { data: updated, error } = await writeSupabase
     .from('menus')
@@ -818,17 +841,18 @@ export async function publishMenu(orgId: string, venueId: string, formData: Form
     .eq('venue_id', venueId)
     .select('id');
 
-  assertMutationRows('publishMenu', updated, error, orgId, venueId, 'menu_publish_failed');
+  assertMutationRows('publishMenu', updated, error, orgId, venueId, 'menu_publish_failed', redirectTo);
   await ensureVenuePublished(writeSupabase, orgId, venueId);
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'menu_published');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'menu_published', redirectTo);
 }
 
 /** Sets a menu's status back to 'draft'. */
 export async function unpublishMenu(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
-  const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
+  const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id', redirectTo);
 
   const { data: updated, error } = await writeSupabase
     .from('menus')
@@ -837,10 +861,10 @@ export async function unpublishMenu(orgId: string, venueId: string, formData: Fo
     .eq('venue_id', venueId)
     .select('id');
 
-  assertMutationRows('unpublishMenu', updated, error, orgId, venueId, 'menu_unpublish_failed');
+  assertMutationRows('unpublishMenu', updated, error, orgId, venueId, 'menu_unpublish_failed', redirectTo);
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'menu_unpublished');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'menu_unpublished', redirectTo);
 }
 
 /**
@@ -849,7 +873,8 @@ export async function unpublishMenu(orgId: string, venueId: string, formData: Fo
  */
 export async function deleteMenu(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
-  const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id');
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
+  const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_menu_id', redirectTo);
 
   const { data: menu } = await writeSupabase
     .from('menus')
@@ -858,7 +883,7 @@ export async function deleteMenu(orgId: string, venueId: string, formData: FormD
     .eq('venue_id', venueId)
     .maybeSingle();
 
-  if (!menu) redirectWithError(orgId, venueId, 'not_authorized');
+  if (!menu) redirectWithError(orgId, venueId, 'not_authorized', redirectTo);
 
   const { data: sections } = await writeSupabase
     .from('menu_sections')
@@ -878,17 +903,18 @@ export async function deleteMenu(orgId: string, venueId: string, formData: FormD
     .eq('venue_id', venueId)
     .select('id');
 
-  assertMutationRows('deleteMenu', deleted, error, orgId, venueId, 'menu_delete_failed');
+  assertMutationRows('deleteMenu', deleted, error, orgId, venueId, 'menu_delete_failed', redirectTo);
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'menu_deleted');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'menu_deleted', redirectTo);
 }
 
 /** Creates a new menu section appended to the end of the menu. */
 export async function createSection(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
-  const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_section_fields');
-  const name = requireField(formData, 'section_name', orgId, venueId, 'missing_section_fields');
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
+  const menu_id = requireField(formData, 'menu_id', orgId, venueId, 'missing_section_fields', redirectTo);
+  const name = requireField(formData, 'section_name', orgId, venueId, 'missing_section_fields', redirectTo);
   const { data: menu } = await writeSupabase
     .from('menus')
     .select('id')
@@ -896,18 +922,18 @@ export async function createSection(orgId: string, venueId: string, formData: Fo
     .eq('venue_id', venueId)
     .maybeSingle();
 
-  if (!menu) redirectWithError(orgId, venueId, 'not_authorized');
+  if (!menu) redirectWithError(orgId, venueId, 'not_authorized', redirectTo);
 
   const nextSort = await nextSortOrder(writeSupabase, 'menu_sections', 'menu_id', menu_id);
 
   const { error } = await writeSupabase.from('menu_sections').insert({ menu_id, name, sort_order: nextSort });
   if (error) {
     console.error(error);
-    redirectWithError(orgId, venueId, 'section_create_failed');
+    redirectWithError(orgId, venueId, 'section_create_failed', redirectTo);
   }
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'section_created');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'section_created', redirectTo);
 }
 
 /**
@@ -916,7 +942,8 @@ export async function createSection(orgId: string, venueId: string, formData: Fo
  */
 export async function deleteSection(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
-  const section_id = requireField(formData, 'section_id', orgId, venueId, 'missing_section_id');
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
+  const section_id = requireField(formData, 'section_id', orgId, venueId, 'missing_section_id', redirectTo);
 
   const { data: section } = await writeSupabase
     .from('menu_sections')
@@ -925,30 +952,31 @@ export async function deleteSection(orgId: string, venueId: string, formData: Fo
     .eq('menus.venue_id', venueId)
     .maybeSingle();
 
-  if (!section) redirectWithError(orgId, venueId, 'not_authorized');
+  if (!section) redirectWithError(orgId, venueId, 'not_authorized', redirectTo);
 
   await writeSupabase.from('menu_items').delete().eq('section_id', section_id);
 
   const { error } = await writeSupabase.from('menu_sections').delete().eq('id', section_id);
   if (error) {
     console.error(error);
-    redirectWithError(orgId, venueId, 'section_delete_failed');
+    redirectWithError(orgId, venueId, 'section_delete_failed', redirectTo);
   }
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'section_deleted');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'section_deleted', redirectTo);
 }
 
 /** Creates a menu item appended to the end of a section. */
 export async function createItem(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueContentAccess(orgId, venueId);
-  const section_id = requireField(formData, 'section_id', orgId, venueId, 'missing_item_fields');
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
+  const section_id = requireField(formData, 'section_id', orgId, venueId, 'missing_item_fields', redirectTo);
   const name = toStr(formData.get('item_name'));
   const description = toNullableStr(formData.get('item_description'));
   const price = toNumberOrNull(formData.get('item_price'));
   const is_happy_hour = formData.get('item_is_happy_hour') === 'on';
 
-  if (!name) redirectWithError(orgId, venueId, 'missing_item_fields');
+  if (!name) redirectWithError(orgId, venueId, 'missing_item_fields', redirectTo);
 
   const { data: section } = await writeSupabase
     .from('menu_sections')
@@ -957,7 +985,7 @@ export async function createItem(orgId: string, venueId: string, formData: FormD
     .eq('menus.venue_id', venueId)
     .maybeSingle();
 
-  if (!section) redirectWithError(orgId, venueId, 'not_authorized');
+  if (!section) redirectWithError(orgId, venueId, 'not_authorized', redirectTo);
 
   const nextSort = await nextSortOrder(writeSupabase, 'menu_items', 'section_id', section_id);
   const { error } = await writeSupabase.from('menu_items').insert({
@@ -966,11 +994,11 @@ export async function createItem(orgId: string, venueId: string, formData: FormD
 
   if (error) {
     console.error(error);
-    redirectWithError(orgId, venueId, 'item_create_failed');
+    redirectWithError(orgId, venueId, 'item_create_failed', redirectTo);
   }
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'item_created');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'item_created', redirectTo);
 }
 
 /**
@@ -979,7 +1007,8 @@ export async function createItem(orgId: string, venueId: string, formData: FormD
  */
 export async function deleteItem(orgId: string, venueId: string, formData: FormData) {
   const { writeSupabase } = await requireVenueContentAccess(orgId, venueId);
-  const item_id = requireField(formData, 'item_id', orgId, venueId, 'missing_item_id');
+  const redirectTo = orgDashboardReturnPath(orgId, formData);
+  const item_id = requireField(formData, 'item_id', orgId, venueId, 'missing_item_id', redirectTo);
 
   const { data: item } = await writeSupabase
     .from('menu_items')
@@ -988,14 +1017,14 @@ export async function deleteItem(orgId: string, venueId: string, formData: FormD
     .eq('menu_sections.menus.venue_id', venueId)
     .maybeSingle();
 
-  if (!item) redirectWithError(orgId, venueId, 'not_authorized');
+  if (!item) redirectWithError(orgId, venueId, 'not_authorized', redirectTo);
 
   const { error } = await writeSupabase.from('menu_items').delete().eq('id', item_id);
   if (error) {
     console.error(error);
-    redirectWithError(orgId, venueId, 'item_delete_failed');
+    redirectWithError(orgId, venueId, 'item_delete_failed', redirectTo);
   }
 
-  revalidateVenue(orgId, venueId);
-  redirectWithSuccess(orgId, venueId, 'item_deleted');
+  revalidateVenue(orgId, venueId, redirectTo);
+  redirectWithSuccess(orgId, venueId, 'item_deleted', redirectTo);
 }

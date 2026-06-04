@@ -20,19 +20,41 @@ export function toNumberOrNull(v: FormDataEntryValue | null | undefined): number
 }
 
 /**
- * Redirects to the venue page with an error query param.
- * Used as a typed never-return to signal validation failures in server actions.
+ * Resolves where a venue-scoped action should return to. Defaults to the venue
+ * management page, but an action may pass an optional caller-supplied path
+ * (e.g. the org dashboard's Happy Hours tab). The override is constrained to
+ * the org's own page to avoid open-redirect abuse.
  */
-export function redirectWithError(orgId: string, venueId: string, error: string): never {
-  redirect(`/orgs/${orgId}/venues/${venueId}?error=${error}`);
+function resolveReturnBase(orgId: string, venueId: string, redirectTo?: string): string {
+  return redirectTo === `/orgs/${orgId}` ? redirectTo : `/orgs/${orgId}/venues/${venueId}`;
 }
 
 /**
- * Redirects to the venue page with a success query param.
- * The FlashMessage client component reads this and shows a toast.
+ * Redirects to the venue page (or a validated caller-supplied path) with an
+ * error query param. Used as a typed never-return to signal validation
+ * failures in server actions.
  */
-export function redirectWithSuccess(orgId: string, venueId: string, success: string): never {
-  redirect(`/orgs/${orgId}/venues/${venueId}?success=${success}`);
+export function redirectWithError(
+  orgId: string,
+  venueId: string,
+  error: string,
+  redirectTo?: string,
+): never {
+  redirect(`${resolveReturnBase(orgId, venueId, redirectTo)}?error=${error}`);
+}
+
+/**
+ * Redirects to the venue page (or a validated caller-supplied path) with a
+ * success query param. The FlashMessage client component reads this and shows
+ * a toast.
+ */
+export function redirectWithSuccess(
+  orgId: string,
+  venueId: string,
+  success: string,
+  redirectTo?: string,
+): never {
+  redirect(`${resolveReturnBase(orgId, venueId, redirectTo)}?success=${success}`);
 }
 
 /**
@@ -45,8 +67,9 @@ export function requireField(
   orgId: string,
   venueId: string,
   error: string,
+  redirectTo?: string,
 ): string {
   const value = toStr(formData.get(key));
-  if (!value) redirectWithError(orgId, venueId, error);
+  if (!value) redirectWithError(orgId, venueId, error, redirectTo);
   return value;
 }

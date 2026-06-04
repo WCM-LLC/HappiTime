@@ -14,6 +14,9 @@ type MenuSectionItemAdderProps = {
   deleteButtonClassName: string;
   inputClassName?: string;
   variant?: 'modern' | 'legacy';
+  /** When set, the new item posts back here (e.g. the org dashboard's Menus
+   * tab) instead of the venue page. Validated server-side. */
+  redirectTo?: string;
 };
 
 function OkButton({ className }: { className: string }) {
@@ -34,6 +37,7 @@ export default function MenuSectionItemAdder({
   deleteButtonClassName,
   inputClassName,
   variant = 'modern',
+  redirectTo,
 }: MenuSectionItemAdderProps) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
@@ -61,6 +65,7 @@ export default function MenuSectionItemAdder({
     return (
       <form action={handleSubmit} className="col" style={{ gap: 8, marginTop: 10 }}>
         <input type="hidden" name="section_id" value={sectionId} />
+        <input type="hidden" name="redirect_to" value={redirectTo ?? ''} />
         <div className="row">
           <input name="item_name" placeholder="Item name" required />
           <input name="item_price" type="number" step="0.01" placeholder="Price (optional)" />
@@ -90,6 +95,7 @@ export default function MenuSectionItemAdder({
       className="mt-3 rounded-md border border-dashed border-border-strong bg-background/50 p-4"
     >
       <input type="hidden" name="section_id" value={sectionId} />
+      <input type="hidden" name="redirect_to" value={redirectTo ?? ''} />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
         <div>
           <label className="text-caption font-medium text-muted block mb-1">Item name</label>
