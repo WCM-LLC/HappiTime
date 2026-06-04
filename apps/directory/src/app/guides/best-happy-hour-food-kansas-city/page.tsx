@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { breadcrumbJsonLd } from "@/lib/structuredData";
+import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 
 const BASE = "https://happitime.biz";
 const CANONICAL = `${BASE}/guides/best-happy-hour-food-kansas-city/`;
@@ -72,11 +72,22 @@ export default function BestHappyHourFood() {
     { name: "Best Happy Hour Food", url: CANONICAL },
   ]);
 
+  const article = articleJsonLd({
+    title: "Best Happy Hour Food Deals in Kansas City",
+    description:
+      "The best happy hour food deals in Kansas City — half-price appetizers, dollar tacos, discounted plates, and more across Westport, Power & Light, the Crossroads, and beyond.",
+    url: CANONICAL,
+  });
+
   return (
     <article className="mx-auto max-w-3xl px-6 py-12">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(article) }}
       />
       <script
         type="application/ld+json"
@@ -131,7 +142,7 @@ export default function BestHappyHourFood() {
           Westport — Casual &amp; Cheap
         </h3>
         <p className="text-muted leading-relaxed mb-3">
-          <a href="/kc/westport/" className="text-brand font-medium hover:underline">Westport</a>{" "}
+          <a href="/happy-hour/westport-kansas-city/" className="text-brand font-medium hover:underline">Westport</a>{" "}
           bars lean into shareable, no-fuss food: loaded nachos, wings,
           sliders, and tacos in the $3-$6 range during happy hour. The
           neighborhood&apos;s bar density means you can graze across multiple
@@ -143,7 +154,7 @@ export default function BestHappyHourFood() {
         </h3>
         <p className="text-muted leading-relaxed mb-3">
           The{" "}
-          <a href="/kc/crossroads/" className="text-brand font-medium hover:underline">Crossroads</a>{" "}
+          <a href="/happy-hour/crossroads-kansas-city/" className="text-brand font-medium hover:underline">Crossroads</a>{" "}
           is where KC&apos;s creative food scene meets happy hour pricing.
           Expect seasonal small plates, house-made charcuterie, and
           inventive snacks you won&apos;t find on standard bar menus — often at
@@ -154,7 +165,7 @@ export default function BestHappyHourFood() {
           Power &amp; Light — Upscale Bites
         </h3>
         <p className="text-muted leading-relaxed mb-3">
-          <a href="/kc/power-and-light/" className="text-brand font-medium hover:underline">Power &amp; Light</a>{" "}
+          <a href="/happy-hour/power-light-kansas-city/" className="text-brand font-medium hover:underline">Power &amp; Light</a>{" "}
           restaurants offer polished happy hour food — think flatbreads,
           bruschetta flights, and sushi rolls at $6-$9. The savings are
           significant when regular appetizer prices run $14-$18.
@@ -165,7 +176,7 @@ export default function BestHappyHourFood() {
         </h3>
         <p className="text-muted leading-relaxed mb-3">
           The{" "}
-          <a href="/kc/plaza/" className="text-brand font-medium hover:underline">Plaza</a>{" "}
+          <a href="/happy-hour/plaza-kansas-city/" className="text-brand font-medium hover:underline">Plaza</a>{" "}
           caters to a more upscale crowd with discounted wine pairings,
           cheese boards, and oyster deals. It is the go-to for a
           date-night happy hour where food is the main event.
@@ -175,7 +186,7 @@ export default function BestHappyHourFood() {
           18th &amp; Vine — Soul Food Specials
         </h3>
         <p className="text-muted leading-relaxed">
-          <a href="/kc/18th-and-vine/" className="text-brand font-medium hover:underline">18th &amp; Vine</a>{" "}
+          <a href="/happy-hour/18th-and-vine-kansas-city/" className="text-brand font-medium hover:underline">18th &amp; Vine</a>{" "}
           offers some of the most authentic food in the city during happy
           hour — think discounted fried catfish, collard greens, and
           cornbread alongside affordable pours.

@@ -97,11 +97,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  const redirectedNeighborhoodSlugs = new Set(
-    HAPPY_HOUR_LANDING_PAGES.map((page) => page.neighborhoodSlug)
-  );
-
-  // Canonical happy-hour neighborhood landing pages
+  // Canonical happy-hour neighborhood landing pages.
+  // The legacy `/kc/[neighborhood]/` URLs 301 to these (see next.config.ts),
+  // so only the canonical `/happy-hour/[slug]/` form is listed in the sitemap.
   const happyHourLandingPages: MetadataRoute.Sitemap =
     HAPPY_HOUR_LANDING_PAGES.map((page) => ({
       url: `${baseUrl}${page.canonicalPath}`,
@@ -109,16 +107,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily" as const,
       priority: 0.85,
     }));
-
-  // Remaining neighborhood pages
-  const neighborhoodPages: MetadataRoute.Sitemap = KC_NEIGHBORHOODS.filter(
-    (n) => !redirectedNeighborhoodSlugs.has(n.slug)
-  ).map((n) => ({
-    url: `${baseUrl}/kc/${n.slug}/`,
-    lastModified: new Date(),
-    changeFrequency: "daily" as const,
-    priority: 0.8,
-  }));
 
   // Dynamic guide pages (Super User authored)
   let dynamicGuidePages: MetadataRoute.Sitemap = [];
@@ -179,7 +167,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticPages,
     ...dynamicGuidePages,
     ...happyHourLandingPages,
-    ...neighborhoodPages,
     ...venuePages,
   ];
 }

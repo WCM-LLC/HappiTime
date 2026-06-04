@@ -90,6 +90,89 @@ function formatTime(time: string): string {
 }
 
 /**
+ * Generate Article JSON-LD for an editorial page (e.g. a guide).
+ * Falls back to an Organization author/publisher ("HappiTime") when no
+ * named author is supplied.
+ */
+export function articleJsonLd({
+  title,
+  description,
+  url,
+  imageUrl,
+  publishedTime,
+  modifiedTime,
+  authorName,
+}: {
+  title: string;
+  description: string;
+  url: string;
+  imageUrl?: string;
+  publishedTime?: string;
+  modifiedTime?: string;
+  authorName?: string;
+}): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: title,
+    description,
+    url,
+    image: imageUrl ?? undefined,
+    datePublished: publishedTime ?? undefined,
+    dateModified: modifiedTime ?? publishedTime ?? undefined,
+    author: authorName
+      ? { "@type": "Person", name: authorName }
+      : { "@type": "Organization", name: "HappiTime" },
+    publisher: {
+      "@type": "Organization",
+      name: "HappiTime",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://happitime.biz/icon.png",
+      },
+    },
+  };
+}
+
+/**
+ * Generate FAQPage JSON-LD from a list of question/answer pairs.
+ */
+export function faqPageJsonLd(
+  items: { question: string; answer: string }[]
+): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items.map((item) => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: item.answer,
+      },
+    })),
+  };
+}
+
+/**
+ * Generate ItemList JSON-LD enumerating named, linkable items in order.
+ */
+export function itemListJsonLd(
+  items: { name: string; url: string }[]
+): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      url: item.url,
+    })),
+  };
+}
+
+/**
  * Generate BreadcrumbList JSON-LD for a page.
  */
 export function breadcrumbJsonLd(
