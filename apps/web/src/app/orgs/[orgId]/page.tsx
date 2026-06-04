@@ -55,6 +55,8 @@ import {
 import { fetchVenuesByOrg, type VenueSummary as VenueRow } from '@happitime/shared-api';
 import { loginPathFor } from '@/utils/auth-paths';
 import { OrgBundlePanel } from '@/components/OrgBundlePanel';
+import { OrgSubscriptionStatus, type VenuePlanRow } from '@/components/OrgSubscriptionStatus';
+import type { SubscriptionPlan } from '@/utils/stripe';
 
 const HH_STATUS_PUBLISHED = 'published';
 
@@ -265,6 +267,27 @@ export default async function OrgPage({
   const organizationMenuList = (organizationMenus as OrganizationMenu[] | null) ?? [];
   const venueRows = (venues as VenueRow[] | null) ?? [];
 
+  // ── Per-venue subscription plans (drives the Subscriptions status block) ──
+  const PAID_VENUE_PLANS = ['verified', 'featured', 'founding_pilot'];
+  const ACTIVE_SUB_STATUSES = ['active', 'trialing'];
+  const subVenueIds = venueRows.map((v) => v.id);
+  const { data: venueSubsData } = canManageBilling && subVenueIds.length
+    ? await (supabase as any)
+        .from('venue_subscriptions')
+        .select('venue_id, plan, status')
+        .in('venue_id', subVenueIds)
+    : { data: null };
+  const planByVenue = new Map<string, SubscriptionPlan>();
+  for (const s of (venueSubsData as { venue_id: string; plan: string; status: string }[] | null) ?? []) {
+    const active = ACTIVE_SUB_STATUSES.includes(s.status) && PAID_VENUE_PLANS.includes(s.plan);
+    planByVenue.set(s.venue_id, active ? (s.plan as SubscriptionPlan) : 'listed');
+  }
+  const venuePlanRows: VenuePlanRow[] = venueRows.map((v) => ({
+    id: v.id,
+    name: v.name,
+    plan: planByVenue.get(v.id) ?? 'listed',
+  }));
+
   // ── Team / access data (only fetched for owners & admins, who see the tab) ──
   const [{ data: members }, { data: assignments }, { data: invites }] = canManageAccess
     ? await Promise.all([
@@ -410,6 +433,12 @@ export default async function OrgPage({
   const venuesPanel = (
     <div>
       <PanelHeader title="Venues" desc="Manage locations, status, and details for this organization." />
+
+      {canManageBilling && (
+        <div className="mb-6">
+          <OrgSubscriptionStatus orgId={orgId} venues={venuePlanRows} />
+        </div>
+      )}
 
       {canManageBilling && (
         <div className="mb-6">
