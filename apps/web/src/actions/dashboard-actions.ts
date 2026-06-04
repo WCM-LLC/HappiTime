@@ -130,6 +130,13 @@ export async function updateOrganization(orgId: string, formData: FormData) {
   const user = auth.user;
   if (!user) redirect("/login");
 
+  // Optional caller-supplied return path (e.g. the venue dashboard's Settings
+  // tab). Constrained to the org's own routes to avoid open-redirect abuse;
+  // falls back to /dashboard so existing callers are unaffected.
+  const redirectToRaw = String(formData.get("redirect_to") ?? "").trim();
+  const redirectTo = redirectToRaw === `/orgs/${orgId}` ? redirectToRaw : "";
+  const errBase = redirectTo || "/dashboard";
+
   const { data: membership, error: membershipErr } = await supabase
     .from("org_members")
     .select("role")
@@ -138,11 +145,11 @@ export async function updateOrganization(orgId: string, formData: FormData) {
     .maybeSingle();
 
   if (membershipErr || !membership || String(membership.role) !== "owner") {
-    redirect("/dashboard?error=not_org_owner");
+    redirect(`${errBase}?error=not_org_owner`);
   }
 
   const name = String(formData.get("name") ?? "").trim();
-  if (!name) redirect("/dashboard?error=missing_org_name");
+  if (!name) redirect(`${errBase}?error=missing_org_name`);
 
   const slugInput = String(formData.get("slug") ?? "").trim();
   const slug = slugify(slugInput || name);
@@ -154,14 +161,54 @@ export async function updateOrganization(orgId: string, formData: FormData) {
 
   if (error) {
     if (error.code === "23505") {
-      redirect("/dashboard?error=slug_taken");
+      redirect(`${errBase}?error=slug_taken`);
     }
 
-    redirect(`/dashboard?error=${encodeURIComponent(error.message ?? "org_update_failed")}`);
+    redirect(`${errBase}?error=${encodeURIComponent(error.message ?? "org_update_failed")}`);
   }
 
   revalidatePath("/dashboard");
   revalidatePath(`/orgs/${orgId}`);
+
+  // When invoked from the org page, return there with a success toast instead
+  // of leaving for /dashboard.
+  if (redirectTo) redirect(`${redirectTo}?success=settings_saved`);
+}
+
+export async function saveOrgNotificationPrefs(orgId: string, formData: FormData) {
+  const supabase = await createClient();
+
+  const { data: auth } = await supabase.auth.getUser();
+  const user = auth.user;
+  if (!user) redirect("/login");
+
+  const { data: membership } = await supabase
+    .from("org_members")
+    .select("role")
+    .eq("org_id", orgId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!membership || String(membership.role) !== "owner") {
+    redirect(`/orgs/${orgId}?error=not_org_owner`);
+  }
+
+  // Unchecked switches are absent from the form payload, so presence === on.
+  const { error } = await supabase
+    .from("organizations")
+    .update({
+      notify_new_review: formData.has("notify_new_review"),
+      notify_happy_hour_reminders: formData.has("notify_happy_hour_reminders"),
+      notify_weekly_summary: formData.has("notify_weekly_summary"),
+    })
+    .eq("id", orgId);
+
+  if (error) {
+    redirect(`/orgs/${orgId}?error=${encodeURIComponent(error.message ?? "org_update_failed")}`);
+  }
+
+  revalidatePath(`/orgs/${orgId}`);
+  redirect(`/orgs/${orgId}?success=settings_saved`);
 }
 
 export async function deleteOrganization(orgId: string, _formData: FormData) {
