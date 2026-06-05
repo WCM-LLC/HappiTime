@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, FlatList, Modal, TextInput, Pressable, Alert, K
 import { TabActions, useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { SharedItinerarySection } from "../components/SharedItinerarySection";
 import { HappyHourCard } from "../components/HappyHourCard";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useCurrentUser } from "../hooks/useCurrentUser";
@@ -217,7 +218,7 @@ export const FavoritesScreen: React.FC = () => {
           </View>
           {listsLoading ? (
             <LoadingSpinner />
-          ) : lists.length > 0 ? (
+          ) : (
             <FlatList
               data={lists}
               keyExtractor={(item) => item.id}
@@ -226,11 +227,26 @@ export const FavoritesScreen: React.FC = () => {
               renderItem={({ item }) => (
                 <ListRow list={item} onEdit={() => setEditingList(item)} />
               )}
-            />
-          ) : (
-            <EmptyState
-              title="No itineraries yet"
-              message="Tap the + button above to create your first itinerary."
+              ListEmptyComponent={
+                <EmptyState
+                  title="No itineraries yet"
+                  message="Tap the + button above to create your first itinerary."
+                />
+              }
+              ListFooterComponent={
+                <SharedItinerarySection
+                  onOpen={(item) =>
+                    navigation.navigate("ItineraryDetail", {
+                      listId: item.id,
+                      name: item.name,
+                      description: item.description,
+                      authorHandle: item.authorHandle,
+                      authorDisplayName: item.authorDisplayName,
+                      authorAvatar: item.authorAvatar,
+                    })
+                  }
+                />
+              }
             />
           )}
         </>
