@@ -39,7 +39,10 @@ export function useNotificationNavigation(
       } else if (type === "friend") {
         nav.navigate("AppTabs" as any, { screen: "Activity" } as any);
       } else if (type === "itinerary" && typeof data.listId === "string") {
-        nav.navigate("AppTabs" as any, { screen: "Favorites", params: { openListId: data.listId } } as any);
+        // Open the shared itinerary directly. The screen fetches the list's
+        // header + venues from listId (a recipient can read a list shared with
+        // them via the shared_itinerary_read_grant RLS grant).
+        nav.navigate("ItineraryDetail", { listId: data.listId });
       }
     };
 

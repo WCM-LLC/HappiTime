@@ -429,9 +429,13 @@ export const ActivityScreen: React.FC = () => {
   };
 
   const handleOpenItinerary = (item: InsiderItinerary) => {
-    navigation.navigate("AppTabs", {
-      screen: "Favorites",
-      params: { openListId: item.id, tab: "lists" },
+    navigation.navigate("ItineraryDetail", {
+      listId: item.id,
+      name: item.name,
+      description: item.description,
+      authorHandle: item.authorHandle,
+      authorDisplayName: item.authorDisplayName,
+      authorAvatar: item.authorAvatar,
     });
   };
 

@@ -17,6 +17,7 @@ import { MapScreen } from "../screens/MapScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { InviteScreen } from "../screens/InviteScreen";
 import { VenuePreviewScreen } from "../screens/VenuePreviewScreen";
+import { ItineraryDetailScreen } from "../screens/ItineraryDetailScreen";
 import { EventCalendarScreen } from "../screens/EventCalendarScreen";
 import { colors } from "../theme/colors";
 import type { MainTabParamList, RootStackParamList } from "./types";
@@ -153,6 +154,19 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
               fontSize: 17,
               fontWeight: "600",
             },
+          }}
+        />
+        <Stack.Screen
+          name="ItineraryDetail"
+          component={ItineraryDetailScreen}
+          options={{
+            headerShown: true,
+            title: "Itinerary",
+            headerBackTitle: "Back",
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontSize: 17, fontWeight: "600" },
           }}
         />
         <Stack.Screen
