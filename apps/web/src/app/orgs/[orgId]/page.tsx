@@ -6,7 +6,7 @@ import MenuSectionItemAdder from '@/components/MenuSectionItemAdder';
 import ConfirmDeleteForm from '@/components/ConfirmDeleteForm';
 import { FlashMessage } from '@/components/FlashMessage';
 import { SubmitButton } from '@/components/ui/SubmitButton';
-import VenueDashboardShell, { type ShellTab } from '@/components/venue/VenueDashboardShell';
+import VenueDashboardShell, { type ShellTab, OrgMark, ShellCrumb } from '@/components/venue/VenueDashboardShell';
 import AccessManager, { type InviteRow, type MemberRow } from '@/components/venue/AccessManager';
 import Disclosure from '@/components/venue/Disclosure';
 import ConfirmDeleteToast from '@/components/venue/ConfirmDeleteToast';
@@ -1358,6 +1358,27 @@ export default async function OrgPage({
   ) : null;
 
   const displayRole = role || (fromAdmin && userIsAdmin ? 'admin' : 'member');
+  const orgName = orgErr ? 'Organization' : org?.name ?? 'Organization';
+
+  const subBarLeft = (
+    <div className="flex items-center gap-3 min-w-0">
+      <OrgMark name={orgName} />
+      <div className="min-w-0">
+        <ShellCrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: orgName }]} />
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-[16px] font-bold text-foreground tracking-[-0.3px] truncate">
+            {orgName}
+          </span>
+          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-brand-subtle text-brand-dark-alt shrink-0">
+            {displayRole}
+          </span>
+          <span className="text-body-sm text-muted hidden sm:inline shrink-0">
+            {venueCount} {venueCount === 1 ? 'venue' : 'venues'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="bg-background">
@@ -1366,14 +1387,11 @@ export default async function OrgPage({
         <FlashMessage />
       </Suspense>
       <VenueDashboardShell
-        org={{
-          id: orgId,
-          name: orgErr ? 'Organization' : org?.name ?? 'Organization',
-          role: displayRole,
-          venueCount,
-        }}
+        storeKey={`hh-venue:${orgId}`}
         tabs={tabs}
         banner={errorBanner}
+        subBarLeft={subBarLeft}
+        addButton={{ label: 'Add Venue', tabId: 'venues' }}
       />
     </div>
   );

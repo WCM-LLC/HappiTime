@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import UserBar from '@/components/layout/UserBar';
 import VenueMenusManager from '@/components/venue/VenueMenusManager';
+import VenueDashboardShell, { type ShellTab, OrgMark, ShellCrumb } from '@/components/venue/VenueDashboardShell';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { FlashMessage } from '@/components/FlashMessage';
 import VenueMediaUploader from '@/components/VenueMediaUploader';
@@ -411,13 +412,50 @@ export default async function VenuePage({
   const [scanSummary, { windowMenus, windowMenusErr }] = await Promise.all([
     (async (): Promise<ScanSummary | null> => {
       if (!scanWindows) return null;
-      const { data: scanEvents } = await createServiceClient()
+      const svc = createServiceClient();
+      const { data: scanEvents } = await svc
         .from('venue_attribution_events')
-        .select('source, created_at')
+        .select('source, created_at, user_id')
         .eq('venue_id', venueId)
         .gte('created_at', scanWindows.monthStart)
         .order('created_at', { ascending: false });
-      return summarizeScans((scanEvents ?? []) as ScanEvent[], scanWindows);
+
+      // Resolve handles for authenticated scanners (check-ins). QR/push/organic are
+      // anonymous (user_id null) and stay handle-less. Read via service role — the
+      // page is already gated by canEditMenuItems, and user_profiles is RLS-locked.
+      const scannerIds = [
+        ...new Set(
+          ((scanEvents ?? []) as { user_id: string | null }[])
+            .map((e) => e.user_id)
+            .filter((id): id is string => !!id),
+        ),
+      ];
+      const profileById = new Map<string, { handle: string | null; display_name: string | null }>();
+      if (scannerIds.length) {
+        const { data: profiles } = await svc
+          .from('user_profiles')
+          .select('user_id, handle, display_name')
+          .in('user_id', scannerIds);
+        for (const p of (profiles ?? []) as { user_id: string; handle: string | null; display_name: string | null }[]) {
+          profileById.set(p.user_id, { handle: p.handle, display_name: p.display_name });
+        }
+      }
+
+      const enriched: ScanEvent[] = ((scanEvents ?? []) as {
+        source: string;
+        created_at: string;
+        user_id: string | null;
+      }[]).map((e) => {
+        const prof = e.user_id ? profileById.get(e.user_id) : undefined;
+        return {
+          source: e.source,
+          created_at: e.created_at,
+          user_id: e.user_id,
+          handle: prof?.handle ?? null,
+          display_name: prof?.display_name ?? null,
+        };
+      });
+      return summarizeScans(enriched, scanWindows);
     })(),
     (async (): Promise<{ windowMenus: HappyHourWindowMenu[]; windowMenusErr: { message: string } | null }> => {
       if (!happyHourIds.length) return { windowMenus: [], windowMenusErr: null };
@@ -470,43 +508,43 @@ export default async function VenuePage({
   const btnDark =
     'inline-flex items-center justify-center h-9 px-4 rounded-md bg-dark text-dark-foreground text-body-sm font-medium hover:bg-dark/90 transition-colors cursor-pointer';
 
-  return (
-    <div className="min-h-screen bg-background">
-      <UserBar />
-
-      <main className="max-w-[var(--width-content)] mx-auto px-6 py-8">
-        {/* ── Page Header ── */}
-        <div className="flex items-start justify-between mb-8">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Link href={fromAdmin ? '/admin' : '/dashboard'} className="text-body-sm text-muted hover:text-foreground transition-colors">
-                {fromAdmin ? 'Admin' : 'Dashboard'}
-              </Link>
-              <span className="text-muted-light">/</span>
-              <Link href={backHref} className="text-body-sm text-muted hover:text-foreground transition-colors">
-                Organization
-              </Link>
-              <span className="text-muted-light">/</span>
-            </div>
-            <h1 className="text-display-md font-bold text-foreground tracking-tight">{displayName}</h1>
-            <p className="text-body-sm text-muted mt-1">
-              {locationLabel ? `${locationLabel} · ` : ''}
-              {v?.city || v?.state ? `${v?.city ?? ''}${v?.city && v?.state ? ', ' : ''}${v?.state ?? ''}` : '—'}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+  const subBarLeft = (
+    <div className="flex items-center gap-3 min-w-0">
+      <OrgMark name={displayName} />
+      <div className="min-w-0">
+        <ShellCrumb
+          items={[
+            { label: fromAdmin ? 'Admin' : 'Dashboard', href: fromAdmin ? '/admin' : '/dashboard' },
+            { label: 'Organization', href: backHref },
+            { label: displayName },
+          ]}
+        />
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-[16px] font-bold text-foreground tracking-[-0.3px] truncate">
+            {displayName}
+          </span>
+          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium shrink-0 ${venueStatusColor}`}>
+            {venuePublished ? 'Published' : 'Draft'}
+          </span>
+          <span className="text-body-sm text-muted hidden sm:inline shrink-0">
+            {locationLabel ? `${locationLabel} · ` : ''}
+            {v?.city || v?.state ? `${v?.city ?? ''}${v?.city && v?.state ? ', ' : ''}${v?.state ?? ''}` : '—'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+  const subBarRight = (
+    <>
             {canManageVenue ? (
               <form className="flex items-center gap-2">
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${venueStatusColor}`}>
-                  {venuePublished ? 'Published' : 'Draft'}
-                </span>
                 {venuePublished ? (
                   <SubmitButton className={btnSecondary} formAction={unpublishVenue.bind(null, orgId, venueId)} pendingLabel="Updating…">
-                    Unpublish venue
+                    Unpublish
                   </SubmitButton>
                 ) : (
                   <SubmitButton className={btnPrimary} formAction={publishVenue.bind(null, orgId, venueId)} pendingLabel="Publishing…">
-                    Publish venue
+                    Publish
                   </SubmitButton>
                 )}
               </form>
@@ -537,15 +575,11 @@ export default async function VenuePage({
             <Link href={backHref}>
               <span className={btnSecondary}>&larr; Back</span>
             </Link>
-          </div>
-        </div>
+    </>
+  );
 
-        {/* ── Flash / Success toast ── */}
-        <Suspense>
-          <FlashMessage />
-        </Suspense>
-
-        {/* ── Error Banners ── */}
+  const banner = (
+    <>
         {[
           errorText && { title: 'Error', msg: errorText },
           venueErr && { title: 'Venue load error', msg: venueErr.message },
@@ -562,10 +596,11 @@ export default async function VenuePage({
               <p className="text-body-sm text-error/80 mt-0.5">{(e as { msg: string }).msg}</p>
             </div>
           ))}
+    </>
+  );
 
-        {/* ══════════════════════════════════════════════
-            SECTION 1 — VENUE INFO
-        ══════════════════════════════════════════════ */}
+  const detailsPart1 = (
+    <>
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
           <div className="mb-5">
             <h2 className="text-heading-sm font-semibold text-foreground">Venue info</h2>
@@ -695,9 +730,11 @@ export default async function VenuePage({
             ) : null}
           </form>
         </div>
-        {/* ══════════════════════════════════════════════
-            SECTION 2 — HAPPY HOUR TIMES
-        ══════════════════════════════════════════════ */}
+    </>
+  );
+
+  const happyHoursPanel = (
+    <>
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
           <div className="mb-5">
             <h2 className="text-heading-sm font-semibold text-foreground">Happy hour times</h2>
@@ -894,11 +931,11 @@ export default async function VenuePage({
             </div>
           ) : null}
         </div>
+    </>
+  );
 
-        {/* ══════════════════════════════════════════════
-            SECTION 3 — MENUS  (extracted to VenueMenusManager, shared with the
-            org dashboard's Menus tab)
-        ══════════════════════════════════════════════ */}
+  const menusPanel = (
+    <>
         <VenueMenusManager
           menus={menuList}
           organizationMenuList={organizationMenuList}
@@ -921,10 +958,11 @@ export default async function VenuePage({
             deleteItem: deleteItem.bind(null, orgId, venueId),
           }}
         />
+    </>
+  );
 
-        {/* ══════════════════════════════════════════════
-            SECTION 3B — TAGS & CUISINE
-        ══════════════════════════════════════════════ */}
+  const tagsPanel = (
+    <>
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
           <div className="mb-5">
             <h2 className="text-heading-sm font-semibold text-foreground">Tags &amp; Cuisine</h2>
@@ -996,10 +1034,11 @@ export default async function VenuePage({
             </div>
           )}
         </div>
+    </>
+  );
 
-        {/* ══════════════════════════════════════════════
-            SECTION 3C — EVENTS
-        ══════════════════════════════════════════════ */}
+  const eventsPanel = (
+    <>
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
           <div className="mb-5">
             <h2 className="text-heading-sm font-semibold text-foreground">Events</h2>
@@ -1273,10 +1312,11 @@ export default async function VenuePage({
             </div>
           ) : null}
         </div>
+    </>
+  );
 
-        {/* ══════════════════════════════════════════════
-            SECTION 4 — MEDIA
-        ══════════════════════════════════════════════ */}
+  const mediaQrPanel = (
+    <>
         {canManageVenue ? (
           <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
             <div className="mb-5">
@@ -1321,17 +1361,11 @@ export default async function VenuePage({
             ) : null}
           </div>
         ) : null}
+    </>
+  );
 
-        {/* ══════════════════════════════════════════════
-            SECTION 4S — SCAN ACTIVITY
-        ══════════════════════════════════════════════ */}
-        {canEditMenuItems && scanSummary ? (
-          <VenueScanAnalytics summary={scanSummary} />
-        ) : null}
-
-        {/* ══════════════════════════════════════════════
-            SECTION 4B — STAFF MANAGEMENT (Admin only)
-        ══════════════════════════════════════════════ */}
+  const staffPanel = (
+    <>
         {fromAdmin && userIsAdmin ? (
           <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
             <div className="mb-5">
@@ -1466,10 +1500,15 @@ export default async function VenuePage({
             </div>
           </div>
         ) : null}
+    </>
+  );
 
-        {/* ══════════════════════════════════════════════
-            SECTION 5 — ANALYTICS
-        ══════════════════════════════════════════════ */}
+  const analyticsPanel = (
+    <>
+        {/* Per-scan attribution log — QR scans, check-ins, opens (handle shown for check-ins). */}
+        {canEditMenuItems && scanSummary ? (
+          <VenueScanAnalytics summary={scanSummary} />
+        ) : null}
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
           <div className="mb-5">
             <h2 className="text-heading-sm font-semibold text-foreground">Analytics</h2>
@@ -1505,7 +1544,32 @@ export default async function VenuePage({
             </div>
           )}
         </div>
-      </main>
+    </>
+  );
+
+  const tabs: ShellTab[] = [
+    { id: 'details', label: 'Details', content: <>{detailsPart1}{tagsPanel}</> },
+    { id: 'happy-hours', label: 'Happy Hours', content: happyHoursPanel },
+    { id: 'menus', label: 'Menus', content: menusPanel },
+    { id: 'events', label: 'Events', content: eventsPanel },
+    { id: 'media', label: 'Media & QR', content: mediaQrPanel, show: canManageVenue },
+    { id: 'staff', label: 'Staff', content: staffPanel, show: fromAdmin && userIsAdmin },
+    { id: 'analytics', label: 'Analytics', content: analyticsPanel },
+  ];
+
+  return (
+    <div className="bg-background">
+      <UserBar />
+      <Suspense>
+        <FlashMessage />
+      </Suspense>
+      <VenueDashboardShell
+        storeKey={`hh-venue-detail:${venueId}`}
+        tabs={tabs}
+        banner={banner}
+        subBarLeft={subBarLeft}
+        subBarRight={subBarRight}
+      />
     </div>
   );
 }

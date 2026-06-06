@@ -39,10 +39,29 @@ test("summarizeScans ignores unknown source in bySource but still counts windows
   assert.deepEqual(s.bySource, { qr: 1, app_checkin: 0, push_click: 0, organic: 0 });
 });
 
-test("summarizeScans caps recent at 8", () => {
+test("summarizeScans caps recent at 30", () => {
   const now = Date.parse("2026-05-31T12:00:00Z");
-  const events = Array.from({ length: 12 }, (_, i) => at(now, (i + 1) * 1000, "qr"));
-  assert.equal(summarizeScans(events, W(now)).recent.length, 8);
+  const events = Array.from({ length: 40 }, (_, i) => at(now, (i + 1) * 1000, "qr"));
+  assert.equal(summarizeScans(events, W(now)).recent.length, 30);
+});
+
+test("summarizeScans carries handle/display_name into recent rows", () => {
+  const now = Date.parse("2026-05-31T12:00:00Z");
+  const events = [
+    {
+      source: "app_checkin",
+      created_at: new Date(now - 1000).toISOString(),
+      user_id: "u1",
+      handle: "janedoe",
+      display_name: "Jane Doe",
+    },
+    { source: "qr", created_at: new Date(now - 2000).toISOString() },
+  ];
+  const s = summarizeScans(events, W(now));
+  assert.equal(s.recent[0].handle, "janedoe");
+  assert.equal(s.recent[0].display_name, "Jane Doe");
+  assert.equal(s.recent[1].handle, null);
+  assert.equal(s.recent[1].display_name, null);
 });
 
 test("summarizeScans empty input -> zeros", () => {

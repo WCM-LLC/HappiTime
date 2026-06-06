@@ -15,12 +15,19 @@ import Link from 'next/link';
  * VenueDashboardShell — "Direction B (sidebar nav)" layout from the
  * HappiTime design handoff (Venue Dashboard.html).
  *
- * Two-pane layout: a fixed org sub-bar on top, a persistent left "Manage"
- * rail of sections, and a single scrolling right pane. The nav never scrolls
- * away, and the active tab + per-tab scroll position are remembered across
- * refresh/save — so a server-action reload lands you exactly where you left
- * off instead of at the top. Save confirmation is handled by the app's
- * existing sonner toast (FlashMessage reads ?success= on mount).
+ * Two-pane layout: a fixed sub-bar on top, a persistent left "Manage" rail of
+ * sections, and a single scrolling right pane. The nav never scrolls away, and
+ * the active tab + per-tab scroll position are remembered across refresh/save —
+ * so a server-action reload lands you exactly where you left off instead of at
+ * the top. Save confirmation is handled by the app's existing sonner toast
+ * (FlashMessage reads ?success= on mount).
+ *
+ * The shell is scope-agnostic: the org dashboard and the per-venue page both
+ * render it, passing their own sub-bar content (`subBarLeft`/`subBarRight`) and
+ * a `storeKey` that scopes the persisted tab/scroll memory. Because consumers
+ * are server components, the sub-bar is passed as plain `ReactNode` (functions
+ * can't cross the server→client boundary); the only interactive sub-bar affordance
+ * the shell owns is the optional `addButton`, which switches tabs via internal state.
  */
 
 const useIsoLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
@@ -31,13 +38,6 @@ export type ShellTab = {
   content: ReactNode;
   /** Hide the tab entirely (e.g. role-gated). Defaults to shown. */
   show?: boolean;
-};
-
-type Org = {
-  id: string;
-  name: string;
-  role: string;
-  venueCount: number;
 };
 
 // ── persistence hooks ────────────────────────────────────────────────────────
@@ -104,8 +104,8 @@ function useScrollMemory(
   return [ref, onScroll];
 }
 
-// ── shared bits ──────────────────────────────────────────────────────────────
-function OrgMark({ name }: { name: string }) {
+// ── shared sub-bar building blocks (exported for org + venue sub-bars) ─────────
+export function OrgMark({ name }: { name: string }) {
   return (
     <div className="w-9 h-9 rounded-[9px] bg-brand-subtle flex items-center justify-center shrink-0 select-none">
       <span className="text-[15px] font-extrabold text-brand-dark-alt">
@@ -115,20 +115,32 @@ function OrgMark({ name }: { name: string }) {
   );
 }
 
-function Crumb({ name }: { name: string }) {
+export type CrumbItem = { label: string; href?: string };
+
+export function ShellCrumb({ items }: { items: CrumbItem[] }) {
   return (
-    <div className="flex items-center gap-1.5 text-[12.5px] text-muted">
-      <Link href="/dashboard" className="text-brand font-medium hover:underline">
-        Dashboard
-      </Link>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-muted-light">
-        <path d="m9 18 6-6-6-6" />
-      </svg>
-      <span className="text-foreground font-medium truncate">{name}</span>
+    <div className="flex items-center gap-1.5 text-[12.5px] text-muted min-w-0">
+      {items.map((it, i) => (
+        <Fragment key={`${it.label}-${i}`}>
+          {i > 0 ? (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-muted-light shrink-0">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          ) : null}
+          {it.href ? (
+            <Link href={it.href} className="text-brand font-medium hover:underline shrink-0">
+              {it.label}
+            </Link>
+          ) : (
+            <span className="text-foreground font-medium truncate">{it.label}</span>
+          )}
+        </Fragment>
+      ))}
     </div>
   );
 }
 
+// ── nav rail item ─────────────────────────────────────────────────────────────
 function NavItem({
   label,
   active,
@@ -157,21 +169,27 @@ function NavItem({
 }
 
 export default function VenueDashboardShell({
-  org,
+  storeKey,
   tabs,
   banner,
-  addVenueTabId = 'venues',
+  subBarLeft,
+  subBarRight,
+  addButton,
 }: {
-  org: Org;
+  /** Scopes the persisted active-tab + per-tab scroll memory (e.g. `hh-venue:<orgId>`). */
+  storeKey: string;
   tabs: ShellTab[];
   /** Optional node shown above the active panel on every tab (e.g. error banner). */
   banner?: ReactNode;
-  /** Which tab the top-bar "Add Venue" button jumps to. */
-  addVenueTabId?: string;
+  /** Left cluster of the pinned sub-bar (mark, breadcrumb, title, badges). */
+  subBarLeft: ReactNode;
+  /** Right cluster of the pinned sub-bar (page-level actions). Server-rendered. */
+  subBarRight?: ReactNode;
+  /** Optional interactive button that jumps to a tab (e.g. org "Add Venue"). */
+  addButton?: { label: string; tabId: string };
 }) {
   const visible = tabs.filter((t) => t.show !== false);
-  const storeKey = `hh-venue:${org.id}`;
-  const [tab, setTab] = usePersistedTab(storeKey, visible[0]?.id ?? 'venues');
+  const [tab, setTab] = usePersistedTab(storeKey, visible[0]?.id ?? '');
   const [scrollRef, onScroll] = useScrollMemory(storeKey, tab);
 
   // Fall back to the first visible tab if the persisted one is gone/hidden.
@@ -182,36 +200,27 @@ export default function VenueDashboardShell({
       className="flex flex-col overflow-hidden bg-background"
       style={{ height: 'calc(100dvh - 3.5rem)' }}
     >
-      {/* ── org sub-bar (pinned) ── */}
+      {/* ── pinned sub-bar ── */}
       <div className="flex-shrink-0 min-h-[58px] border-b border-border bg-surface flex items-center justify-between gap-3 px-5">
-        <div className="flex items-center gap-3 min-w-0">
-          <OrgMark name={org.name} />
-          <div className="min-w-0">
-            <Crumb name={org.name} />
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[16px] font-bold text-foreground tracking-[-0.3px] truncate">
-                {org.name}
-              </span>
-              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-brand-subtle text-brand-dark-alt shrink-0">
-                {org.role}
-              </span>
-              <span className="text-body-sm text-muted hidden sm:inline shrink-0">
-                {org.venueCount} {org.venueCount === 1 ? 'venue' : 'venues'}
-              </span>
-            </div>
+        {subBarLeft}
+        {subBarRight || addButton ? (
+          <div className="flex items-center gap-2 shrink-0">
+            {subBarRight}
+            {addButton ? (
+              <button
+                type="button"
+                onClick={() => setTab(addButton.tabId)}
+                className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer shrink-0"
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                {addButton.label}
+              </button>
+            ) : null}
           </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => setTab(addVenueTabId)}
-          className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer shrink-0"
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Add Venue
-        </button>
+        ) : null}
       </div>
 
       {/* ── body: rail + scrolling content ── */}
@@ -232,7 +241,7 @@ export default function VenueDashboardShell({
 
         <div ref={scrollRef} onScroll={onScroll} data-testid="dashboard-scroll" className="flex-1 overflow-y-auto">
           <div className="max-w-[760px] mx-auto px-7 pt-6 pb-16">
-            {/* Keyed so React validates these OrgPage-owned nodes; keying content
+            {/* Keyed so React validates these consumer-owned nodes; keying content
                 by tab id also resets the subtree cleanly on tab change. */}
             {banner ? <Fragment key="banner">{banner}</Fragment> : null}
             <Fragment key={active?.id ?? 'empty'}>{active?.content}</Fragment>
