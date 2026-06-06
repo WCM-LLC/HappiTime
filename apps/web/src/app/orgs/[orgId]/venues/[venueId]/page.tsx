@@ -281,152 +281,156 @@ export default async function VenuePage({
   const canManageVenue = isOwner || isManager || userIsAdmin;
   const canEditMenuItems = canManageVenue || isHost;
 
-  const { data: venue, error: venueErr } = await fetchVenueById(supabase as any, venueId, { orgId });
+  // ── Stage 1 ─ every read that depends only on the URL params + role flags runs
+  //  in parallel. These used to be ~12 sequential awaits (a request waterfall);
+  //  batching collapses the venue page from ~15 DB round-trips to 2. A faster
+  //  render also shrinks the streaming window a flaky client connection can cut
+  //  mid-flight. supabase-js resolves { data, error } (it never rejects on a query
+  //  error), so Promise.all is safe and the per-query error handling is unchanged.
+  type StaffMember = { user_id: string; role: string; email: string | null; first_name: string | null; last_name: string | null };
+  type VenueMemberRow = { user_id: string };
 
-  // fetchVenueById does not select `slug`; fetch it once for the QR download caption.
-  const { data: qrVenue } = await supabase
-    .from('venues')
-    .select('slug')
-    .eq('id', venueId)
-    .maybeSingle();
-  const qrSlug = (qrVenue?.slug as string | null) ?? null;
-
-  // Scan activity for venue staff (owner/manager/admin/editor/host). venue_attribution_events
-  // is RLS-locked, so read with the service client — gated by the app-level canEditMenuItems
-  // check (the only authorization needed; we query just this one venue's events).
-  let scanSummary: ScanSummary | null = null;
-  if (canEditMenuItems && venue) {
-    const scanWindows = computeWindows(venue?.timezone ?? 'UTC', new Date());
-    const { data: scanEvents } = await createServiceClient()
-      .from('venue_attribution_events')
-      .select('source, created_at')
+  const [
+    { data: venue, error: venueErr },
+    { data: qrVenue },
+    { data: happyHours, error: hhErr },
+    { data: menus, error: menusErr },
+    { data: organizationMenus, error: organizationMenusErr },
+    { data: publishedVenueMenusData, error: publishedVenueMenusErr },
+    { data: eventCounts },
+    { data: venueEvents },
+    { data: approvedTags },
+    { data: currentVenueTags },
+    { data: venueSub },
+    { staffMembers, venueStaffIds },
+  ] = await Promise.all([
+    fetchVenueById(supabase as any, venueId, { orgId }),
+    // fetchVenueById does not select `slug`; fetch it for the QR download caption.
+    supabase.from('venues').select('slug').eq('id', venueId).maybeSingle(),
+    supabase
+      .from('happy_hour_windows')
+      .select('id,dow,start_time,end_time,timezone,status,label')
       .eq('venue_id', venueId)
-      .gte('created_at', scanWindows.monthStart)
-      .order('created_at', { ascending: false });
-    scanSummary = summarizeScans((scanEvents ?? []) as ScanEvent[], scanWindows);
-  }
-
-  const { data: happyHours, error: hhErr } = await supabase
-    .from('happy_hour_windows')
-    .select('id,dow,start_time,end_time,timezone,status,label')
-    .eq('venue_id', venueId)
-    .order('start_time', { ascending: true });
-
-  const { data: menus, error: menusErr } = await supabase
-    .from('menus')
-    .select(
-      'id,name,status,is_active,source_menu_id,menu_sections(id,name,sort_order,menu_items(id,name,description,price,is_happy_hour,sort_order))'
-    )
-    .eq('venue_id', venueId)
-    .eq('scope', 'venue')
-    .order('created_at', { ascending: false });
-
-  const { data: organizationMenus, error: organizationMenusErr } = await supabase
-    .from('menus')
-    .select('id,name,status,is_active')
-    .eq('org_id', orgId)
-    .eq('scope', 'organization')
-    .order('name', { ascending: true });
-
-  let publishedVenueMenus: PublishedVenueMenuOption[] = [];
-  let publishedVenueMenusErr: { message: string } | null = null;
-
-  if (canManageVenue) {
-    let sourceMenuClient = supabase;
-    try {
-      sourceMenuClient = createServiceClient();
-    } catch {
-      // The request client is enough for owners/admins; service role broadens source visibility for assigned managers.
-    }
-
-    const { data: sourceMenus, error: sourceMenusErr } = await sourceMenuClient
+      .order('start_time', { ascending: true }),
+    supabase
       .from('menus')
-      .select('id,name,venue_id,venue:venues!menus_venue_id_fkey(id,name,org_name)')
-      .eq('org_id', orgId)
+      .select(
+        'id,name,status,is_active,source_menu_id,menu_sections(id,name,sort_order,menu_items(id,name,description,price,is_happy_hour,sort_order))'
+      )
+      .eq('venue_id', venueId)
       .eq('scope', 'venue')
-      .eq('status', HH_STATUS_PUBLISHED)
-      .neq('venue_id', venueId)
-      .order('name', { ascending: true });
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('menus')
+      .select('id,name,status,is_active')
+      .eq('org_id', orgId)
+      .eq('scope', 'organization')
+      .order('name', { ascending: true }),
+    // Published menus from OTHER venues — the "copy from another venue" source list.
+    // Owners/admins read via their own client; service role broadens visibility for
+    // assigned managers. Gated to canManageVenue (otherwise empty, no query issued).
+    (async (): Promise<{ data: PublishedVenueMenuOption[]; error: { message: string } | null }> => {
+      if (!canManageVenue) return { data: [], error: null };
+      let sourceMenuClient = supabase;
+      try {
+        sourceMenuClient = createServiceClient();
+      } catch {
+        // The request client is enough for owners/admins; service role broadens source visibility for assigned managers.
+      }
+      const { data, error } = await sourceMenuClient
+        .from('menus')
+        .select('id,name,venue_id,venue:venues!menus_venue_id_fkey(id,name,org_name)')
+        .eq('org_id', orgId)
+        .eq('scope', 'venue')
+        .eq('status', HH_STATUS_PUBLISHED)
+        .neq('venue_id', venueId)
+        .order('name', { ascending: true });
+      return { data: (data as PublishedVenueMenuOption[] | null) ?? [], error };
+    })(),
+    supabase
+      .from('venue_event_counts')
+      .select('event_type,cnt')
+      .eq('org_id', orgId)
+      .eq('venue_id', venueId)
+      .order('cnt', { ascending: false })
+      .limit(20),
+    supabase
+      .from('venue_events')
+      .select('id,title,description,event_type,status,starts_at,ends_at,is_recurring,recurrence_rule,timezone,price_info,external_url,ticket_url,capacity,location_override')
+      .eq('venue_id', venueId)
+      .order('starts_at', { ascending: true }),
+    supabase
+      .from('approved_tags')
+      .select('id,slug,label,category,sort_order')
+      .eq('is_active', true)
+      .order('category')
+      .order('sort_order'),
+    supabase.from('venue_tags').select('tag_id').eq('venue_id', venueId),
+    (supabase as any)
+      .from('venue_subscriptions')
+      .select('plan, status')
+      .eq('venue_id', venueId)
+      .maybeSingle(),
+    // Staff roster (admin-only view): two service-role reads, run together.
+    (async (): Promise<{ staffMembers: StaffMember[]; venueStaffIds: Set<string> }> => {
+      if (!(fromAdmin && userIsAdmin)) return { staffMembers: [], venueStaffIds: new Set() };
+      const adminDb = createServiceClient();
+      const [{ data: orgStaff }, { data: venueAssignments }] = await Promise.all([
+        adminDb
+          .from('org_members')
+          .select('user_id,role,email,first_name,last_name')
+          .eq('org_id', orgId)
+          .order('created_at', { ascending: true }),
+        adminDb.from('venue_members').select('user_id').eq('venue_id', venueId),
+      ]);
+      return {
+        staffMembers: (orgStaff as StaffMember[] | null) ?? [],
+        venueStaffIds: new Set((venueAssignments as VenueMemberRow[] | null)?.map((a) => a.user_id) ?? []),
+      };
+    })(),
+  ]);
 
-    publishedVenueMenus = (sourceMenus as PublishedVenueMenuOption[] | null) ?? [];
-    publishedVenueMenusErr = sourceMenusErr;
-  }
-
-  const happyHourIds = (happyHours as HappyHourWindow[] | null)?.map((h) => h.id) ?? [];
-  let windowMenus: HappyHourWindowMenu[] = [];
-  let windowMenusErr: { message: string } | null = null;
-
-  if (happyHourIds.length) {
-    const { data: hhMenus, error: hhMenusErr } = await supabase
-      .from('happy_hour_window_menus')
-      .select('happy_hour_window_id,menu_id')
-      .in('happy_hour_window_id', happyHourIds);
-
-    windowMenus = (hhMenus as HappyHourWindowMenu[] | null) ?? [];
-    windowMenusErr = hhMenusErr;
-  }
-
-  const { data: eventCounts } = await supabase
-    .from('venue_event_counts')
-    .select('event_type,cnt')
-    .eq('org_id', orgId)
-    .eq('venue_id', venueId)
-    .order('cnt', { ascending: false })
-    .limit(20);
-
-  // Venue events
-  const { data: venueEvents } = await supabase
-    .from('venue_events')
-    .select('id,title,description,event_type,status,starts_at,ends_at,is_recurring,recurrence_rule,timezone,price_info,external_url,ticket_url,capacity,location_override')
-    .eq('venue_id', venueId)
-    .order('starts_at', { ascending: true });
-
-  // Approved tags
-  const { data: approvedTags } = await supabase
-    .from('approved_tags')
-    .select('id,slug,label,category,sort_order')
-    .eq('is_active', true)
-    .order('category')
-    .order('sort_order');
-
-  // Current venue tags
-  const { data: currentVenueTags } = await supabase
-    .from('venue_tags')
-    .select('tag_id')
-    .eq('venue_id', venueId);
-
-  // Venue subscription
-  const { data: venueSub } = await (supabase as any)
-    .from('venue_subscriptions')
-    .select('plan, status')
-    .eq('venue_id', venueId)
-    .maybeSingle();
+  const qrSlug = (qrVenue?.slug as string | null) ?? null;
+  const publishedVenueMenus: PublishedVenueMenuOption[] = publishedVenueMenusData ?? [];
 
   const currentPlan: SubscriptionPlan =
     venueSub?.status === 'active' || venueSub?.status === 'trialing'
       ? ((['verified', 'featured', 'founding_pilot'].includes(venueSub.plan) ? venueSub.plan : 'listed') as SubscriptionPlan)
       : 'listed';
 
-  // Staff members for this venue (admin only)
-  type StaffMember = { user_id: string; role: string; email: string | null; first_name: string | null; last_name: string | null };
-  type VenueMemberRow = { user_id: string };
-  let staffMembers: StaffMember[] = [];
-  let venueStaffIds: Set<string> = new Set();
-  if (fromAdmin && userIsAdmin) {
-    const adminDb = createServiceClient();
-    const { data: orgStaff } = await adminDb
-      .from('org_members')
-      .select('user_id,role,email,first_name,last_name')
-      .eq('org_id', orgId)
-      .order('created_at', { ascending: true });
-    staffMembers = (orgStaff as StaffMember[] | null) ?? [];
+  // ── Stage 2 ─ reads that depend on Stage 1: scanSummary needs the venue's
+  //  timezone; windowMenus needs the happy-hour window ids. Independent of each
+  //  other, so run them together.
+  const happyHourIds = (happyHours as HappyHourWindow[] | null)?.map((h) => h.id) ?? [];
+  // Scan activity for venue staff (owner/manager/admin/editor/host).
+  // venue_attribution_events is RLS-locked, so read with the service client —
+  // gated by the app-level canEditMenuItems check (the only authorization needed).
+  const scanWindows =
+    canEditMenuItems && venue ? computeWindows(venue?.timezone ?? 'UTC', new Date()) : null;
 
-    const { data: venueAssignments } = await adminDb
-      .from('venue_members')
-      .select('user_id')
-      .eq('venue_id', venueId);
-    venueStaffIds = new Set((venueAssignments as VenueMemberRow[] | null)?.map((a) => a.user_id) ?? []);
-  }
+  const [scanSummary, { windowMenus, windowMenusErr }] = await Promise.all([
+    (async (): Promise<ScanSummary | null> => {
+      if (!scanWindows) return null;
+      const { data: scanEvents } = await createServiceClient()
+        .from('venue_attribution_events')
+        .select('source, created_at')
+        .eq('venue_id', venueId)
+        .gte('created_at', scanWindows.monthStart)
+        .order('created_at', { ascending: false });
+      return summarizeScans((scanEvents ?? []) as ScanEvent[], scanWindows);
+    })(),
+    (async (): Promise<{ windowMenus: HappyHourWindowMenu[]; windowMenusErr: { message: string } | null }> => {
+      if (!happyHourIds.length) return { windowMenus: [], windowMenusErr: null };
+      const { data: hhMenus, error: hhMenusErr } = await supabase
+        .from('happy_hour_window_menus')
+        .select('happy_hour_window_id,menu_id')
+        .in('happy_hour_window_id', happyHourIds);
+      return {
+        windowMenus: (hhMenus as HappyHourWindowMenu[] | null) ?? [],
+        windowMenusErr: hhMenusErr,
+      };
+    })(),
+  ]);
 
   const v = venue;
   const menuList = (menus as Menu[] | null) ?? [];

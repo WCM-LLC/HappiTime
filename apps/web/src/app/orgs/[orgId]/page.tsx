@@ -226,24 +226,40 @@ export default async function OrgPage({
   const canManageOrganizationMenus =
     isOwner || role === 'manager' || role === 'admin' || role === 'editor';
 
-  const { data: org, error: orgErr } = await supabase
-    .from('organizations')
-    .select('id,name,slug,notify_new_review,notify_happy_hour_reminders,notify_weekly_summary')
-    .eq('id', orgId)
-    .single();
+  const canManageBilling = isOwner || role === 'manager' || userIsAdmin;
 
-  const { data: venues, error: venuesErr } = await fetchVenuesByOrg(supabase as any, orgId);
+  // ── Stage 1 ─ org-level reads that depend only on orgId + role flags. Run in
+  //  parallel instead of as a sequential waterfall (one DB round-trip, not four).
+  const [
+    { data: org, error: orgErr },
+    { data: venues, error: venuesErr },
+    { data: orgBundleRow },
+    { data: organizationMenus, error: organizationMenusErr },
+  ] = await Promise.all([
+    supabase
+      .from('organizations')
+      .select('id,name,slug,notify_new_review,notify_happy_hour_reminders,notify_weekly_summary')
+      .eq('id', orgId)
+      .single(),
+    fetchVenuesByOrg(supabase as any, orgId),
+    canManageBilling
+      ? (supabase as any)
+          .from('org_subscriptions')
+          .select('bundle_tier, status, venue_count, monthly_rate_per_venue_cents, current_period_end, stripe_customer_id')
+          .eq('org_id', orgId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from('menus')
+      .select(
+        'id,name,status,is_active,menu_sections(id,name,sort_order,menu_items(id,name,description,price,is_happy_hour,sort_order))'
+      )
+      .eq('org_id', orgId)
+      .eq('scope', 'organization')
+      .order('created_at', { ascending: false }),
+  ]);
 
   const venueCount = (venues ?? []).length;
-  const canManageBilling = isOwner || role === 'manager' || userIsAdmin;
-  const { data: orgBundleRow } = canManageBilling
-    ? await (supabase as any)
-        .from('org_subscriptions')
-        .select('bundle_tier, status, venue_count, monthly_rate_per_venue_cents, current_period_end, stripe_customer_id')
-        .eq('org_id', orgId)
-        .maybeSingle()
-    : { data: null };
-
   const orgBundle = orgBundleRow && orgBundleRow.status !== 'canceled'
     ? {
         tier: orgBundleRow.bundle_tier as 'bundle_2_4' | 'bundle_5_plus',
@@ -254,16 +270,6 @@ export default async function OrgPage({
         canManageBilling: Boolean(orgBundleRow.stripe_customer_id),
       }
     : null;
-
-  const { data: organizationMenus, error: organizationMenusErr } = await supabase
-    .from('menus')
-    .select(
-      'id,name,status,is_active,menu_sections(id,name,sort_order,menu_items(id,name,description,price,is_happy_hour,sort_order))'
-    )
-    .eq('org_id', orgId)
-    .eq('scope', 'organization')
-    .order('created_at', { ascending: false });
-
   const organizationMenuList = (organizationMenus as OrganizationMenu[] | null) ?? [];
   const venueRows = (venues as VenueRow[] | null) ?? [];
 
@@ -271,12 +277,88 @@ export default async function OrgPage({
   const PAID_VENUE_PLANS = ['verified', 'featured', 'founding_pilot'];
   const ACTIVE_SUB_STATUSES = ['active', 'trialing'];
   const subVenueIds = venueRows.map((v) => v.id);
-  const { data: venueSubsData } = canManageBilling && subVenueIds.length
-    ? await (supabase as any)
-        .from('venue_subscriptions')
-        .select('venue_id, plan, status')
-        .in('venue_id', subVenueIds)
-    : { data: null };
+  const venueIdList = venueRows.map((v) => v.id);
+
+  // ── Stage 2 ─ everything that needs the venue id list (plus the team/access
+  //  data) is independent, so fetch it all in parallel instead of one query at a
+  //  time. Only windowMenuLinks (Stage 3, below) depends on a Stage 2 result. ──
+  const [
+    { data: venueSubsData },
+    [{ data: members }, { data: assignments }, { data: invites }],
+    { data: hhWindows },
+    { data: venueMenusData },
+    { data: venueAddrData },
+    { data: venueMenuTreeData },
+    { data: publishedVenueMenuData },
+  ] = await Promise.all([
+    canManageBilling && subVenueIds.length
+      ? (supabase as any)
+          .from('venue_subscriptions')
+          .select('venue_id, plan, status')
+          .in('venue_id', subVenueIds)
+      : Promise.resolve({ data: null }),
+    // Team / access data (only fetched for owners & admins, who see the tab).
+    canManageAccess
+      ? Promise.all([
+          supabase
+            .from('org_members')
+            .select('user_id,role,email,first_name,last_name')
+            .eq('org_id', orgId)
+            .order('created_at', { ascending: true }),
+          supabase.from('venue_members').select('venue_id,user_id').eq('org_id', orgId),
+          supabase
+            .from('org_invites')
+            .select('id,email,role,venue_ids,created_at,expires_at,accepted_at,first_name,last_name')
+            .eq('org_id', orgId)
+            .order('created_at', { ascending: false }),
+        ])
+      : Promise.resolve([{ data: null }, { data: null }, { data: null }]),
+    // Happy-hour windows for the org's venues — these drive an inline editor, so
+    // we pull window id + label; each venue's menus + addresses come below.
+    venueIdList.length
+      ? supabase
+          .from('happy_hour_windows')
+          .select('id,venue_id,dow,start_time,end_time,timezone,status,label')
+          .in('venue_id', venueIdList)
+          .order('start_time', { ascending: true })
+      : Promise.resolve({ data: null }),
+    // Venue-scoped menus, grouped by venue — the "menus to attach" options.
+    venueIdList.length
+      ? supabase
+          .from('menus')
+          .select('id,name,venue_id')
+          .in('venue_id', venueIdList)
+          .eq('scope', 'venue')
+          .order('name', { ascending: true })
+      : Promise.resolve({ data: null }),
+    // Street address per venue (VenueSummary only carries city/state) for the
+    // venue label shown on each window when the org has more than one location.
+    venueIdList.length
+      ? supabase.from('venues').select('id,address,city,state,zip').in('id', venueIdList)
+      : Promise.resolve({ data: null }),
+    // Venue-scoped menu trees, so the Menus tab can manage every venue's menus
+    // inline (the same editor as the per-venue page, via VenueMenusManager).
+    venueIdList.length
+      ? supabase
+          .from('menus')
+          .select(`${MENU_TREE_SELECT},source_menu_id,venue_id`)
+          .in('venue_id', venueIdList)
+          .eq('scope', 'venue')
+          .order('created_at', { ascending: false })
+      : Promise.resolve({ data: null }),
+    // Published venue menus across the org — the "copy from another venue" source
+    // list. Filtered per venue (to exclude its own) at render time.
+    venueIdList.length
+      ? supabase
+          .from('menus')
+          .select('id,name,venue_id,venue:venues!menus_venue_id_fkey(id,name,org_name)')
+          .eq('org_id', orgId)
+          .eq('scope', 'venue')
+          .eq('status', HH_STATUS_PUBLISHED)
+          .order('name', { ascending: true })
+      : Promise.resolve({ data: null }),
+  ]);
+
   const planByVenue = new Map<string, SubscriptionPlan>();
   for (const s of (venueSubsData as { venue_id: string; plan: string; status: string }[] | null) ?? []) {
     const active = ACTIVE_SUB_STATUSES.includes(s.status) && PAID_VENUE_PLANS.includes(s.plan);
@@ -287,23 +369,6 @@ export default async function OrgPage({
     name: v.name,
     plan: planByVenue.get(v.id) ?? 'listed',
   }));
-
-  // ── Team / access data (only fetched for owners & admins, who see the tab) ──
-  const [{ data: members }, { data: assignments }, { data: invites }] = canManageAccess
-    ? await Promise.all([
-        supabase
-          .from('org_members')
-          .select('user_id,role,email,first_name,last_name')
-          .eq('org_id', orgId)
-          .order('created_at', { ascending: true }),
-        supabase.from('venue_members').select('venue_id,user_id').eq('org_id', orgId),
-        supabase
-          .from('org_invites')
-          .select('id,email,role,venue_ids,created_at,expires_at,accepted_at,first_name,last_name')
-          .eq('org_id', orgId)
-          .order('created_at', { ascending: false }),
-      ])
-    : [{ data: null }, { data: null }, { data: null }];
 
   const memberRows = (members as MemberRow[] | null) ?? [];
   const inviteRows = (invites as InviteRow[] | null)?.filter((i) => !i.accepted_at) ?? [];
@@ -316,18 +381,6 @@ export default async function OrgPage({
     assignmentsByUser.set(row.user_id, list);
   }
 
-  // ── Happy-hour windows for the org's venues ──
-  //  These now drive an inline editor (not just a status rollup), so we pull the
-  //  window id + label, each venue's own menus, the window→menu associations,
-  //  and each venue's street address — everything the per-window editor needs.
-  const venueIdList = venueRows.map((v) => v.id);
-  const { data: hhWindows } = venueIdList.length
-    ? await supabase
-        .from('happy_hour_windows')
-        .select('id,venue_id,dow,start_time,end_time,timezone,status,label')
-        .in('venue_id', venueIdList)
-        .order('start_time', { ascending: true })
-    : { data: null };
   const windowsByVenue = new Map<string, HHWindow[]>();
   for (const w of (hhWindows as HHWindow[] | null) ?? []) {
     const list = windowsByVenue.get(w.venue_id) ?? [];
@@ -335,15 +388,6 @@ export default async function OrgPage({
     windowsByVenue.set(w.venue_id, list);
   }
 
-  // Venue-scoped menus, grouped by venue — the "menus to attach" options.
-  const { data: venueMenusData } = venueIdList.length
-    ? await supabase
-        .from('menus')
-        .select('id,name,venue_id')
-        .in('venue_id', venueIdList)
-        .eq('scope', 'venue')
-        .order('name', { ascending: true })
-    : { data: null };
   const menusByVenue = new Map<string, { id: string; name: string }[]>();
   for (const m of (venueMenusData as { id: string; name: string; venue_id: string }[] | null) ?? []) {
     const list = menusByVenue.get(m.venue_id) ?? [];
@@ -351,7 +395,24 @@ export default async function OrgPage({
     menusByVenue.set(m.venue_id, list);
   }
 
-  // Which menus are already attached to each window.
+  const addressByVenue = new Map<string, string>();
+  for (const v of (venueAddrData as { id: string; address: string | null; city: string | null; state: string | null; zip: string | null }[] | null) ?? []) {
+    const cityState = [v.city, v.state].filter(Boolean).join(', ');
+    const full = [v.address, cityState, v.zip].filter(Boolean).join(' · ');
+    if (full) addressByVenue.set(v.id, full);
+  }
+
+  const venueMenusByVenue = new Map<string, (VMM_Menu & { venue_id: string })[]>();
+  for (const m of (venueMenuTreeData as (VMM_Menu & { venue_id: string })[] | null) ?? []) {
+    const list = venueMenusByVenue.get(m.venue_id) ?? [];
+    list.push(m);
+    venueMenusByVenue.set(m.venue_id, list);
+  }
+
+  const allPublishedVenueMenus = (publishedVenueMenuData as VMM_PublishedVenueMenuOption[] | null) ?? [];
+
+  // ── Stage 3 ─ which menus are attached to each window. Depends on the window
+  //  ids produced by Stage 2, so it runs afterward. ──
   const windowIdList = (hhWindows as HHWindow[] | null)?.map((w) => w.id) ?? [];
   const { data: windowMenuLinks } = windowIdList.length
     ? await supabase
@@ -365,48 +426,6 @@ export default async function OrgPage({
     set.add(l.menu_id);
     menusByWindow.set(l.happy_hour_window_id, set);
   }
-
-  // Street address per venue (VenueSummary only carries city/state) for the
-  // venue label shown on each window when the org has more than one location.
-  const { data: venueAddrData } = venueIdList.length
-    ? await supabase.from('venues').select('id,address,city,state,zip').in('id', venueIdList)
-    : { data: null };
-  const addressByVenue = new Map<string, string>();
-  for (const v of (venueAddrData as { id: string; address: string | null; city: string | null; state: string | null; zip: string | null }[] | null) ?? []) {
-    const cityState = [v.city, v.state].filter(Boolean).join(', ');
-    const full = [v.address, cityState, v.zip].filter(Boolean).join(' · ');
-    if (full) addressByVenue.set(v.id, full);
-  }
-
-  // ── Venue-scoped menu trees, so the Menus tab can manage every venue's menus
-  //  inline (the same editor as the per-venue page, via VenueMenusManager) ──
-  const { data: venueMenuTreeData } = venueIdList.length
-    ? await supabase
-        .from('menus')
-        .select(`${MENU_TREE_SELECT},source_menu_id,venue_id`)
-        .in('venue_id', venueIdList)
-        .eq('scope', 'venue')
-        .order('created_at', { ascending: false })
-    : { data: null };
-  const venueMenusByVenue = new Map<string, (VMM_Menu & { venue_id: string })[]>();
-  for (const m of (venueMenuTreeData as (VMM_Menu & { venue_id: string })[] | null) ?? []) {
-    const list = venueMenusByVenue.get(m.venue_id) ?? [];
-    list.push(m);
-    venueMenusByVenue.set(m.venue_id, list);
-  }
-
-  // Published venue menus across the org — the "copy from another venue" source
-  // list. Filtered per venue (to exclude its own) at render time.
-  const { data: publishedVenueMenuData } = venueIdList.length
-    ? await supabase
-        .from('menus')
-        .select('id,name,venue_id,venue:venues!menus_venue_id_fkey(id,name,org_name)')
-        .eq('org_id', orgId)
-        .eq('scope', 'venue')
-        .eq('status', HH_STATUS_PUBLISHED)
-        .order('name', { ascending: true })
-    : { data: null };
-  const allPublishedVenueMenus = (publishedVenueMenuData as VMM_PublishedVenueMenuOption[] | null) ?? [];
 
   const inputCls =
     'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors';
