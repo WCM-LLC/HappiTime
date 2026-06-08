@@ -8,24 +8,6 @@ type AppleSignInButtonProps = {
   onStatusMessage: (message: string | null) => void;
 };
 
-function makeNonce(length = 32) {
-  const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-._";
-  const values = new Uint8Array(length);
-  const webCrypto = (globalThis as {
-    crypto?: { getRandomValues?: (array: Uint8Array) => Uint8Array };
-  }).crypto;
-
-  if (webCrypto?.getRandomValues) {
-    webCrypto.getRandomValues(values);
-  } else {
-    for (let i = 0; i < values.length; i += 1) {
-      values[i] = Math.floor(Math.random() * 256);
-    }
-  }
-
-  return Array.from(values, (value) => alphabet[value % alphabet.length]).join("");
-}
-
 export function AppleSignInButton({
   disabled,
   onStatusMessage,
@@ -34,9 +16,7 @@ export function AppleSignInButton({
     if (disabled) return;
 
     try {
-      const nonce = makeNonce();
       const credential = await AppleAuthentication.signInAsync({
-        nonce,
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
@@ -51,7 +31,6 @@ export function AppleSignInButton({
       const { error } = await supabase.auth.signInWithIdToken({
         provider: "apple",
         token: credential.identityToken,
-        nonce,
       });
 
       if (error) {
