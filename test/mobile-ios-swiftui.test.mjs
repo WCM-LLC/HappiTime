@@ -45,10 +45,21 @@ test("onboarding and profile keep permission state in React Native while using S
   assert.match(profile, /HappiTimeIOSPermissionPanel/);
 });
 
-test("native Apple sign-in passes the same nonce to Apple and Supabase", () => {
+test("native Apple sign-in sends the Apple identity token to Supabase without the broken nonce", () => {
   const appleSignIn = read("apps/mobile/src/components/AppleSignInButton.ios.tsx");
 
-  assert.match(appleSignIn, /const nonce = makeNonce\(\)/);
-  assert.match(appleSignIn, /AppleAuthentication\.signInAsync\(\{\s*nonce,/);
-  assert.match(appleSignIn, /signInWithIdToken\(\{\s*provider: "apple",\s*token: credential\.identityToken,\s*nonce,/s);
+  // The Apple identity token must still be exchanged with Supabase.
+  assert.match(
+    appleSignIn,
+    /signInWithIdToken\(\{\s*provider: "apple",\s*token: credential\.identityToken,\s*\}\)/s,
+  );
+
+  // Guard against reintroducing the bug that took down Apple login on 2026-06-08:
+  // the *same raw* nonce was passed to both signInAsync (Apple) and signInWithIdToken
+  // (Supabase). Supabase hashes its copy and compares it to the token's nonce claim
+  // (the raw value Apple embedded), so they can never match and every login is rejected.
+  // A correct nonce = SHA256(raw) to Apple, raw to Supabase — must be device-tested before
+  // it returns. Until then, ensure neither the raw-nonce pattern nor makeNonce comes back.
+  assert.doesNotMatch(appleSignIn, /makeNonce/);
+  assert.doesNotMatch(appleSignIn, /signInAsync\(\{\s*nonce,/);
 });
