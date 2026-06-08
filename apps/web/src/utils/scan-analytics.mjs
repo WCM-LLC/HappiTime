@@ -4,7 +4,7 @@
 // scan-analytics.d.ts for types) so CI's Node 20 can execute the unit tests
 // directly (no type-stripping). No I/O — windows and `now` are passed in.
 
-const RECENT_LIMIT = 8;
+const RECENT_LIMIT = 30;
 
 /** { todayStart, weekStart, monthStart } ISO boundaries for a venue timezone + now. */
 export function computeWindows(timezone, now) {
@@ -58,7 +58,12 @@ export function summarizeScans(events, windows) {
     week,
     month,
     bySource,
-    recent: sorted.slice(0, RECENT_LIMIT).map((e) => ({ source: e.source, created_at: e.created_at })),
+    recent: sorted.slice(0, RECENT_LIMIT).map((e) => ({
+      source: e.source,
+      created_at: e.created_at,
+      handle: e.handle ?? null,
+      display_name: e.display_name ?? null,
+    })),
   };
 }
 

@@ -47,12 +47,29 @@ export function VenueScanAnalytics({ summary }: { summary: ScanSummary }) {
 
           {recent.length > 0 ? (
             <ul className="mt-4 divide-y divide-border">
-              {recent.map((e, i) => (
-                <li key={i} className="flex items-center justify-between py-1.5 text-body-sm">
-                  <span className="text-foreground">{SOURCE_LABELS[e.source] ?? e.source}</span>
-                  <span className="text-muted">{formatRelativeTime(e.created_at, now)}</span>
-                </li>
-              ))}
+              {recent.map((e, i) => {
+                const who = e.handle ? `@${e.handle}` : e.display_name || 'Anonymous';
+                return (
+                  <li key={i} className="flex items-center justify-between gap-3 py-2 text-body-sm">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span
+                        className={`truncate ${e.handle ? 'font-medium text-foreground' : 'text-muted'}`}
+                      >
+                        {who}
+                      </span>
+                      <span className="inline-flex items-center rounded-full bg-brand-subtle px-2 py-0.5 text-caption font-medium text-brand-text shrink-0">
+                        {SOURCE_LABELS[e.source] ?? e.source}
+                      </span>
+                    </div>
+                    <span
+                      className="text-muted shrink-0"
+                      title={new Date(e.created_at).toLocaleString()}
+                    >
+                      {formatRelativeTime(e.created_at, now)}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           ) : null}
         </>

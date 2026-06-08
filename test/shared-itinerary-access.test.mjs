@@ -78,12 +78,16 @@ test("usePublicItinerary exposes a header so the notification path can render wi
   assert.match(src, /from\("user_lists"\)/);
 });
 
-test("the migration is the latest one (ordering) and is idempotent", () => {
+test("the shared-itinerary migration is present and idempotent", () => {
   const files = readdirSync(join(repoRoot, "supabase/migrations")).filter((f) =>
     f.endsWith(".sql")
   );
-  const latest = files.sort().at(-1);
-  assert.equal(latest, "20260605120000_shared_itinerary_read_grant.sql");
+  // Don't pin this as the *latest* migration — that breaks every time a newer
+  // migration lands. Just assert it's present and (below) re-runnable.
+  assert.ok(
+    files.includes("20260605120000_shared_itinerary_read_grant.sql"),
+    "shared-itinerary migration should be present in supabase/migrations"
+  );
   assert.match(migration, /create or replace function/i);
   assert.match(migration, /drop policy if exists/i);
 });

@@ -188,6 +188,23 @@ Deno.serve(async (req) => {
 
   const venueId = venue.id;
 
+  // Resolve the authenticated caller, if any. The mobile app invokes this with its
+  // user session (Authorization: Bearer <user JWT>), so check-ins carry a user_id and
+  // surface a handle on the venue dashboard. The web QR landing invokes with the anon
+  // key (no user), so QR / push / organic stay anonymous. verify_jwt=false means the
+  // platform doesn't resolve the user for us — we do it here, best-effort.
+  let userId: string | null = null;
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  if (bearer && bearer !== anonKey) {
+    try {
+      const { data: userData } = await createClient(supabaseUrl, anonKey || serviceKey).auth.getUser(bearer);
+      userId = userData.user?.id ?? null;
+    } catch {
+      // Not a resolvable user token — treat as anonymous.
+    }
+  }
+
   // check_rate_limit RETURNS TRUE WHEN THE LIMIT IS EXCEEDED (v_count > p_limit),
   // i.e. it reports "exceeded", not "allowed". With p_limit=1 the first call in the
   // window returns false (1 > 1) and is recorded; subsequent calls return true.
@@ -206,6 +223,7 @@ Deno.serve(async (req) => {
   const { error: insertErr } = await supabase.from("venue_attribution_events").insert({
     venue_id: venueId,
     source,
+    user_id: userId,
     session_id: sessionId,
     lat,
     lng,

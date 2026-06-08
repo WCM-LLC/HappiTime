@@ -21,6 +21,13 @@ import { createClient } from '@/utils/supabase/server';
 import { isAdminEmail } from '@/utils/admin-emails';
 
 export const runtime = 'nodejs';
+// This route waits synchronously on a vision-LLM round-trip. The internal
+// per-provider abort is ~45s (see INTAKE_*_TIMEOUT_MS below), and the client
+// upload (up to 8 MB) is also spent on the invocation clock. maxDuration MUST
+// sit ABOVE the largest internal timeout, or Vercel kills the function first
+// and you get a generic FUNCTION_INVOCATION_TIMEOUT instead of our own error.
+// 60s is the universally-legal ceiling (Hobby cap); raise toward 300 on Pro.
+export const maxDuration = 60;
 
 type Provider = 'gemini' | 'anthropic';
 
@@ -119,28 +126,49 @@ async function callClaudeVision(base64Image: string, mediaType: string, venueNam
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1500,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Image } },
-            { type: 'text', text: buildUserPrompt(venueName) },
-          ],
-        },
-      ],
-    }),
-  });
+  // Bound the call the same way the Gemini path is bounded. Without this, a
+  // stalled Claude response hangs until fetch's own default (~5 min), which
+  // always overruns maxDuration and surfaces as FUNCTION_INVOCATION_TIMEOUT.
+  // Keep this comfortably under maxDuration (60s) so OUR error wins the race.
+  const controller = new AbortController();
+  const timeoutMs = Number(process.env.INTAKE_ANTHROPIC_TIMEOUT_MS ?? 45_000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res: Response;
+  try {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 1500,
+        system: SYSTEM_PROMPT,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64Image } },
+              { type: 'text', text: buildUserPrompt(venueName) },
+            ],
+          },
+        ],
+      }),
+    });
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new Error(
+        `Anthropic call timed out after ${timeoutMs}ms. Image was ${Math.round(base64Image.length / 1024)}KB base64 — try a smaller image, or bump INTAKE_ANTHROPIC_TIMEOUT_MS.`,
+      );
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
