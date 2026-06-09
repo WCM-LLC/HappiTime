@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
+import { decode } from "base64-arraybuffer";
 import { supabase } from "../api/supabaseClient";
 import { useCurrentUser } from "./useCurrentUser";
 
@@ -48,22 +49,28 @@ export function useAvatarUpload() {
     try {
       const asset = result.assets[0];
 
-      // Resize + compress with ImageManipulator
+      // Resize + compress with ImageManipulator. Request base64 directly so we can
+      // upload real bytes — in React Native `fetch(fileUri).blob()` yields an EMPTY
+      // body, which silently uploaded 0-byte avatars (HTTP 200, no error, blank image).
       const manipResult = await ImageManipulator.manipulateAsync(
         asset.uri,
         [{ resize: { width: MAX_DIMENSION, height: MAX_DIMENSION } }],
-        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+        { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG, base64: true }
       );
 
-      // Fetch as blob for upload
-      const response = await fetch(manipResult.uri);
-      const blob = await response.blob();
+      if (!manipResult.base64) {
+        setState({ status: "error", message: "Could not read the selected image." });
+        return null;
+      }
+
+      // Decode base64 → ArrayBuffer so Supabase Storage receives the actual bytes.
+      const fileBody = decode(manipResult.base64);
 
       // Upload to user-avatars/{userId}/avatar.jpg (upsert overwrites previous)
       const path = `${user.id}/avatar.jpg`;
       const { error: uploadError } = await supabase.storage
         .from(BUCKET)
-        .upload(path, blob, { contentType: "image/jpeg", upsert: true });
+        .upload(path, fileBody, { contentType: "image/jpeg", upsert: true });
 
       if (uploadError) {
         setState({ status: "error", message: uploadError.message });
