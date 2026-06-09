@@ -374,6 +374,7 @@ export const ActivityScreen: React.FC = () => {
     sendFollowRequest,
     approveFollowRequest,
     rejectFollowRequest,
+    refresh: refreshFollowers,
   } = useUserFollowers();
   const { activities, loading: activityLoading, refresh: refreshActivity } = useFriendActivity();
   const { suggestions, loading: suggestionsLoading, refresh: refreshSuggestions } = useFriendSuggestions();
@@ -398,7 +399,11 @@ export const ActivityScreen: React.FC = () => {
       if (tab === "checkins") {
         void refreshCheckins();
       }
-    }, [refreshCheckins, tab])
+      // Always re-check incoming follow requests on focus — useUserFollowers
+      // has no realtime subscription, so without this a recipient with the
+      // screen already warm never sees a request that arrived after mount.
+      void refreshFollowers();
+    }, [refreshCheckins, refreshFollowers, tab])
   );
   const [requestedUsers, setRequestedUsers] = useState<Record<string, boolean>>({});
   const [friendHandleQuery, setFriendHandleQuery] = useState("");
@@ -504,7 +509,7 @@ export const ActivityScreen: React.FC = () => {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
-          onRefresh={refreshActivity}
+          onRefresh={() => { void refreshActivity(); void refreshFollowers(); }}
           refreshing={activityLoading}
           ListHeaderComponent={
             <View>
