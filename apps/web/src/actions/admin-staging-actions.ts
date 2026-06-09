@@ -2,8 +2,10 @@
 
 import { revalidatePath } from 'next/cache';
 import { assertAdmin, getAdminClient } from '@/utils/admin';
+import { slugify } from '@/utils/slugify';
+import { resolveOrgForVenue } from '@/utils/org-resolution';
 
-export async function adminPromoteStagingVenue(stagingId: string, orgId: string) {
+export async function adminPromoteStagingVenue(stagingId: string, orgId?: string) {
   await assertAdmin();
   const supabase = getAdminClient();
 
@@ -67,11 +69,23 @@ export async function adminPromoteStagingVenue(stagingId: string, orgId: string)
     slug = (retrySlug as string) ?? `${slug}-${attempt}`;
   }
 
+  // Resolve the org: an explicit orgId attaches to that specific org; otherwise
+  // match-or-create by slug from the venue name (ownerless until claimed).
+  let resolvedOrgId = orgId ?? null;
+  let orgCreated = false;
+  let orgName: string | null = null;
+  if (!resolvedOrgId) {
+    const resolved = await resolveOrgForVenue(supabase, { name, slug: slugify(name) });
+    resolvedOrgId = resolved.orgId;
+    orgCreated = resolved.created;
+    orgName = resolved.orgName;
+  }
+
   const { data: newVenue, error: insertErr } = await supabase
     .from('venues')
     .insert({
       name,
-      org_id: orgId,
+      org_id: resolvedOrgId,
       city,
       state,
       zip,
@@ -115,7 +129,7 @@ export async function adminPromoteStagingVenue(stagingId: string, orgId: string)
   revalidatePath(`/admin/staging/${stagingId}`);
   revalidatePath('/admin/staging');
   revalidatePath('/admin');
-  return { venueId: newVenue!.id, alreadyExisted: false };
+  return { venueId: newVenue!.id, alreadyExisted: false, orgId: resolvedOrgId, orgCreated, orgName };
 }
 
 export async function adminRejectStagingVenue(stagingId: string, reason?: string) {

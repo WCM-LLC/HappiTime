@@ -8,27 +8,35 @@ export type OrgOption = { id: string; name: string; slug: string };
 export function PromoteForm({
   rowId,
   orgs,
+  venueName,
   hasNoExternalRef,
   onDone,
   onCancel,
 }: {
   rowId: string;
   orgs: OrgOption[];
+  venueName: string;
   hasNoExternalRef: boolean;
   onDone: (msg: string) => void;
   onCancel: () => void;
 }) {
+  const [mode, setMode] = useState<'auto' | 'existing'>('auto');
   const [orgId, setOrgId] = useState(orgs[0]?.id ?? '');
   const [isPending, startTransition] = useTransition();
   const [err, setErr] = useState('');
 
   function submit() {
-    if (!orgId) { setErr('Select an organization'); return; }
+    if (mode === 'existing' && !orgId) { setErr('Select an organization'); return; }
     setErr('');
     startTransition(async () => {
       try {
-        const result = await adminPromoteStagingVenue(rowId, orgId);
-        onDone(result.alreadyExisted ? 'Linked to existing venue (duplicate places_id).' : 'Venue promoted successfully.');
+        const result = await adminPromoteStagingVenue(rowId, mode === 'existing' ? orgId : undefined);
+        const msg = result.alreadyExisted
+          ? 'Linked to existing venue (duplicate places_id).'
+          : result.orgCreated
+            ? `Venue promoted — created org “${result.orgName}”.`
+            : 'Venue promoted and attached to the org.';
+        onDone(msg);
       } catch (e: unknown) {
         setErr(e instanceof Error ? e.message : 'Promotion failed');
       }
@@ -42,15 +50,42 @@ export function PromoteForm({
           No places_id — photo sync won&apos;t auto-run
         </p>
       )}
-      <select
-        value={orgId}
-        onChange={(e) => setOrgId(e.target.value)}
-        className="h-8 rounded border border-border bg-background text-body-sm px-2 focus:ring-1 focus:ring-brand focus:outline-none"
-      >
-        {orgs.map((o) => (
-          <option key={o.id} value={o.id}>{o.name}</option>
-        ))}
-      </select>
+      <div className="flex flex-col gap-1 text-body-sm">
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="radio"
+            name={`promote-mode-${rowId}`}
+            checked={mode === 'auto'}
+            onChange={() => setMode('auto')}
+          />
+          <span>Auto — match or create org</span>
+        </label>
+        <label className="flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="radio"
+            name={`promote-mode-${rowId}`}
+            checked={mode === 'existing'}
+            onChange={() => setMode('existing')}
+          />
+          <span>Attach to existing org</span>
+        </label>
+      </div>
+      {mode === 'auto' ? (
+        <p className="text-caption text-muted">
+          Will match or create org <span className="font-medium">“{venueName || 'venue name'}”</span>.
+        </p>
+      ) : (
+        <select
+          value={orgId}
+          onChange={(e) => setOrgId(e.target.value)}
+          className="h-8 rounded border border-border bg-background text-body-sm px-2 focus:ring-1 focus:ring-brand focus:outline-none"
+        >
+          <option value="">Select an organization…</option>
+          {orgs.map((o) => (
+            <option key={o.id} value={o.id}>{o.name}</option>
+          ))}
+        </select>
+      )}
       {err && <p className="text-caption text-error">{err}</p>}
       <div className="flex gap-1.5">
         <button
