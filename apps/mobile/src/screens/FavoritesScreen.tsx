@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, FlatList, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView, Share } from "react-native";
 import { TabActions, useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
+import { supabase } from "../api/supabaseClient";
 import { SegmentedTabs } from "../components/SegmentedTabs";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { SharedItinerarySection } from "../components/SharedItinerarySection";
@@ -635,9 +636,28 @@ const EditListModal: React.FC<EditListModalProps> = ({
   const handleShareOutside = async () => {
     const storeUrl =
       Platform.OS === "ios" ? HAPPITIME_APP_STORE_URL : HAPPITIME_PLAY_STORE_URL;
+
+    // Mint (or reuse) a share token so the recipient gets a real link to the itinerary,
+    // not just an app-store URL. If it fails, still share — just without the link.
+    let shareUrl: string | null = null;
+    try {
+      // Cast: generated DB types don't yet include this RPC (added in migration
+      // 20260609200000); regenerate types post-deploy to drop the cast.
+      const { data: token } = await (supabase as any).rpc("ensure_share_token", {
+        p_list_id: list.id,
+      });
+      if (token) shareUrl = `https://happitime.biz/i/${token}`;
+    } catch {
+      // ignore — fall back to the store-only message
+    }
+
+    const message = shareUrl
+      ? `Check out my "${list.name}" itinerary on HappiTime!\n\n${shareUrl}\n\nDon't have the app yet? ${storeUrl}`
+      : `Check out my "${list.name}" itinerary on HappiTime!\n\nDownload the app: ${storeUrl}`;
+
     try {
       await Share.share({
-        message: `Check out my "${list.name}" itinerary on HappiTime!\n\nDownload the app: ${storeUrl}`,
+        message,
         title: `${list.name} — HappiTime Itinerary`,
       });
     } catch {
