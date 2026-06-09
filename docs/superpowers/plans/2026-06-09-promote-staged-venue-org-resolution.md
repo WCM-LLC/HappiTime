@@ -6,7 +6,19 @@
 
 **Architecture:** A new pure-I/O helper `resolveOrgForVenue(supabase, venueName)` does match-or-create using the EXISTING SQL dedup functions (`normalize_organization_name`, `organization_slugify`) via RPCs, so name normalization never drifts between JS and SQL. The promote action makes `orgId` optional and delegates to the helper when none is passed. The UI defaults to auto and keeps the org dropdown as an override.
 
-**Tech Stack:** Next.js server actions (`apps/web`), `@supabase/supabase-js` service-role client, Postgres functions, `node --test` (`.mjs` utils — the repo's `scan-analytics.mjs` pattern).
+**Tech Stack:** Next.js server actions (`apps/web`), `@supabase/supabase-js` service-role client, `node --test` (`.mjs` utils — the repo's `scan-analytics.mjs` pattern).
+
+> **REVISED DURING EXECUTION (slug-based):** `normalize_organization_name` /
+> `organization_slugify` were dropped in the 2026-06-01 reconciliation, and
+> `create_organization` is a no-op stub. **Task 0 (the `find_org_by_name` migration)
+> is dropped — no migration is added.** Matching is by **slug** instead, reusing the
+> app's existing `slugify` util + a `findOrgIdBySlug` lookup (the same dedup the app's
+> `createOrganization` uses; `slugify` collapses apostrophes/case). The helper takes a
+> precomputed `slug` so it stays pure-I/O. As implemented:
+> - `apps/web/src/utils/org-resolution.mjs` (+ `.d.ts`) — `resolveOrgForVenue(supabase, { name, slug, createdBy? })`
+> - `test/promote-org-resolution.test.mjs` — integration test (skips without local env), verified: create + ownerless + reuse
+> - `admin-staging-actions.ts` — `orgId?` optional; computes `slugify(name)`, calls the helper, inserts venue with the resolved id, returns `{ …, orgId, orgCreated, orgName }`
+> - `PromoteForm` — Auto (match/create) vs "Attach to existing" override; `venueName` threaded from both call sites
 
 ---
 

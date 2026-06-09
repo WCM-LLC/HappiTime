@@ -1,7 +1,17 @@
 # Promote Staged Venue — Org Match-or-Create
 
-**Status:** Approved design · 2026-06-09
+**Status:** Approved design · 2026-06-09 · **IMPLEMENTED (slug-based, revised)**
 **Area:** Admin Staged Venues console (`apps/web/src/app/admin/staging`)
+
+> **Revision (during implementation):** the original design matched orgs via
+> `normalize_organization_name` / `organization_slugify`. Those SQL functions were
+> **dropped in the 2026-06-01 reconciliation** (`20260601130000`, as dead code) and
+> `create_organization` is a no-op stub. So the implementation instead **dedups by
+> slug** — exactly how the app's own `createOrganization` (dashboard-actions.ts)
+> already works: `slug = slugify(name)` → reuse an org with that slug, else create.
+> `slugify` strips apostrophes + lowercases, so "O'Dowd's"/"Odowds"/"ODOWDS" still
+> collapse to `odowds` (the approved dedup behavior). **No migration** is added.
+> Sections below referencing the normalize functions are superseded by this note.
 
 ## Problem
 

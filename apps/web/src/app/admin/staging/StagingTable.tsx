@@ -310,6 +310,7 @@ function StagingRow({
               <PromoteForm
                 rowId={row.id}
                 orgs={orgs}
+                venueName={name}
                 hasNoExternalRef={!row.external_ref}
                 onDone={handleDone}
                 onCancel={() => setAction(null)}

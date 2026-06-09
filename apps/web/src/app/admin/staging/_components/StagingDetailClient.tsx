@@ -137,6 +137,7 @@ export default function StagingDetailClient({
               <PromoteForm
                 rowId={rowId}
                 orgs={orgs}
+                venueName={fields.name}
                 hasNoExternalRef={hasNoExternalRef}
                 onDone={handleActionDone}
                 onCancel={() => setAction(null)}
