@@ -26,6 +26,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generateCheckinCode } from "../_shared/checkin-code.ts";
+import { currentQuarter } from "../_shared/quarter.ts";
 import {
   serviceDate,
   formatDigestSubject,
@@ -224,6 +225,28 @@ Deno.serve(async (req: Request) => {
       const totalCheckins = checkinCount ?? 0;
       const totalRounds = roundsRedeemed ?? 0;
 
+      // ── Toastmaker handle (current quarter, best-effort) ────────────────
+      let toastmakerHandle: string | null = null;
+      try {
+        const quarter = currentQuarter(now);
+        const { data: tmRow } = await supabase
+          .from("venue_toastmakers")
+          .select("user_id")
+          .eq("venue_id", venue.id)
+          .eq("quarter", quarter)
+          .maybeSingle();
+        if (tmRow?.user_id) {
+          const { data: tmProfile } = await supabase
+            .from("user_profiles")
+            .select("handle")
+            .eq("user_id", tmRow.user_id)
+            .maybeSingle();
+          toastmakerHandle = (tmProfile as { handle?: string | null } | null)?.handle ?? null;
+        }
+      } catch {
+        // Non-critical — proceed without toastmaker line
+      }
+
       // ── Send email via Resend ───────────────────────────────────────────
       if (!resendKey) {
         console.warn("[send-venue-digest] RESEND_API_KEY not set — email skipped for venue", venue.id);
@@ -239,6 +262,7 @@ Deno.serve(async (req: Request) => {
         returning,
         roundsRedeemed: totalRounds,
         serviceDate: yesterdayServiceDate(yesterdayStart),
+        toastmakerHandle,
       });
 
       const emailRes = await fetch("https://api.resend.com/emails", {
@@ -326,8 +350,12 @@ function buildDigestHtml(args: {
   returning: number;
   roundsRedeemed: number;
   serviceDate: string;
+  toastmakerHandle?: string | null;
 }): string {
-  const { venueName, code, checkinCount, firstTimers, returning, roundsRedeemed, serviceDate: yd } = args;
+  const { venueName, code, checkinCount, firstTimers, returning, roundsRedeemed, serviceDate: yd, toastmakerHandle } = args;
+  const toastmakerLine = toastmakerHandle
+    ? `<p style="margin:12px 0 0;font-size:13px;color:#C0773A;font-weight:600">🥂 This quarter's Toastmaker: @${toastmakerHandle}</p>`
+    : "";
   return `
 <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
   <h2 style="color:#C0773A;margin-bottom:4px">HappiTime Daily Digest</h2>
@@ -358,6 +386,7 @@ function buildDigestHtml(args: {
       <td style="padding:8px 0;text-align:right;font-weight:700;color:#1a1a1a">${roundsRedeemed}</td>
     </tr>
   </table>
+  ${toastmakerLine}
 
   <p style="color:#aaa;font-size:11px;margin-top:24px;border-top:1px solid #eee;padding-top:12px">
     You're receiving this because you're an owner or manager of ${venueName} on HappiTime.
