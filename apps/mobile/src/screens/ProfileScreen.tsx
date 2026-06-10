@@ -524,6 +524,15 @@ export const ProfileScreen: React.FC = () => {
         </Pressable>
         </View>
 
+        {profile?.role === "super_user" ? (
+          <Pressable
+            style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
+            onPress={() => navigation.navigate("InsiderCode")}
+          >
+            <Text style={styles.secondaryButtonText}>My Insider Code</Text>
+          </Pressable>
+        ) : null}
+
         <Pressable
         style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
         onPress={() => setShowSuggestVenue(true)}

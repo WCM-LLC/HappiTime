@@ -65,7 +65,8 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "happitime.biz", "pathPrefix": "/i" }
+            { "scheme": "https", "host": "happitime.biz", "pathPrefix": "/i" },
+            { "scheme": "https", "host": "happitime.biz", "pathPrefix": "/r" }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }

@@ -19,6 +19,7 @@ import { HomeScreen } from "../screens/HomeScreen";
 import { MapScreen } from "../screens/MapScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { InviteScreen } from "../screens/InviteScreen";
+import { InsiderCodeScreen } from "../screens/InsiderCodeScreen";
 import { VenuePreviewScreen } from "../screens/VenuePreviewScreen";
 import { ItineraryDetailScreen } from "../screens/ItineraryDetailScreen";
 import { EventCalendarScreen } from "../screens/EventCalendarScreen";
@@ -207,6 +208,19 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
           options={{
             headerShown: true,
             title: "Upcoming Events",
+            headerBackTitle: "Back",
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontSize: 17, fontWeight: "600" },
+          }}
+        />
+        <Stack.Screen
+          name="InsiderCode"
+          component={InsiderCodeScreen}
+          options={{
+            headerShown: true,
+            title: "My Insider Code",
             headerBackTitle: "Back",
             headerTintColor: colors.text,
             headerStyle: { backgroundColor: colors.background },

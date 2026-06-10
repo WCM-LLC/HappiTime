@@ -331,6 +331,38 @@ export async function getVenueBySlug(
   return venueWithTier;
 }
 
+// ─── Public profile ───────────────────────────────────────────────────────────
+
+export type PublicProfile = {
+  handle: string;
+  display_name: string | null;
+  avatar_url: string | null;
+};
+
+/**
+ * Fetch a single public user profile by handle (case-insensitive).
+ * Returns null if the handle is not found or the profile is not public.
+ * Uses the anon client; permitted by the user_profiles_select_owner_or_public
+ * RLS policy (is_public = true branch is open to anon).
+ */
+export async function getPublicProfileByHandle(
+  handle: string
+): Promise<PublicProfile | null> {
+  const { data, error } = await supabase
+    .from("user_profiles")
+    .select("handle, display_name, avatar_url")
+    .ilike("handle", handle)
+    .eq("is_public", true)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return {
+    handle: (data as any).handle as string,
+    display_name: (data as any).display_name as string | null,
+    avatar_url: (data as any).avatar_url as string | null,
+  };
+}
+
 /**
  * Fetch all published venues in Kansas City for the main KC landing page.
  * Does NOT include menu items.
