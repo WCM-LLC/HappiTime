@@ -16,6 +16,7 @@ import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
 import { SIZE_PRESETS } from '@happitime/venue-qr';
 import { VenueScanAnalytics } from '@/components/VenueScanAnalytics';
 import { summarizeScans, computeWindows, type ScanSummary, type ScanEvent } from '@/utils/scan-analytics';
+import { serviceDate, generateCheckinCode } from '@happitime/shared-api/checkin-code';
 import {
   updateVenue,
   publishVenue,
@@ -294,6 +295,7 @@ export default async function VenuePage({
   const [
     { data: venue, error: venueErr },
     { data: qrVenue },
+    { data: checkinSecretRow },
     { data: happyHours, error: hhErr },
     { data: menus, error: menusErr },
     { data: organizationMenus, error: organizationMenusErr },
@@ -308,6 +310,16 @@ export default async function VenuePage({
     fetchVenueById(supabase as any, venueId, { orgId }),
     // fetchVenueById does not select `slug`; fetch it for the QR download caption.
     supabase.from('venues').select('slug').eq('id', venueId).maybeSingle(),
+    // Read checkin_secret via service-role (always) — it is never sent to the
+    // browser; only the derived 4-char code is shown in the sub-bar.
+    // Gated to canManageVenue so hosts/viewers don't trigger a service-role read.
+    canManageVenue
+      ? createServiceClient()
+          .from('venues')
+          .select('checkin_secret')
+          .eq('id', venueId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
     supabase
       .from('happy_hour_windows')
       .select('id,dow,start_time,end_time,timezone,status,label')
@@ -485,6 +497,12 @@ export default async function VenuePage({
     }
     menuSelections.get(link.happy_hour_window_id)?.add(link.menu_id);
   }
+  // ── Today's check-in code (canManageVenue only; secret never leaves server) ──
+  const checkinSecret = (checkinSecretRow as { checkin_secret: string } | null)?.checkin_secret ?? null;
+  const todayCheckinCode = canManageVenue && checkinSecret
+    ? generateCheckinCode(checkinSecret, serviceDate(new Date()))
+    : null;
+
   const previewHref = `/app-preview/orgs/${orgId}/venues/${venueId}`;
   const displayName = v?.org_name?.trim() || v?.name || 'Venue';
   const locationLabel = v?.org_name?.trim() && v.org_name !== v?.name ? v.name : null;
@@ -536,6 +554,18 @@ export default async function VenuePage({
   );
   const subBarRight = (
     <>
+            {/* Today's check-in code — computed server-side; secret never reaches browser */}
+            {todayCheckinCode ? (
+              <div
+                title="Today's check-in code (rotates at 6 AM CT)"
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-brand/30 bg-brand-subtle shrink-0"
+              >
+                <span className="text-caption font-medium text-muted-light hidden sm:inline">Code</span>
+                <span className="font-mono text-[15px] font-bold tracking-[0.15em] text-brand-dark-alt">
+                  {todayCheckinCode}
+                </span>
+              </div>
+            ) : null}
             {canManageVenue ? (
               <form className="flex items-center gap-2">
                 {venuePublished ? (
