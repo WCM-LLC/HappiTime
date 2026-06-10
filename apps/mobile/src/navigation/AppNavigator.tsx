@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { useNotificationNavigation } from "../hooks/useNotificationNavigation";
 import { useVenueDeepLink } from "../hooks/useVenueDeepLink";
+import { useItineraryDeepLink } from "../hooks/useItineraryDeepLink";
+import { SharedItineraryScreen } from "../screens/SharedItineraryScreen";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { ActivityScreen } from "../screens/ActivityScreen";
 import { AuthScreen } from "../screens/AuthScreen";
@@ -110,6 +112,7 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
   const navigationRef = useRef<any>(null);
   useNotificationNavigation(navigationRef);
   useVenueDeepLink(navigationRef);
+  useItineraryDeepLink(navigationRef);
 
   return (
     <NavigationContainer ref={navigationRef} theme={navTheme}>
@@ -162,6 +165,19 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
           options={{
             headerShown: true,
             title: "Itinerary",
+            headerBackTitle: "Back",
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontSize: 17, fontWeight: "600" },
+          }}
+        />
+        <Stack.Screen
+          name="SharedItinerary"
+          component={SharedItineraryScreen}
+          options={{
+            headerShown: true,
+            title: "Shared Itinerary",
             headerBackTitle: "Back",
             headerTintColor: colors.text,
             headerStyle: { backgroundColor: colors.background },

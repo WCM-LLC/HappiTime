@@ -18,6 +18,16 @@ const nextConfig: NextConfig = {
   // rules are generated from the source-of-truth data rather than a template.
   // Single-segment only: venue detail pages (`/kc/[neighborhood]/[slug]/`)
   // are already canonical and must NOT redirect.
+  // Serve the Apple App Site Association as JSON (the file is extensionless and
+  // iOS expects application/json). Static public/ files bypass trailingSlash.
+  async headers() {
+    return [
+      {
+        source: "/.well-known/apple-app-site-association",
+        headers: [{ key: "Content-Type", value: "application/json" }],
+      },
+    ];
+  },
   async redirects() {
     return HAPPY_HOUR_LANDING_PAGES.map((page) => ({
       source: `/kc/${page.neighborhoodSlug}`,

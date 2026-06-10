@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["787CJ7NZ7H.com.jwill7486.happitime.mobile"],
+        "appID": "787CJ7NZ7H.com.jwill7486.happitime.mobile",
+        "components": [
+          { "/": "/i/*", "comment": "Shared itinerary links open in the app" }
+        ],
+        "paths": ["/i/*"]
+      }
+    ]
+  }
+}

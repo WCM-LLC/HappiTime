@@ -38,6 +38,9 @@
       "usesAppleSignIn": true,
       "supportsTablet": true,
       "bundleIdentifier": "com.jwill7486.happitime.mobile",
+      "associatedDomains": [
+        "applinks:happitime.biz"
+      ],
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "HappiTime uses your location to show nearby happy hours and center the map after you enable location.",
@@ -57,6 +60,16 @@
       "package": "com.jwill7486.happitime.mobile",
       "versionCode": 1,
       "softwareKeyboardLayoutMode": "resize",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "https", "host": "happitime.biz", "pathPrefix": "/i" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#C8965A"
