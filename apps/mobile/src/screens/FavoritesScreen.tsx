@@ -19,6 +19,10 @@ import { useVenueMediaGalleries } from "../hooks/useVenueCovers";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { distanceMiles } from "../utils/location";
+import {
+  APP_STORE_URL as HAPPITIME_APP_STORE_URL,
+  PLAY_STORE_URL as HAPPITIME_PLAY_STORE_URL,
+} from "../lib/storeLinks";
 
 export const FavoritesScreen: React.FC = () => {
   const navigation = useNavigation<any>();
@@ -570,8 +574,6 @@ type EditListModalProps = {
   onShowOnMap: (list: UserList) => void;
 };
 
-const HAPPITIME_APP_STORE_URL = "https://apps.apple.com/us/app/happitime/id6757933269";
-const HAPPITIME_PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.happitime";
 
 const EditListModal: React.FC<EditListModalProps> = ({
   list,
