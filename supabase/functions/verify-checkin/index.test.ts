@@ -26,7 +26,9 @@ import {
   stampsToNextRound,
   isFirstVisit,
   attemptsRemaining,
+  canRedeem,
   serviceDate as svcDate,
+  STAMPS_PER_ROUND,
 } from "./logic.ts";
 
 // ---------------------------------------------------------------------------
@@ -212,7 +214,30 @@ Deno.test("attemptsRemaining: over limit → 0 (never negative)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// 10. Structurally-reviewed rules (require DB interaction — not unit-tested)
+// 10. canRedeem  (redemption gate)
+// ---------------------------------------------------------------------------
+Deno.test("canRedeem: 0 stamps → false", () => {
+  assertEquals(canRedeem(0), false);
+});
+
+Deno.test("canRedeem: 4 stamps → false (one short)", () => {
+  assertEquals(canRedeem(4), false);
+});
+
+Deno.test("canRedeem: 5 stamps → true (exactly STAMPS_PER_ROUND)", () => {
+  assertEquals(canRedeem(STAMPS_PER_ROUND), true);
+});
+
+Deno.test("canRedeem: 6 stamps → true (over threshold)", () => {
+  assertEquals(canRedeem(6), true);
+});
+
+Deno.test("canRedeem: STAMPS_PER_ROUND is 5", () => {
+  assertEquals(STAMPS_PER_ROUND, 5);
+});
+
+// ---------------------------------------------------------------------------
+// 11. Structurally-reviewed rules (require DB interaction — not unit-tested)
 //   These rules are reviewed for correctness via code reading rather than
 //   automated assertion. Documented here for traceability:
 //
@@ -240,7 +265,7 @@ Deno.test("attemptsRemaining: over limit → 0 (never negative)", () => {
 //   RULE 7 (fallback_limit): counts gps_fallback rows for (user, venue) lifetime.
 //     On ≥2 → 400 { error: "fallback_limit" }. Writes venue_flags(staff_code_unknown).
 // ---------------------------------------------------------------------------
-Deno.test("structural review marker — rules 1,2,4,5,6,7 verified by code reading", () => {
+Deno.test("structural review marker — rules 1,2,4,5,6,7 + redeem path verified by code reading", () => {
   // This test passes trivially; it documents coverage intent.
   assertEquals(true, true);
 });

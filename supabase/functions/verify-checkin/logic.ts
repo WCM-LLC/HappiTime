@@ -123,3 +123,15 @@ export function isFirstVisit(
 export function attemptsRemaining(limit: number, usedCount: number): number {
   return Math.max(0, limit - usedCount);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Redemption
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * True when the user has accumulated enough stamps to redeem a free round.
+ * The caller must pass the *current* stamp count (i.e. post-checkin, pre-redeem).
+ */
+export function canRedeem(stamps: number): boolean {
+  return stamps >= STAMPS_PER_ROUND;
+}

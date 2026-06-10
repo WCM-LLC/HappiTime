@@ -35,8 +35,10 @@ import {
   stampsToNextRound,
   isFirstVisit,
   attemptsRemaining,
+  canRedeem,
   CHECKIN_RATE_LIMIT,
   FALLBACK_LIFETIME_LIMIT,
+  STAMPS_PER_ROUND,
 } from "./logic.ts";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -108,6 +110,7 @@ Deno.serve(async (req) => {
   const lng =
     typeof body.lng === "number" && Number.isFinite(body.lng) ? body.lng : null;
   const fallback = body.fallback === true;
+  const redeem = body.redeem === true;
 
   if (!venueId) return json({ error: "venue_id is required" }, 400);
   if (!fallback && !submittedCode) return json({ error: "code is required" }, 400);
@@ -188,6 +191,69 @@ Deno.serve(async (req) => {
         400,
       );
     }
+  }
+
+  // ── Redeem path (after code validation, before check-in insert) ──────────
+  // When redeem===true: validate stamps ≥ 5, insert round_redemptions, return
+  // reset stamps. This is NOT a check-in — it bypasses Rules 4-6 entirely.
+  if (redeem) {
+    // Query current stamps (same derivation as Rule 7 below)
+    const { data: lastRedemptionForRedeem } = await supabase
+      .from("round_redemptions")
+      .select("created_at")
+      .eq("user_id", userId)
+      .eq("venue_id", venueId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const sinceForRedeem =
+      (lastRedemptionForRedeem as { created_at?: string } | null)?.created_at ??
+      "1970-01-01T00:00:00Z";
+
+    const { count: currentStamps, error: redeemStampsErr } = await supabase
+      .from("checkins")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("venue_id", venueId)
+      .gte("created_at", sinceForRedeem);
+
+    if (redeemStampsErr) {
+      console.error("[verify-checkin] redeem stamps query failed:", redeemStampsErr.message);
+      return json({ error: "Stamps query failed" }, 500);
+    }
+
+    const stampsForRedeem = currentStamps ?? 0;
+
+    if (!canRedeem(stampsForRedeem)) {
+      return json(
+        { error: "insufficient_stamps", stamps: stampsForRedeem },
+        400,
+      );
+    }
+
+    // Insert the redemption row
+    const { error: redeemInsertErr } = await supabase
+      .from("round_redemptions")
+      .insert({
+        user_id: userId,
+        venue_id: venueId,
+        checkins_consumed: STAMPS_PER_ROUND,
+        confirmed_with_code: true,
+      });
+
+    if (redeemInsertErr) {
+      console.error("[verify-checkin] round_redemptions insert failed:", redeemInsertErr.message);
+      return json({ error: "Redemption failed" }, 500);
+    }
+
+    // After redemption the stamp counter resets to 0 (new redemption row is the new anchor)
+    return json({
+      stamps: 0,
+      stamps_to_next_round: stampsToNextRound(0),
+      is_first_visit: false,
+      redeemed: true,
+    });
   }
 
   // ── Rule 4: Geofence ─────────────────────────────────────────────────────
