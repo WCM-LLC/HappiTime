@@ -16,6 +16,7 @@ import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
 import { SIZE_PRESETS } from '@happitime/venue-qr';
 import { VenueScanAnalytics } from '@/components/VenueScanAnalytics';
 import { summarizeScans, computeWindows, type ScanSummary, type ScanEvent } from '@/utils/scan-analytics';
+import { serviceDate, generateCheckinCode } from '@happitime/shared-api/checkin-code';
 import {
   updateVenue,
   publishVenue,
@@ -294,6 +295,7 @@ export default async function VenuePage({
   const [
     { data: venue, error: venueErr },
     { data: qrVenue },
+    { data: checkinSecretRow },
     { data: happyHours, error: hhErr },
     { data: menus, error: menusErr },
     { data: organizationMenus, error: organizationMenusErr },
@@ -308,6 +310,16 @@ export default async function VenuePage({
     fetchVenueById(supabase as any, venueId, { orgId }),
     // fetchVenueById does not select `slug`; fetch it for the QR download caption.
     supabase.from('venues').select('slug').eq('id', venueId).maybeSingle(),
+    // Read checkin_secret via service-role (always) — it is never sent to the
+    // browser; only the derived 4-char code is shown in the sub-bar.
+    // Gated to canManageVenue so hosts/viewers don't trigger a service-role read.
+    canManageVenue
+      ? createServiceClient()
+          .from('venues')
+          .select('checkin_secret')
+          .eq('id', venueId)
+          .maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
     supabase
       .from('happy_hour_windows')
       .select('id,dow,start_time,end_time,timezone,status,label')
@@ -409,7 +421,10 @@ export default async function VenuePage({
   const scanWindows =
     canEditMenuItems && venue ? computeWindows(venue?.timezone ?? 'UTC', new Date()) : null;
 
-  const [scanSummary, { windowMenus, windowMenusErr }] = await Promise.all([
+  // 90-day window for check-in stats (covers yesterday / 7d / 30d).
+  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 3600_000).toISOString();
+
+  const [scanSummary, { windowMenus, windowMenusErr }, checkinStats] = await Promise.all([
     (async (): Promise<ScanSummary | null> => {
       if (!scanWindows) return null;
       const svc = createServiceClient();
@@ -468,6 +483,36 @@ export default async function VenuePage({
         windowMenusErr: hhMenusErr,
       };
     })(),
+    // Check-in stats (canManageVenue): read via service-role (checkins is RLS-locked).
+    (async () => {
+      if (!canManageVenue) {
+        return { checkins: [], redemptions: [], flags: [] };
+      }
+      const svcStats = createServiceClient();
+      const [{ data: ciRows }, { data: rdRows }, { data: flRows }] = await Promise.all([
+        svcStats
+          .from('checkins')
+          .select('id,user_id,method,service_date,created_at')
+          .eq('venue_id', venueId)
+          .gte('created_at', ninetyDaysAgo)
+          .order('created_at', { ascending: false }),
+        svcStats
+          .from('round_redemptions')
+          .select('id,created_at')
+          .eq('venue_id', venueId)
+          .gte('created_at', ninetyDaysAgo),
+        svcStats
+          .from('venue_flags')
+          .select('id,flag_type,resolved_at,created_at')
+          .eq('venue_id', venueId)
+          .gte('created_at', ninetyDaysAgo),
+      ]);
+      return {
+        checkins: (ciRows ?? []) as { id: string; user_id: string; method: string; service_date: string; created_at: string }[],
+        redemptions: (rdRows ?? []) as { id: string; created_at: string }[],
+        flags: (flRows ?? []) as { id: string; flag_type: string; resolved_at: string | null; created_at: string }[],
+      };
+    })(),
   ]);
 
   const v = venue;
@@ -485,6 +530,51 @@ export default async function VenuePage({
     }
     menuSelections.get(link.happy_hour_window_id)?.add(link.menu_id);
   }
+  // ── Check-in stats ────────────────────────────────────────────────────────
+  const { checkins: ciRows, redemptions: rdRows, flags: flRows } = checkinStats;
+
+  // Time boundaries (UTC)
+  const nowMs = Date.now();
+  const yesterday = new Date(nowMs - 24 * 3600_000).toISOString();
+  const sevenDaysAgo = new Date(nowMs - 7 * 24 * 3600_000).toISOString();
+  const thirtyDaysAgo = new Date(nowMs - 30 * 24 * 3600_000).toISOString();
+
+  const ciYesterday = ciRows.filter((r) => r.created_at >= yesterday).length;
+  const ci7d = ciRows.filter((r) => r.created_at >= sevenDaysAgo).length;
+  const ci30d = ciRows.filter((r) => r.created_at >= thirtyDaysAgo).length;
+
+  // First-timers vs returning: defined for rows with a user_id (identified).
+  // Anonymous GPS-fallback rows (user_id present but anon) are counted as anonymous.
+  // We compute "first-timer" as user_ids whose earliest check-in at this venue
+  // is within the 30-day window.
+  const allUserIds = [...new Set(ciRows.map((r) => r.user_id).filter(Boolean))];
+  // For the 30-day window: first checkin per user across all 90d data
+  const firstCheckinDateByUser = new Map<string, string>();
+  for (const r of [...ciRows].sort((a, b) => a.created_at.localeCompare(b.created_at))) {
+    if (r.user_id && !firstCheckinDateByUser.has(r.user_id)) {
+      firstCheckinDateByUser.set(r.user_id, r.created_at);
+    }
+  }
+  const ci30dRows = ciRows.filter((r) => r.created_at >= thirtyDaysAgo);
+  const firstTimers30d = ci30dRows.filter((r) => {
+    const first = r.user_id ? firstCheckinDateByUser.get(r.user_id) : null;
+    return first && first >= thirtyDaysAgo;
+  }).length;
+  const returning30d = ci30dRows.filter((r) => {
+    const first = r.user_id ? firstCheckinDateByUser.get(r.user_id) : null;
+    return first && first < thirtyDaysAgo;
+  }).length;
+
+  const gpsCount30d = ci30dRows.filter((r) => r.method === 'gps_fallback').length;
+  const redemptions30d = rdRows.filter((r) => r.created_at >= thirtyDaysAgo).length;
+  const openFlags = flRows.filter((r) => !r.resolved_at).length;
+
+  // ── Today's check-in code (canManageVenue only; secret never leaves server) ──
+  const checkinSecret = (checkinSecretRow as { checkin_secret: string } | null)?.checkin_secret ?? null;
+  const todayCheckinCode = canManageVenue && checkinSecret
+    ? generateCheckinCode(checkinSecret, serviceDate(new Date()))
+    : null;
+
   const previewHref = `/app-preview/orgs/${orgId}/venues/${venueId}`;
   const displayName = v?.org_name?.trim() || v?.name || 'Venue';
   const locationLabel = v?.org_name?.trim() && v.org_name !== v?.name ? v.name : null;
@@ -536,6 +626,18 @@ export default async function VenuePage({
   );
   const subBarRight = (
     <>
+            {/* Today's check-in code — computed server-side; secret never reaches browser */}
+            {todayCheckinCode ? (
+              <div
+                title="Today's check-in code (rotates at 6 AM CT)"
+                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md border border-brand/30 bg-brand-subtle shrink-0"
+              >
+                <span className="text-caption font-medium text-muted-light hidden sm:inline">Code</span>
+                <span className="font-mono text-[15px] font-bold tracking-[0.15em] text-brand-dark-alt">
+                  {todayCheckinCode}
+                </span>
+              </div>
+            ) : null}
             {canManageVenue ? (
               <form className="flex items-center gap-2">
                 {venuePublished ? (
@@ -1547,12 +1649,81 @@ export default async function VenuePage({
     </>
   );
 
+  const checkinPanel = (
+    <>
+        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+          <div className="mb-5 flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-heading-sm font-semibold text-foreground">Check-ins</h2>
+              <p className="text-body-sm text-muted mt-0.5">
+                App check-ins and GPS-fallback arrivals at this venue.
+              </p>
+            </div>
+            <a
+              href={`/api/venues/${venueId}/checkins-export`}
+              download
+              className="inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer shrink-0"
+            >
+              Export CSV
+            </a>
+          </div>
+
+          {/* ── Window counts ── */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            {[
+              { label: 'Yesterday', value: ciYesterday },
+              { label: 'Last 7 days', value: ci7d },
+              { label: 'Last 30 days', value: ci30d },
+            ].map(({ label, value }) => (
+              <div key={label} className="rounded-md border border-border bg-background p-4 text-center">
+                <p className="text-display-sm font-bold text-foreground tabular-nums">{value}</p>
+                <p className="text-caption text-muted mt-0.5">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* ── 30-day breakdown ── */}
+          <div className="rounded-md border border-border overflow-hidden mb-6">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border bg-background">
+                  <th className="text-left text-caption font-medium text-muted px-4 py-2.5">Metric (last 30 days)</th>
+                  <th className="text-right text-caption font-medium text-muted px-4 py-2.5">Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { label: 'First-timers (identified)', value: firstTimers30d },
+                  { label: 'Returning (identified)', value: returning30d },
+                  { label: 'GPS fallback (no code)', value: gpsCount30d },
+                  { label: 'Rounds redeemed', value: redemptions30d },
+                  { label: 'Open staff flags', value: openFlags },
+                ].map((row, i) => (
+                  <tr key={row.label} className={`border-b border-border last:border-b-0 ${i % 2 === 0 ? 'bg-surface' : 'bg-background/50'}`}>
+                    <td className="text-body-sm text-foreground px-4 py-2.5">{row.label}</td>
+                    <td className="text-body-sm text-muted text-right tabular-nums px-4 py-2.5">{row.value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ── Anonymous note ── */}
+          <p className="text-caption text-muted">
+            First-timer / returning counts apply only to identified (app) check-ins.
+            Anonymous GPS-fallback check-ins are counted separately above.
+          </p>
+        </div>
+    </>
+  );
+
   const tabs: ShellTab[] = [
     { id: 'details', label: 'Details', content: <>{detailsPart1}{tagsPanel}</> },
     { id: 'happy-hours', label: 'Happy Hours', content: happyHoursPanel },
     { id: 'menus', label: 'Menus', content: menusPanel },
     { id: 'events', label: 'Events', content: eventsPanel },
     { id: 'media', label: 'Media & QR', content: mediaQrPanel, show: canManageVenue },
+    { id: 'checkins', label: 'Check-ins', content: checkinPanel, show: canManageVenue },
     { id: 'staff', label: 'Staff', content: staffPanel, show: fromAdmin && userIsAdmin },
     { id: 'analytics', label: 'Analytics', content: analyticsPanel },
   ];

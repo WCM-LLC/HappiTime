@@ -370,6 +370,11 @@ verify_jwt = false
 [functions.autotag-venues]
 verify_jwt = false
 
+# Invoked hourly by cron (invoke_send_venue_digest -> pg_net) with x-digest-token, no JWT.
+# The 6 AM CT guard inside the function restricts actual sends to one window per day.
+[functions.send-venue-digest]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

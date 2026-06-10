@@ -49,6 +49,21 @@ export type RootStackParamList = {
   // happitime://itinerary?token=). Fetches by token through get_shared_itinerary,
   // which bypasses RLS, so it works even for private lists the viewer can't read.
   SharedItinerary: { token: string };
+  // Pilot loyalty check-in: user enters a 4-char code from their server
+  CheckIn: {
+    venueId: string;
+    venueName: string;
+    lat: number;
+    lng: number;
+  };
+  // Pilot round redemption: shown when user has ≥5 stamps; confirms with code
+  RoundRedemption: {
+    venueId: string;
+    venueName: string;
+    lat: number;
+    lng: number;
+    stamps: number;
+  };
 };
 
 export type MainTabParamList = {
