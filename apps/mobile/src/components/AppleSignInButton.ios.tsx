@@ -1,6 +1,7 @@
 import * as AppleAuthentication from "expo-apple-authentication";
 import { StyleSheet } from "react-native";
 import { supabase } from "../api/supabaseClient";
+import { makeAppleNonce } from "../lib/appleNonce";
 import { spacing } from "../theme/spacing";
 
 type AppleSignInButtonProps = {
@@ -16,11 +17,16 @@ export function AppleSignInButton({
     if (disabled) return;
 
     try {
+      // OIDC replay protection: SHA256(raw) goes to Apple (it becomes the token's
+      // `nonce` claim), the raw value goes to Supabase (it re-hashes and compares).
+      const { raw, hashed } = await makeAppleNonce();
+
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
           AppleAuthentication.AppleAuthenticationScope.EMAIL,
         ],
+        nonce: hashed,
       });
 
       if (!credential.identityToken) {
@@ -31,6 +37,7 @@ export function AppleSignInButton({
       const { error } = await supabase.auth.signInWithIdToken({
         provider: "apple",
         token: credential.identityToken,
+        nonce: raw,
       });
 
       if (error) {

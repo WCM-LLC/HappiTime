@@ -45,21 +45,25 @@ test("onboarding and profile keep permission state in React Native while using S
   assert.match(profile, /HappiTimeIOSPermissionPanel/);
 });
 
-test("native Apple sign-in sends the Apple identity token to Supabase without the broken nonce", () => {
+test("native Apple sign-in uses a correct asymmetric nonce: SHA256(raw) to Apple, raw to Supabase", () => {
   const appleSignIn = read("apps/mobile/src/components/AppleSignInButton.ios.tsx");
 
-  // The Apple identity token must still be exchanged with Supabase.
+  // A fresh nonce pair is generated up front.
+  assert.match(appleSignIn, /const \{ raw, hashed \} = await makeAppleNonce\(\)/);
+
+  // The HASH goes to Apple — Apple embeds it as the identity token's `nonce` claim.
+  assert.match(appleSignIn, /signInAsync\(\{[\s\S]*?nonce: hashed[\s\S]*?\}\)/);
+
+  // The RAW goes to Supabase — GoTrue hashes its copy and compares to the token's claim.
   assert.match(
     appleSignIn,
-    /signInWithIdToken\(\{\s*provider: "apple",\s*token: credential\.identityToken,\s*\}\)/s,
+    /signInWithIdToken\(\{[\s\S]*?token: credential\.identityToken,[\s\S]*?nonce: raw[\s\S]*?\}\)/,
   );
 
-  // Guard against reintroducing the bug that took down Apple login on 2026-06-08:
-  // the *same raw* nonce was passed to both signInAsync (Apple) and signInWithIdToken
-  // (Supabase). Supabase hashes its copy and compares it to the token's nonce claim
-  // (the raw value Apple embedded), so they can never match and every login is rejected.
-  // A correct nonce = SHA256(raw) to Apple, raw to Supabase — must be device-tested before
-  // it returns. Until then, ensure neither the raw-nonce pattern nor makeNonce comes back.
-  assert.doesNotMatch(appleSignIn, /makeNonce/);
-  assert.doesNotMatch(appleSignIn, /signInAsync\(\{\s*nonce,/);
+  // Regression guard for the 2026-06-08 outage: the SAME raw nonce was sent to BOTH
+  // calls, so the claim (raw) never equalled GoTrue's SHA256(raw) and every login failed.
+  // Ensure the inverted wiring (raw→Apple or hashed→Supabase) cannot come back.
+  // `[^})]*` keeps each negative match inside its own call's argument object.
+  assert.doesNotMatch(appleSignIn, /signInAsync\(\{[^})]*nonce: raw\b/);
+  assert.doesNotMatch(appleSignIn, /signInWithIdToken\(\{[^})]*nonce: hashed\b/);
 });
