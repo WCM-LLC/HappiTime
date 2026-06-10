@@ -6,6 +6,7 @@ test("parses the custom-scheme venue link with src", () => {
   assert.deepEqual(parseVenueLink("happitime://venue/sea-capitan?src=qr"), {
     slug: "sea-capitan",
     src: "qr",
+    ref: null,
   });
 });
 
@@ -13,17 +14,19 @@ test("parses the https landing form the same way", () => {
   assert.deepEqual(parseVenueLink("https://happitime.biz/v/sea-capitan?src=qr"), {
     slug: "sea-capitan",
     src: "qr",
+    ref: null,
   });
 });
 
 test("url-decodes the slug", () => {
-  assert.deepEqual(parseVenueLink("happitime://venue/a%20b?src=qr"), { slug: "a b", src: "qr" });
+  assert.deepEqual(parseVenueLink("happitime://venue/a%20b?src=qr"), { slug: "a b", src: "qr", ref: null });
 });
 
 test("returns src=null when the param is absent", () => {
   assert.deepEqual(parseVenueLink("happitime://venue/sea-capitan"), {
     slug: "sea-capitan",
     src: null,
+    ref: null,
   });
 });
 
@@ -43,6 +46,7 @@ test("accepts a happitime.biz subdomain (staging)", () => {
   assert.deepEqual(parseVenueLink("https://staging.happitime.biz/v/sea-capitan?src=qr"), {
     slug: "sea-capitan",
     src: "qr",
+    ref: null,
   });
 });
 

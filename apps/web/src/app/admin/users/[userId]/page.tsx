@@ -87,6 +87,25 @@ export default async function AdminSuperUserDetailsPage({
     }),
   );
 
+  // Insider attribution — referral summary (always available once Phase 5 migrations applied)
+  const { data: refSummaryRaw } = await (db as any)
+    .from('super_user_referral_summary')
+    .select('*')
+    .eq('super_user_id', userId)
+    .maybeSingle();
+  const refSummary = refSummaryRaw as { referees: number; itinerary_saves: number } | null;
+
+  // Traffic summary — guarded: view only exists once Phase 1 (PR #77) is merged
+  let trafficSummary: { first_checkins_driven: number; venues_touched: number; redemptions_driven: number } | null = null;
+  {
+    const { data: t, error: tErr } = await (db as any)
+      .from('super_user_traffic_summary')
+      .select('*')
+      .eq('super_user_id', userId)
+      .maybeSingle();
+    if (!tErr && t) trafficSummary = t as any;
+  }
+
   const p = profile as any;
   const email = authUser?.user?.email ?? null;
   const publishedCount = guides.filter((guide) => guide.status === 'published').length;
@@ -167,6 +186,48 @@ export default async function AdminSuperUserDetailsPage({
               <p className="text-display-md font-bold text-foreground mt-2">{guides.length}</p>
             </div>
           </div>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-heading-sm font-semibold text-foreground mb-4">Insider Attribution</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+              <p className="text-caption font-semibold uppercase tracking-wider text-muted">Brought</p>
+              <p className="text-display-md font-bold text-foreground mt-2">{refSummary?.referees ?? 0}</p>
+              <p className="text-caption text-muted-light mt-0.5">referees</p>
+            </div>
+            <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+              <p className="text-caption font-semibold uppercase tracking-wider text-muted">Saves</p>
+              <p className="text-display-md font-bold text-foreground mt-2">{refSummary?.itinerary_saves ?? 0}</p>
+              <p className="text-caption text-muted-light mt-0.5">itinerary saves</p>
+            </div>
+            <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+              <p className="text-caption font-semibold uppercase tracking-wider text-muted">First check-ins</p>
+              <p className="text-display-md font-bold text-foreground mt-2">
+                {trafficSummary !== null ? trafficSummary.first_checkins_driven : '—'}
+              </p>
+              <p className="text-caption text-muted-light mt-0.5">driven by referees</p>
+            </div>
+            <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+              <p className="text-caption font-semibold uppercase tracking-wider text-muted">Venues</p>
+              <p className="text-display-md font-bold text-foreground mt-2">
+                {trafficSummary !== null ? trafficSummary.venues_touched : '—'}
+              </p>
+              <p className="text-caption text-muted-light mt-0.5">touched</p>
+            </div>
+            <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+              <p className="text-caption font-semibold uppercase tracking-wider text-muted">Redemptions</p>
+              <p className="text-display-md font-bold text-foreground mt-2">
+                {trafficSummary !== null ? trafficSummary.redemptions_driven : '—'}
+              </p>
+              <p className="text-caption text-muted-light mt-0.5">by referees</p>
+            </div>
+          </div>
+          {trafficSummary === null && (
+            <p className="text-caption text-muted-light mt-3">
+              Per-venue breakdown and traffic data available once check-in data is live (Phase 1).
+            </p>
+          )}
         </section>
 
         <section className="mb-8">

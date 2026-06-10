@@ -4,6 +4,7 @@
 export interface ParsedVenueLink {
   slug: string;
   src: string | null;
+  ref: string | null;
 }
 
 export declare function parseVenueLink(url: unknown): ParsedVenueLink | null;

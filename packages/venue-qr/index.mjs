@@ -126,9 +126,9 @@ function drawCenterMark(png) {
   }
 }
 
-/** Render a branded venue QR PNG at `size` pixels square. Returns a Buffer. */
-export async function renderVenueQrPng(slug, { size = 1200, base = DEFAULT_BASE } = {}) {
-  const buf = await QRCode.toBuffer(venueQrUrl(slug, base), {
+/** Shared branded QR renderer: encode `url` at `size` px with the iTi center mark. */
+async function renderBrandedQrPng(url, size) {
+  const buf = await QRCode.toBuffer(url, {
     type: "png",
     errorCorrectionLevel: "H",
     width: size,
@@ -138,4 +138,19 @@ export async function renderVenueQrPng(slug, { size = 1200, base = DEFAULT_BASE 
   const png = PNG.sync.read(buf);
   drawCenterMark(png);
   return PNG.sync.write(png);
+}
+
+/** Render a branded venue QR PNG at `size` pixels square. Returns a Buffer. */
+export async function renderVenueQrPng(slug, { size = 1200, base = DEFAULT_BASE } = {}) {
+  return renderBrandedQrPng(venueQrUrl(slug, base), size);
+}
+
+/** The public landing URL encoded into an Insider's personal referral QR. */
+export function referralQrUrl(handle, base = DEFAULT_BASE) {
+  return `${base.replace(/\/+$/, "")}/r/${encodeURIComponent(String(handle).replace(/^@/, "").toLowerCase())}`;
+}
+
+/** Render a branded referral QR PNG for a handle. Returns a PNG Buffer. */
+export async function renderReferralQrPng(handle, opts = {}) {
+  return renderBrandedQrPng(referralQrUrl(handle, opts.base), opts.size ?? 600);
 }

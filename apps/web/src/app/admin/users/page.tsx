@@ -89,20 +89,45 @@ export default async function AdminUsersPage({
       }
     }
 
-    rows = profiles.map((r) => ({
-      user_id: r.user_id as string,
-      handle: r.handle as string | null,
-      display_name: r.display_name as string | null,
-      avatar_url: r.avatar_url as string | null,
-      email: emailByUserId.get(r.user_id) ?? null,
-      role: (r.role ?? 'user') as 'user' | 'super_user',
-      auto_publish_enabled: Boolean(r.auto_publish_enabled),
-      created_at: r.created_at as string,
-      is_public: Boolean(r.is_public),
-      published_guide_count: publishedCountByUserId.get(r.user_id) ?? 0,
-      pending_submission_count: pendingCountByUserId.get(r.user_id) ?? 0,
-      last_submission_at: lastSubmissionByUserId.get(r.user_id) ?? null,
-    }));
+    const { data: refRows } = await (db as any).from('super_user_referral_summary').select('*');
+    let trafficRows: any[] = [];
+    {
+      const { data: t, error: tErr } = await (db as any).from('super_user_traffic_summary').select('*');
+      if (!tErr && t) trafficRows = t;   // view may not exist pre-Phase-1 → leave empty
+    }
+
+    const referralByUserId = new Map<string, any>();
+    for (const row of (refRows ?? []) as any[]) {
+      if (row.super_user_id) referralByUserId.set(row.super_user_id, row);
+    }
+    const trafficByUserId = new Map<string, any>();
+    for (const row of trafficRows) {
+      if (row.super_user_id) trafficByUserId.set(row.super_user_id, row);
+    }
+
+    rows = profiles.map((r) => {
+      const ref = referralByUserId.get(r.user_id);
+      const traffic = trafficByUserId.get(r.user_id);
+      return {
+        user_id: r.user_id as string,
+        handle: r.handle as string | null,
+        display_name: r.display_name as string | null,
+        avatar_url: r.avatar_url as string | null,
+        email: emailByUserId.get(r.user_id) ?? null,
+        role: (r.role ?? 'user') as 'user' | 'super_user',
+        auto_publish_enabled: Boolean(r.auto_publish_enabled),
+        created_at: r.created_at as string,
+        is_public: Boolean(r.is_public),
+        published_guide_count: publishedCountByUserId.get(r.user_id) ?? 0,
+        pending_submission_count: pendingCountByUserId.get(r.user_id) ?? 0,
+        last_submission_at: lastSubmissionByUserId.get(r.user_id) ?? null,
+        referees: ref?.referees ?? 0,
+        itinerary_saves: ref?.itinerary_saves ?? 0,
+        first_checkins_driven: traffic?.first_checkins_driven,
+        venues_touched: traffic?.venues_touched,
+        redemptions_driven: traffic?.redemptions_driven,
+      };
+    });
   }
 
   const superUserCount = rows.filter((r) => r.role === 'super_user').length;

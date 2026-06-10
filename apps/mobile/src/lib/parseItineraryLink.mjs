@@ -18,20 +18,20 @@ export function parseItineraryLink(url) {
     /^https:\/\/(?:[a-z0-9-]+\.)?happitime\.biz\/i\/([^/?#]+)/i,
   );
   if (httpsMatch) {
-    return normalize(httpsMatch[1]);
+    return normalize(httpsMatch[1], rest);
   }
 
   // happitime://itinerary?token={token}
   if (/^happitime:\/\/itinerary(?:[/?#]|$)/i.test(base)) {
     const query = rest.split("#")[0];
     const tokenMatch = query.match(/(?:^|&)token=([^&]*)/i);
-    if (tokenMatch) return normalize(tokenMatch[1]);
+    if (tokenMatch) return normalize(tokenMatch[1], rest);
   }
 
   return null;
 }
 
-function normalize(raw) {
+function normalize(raw, rest = "") {
   let token;
   try {
     token = decodeURIComponent(raw);
@@ -40,5 +40,10 @@ function normalize(raw) {
   }
   // share_token is a uuid; reject anything that isn't to avoid bad RPC calls.
   if (!/^[0-9a-fA-F-]{36}$/.test(token)) return null;
-  return { token };
+  const query = rest.split("#")[0];
+  const refMatch = query.match(/(?:^|&)ref=([^&]*)/i);
+  let ref = null;
+  if (refMatch) { try { ref = decodeURIComponent(refMatch[1]); } catch { ref = refMatch[1]; } }
+  ref = ref && /^[a-z0-9_]{2,30}$/i.test(ref.replace(/^@/, "")) ? ref.replace(/^@/, "").toLowerCase() : null;
+  return { token, ref };
 }

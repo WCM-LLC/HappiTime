@@ -20,6 +20,11 @@ export type SuperUserRow = {
   published_guide_count: number;
   pending_submission_count: number;
   last_submission_at: string | null;
+  referees?: number;
+  itinerary_saves?: number;
+  first_checkins_driven?: number;
+  venues_touched?: number;
+  redemptions_driven?: number;
 };
 
 function Badge({ role }: { role: string }) {
@@ -125,6 +130,10 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Role</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Auto</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Guides</th>
+                  <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden lg:table-cell">Brought</th>
+                  <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden lg:table-cell">First check-ins</th>
+                  <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden lg:table-cell">Saves</th>
+                  <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden xl:table-cell">Venues</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Last submit</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Created</th>
                   <th className="px-4 py-2.5" />
@@ -180,6 +189,22 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                       <span className="font-medium text-foreground">{row.published_guide_count}</span> published
                       <span className="block text-caption text-muted-light">
                         {row.pending_submission_count} pending
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted hidden lg:table-cell">
+                      <span className="font-medium text-foreground">{row.referees ?? 0}</span>
+                    </td>
+                    <td className="px-4 py-3 text-muted hidden lg:table-cell">
+                      <span className="font-medium text-foreground">
+                        {row.first_checkins_driven !== undefined ? row.first_checkins_driven : '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted hidden lg:table-cell">
+                      <span className="font-medium text-foreground">{row.itinerary_saves ?? 0}</span>
+                    </td>
+                    <td className="px-4 py-3 text-muted hidden xl:table-cell">
+                      <span className="font-medium text-foreground">
+                        {row.venues_touched !== undefined ? row.venues_touched : '—'}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted hidden md:table-cell">{relativeDate(row.last_submission_at)}</td>

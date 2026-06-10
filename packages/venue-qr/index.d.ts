@@ -27,3 +27,12 @@ export declare function renderVenueQrPng(
   slug: string,
   opts?: { size?: number; base?: string },
 ): Promise<Buffer>;
+
+/** The public landing URL encoded into an Insider's personal referral QR. */
+export declare function referralQrUrl(handle: string, base?: string): string;
+
+/** Render a branded referral QR PNG for a handle. Returns a PNG Buffer. */
+export declare function renderReferralQrPng(
+  handle: string,
+  opts?: { size?: number; base?: string },
+): Promise<Buffer>;
