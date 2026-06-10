@@ -7,6 +7,7 @@ export const ONBOARDING_STEPS = [
   "notifications",
   "handle",
   "profile",
+  "referrer",
   "complete",
 ] as const;
 

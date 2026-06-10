@@ -11,6 +11,7 @@ import { useConfigPushNotifications } from "./src/hooks/useConfigPushNotificatio
 import { useHappyHours } from "./src/hooks/useHappyHours";
 import { useMagicLinkListener } from "./src/hooks/useMagicLinkListener";
 import { useOnboardingStatus } from "./src/hooks/useOnboardingStatus";
+import { useReferralCapture } from "./src/hooks/useReferralCapture";
 import { useVenueLinkCapture } from "./src/hooks/useVenueLinkCapture";
 import { useUserPreferences } from "./src/hooks/useUserPreferences";
 import { useVisitRating } from "./src/hooks/useVisitRating";
@@ -208,6 +209,7 @@ function AppRoot() {
     [],
   );
   useVenueLinkCapture(enterGuestForVenueScan);
+  useReferralCapture();
   console.log("App render");
 
   useEffect(() => {

@@ -80,6 +80,11 @@ const stepContent: Record<
     title: "Claim your handle",
     body: "Pick a unique @handle so friends can find and tag you. Lowercase letters, numbers, and underscores only. You can change it later.",
   },
+  referrer: {
+    icon: "at",
+    title: "Who brought you?",
+    body: "If a HappiTime Insider invited you, enter their @handle so they get credit. Skip if no one did.",
+  },
   complete: {
     icon: "checkmark.seal.fill",
     title: "You are set",
@@ -108,6 +113,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
   const [displayName, setDisplayName] = useState(defaultDisplayName);
   const [handle, setHandle] = useState("");
   const [handleError, setHandleError] = useState<string | null>(null);
+  const [referrerHandle, setReferrerHandle] = useState("");
   const [checkingHandle, setCheckingHandle] = useState(false);
   const [handleSuggestions, setHandleSuggestions] = useState<string[]>([]);
   const [homeCity, setHomeCity] = useState("");
@@ -451,6 +457,51 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
           />
           <PrimaryButton label="Continue" onPress={goNext} />
           <SecondaryButton label="Skip profile name" onPress={goNext} />
+        </>
+      );
+    }
+
+    if (step === "referrer") {
+      const submitReferrer = async () => {
+        const trimmed = referrerHandle.trim().toLowerCase();
+        if (trimmed !== "") {
+          await (supabase as any).rpc("record_referral", {
+            p_referrer_handle: trimmed,
+            p_source: "code",
+          });
+        }
+        goNext();
+      };
+
+      return (
+        <>
+          <Text style={styles.label}>Insider handle</Text>
+          <View style={styles.handleRow}>
+            <View style={styles.handlePrefix}>
+              <Text style={styles.handlePrefixText}>@</Text>
+            </View>
+            <TextInput
+              accessibilityLabel="Referrer handle"
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="theirhandle"
+              placeholderTextColor={colors.textMuted}
+              style={[styles.input, styles.handleInput]}
+              value={referrerHandle}
+              onChangeText={(text) => {
+                setReferrerHandle(text.toLowerCase().replace(/[^a-z0-9_]/g, ""));
+              }}
+              maxLength={20}
+            />
+          </View>
+          <PrimaryButton
+            label="Continue"
+            onPress={() => void submitReferrer()}
+          />
+          <SecondaryButton
+            label="Skip"
+            onPress={goNext}
+          />
         </>
       );
     }

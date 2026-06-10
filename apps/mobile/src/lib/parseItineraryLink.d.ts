@@ -3,6 +3,7 @@
 
 export interface ParsedItineraryLink {
   token: string;
+  ref: string | null;
 }
 
 export declare function parseItineraryLink(url: unknown): ParsedItineraryLink | null;
