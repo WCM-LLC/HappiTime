@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.jwill7486.happitime.mobile",
+      "sha256_cert_fingerprints": [
+        "5A:00:42:A4:1F:1F:AD:8B:BA:06:92:71:87:88:09:17:D8:0E:D5:79:17:71:BC:8E:71:8B:B4:2B:41:A6:FC:F2"
+      ]
+    }
+  }
+]
