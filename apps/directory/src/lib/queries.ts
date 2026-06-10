@@ -348,10 +348,14 @@ export type PublicProfile = {
 export async function getPublicProfileByHandle(
   handle: string
 ): Promise<PublicProfile | null> {
+  // Normalize: strip leading @, lowercase. Handles are stored lowercase
+  // (useUserProfile normalizeHandle does the same). Exact match avoids the
+  // ILIKE wildcard pitfall where _ matches any single character.
+  const clean = handle.replace(/^@/, "").toLowerCase();
   const { data, error } = await supabase
     .from("user_profiles")
     .select("handle, display_name, avatar_url")
-    .ilike("handle", handle)
+    .eq("handle", clean)
     .eq("is_public", true)
     .maybeSingle();
 

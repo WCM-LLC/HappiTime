@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getPublicProfileByHandle } from "@/lib/queries";
 import { ReferralLandingClient } from "./ReferralLandingClient";
@@ -49,12 +48,13 @@ export default async function ReferralLandingPage({ params }: Props) {
           {/* Inviter avatar / initials */}
           <div className="mt-4 flex justify-center">
             {profile.avatar_url ? (
-              <Image
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
                 src={profile.avatar_url}
                 alt={displayName}
                 width={64}
                 height={64}
-                className="rounded-full object-cover"
+                className="h-16 w-16 rounded-full object-cover"
               />
             ) : (
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#F5EDE3]">
