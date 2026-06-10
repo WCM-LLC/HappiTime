@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,24 +12,70 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { supabase } from "../api/supabaseClient";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
-import type { RootStackParamList } from "../navigation/types";
+import type { ItineraryMapVenue, RootStackParamList } from "../navigation/types";
+import { useSaveSharedItinerary } from "../hooks/useSaveSharedItinerary";
 
 // Read-only viewer for an itinerary opened via a share link. Data comes from the
 // get_shared_itinerary(p_token) RPC (SECURITY DEFINER → bypasses RLS), so it renders
 // even for private lists the viewer isn't a member of. Tapping a venue still routes
-// into the normal VenuePreview screen.
+// into the normal VenuePreview screen. The viewer can Save a copy into their own
+// itineraries, or open it on the Map (which also offers the same Save).
 
 type SharedItem = {
   venue_id: string;
   name: string;
+  slug: string | null;
+  org_name: string | null;
   cuisine_type: string | null;
   price_tier: number | null;
   neighborhood: string | null;
   city: string | null;
   state: string | null;
+  zip: string | null;
+  timezone: string | null;
+  tags: string[] | null;
+  app_name_preference: string | null;
+  status: string | null;
+  lat: number | null;
+  lng: number | null;
+  phone: string | null;
+  website: string | null;
+  facebook_url: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
+  promotion_tier: string | null;
+  promotion_priority: number | null;
   address: string | null;
   notes: string | null;
 };
+
+function toMapVenue(item: SharedItem): ItineraryMapVenue {
+  return {
+    id: item.venue_id,
+    name: item.name,
+    org_name: item.org_name,
+    address: item.address,
+    neighborhood: item.neighborhood,
+    city: item.city,
+    state: item.state,
+    zip: item.zip,
+    timezone: item.timezone,
+    tags: item.tags,
+    cuisine_type: item.cuisine_type,
+    price_tier: item.price_tier,
+    app_name_preference: item.app_name_preference,
+    status: item.status,
+    lat: item.lat,
+    lng: item.lng,
+    phone: item.phone,
+    website: item.website,
+    facebook_url: item.facebook_url,
+    instagram_url: item.instagram_url,
+    tiktok_url: item.tiktok_url,
+    promotion_tier: item.promotion_tier,
+    promotion_priority: item.promotion_priority,
+  };
+}
 
 type SharedItinerary = {
   id: string;
@@ -58,6 +105,8 @@ export const SharedItineraryScreen: React.FC<Props> = ({ route, navigation }) =>
 
   const [itinerary, setItinerary] = useState<SharedItinerary | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const { saving, save } = useSaveSharedItinerary();
+  const [savedListId, setSavedListId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,6 +148,52 @@ export const SharedItineraryScreen: React.FC<Props> = ({ route, navigation }) =>
 
   const author = itinerary.author_display_name ?? itinerary.author_handle;
 
+  const handleSave = async () => {
+    if (savedListId) {
+      navigation.navigate("AppTabs", {
+        screen: "Favorites",
+        params: { openListId: savedListId, tab: "lists" },
+      });
+      return;
+    }
+    const result = await save(token);
+    if (result.ok) {
+      setSavedListId(result.listId);
+      navigation.navigate("AppTabs", {
+        screen: "Favorites",
+        params: { openListId: result.listId, tab: "lists" },
+      });
+    } else if ("needsAuth" in result) {
+      Alert.alert("Sign in to save", "Create an account or sign in to save this itinerary.", [
+        { text: "Not now", style: "cancel" },
+        { text: "Sign in", onPress: () => navigation.navigate("Auth") },
+      ]);
+    } else {
+      Alert.alert("Couldn't save", result.error);
+    }
+  };
+
+  const handleViewOnMap = () => {
+    const mapVenues = itinerary.items.map(toMapVenue);
+    const mappable = mapVenues.filter(
+      (v) => v.lat != null && v.lng != null && Number.isFinite(Number(v.lat)) && Number.isFinite(Number(v.lng))
+    );
+    if (mappable.length === 0) {
+      Alert.alert("No map pins yet", "The venues in this itinerary don't have map coordinates yet.");
+      return;
+    }
+    navigation.navigate("AppTabs", {
+      screen: "Map",
+      params: {
+        itineraryVenueIds: mapVenues.map((v) => v.id),
+        itineraryVenues: mapVenues,
+        itineraryName: itinerary.name,
+        itineraryShareToken: token,
+        itineraryRequestId: Date.now(),
+      },
+    });
+  };
+
   return (
     <ScrollView style={styles.flex} contentContainerStyle={styles.container}>
       <Text style={styles.kicker}>HappiTime Itinerary</Text>
@@ -112,6 +207,28 @@ export const SharedItineraryScreen: React.FC<Props> = ({ route, navigation }) =>
       {itinerary.description && itinerary.description !== itinerary.name ? (
         <Text style={styles.description}>{itinerary.description}</Text>
       ) : null}
+
+      <View style={styles.actions}>
+        <Pressable
+          onPress={handleSave}
+          disabled={saving}
+          style={({ pressed }) => [styles.saveButton, pressed && styles.cardPressed]}
+        >
+          {saving ? (
+            <ActivityIndicator color="#FFFFFF" size="small" />
+          ) : (
+            <Text style={styles.saveButtonText}>
+              {savedListId ? "Saved ✓ — View" : "Save to my itineraries"}
+            </Text>
+          )}
+        </Pressable>
+        <Pressable
+          onPress={handleViewOnMap}
+          style={({ pressed }) => [styles.mapButton, pressed && styles.cardPressed]}
+        >
+          <Text style={styles.mapButtonText}>View on map</Text>
+        </Pressable>
+      </View>
 
       <View style={styles.list}>
         {itinerary.items.map((item, idx) => {
@@ -171,6 +288,22 @@ const styles = StyleSheet.create({
   },
   author: { color: colors.textMuted, fontSize: 14, marginTop: 2 },
   description: { color: colors.text, fontSize: 15, marginTop: spacing.sm, lineHeight: 21 },
+  actions: { marginTop: spacing.lg, gap: spacing.sm },
+  saveButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+  },
+  saveButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  mapButton: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.md,
+    alignItems: "center",
+  },
+  mapButtonText: { color: colors.text, fontSize: 15, fontWeight: "700" },
   list: { marginTop: spacing.lg, gap: spacing.sm },
   card: {
     flexDirection: "row",

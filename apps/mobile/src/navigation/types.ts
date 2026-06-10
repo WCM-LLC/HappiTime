@@ -57,6 +57,9 @@ export type MainTabParamList = {
     itineraryVenues?: ItineraryMapVenue[];
     itineraryName?: string;
     itineraryRequestId?: number;
+    // Present when the mapped itinerary came from a share link — enables the
+    // "Save" action in the Map banner (copy_shared_itinerary by this token).
+    itineraryShareToken?: string;
   } | undefined;
   Favorites: { openListId?: string; tab?: "favorites" | "history" | "lists" } | undefined;
   Activity: undefined;

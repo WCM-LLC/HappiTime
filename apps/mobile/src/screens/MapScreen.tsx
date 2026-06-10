@@ -9,6 +9,8 @@ import {
   Image,
   Platform,
   Linking,
+  Alert,
+  ActivityIndicator,
   type StyleProp,
   type ViewStyle,
 } from "react-native";
@@ -22,6 +24,7 @@ import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useVenueCovers } from "../hooks/useVenueCovers";
+import { useSaveSharedItinerary } from "../hooks/useSaveSharedItinerary";
 import { SearchableOptionSheet } from "../components/SearchableOptionSheet";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { SocialIcon } from "../../components/ui/SocialIcon";
@@ -232,7 +235,9 @@ export const MapScreen: React.FC = () => {
     ? route.params.itineraryVenues
     : EMPTY_ITINERARY_VENUES;
   const itineraryName = route.params?.itineraryName ?? null;
+  const itineraryShareToken = route.params?.itineraryShareToken ?? null;
   const itineraryRequestId = route.params?.itineraryRequestId ?? 0;
+  const { saving: savingSharedItinerary, save: saveSharedItinerary } = useSaveSharedItinerary();
   const itineraryKey = itineraryVenueIds.join("|");
   const routeItineraryVenueKey = routeItineraryVenues
     .map((venue: ItineraryMapVenue) => `${venue.id}:${venue.lat ?? ""}:${venue.lng ?? ""}`)
@@ -714,7 +719,20 @@ export const MapScreen: React.FC = () => {
       itineraryVenues: undefined,
       itineraryName: undefined,
       itineraryRequestId: undefined,
+      itineraryShareToken: undefined,
     });
+  };
+
+  const handleSaveSharedFromMap = async () => {
+    if (!itineraryShareToken) return;
+    const result = await saveSharedItinerary(itineraryShareToken);
+    if (result.ok) {
+      navigation.navigate("Favorites", { openListId: result.listId, tab: "lists" });
+    } else if ("needsAuth" in result) {
+      Alert.alert("Sign in to save", "Create an account or sign in to save this itinerary.");
+    } else {
+      Alert.alert("Couldn't save", result.error);
+    }
   };
 
   const isToday = (window: HappyHourWindow) => {
@@ -853,9 +871,20 @@ export const MapScreen: React.FC = () => {
                 ? `${missingCoordinateCount} venue${missingCoordinateCount === 1 ? "" : "s"} need coordinates`
                 : `${itineraryName ?? "Itinerary"} on map`}
             </Text>
-            <Pressable onPress={handleClearItinerary} hitSlop={8}>
-              <Text style={styles.itineraryBannerClear}>Clear</Text>
-            </Pressable>
+            <View style={styles.itineraryBannerActions}>
+              {itineraryShareToken ? (
+                <Pressable onPress={handleSaveSharedFromMap} hitSlop={8} disabled={savingSharedItinerary}>
+                  {savingSharedItinerary ? (
+                    <ActivityIndicator color={colors.primary} size="small" />
+                  ) : (
+                    <Text style={styles.itineraryBannerSave}>Save</Text>
+                  )}
+                </Pressable>
+              ) : null}
+              <Pressable onPress={handleClearItinerary} hitSlop={8}>
+                <Text style={styles.itineraryBannerClear}>Clear</Text>
+              </Pressable>
+            </View>
           </View>
         ) : null}
 
@@ -1188,6 +1217,16 @@ const styles = StyleSheet.create({
     flex: 1,
     color: colors.brandDark,
     fontSize: 13,
+    fontWeight: "800",
+  },
+  itineraryBannerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+  },
+  itineraryBannerSave: {
+    color: colors.primary,
+    fontSize: 12,
     fontWeight: "800",
   },
   itineraryBannerClear: {
