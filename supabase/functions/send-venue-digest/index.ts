@@ -31,6 +31,7 @@ import {
   formatDigestSubject,
   isSixAmCentral,
   shouldAlertZeroSent,
+  venuesToProcess,
   yesterdayServiceWindow,
 } from "./logic.ts";
 
@@ -94,9 +95,27 @@ Deno.serve(async (req: Request) => {
     return json({ error: venuesErr.message }, 500);
   }
 
-  const activeVenueCount = venues?.length ?? 0;
+  // ── 4b. Scope to venues whose org has an owner/manager ───────────────────
+  // Only claimed venues can receive a digest (the recipient is the owner/manager).
+  // Without this, the loop iterated EVERY published venue (~174) — one serial
+  // org_members lookup each — and exceeded the edge wall-clock (504 at 6am).
+  const { data: ownerManagerMembers, error: membersErr } = await supabase
+    .from("org_members")
+    .select("org_id")
+    .in("role", ["owner", "manager"]);
+  if (membersErr) {
+    console.error("[send-venue-digest] org_members fetch failed:", membersErr.message);
+    return json({ error: membersErr.message }, 500);
+  }
+
+  const targetVenues = venuesToProcess(
+    (venues ?? []) as { org_id: string | null }[],
+    ownerManagerMembers ?? [],
+  ) as any[];
+
+  const activeVenueCount = targetVenues.length;
   if (activeVenueCount === 0) {
-    console.warn("[send-venue-digest] no active venues found — nothing to send");
+    console.warn("[send-venue-digest] no claimed venues found — nothing to send");
     return json({ ok: true, sent: 0, active: 0 });
   }
 
@@ -105,7 +124,7 @@ Deno.serve(async (req: Request) => {
   const skippedOptOut: string[] = [];
   const errors: string[] = [];
 
-  for (const venue of (venues as any[])) {
+  for (const venue of targetVenues) {
     try {
       const org = venue.organizations;
 

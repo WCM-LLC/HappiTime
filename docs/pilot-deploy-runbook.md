@@ -14,7 +14,7 @@ operational steps that a merge does not perform.
 | Phase 1 tables (`checkins`, `round_redemptions`, `venue_flags`) | ✅ present |
 | Venue columns (`checkin_secret`, `staff_token`, `geofence_radius_m`) | ✅ present |
 | Digest cron `send-venue-digest-hourly` + seeded `digest_job_tokens` | ✅ scheduled |
-| `send-venue-digest` edge function | ⚠️ deployed but **timing out** — see Known Issues |
+| `send-venue-digest` edge function | ⚠️ deployed v1 **timed out**; fixed in code — **redeploy** (Step 1b) |
 | Phase 5 tables + both summary views (incl. `super_user_traffic_summary`) | ✅ present |
 | **`verify-checkin` edge function** | ❌ **NOT deployed** |
 | `RESEND_API_KEY` secret | ❓ confirm (Step 2) |
@@ -30,6 +30,9 @@ supabase login
 # 1. Deploy verify-checkin — THE critical gap. In-app check-in 404s until this ships.
 #    No config.toml entry → defaults to verify_jwt=true (correct: check-in is authed).
 supabase functions deploy verify-checkin --project-ref ujflcrjsiyhofnomurco
+
+# 1b. Redeploy send-venue-digest to ship the timeout fix (scoping to claimed venues).
+supabase functions deploy send-venue-digest --project-ref ujflcrjsiyhofnomurco
 
 # 2. Confirm the Resend secret (the digest needs it; SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
 #    are auto-injected by the edge runtime and must NOT be set manually).
@@ -55,29 +58,28 @@ curl -i -X POST https://ujflcrjsiyhofnomurco.supabase.co/functions/v1/verify-che
 
 ## Known issues / blockers
 
-### ⚠️ `send-venue-digest` times out (HTTP 504, ~160 s) — digest is currently unreliable
-**Symptom:** the most recent prod run returned `504` after ~160 s (edge-function
+### ✅ `send-venue-digest` timeout (HTTP 504, ~160 s) — FIXED in this PR (redeploy to apply)
+**Symptom (before):** the first prod run returned `504` after ~160 s (edge-function
 wall-clock limit).
-**Root cause:** `supabase/functions/send-venue-digest/index.ts` selects **every**
-`status='published'` venue with a non-null `checkin_secret` (line ~77–90) and
-processes them in a **sequential loop** (~7 DB round-trips + 1 Resend call each).
-Phase 1 added `checkin_secret` with a default to *all* venues, so the digest fans
-out over the entire directory (~174 venues) → exceeds the time limit.
-A missing `RESEND_API_KEY` is **not** the cause (line ~209 skips email cleanly
-when unset).
-**Recommended fix (small PR):**
-- Scope the venue query to actual pilot venues (e.g. orgs with an active /
-  `founding_pilot` check-in subscription, or a dedicated pilot flag) instead of
-  all published venues.
-- Bound the work: parallelize the per-venue sends with limited concurrency and add
-  a timeout to each Resend `fetch`, so one slow/hung call can't stall the run.
-- Until fixed, the hourly cron keeps retrying and timing out; the "0 emails sent"
-  self-check may not fire if the function is killed before reaching it.
+**Root cause:** `send-venue-digest/index.ts` looped over **every** `status='published'`
+venue with a non-null `checkin_secret` (~174) — one serial `org_members` lookup each —
+even though only venues whose org has an owner/manager can receive a digest. Phase 1
+gave *all* venues a `checkin_secret` default, so the loop fanned out over the whole
+directory. (A missing `RESEND_API_KEY` was **not** the cause — the code skips email
+cleanly when unset.)
+**Fix:** a pure `venuesToProcess()` helper (`logic.ts`) scopes the loop to venues whose
+org has an owner/manager, fetched once up front. Verified against prod: this collapses
+the processed set from **174 → 3** claimed venues. Output-preserving — the other 171
+were already skipped inside the loop.
+**Action required:** redeploy the function for the fix to take effect:
+`supabase functions deploy send-venue-digest --project-ref ujflcrjsiyhofnomurco`.
+**Possible future hardening (not needed at pilot scale):** add an `AbortController`
+timeout to the Resend `fetch` and bounded-concurrency sends if claimed venues grow large.
 
 ## Notes
 
 - The digest cron fires **hourly** but the function self-guards to **6 AM CT**
   (DST-safe, in-function) — a manual off-hours invoke is a no-op by design, so real
-  verification is the next 6 AM run (or fixing the timeout above and invoking at 6 AM CT).
+  verification is the next 6 AM run after the redeploy (Step 1b).
 - Phases 2 (`/v/*` Universal Links) and 5 (Insider Attribution) are already merged
   and live; Phase 2's native intent filter rides the next store build.

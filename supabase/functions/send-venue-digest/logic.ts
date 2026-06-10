@@ -46,6 +46,34 @@ export function isSixAmCentral(now: Date): boolean {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Venue scoping
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Returns only the venues whose org has at least one owner/manager member —
+ * the sole venues that can ever receive a digest (the recipient is the org
+ * owner/manager). Scoping here, before the per-venue loop, keeps the function
+ * from iterating the entire published-venue directory (~174 venues, each costing
+ * a serial org_members lookup), which exhausted the edge-function wall-clock and
+ * returned a 504. Output-preserving: an org with no owner/manager was already
+ * skipped inside the loop.
+ *
+ * @param venues               published venues (each with an `org_id`)
+ * @param ownerManagerMembers  org_members rows pre-filtered to role owner|manager
+ */
+export function venuesToProcess<T extends { org_id: string | null }>(
+  venues: T[],
+  ownerManagerMembers: { org_id: string | null }[],
+): T[] {
+  const claimedOrgIds = new Set(
+    ownerManagerMembers
+      .map((m) => m.org_id)
+      .filter((id): id is string => typeof id === "string" && id.length > 0),
+  );
+  return venues.filter((v) => v.org_id != null && claimedOrgIds.has(v.org_id));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Zero-email self-check
 // ─────────────────────────────────────────────────────────────────────────────
 
