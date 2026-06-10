@@ -33,5 +33,9 @@ export function parseVenueLink(url) {
       src = srcMatch[1];
     }
   }
-  return { slug, src };
+  const refMatch = query.match(/(?:^|&)ref=([^&]*)/i);
+  let ref = null;
+  if (refMatch) { try { ref = decodeURIComponent(refMatch[1]); } catch { ref = refMatch[1]; } }
+  ref = ref && /^[a-z0-9_]{2,30}$/i.test(ref.replace(/^@/, "")) ? ref.replace(/^@/, "").toLowerCase() : null;
+  return { slug, src, ref };
 }
