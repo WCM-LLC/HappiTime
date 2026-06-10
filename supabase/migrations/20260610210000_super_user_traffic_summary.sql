@@ -1,8 +1,8 @@
--- DEFERRED MIGRATION — NOT yet active. Move this file into supabase/migrations/
--- ONLY AFTER Pilot Phase 1 (PR #77: public.checkins, public.round_redemptions) is
--- merged, because this view references those tables. Kept out of migrations/ so a
--- clean `supabase db reset` / CI on this branch does not fail on missing tables.
--- The admin console reads this view defensively (guarded) until it exists.
+-- Per-Insider venue-traffic rollup: first check-ins driven, distinct venues
+-- touched, and round redemptions by each Insider's referees. Promoted from
+-- supabase/deferred/ now that Pilot Phase 1 (public.checkins / public.round_redemptions)
+-- is on master. The Super Admin console (apps/web/src/app/admin/users) reads this
+-- view (guarded) to populate the traffic columns.
 create or replace view public.super_user_traffic_summary as
 with first_visits as (        -- each referee's FIRST check-in per venue, credited to referrer
   select r.referrer_user_id as super_user_id,
