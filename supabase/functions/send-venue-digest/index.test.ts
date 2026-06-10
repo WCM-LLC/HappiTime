@@ -14,6 +14,7 @@ import {
   formatDigestSubject,
   isSixAmCentral,
   shouldAlertZeroSent,
+  venuesToProcess,
   yesterdayServiceWindow,
   serviceDate,
 } from "./logic.ts";
@@ -146,6 +147,43 @@ Deno.test("serviceDate re-export: 05:59 CT rolls back to prior service date", ()
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 5b. venuesToProcess — scope to venues whose org has an owner/manager
+//     (the only venues that can receive a digest). Prevents iterating the whole
+//     ~174-venue directory, which timed out the function (504) at 6am.
+// ─────────────────────────────────────────────────────────────────────────────
+
+Deno.test("venuesToProcess: keeps only venues whose org has an owner/manager", () => {
+  const venues = [
+    { id: "v1", org_id: "orgA" },
+    { id: "v2", org_id: "orgB" }, // unclaimed (no owner/manager)
+    { id: "v3", org_id: "orgC" },
+  ];
+  const members = [{ org_id: "orgA" }, { org_id: "orgC" }, { org_id: "orgA" }];
+  assertEquals(
+    venuesToProcess(venues, members).map((v) => v.id),
+    ["v1", "v3"],
+  );
+});
+
+Deno.test("venuesToProcess: empty members → no venues", () => {
+  const venues = [{ id: "v1", org_id: "orgA" }];
+  assertEquals(venuesToProcess(venues, []), []);
+});
+
+Deno.test("venuesToProcess: excludes venues with a null org_id", () => {
+  const venues = [{ id: "v1", org_id: null }, { id: "v2", org_id: "orgA" }];
+  const members = [{ org_id: "orgA" }, { org_id: null }];
+  assertEquals(venuesToProcess(venues, members).map((v) => v.id), ["v2"]);
+});
+
+Deno.test("venuesToProcess: preserves the full venue object (not just id)", () => {
+  const venues = [{ id: "v1", org_id: "orgA", name: "Bar", checkin_secret: "s" }];
+  const out = venuesToProcess(venues, [{ org_id: "orgA" }]);
+  assertEquals(out[0].name, "Bar");
+  assertEquals(out[0].checkin_secret, "s");
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 6. Structural review: DB-touching paths (require Supabase — not unit-tested)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -167,5 +205,10 @@ Deno.test("structural review marker — DB paths verified by code reading", () =
   //
   // RULE 6 (zero-email alert): only fires AFTER 6am guard passes; console.error + 500 + Resend to admin.
   //   Reviewed: guard check is first; self-check is at end of loop.
+  //
+  // RULE 7 (venue scoping): only venues whose org has an owner/manager are processed.
+  //   Reviewed: org_members(role in owner|manager) fetched once, then venuesToProcess()
+  //   filters the published-venue list BEFORE the loop. activeVenueCount = scoped count,
+  //   so the zero-sent self-check measures claimed venues, not the whole directory.
   assertEquals(true, true);
 });
