@@ -36,6 +36,11 @@ export const InsiderCodeScreen: React.FC = () => {
       .then(({ count }: { count: number | null }) => {
         setReferralCount(count ?? 0);
         setCountLoading(false);
+      })
+      .catch(() => {
+        // Network/query failure: stop the spinner rather than hang on "Loading…".
+        setReferralCount(0);
+        setCountLoading(false);
       });
   }, [user?.id, isSuperUser]);
 
