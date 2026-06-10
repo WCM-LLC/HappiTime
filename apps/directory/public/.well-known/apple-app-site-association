@@ -6,9 +6,10 @@
         "appID": "787CJ7NZ7H.com.jwill7486.happitime.mobile",
         "components": [
           { "/": "/i/*", "comment": "Shared itinerary links open in the app" },
-          { "/": "/r/*", "comment": "Referral / Insider links open in the app" }
+          { "/": "/r/*", "comment": "Referral / Insider links open in the app" },
+          { "/": "/v/*", "comment": "Venue QR / share links open in the app" }
         ],
-        "paths": ["/i/*", "/r/*"]
+        "paths": ["/i/*", "/r/*", "/v/*"]
       }
     ]
   }
