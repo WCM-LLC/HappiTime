@@ -1,0 +1,24 @@
+{
+  "charset": "23456789ABCDEFGHJKMNPQRSTUVWXYZ",
+  "secret": "00000000-0000-0000-0000-000000000000",
+  "cases": [
+    {
+      "label": "08:00 CT — well after the 6am flip, stays on same calendar date",
+      "instant_utc": "2026-06-09T13:00:00Z",
+      "service_date": "2026-06-09",
+      "code": "GYCM"
+    },
+    {
+      "label": "05:59 CT — before the 6am flip, rolls back to PRIOR service date",
+      "instant_utc": "2026-06-09T10:59:00Z",
+      "service_date": "2026-06-08",
+      "code": "CW62"
+    },
+    {
+      "label": "06:01 CT — just past the 6am flip, stays on current calendar date",
+      "instant_utc": "2026-06-09T11:01:00Z",
+      "service_date": "2026-06-09",
+      "code": "GYCM"
+    }
+  ]
+}
