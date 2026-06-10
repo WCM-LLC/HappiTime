@@ -22,6 +22,8 @@ import { InviteScreen } from "../screens/InviteScreen";
 import { VenuePreviewScreen } from "../screens/VenuePreviewScreen";
 import { ItineraryDetailScreen } from "../screens/ItineraryDetailScreen";
 import { EventCalendarScreen } from "../screens/EventCalendarScreen";
+import { CheckInScreen } from "../screens/CheckInScreen";
+import { RoundRedemptionScreen } from "../screens/RoundRedemptionScreen";
 import { colors } from "../theme/colors";
 import type { MainTabParamList, RootStackParamList } from "./types";
 
@@ -207,6 +209,32 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
           options={{
             headerShown: true,
             title: "Upcoming Events",
+            headerBackTitle: "Back",
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontSize: 17, fontWeight: "600" },
+          }}
+        />
+        <Stack.Screen
+          name="CheckIn"
+          component={CheckInScreen}
+          options={{
+            headerShown: true,
+            title: "Check In",
+            headerBackTitle: "Back",
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontSize: 17, fontWeight: "600" },
+          }}
+        />
+        <Stack.Screen
+          name="RoundRedemption"
+          component={RoundRedemptionScreen}
+          options={{
+            headerShown: true,
+            title: "Free Round",
             headerBackTitle: "Back",
             headerTintColor: colors.text,
             headerStyle: { backgroundColor: colors.background },

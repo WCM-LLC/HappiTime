@@ -12,6 +12,7 @@ import {
   Animated,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { RootStackParamList } from "../navigation/types";
@@ -27,6 +28,13 @@ import { fetchVenueById } from "@happitime/shared-api";
 import { AddToItinerarySheet } from "../components/AddToItinerarySheet";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
+import { distanceMiles } from "../utils/location";
+
+// Loyalty check-in geofence gate: matches server default (100 m ≈ 0.062 miles)
+// Client-side gate uses the venue's geofence_radius_m from the DB (converted to
+// miles) for consistency. Defaults to 100 m if not available.
+const DEFAULT_GEOFENCE_RADIUS_M = 100;
+const METERS_PER_MILE = 1609.34;
 
 type Props = NativeStackScreenProps<RootStackParamList, "VenuePreview">;
 
@@ -82,6 +90,15 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const [checkedIn, setCheckedIn] = useState(false);
   const [fetchedVenueName, setFetchedVenueName] = useState<string | null>(null);
 
+  // Loyalty check-in: venue geo + geofence state
+  const [venueGeo, setVenueGeo] = useState<{
+    lat: number;
+    lng: number;
+    geofence_radius_m: number;
+  } | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationChecked, setLocationChecked] = useState(false);
+
   useEffect(() => {
     if (!venueId) return;
     let active = true;
@@ -92,6 +109,58 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
       .catch((err) => {
         console.warn('[VenuePreview] fetchVenueById failed, using fallback name', err);
       });
+    return () => {
+      active = false;
+    };
+  }, [venueId]);
+
+  // Fetch venue geo + user location for loyalty check-in geofence gating.
+  // Foreground-only: requests foreground permission, gets a single position fix.
+  // Does not start background tracking; does not interfere with useVisitTracker.
+  useEffect(() => {
+    if (!venueId) return;
+    let active = true;
+
+    // Fetch venue lat/lng/geofence_radius_m
+    (supabase as any)
+      .from("venues")
+      .select("lat,lng,geofence_radius_m")
+      .eq("id", venueId)
+      .eq("status", "published")
+      .maybeSingle()
+      .then(({ data }: { data: { lat: number | null; lng: number | null; geofence_radius_m: number | null } | null }) => {
+        if (!active) return;
+        if (data?.lat != null && data?.lng != null) {
+          setVenueGeo({
+            lat: data.lat,
+            lng: data.lng,
+            geofence_radius_m: data.geofence_radius_m ?? DEFAULT_GEOFENCE_RADIUS_M,
+          });
+        }
+      })
+      .catch(() => {/* non-critical — button stays disabled */});
+
+    // Get foreground location (single fix, no background permission needed)
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (!active) return;
+        if (status !== "granted") {
+          setLocationChecked(true);
+          return;
+        }
+        const pos = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        if (!active) return;
+        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      } catch {
+        // Silently degrade — button stays disabled
+      } finally {
+        if (active) setLocationChecked(true);
+      }
+    })();
+
     return () => {
       active = false;
     };
@@ -156,6 +225,21 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const venueName =
     windowsForVenue[0]?.venue?.name ?? fetchedVenueName ?? "This venue";
+
+  // Loyalty check-in geofence gate.
+  // Button is enabled only when we have both venue coords and user location,
+  // and the user is within the venue's geofence radius.
+  const insideGeofence = useMemo(() => {
+    if (!venueGeo || !userLocation) return false;
+    const distMiles = distanceMiles(
+      userLocation.lat,
+      userLocation.lng,
+      venueGeo.lat,
+      venueGeo.lng
+    );
+    const radiusMiles = venueGeo.geofence_radius_m / METERS_PER_MILE;
+    return distMiles <= radiusMiles;
+  }, [venueGeo, userLocation]);
   const images = useMemo(
     () => [...media].sort((a, b) => a.sort_order - b.sort_order),
     [media]
@@ -310,6 +394,40 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
             </Text>
           </Pressable>
 
+          {/* Pilot loyalty Check In button — geofenced, navigates to code-entry screen */}
+          <Pressable
+            onPress={() =>
+              navigation.navigate("CheckIn", {
+                venueId: venueId!,
+                venueName,
+                lat: userLocation?.lat ?? 0,
+                lng: userLocation?.lng ?? 0,
+              })
+            }
+            disabled={!insideGeofence || !locationChecked}
+            accessibilityRole="button"
+            accessibilityLabel={
+              !locationChecked
+                ? "Detecting your location…"
+                : insideGeofence
+                ? "Earn loyalty stamps"
+                : "Must be at venue to earn stamps"
+            }
+            style={({ pressed }) => [
+              styles.loyaltyCheckInButton,
+              (!insideGeofence || !locationChecked) && styles.loyaltyCheckInButtonDisabled,
+              pressed && styles.loyaltyCheckInButtonPressed,
+            ]}
+          >
+            <Text style={styles.loyaltyCheckInButtonText}>
+              {!locationChecked
+                ? "Locating…"
+                : insideGeofence
+                ? "Earn a Stamp 🏅"
+                : "Earn a Stamp (must be at venue)"}
+            </Text>
+          </Pressable>
+
           <FlatList
             data={windowsForVenue}
             keyExtractor={(item) => item.id}
@@ -379,6 +497,27 @@ const styles = StyleSheet.create({
   checkInButtonText: {
     color: colors.surface,
     fontSize: 15,
+    fontWeight: "700"
+  },
+  loyaltyCheckInButton: {
+    backgroundColor: colors.brandSubtle,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: colors.brandLight,
+    paddingVertical: spacing.sm,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacing.lg
+  },
+  loyaltyCheckInButtonPressed: {
+    opacity: 0.75
+  },
+  loyaltyCheckInButtonDisabled: {
+    opacity: 0.5
+  },
+  loyaltyCheckInButtonText: {
+    color: colors.primary,
+    fontSize: 14,
     fontWeight: "700"
   },
   listContent: {
