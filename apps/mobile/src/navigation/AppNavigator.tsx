@@ -9,6 +9,7 @@ import { useNotificationNavigation } from "../hooks/useNotificationNavigation";
 import { useVenueDeepLink } from "../hooks/useVenueDeepLink";
 import { useItineraryDeepLink } from "../hooks/useItineraryDeepLink";
 import { SharedItineraryScreen } from "../screens/SharedItineraryScreen";
+import { UpdateAvailableModal } from "../components/UpdateAvailableModal";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { ActivityScreen } from "../screens/ActivityScreen";
 import { AuthScreen } from "../screens/AuthScreen";
@@ -115,6 +116,7 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
   useItineraryDeepLink(navigationRef);
 
   return (
+    <>
     <NavigationContainer ref={navigationRef} theme={navTheme}>
       <Stack.Navigator>
         <Stack.Screen
@@ -214,5 +216,7 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
         />
       </Stack.Navigator>
     </NavigationContainer>
+    <UpdateAvailableModal />
+    </>
   );
 }
