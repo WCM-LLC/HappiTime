@@ -28,7 +28,7 @@ export function useVenueLinkCapture(onVenueLink: () => void) {
       // Venue link — stash for routing and stash ref if present.
       const venue = parseVenueLink(url);
       if (venue) {
-        if (venue.ref) setPendingReferral(venue.ref);
+        if (venue.ref) void setPendingReferral(venue.ref);
         setPendingVenueLink(url);
         onVenueLink();
         return;
@@ -37,7 +37,7 @@ export function useVenueLinkCapture(onVenueLink: () => void) {
       // Itinerary link — stash ref if present (routing handled by useItineraryDeepLink).
       const itinerary = parseItineraryLink(url);
       if (itinerary) {
-        if (itinerary.ref) setPendingReferral(itinerary.ref);
+        if (itinerary.ref) void setPendingReferral(itinerary.ref);
         return;
       }
 
@@ -45,7 +45,7 @@ export function useVenueLinkCapture(onVenueLink: () => void) {
       // the handle only; do NOT call onVenueLink (user must sign in to record it).
       const referral = parseReferralLink(url);
       if (referral) {
-        setPendingReferral(referral.handle);
+        void setPendingReferral(referral.handle);
         return;
       }
 
