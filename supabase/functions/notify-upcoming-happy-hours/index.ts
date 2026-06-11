@@ -3,9 +3,9 @@
 // Sends Expo push notifications to users who have saved venues with happy
 // hours starting within the next 60 minutes.
 //
-// Invoke via pg_cron or Supabase scheduled function (every 30 min):
-//   SELECT cron.schedule('notify-hh', '*/30 * * * *',
-//     $$SELECT net.http_post(url := '...', headers := ..., body := ...)$$);
+// Invoked hourly by pg_cron via invoke_notify_happy_hours() SECURITY DEFINER
+// wrapper, which sends x-notify-token.  verify_jwt = false in config.toml.
+// Time comparisons are computed in America/Chicago (DST-safe).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendExpoPush, type ExpoPushMessage } from "../_shared/expo-push.ts";
@@ -28,13 +28,32 @@ Deno.serve(async (req) => {
     auth: { persistSession: false }
   });
 
-  // Current time in HH:MM format for time-window comparison
+  // Token gate: cron sends x-notify-token; manual callers must do the same
+  const provided = req.headers.get("x-notify-token") ?? "";
+  const { data: expected, error: tokErr } = await supabase.rpc("get_notify_job_token");
+  if (tokErr) return new Response(JSON.stringify({ error: `token lookup failed: ${tokErr.message}` }), { status: 500 });
+  if (!expected || provided !== expected) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
+
+  // Current time in HH:MM format for time-window comparison — America/Chicago (DST-safe)
   const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const currentTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  const lookaheadTime = new Date(now.getTime() + LOOKAHEAD_MINUTES * 60_000);
-  const lookaheadStr = `${pad(lookaheadTime.getHours())}:${pad(lookaheadTime.getMinutes())}`;
-  const todayDow = now.getDay(); // 0=Sun … 6=Sat
+  const ctFmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Chicago",
+    hour12: false,
+    hourCycle: "h23",
+    hour: "2-digit",
+    minute: "2-digit",
+    weekday: "short",
+  });
+  const nowParts = ctFmt.formatToParts(now);
+  const getP = (type: string) => nowParts.find((p) => p.type === type)?.value ?? "";
+  const currentTime = `${getP("hour")}:${getP("minute")}`;
+  const weekdayMap: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const todayDow = weekdayMap[getP("weekday")] ?? 0; // 0=Sun … 6=Sat
+
+  const lookaheadDate = new Date(now.getTime() + LOOKAHEAD_MINUTES * 60_000);
+  const laParts = ctFmt.formatToParts(lookaheadDate);
+  const getLa = (type: string) => laParts.find((p) => p.type === type)?.value ?? "";
+  const lookaheadStr = `${getLa("hour")}:${getLa("minute")}`;
 
   // Find published windows starting in the next LOOKAHEAD_MINUTES
   const { data: windows, error: winErr } = await supabase
