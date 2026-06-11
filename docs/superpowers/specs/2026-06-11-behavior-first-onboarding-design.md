@@ -12,10 +12,9 @@ Replace the app's auth-first linear onboarding with a **behavior-first** flow: a
 
 1. **Full behavior-first redesign** — guest browse before account; earned signup on gated actions; replaces the current linear onboarding.
 2. **Minimal post-signup step** — after the first signup, a one-time step captures `@handle` + "Who brought you?" (referrer); profile/avatar/extra prefs are lazy/contextual.
-3. **Providers v1:** Apple + **Google (native one-tap)** + email/magic-link.
-   - Apple (`AppleSignInButton`) and email (`signInWithOtp`) are already wired.
-   - **Google upgrades to native one-tap:** add `@react-native-google-signin/google-signin` → native account picker → `idToken` → `supabase.auth.signInWithIdToken({ provider: "google", token })` (nonce-secured, like Apple). This **replaces** the current `signInWithOAuth` browser-hop as the primary path; the web-OAuth redirect stays as a fallback if the native flow is unavailable/fails. Used in both `AuthScreen` and the earned-signup sheet via one shared implementation.
-4. **Durable referral attribution (first-class):** a QR/referral `?ref` captured as a guest must survive app restarts and be auto-applied to the originator whenever the user signs up — independent of any manual step.
+3. **Providers v1:** the **three providers exactly as they work today** — Apple (`AppleSignInButton`), Google (the existing `supabase.auth.signInWithOAuth({ provider: "google" })` web flow), and email/magic-link (`signInWithOtp`). **No auth-mechanism changes.** Native one-tap Google is **deferred** (see §12) until the Android app is live for all users.
+4. **LOGIN INVARIANT (hard requirement):** every existing user must be able to sign in exactly as before. The redesign only *adds* an entry point (the earned-signup sheet) that calls the **same existing handlers**; it must not change, gate, or remove any current login path. Any refactor that shares those handlers between `AuthScreen` and the sheet must be **behavior-preserving** and verified.
+5. **Durable referral attribution (first-class):** a QR/referral `?ref` captured as a guest must survive app restarts and be auto-applied to the originator whenever the user signs up — independent of any manual step.
 
 ## 3. Existing assets (do not rebuild)
 
@@ -46,7 +45,7 @@ Pixel-perfect from `docs/design/onboarding/ob-screens.jsx` + `ob-atoms.jsx`:
 1. **`ObSplash`** — `ObLogo`, headline ("Kansas City's happy hours, live."), subtitle, primary "Find deals near me", caption "Browsing is free. No account needed."
 2. **`ObLocationPrime`** — map visual (the SVG in `ObMapVisual` → RN `react-native-svg` or an equivalent static asset), headline "Deals within walking distance", primes the real OS foreground-location prompt on "Enable location"; on deny/manual shows the **neighborhood chip** fallback (`HOODS`) + "Show deals in {hood}".
 3. **`ObVibePicker`** — skippable 2-col grid of `VIBES` (Dive bar, Cocktails, Patio, Sports bar, Late-night eats, Brewery, Margs & tacos, Wine), "Skip" + "Show tonight's deals".
-4. **`EarnedSignupSheet`** — bottom sheet on a gated action; framing reflects the action ("Save your spots" / "Start earning rounds"); uses a **shared auth piece** (extract Apple + native-Google + email from `AuthScreen` so there's ONE implementation both screens use). Dismiss returns to browsing.
+4. **`EarnedSignupSheet`** — bottom sheet on a gated action; framing reflects the action ("Save your spots" / "Start earning rounds"); **reuses the existing `AuthScreen` handlers as-is** — Apple, the existing web-OAuth Google, and email/magic-link. Prefer calling the existing handlers (or extracting them into a shared module via a strictly behavior-preserving refactor — see the Login Invariant, §2.4); do NOT alter any login path. Dismiss returns to browsing.
 5. **`PostSignupCapture`** — one-time after first signup: claim `@handle` (reuse the handle input + validation from today's onboarding) + "Who brought you?" **pre-filled from the durable referral stash**; calls `record_referral`. Skippable, but attribution still auto-applies (see §6).
 6. **`NotifPrimeSheet`** — contextual notifications opt-in fired ~1.3 s after the first save/check-in (mirrors the prototype's `maybePrimeNotifications`).
 
@@ -90,19 +89,12 @@ Pixel-perfect from `docs/design/onboarding/ob-screens.jsx` + `ob-atoms.jsx`:
 - **Durable attribution tests:** stash survives a simulated restart (persisted read), first-wins (no overwrite), auto-apply calls `record_referral` then clears; parser `?ref` extraction (shared with Phase 5).
 - Vibes/location → preferences persistence on signup.
 - Source-assertions for the gate rewire; `apps/mobile` tsc clean.
+- **Login-invariant regression (§2.4):** assert `AuthScreen`'s existing Apple / web-OAuth Google / email handlers are unchanged (or shared via a verified pure refactor); device-verify all three existing login paths still work for a returning user.
 - Device-verify the full flow incl. QR-scan-as-guest → later signup → attribution.
 
-## 12. Dependencies / prerequisites (native one-tap Google)
+## 12. Deferred — native one-tap Google (NOT in this work)
 
-Native one-tap Google needs setup that must exist before it works end-to-end:
-- **Dependency:** `@react-native-google-signin/google-signin` (native module → requires a dev/EAS build; **not Expo Go**, **not OTA** — rides the next build).
-- **Google OAuth client IDs** (Google Cloud Console, same project as the Supabase Google provider):
-  - **iOS** client ID (+ the reversed-client-id URL scheme in `app.json`).
-  - **Android** client ID (registered with the app's signing SHA-1).
-  - **Web** client ID — the one already configured on the Supabase Google provider; used as `webClientId` in `GoogleSignin.configure(...)` so the returned `idToken` audience matches what Supabase validates.
-- **Config:** add the `@react-native-google-signin/google-signin` Expo config plugin + the iOS URL scheme to `app.json`; store client IDs via `EXPO_PUBLIC_*` env (inlined at build — see the OTA-env incident precedent).
-- **Fallback:** if the native flow can't initialize (missing config, Play Services absent), fall back to the existing `signInWithOAuth({ provider: "google" })` web flow so Google never hard-breaks.
-- **⚠️ Blocking item for J:** confirm/create the iOS + Android Google OAuth client IDs. If they don't exist yet, the native flow can't be device-verified until they're provisioned (the web fallback still works meanwhile).
+Native one-tap Google (`@react-native-google-signin/google-signin` → `idToken` → `signInWithIdToken`) is **deferred until the Android app is live for all users**. It is NOT part of this redesign — Google continues to use the **existing** `signInWithOAuth` web flow, unchanged. When picked up later it needs: the native module (rides a build, not OTA), iOS + Android Google OAuth client IDs (same GCP project as the Supabase Google provider's web client), those client IDs added to Supabase → Authorized Client IDs, and the iOS reversed-client-id URL scheme in `app.json`. Captured here so it isn't lost; **do not implement it now.**
 
 ## 13. Out of scope (v1)
 
