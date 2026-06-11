@@ -13,3 +13,9 @@ test("useReferralCapture awaits takePendingReferral then records", () => {
   assert.match(cap, /await takePendingReferral\(\)/);
   assert.match(cap, /record_referral/);
 });
+
+const ctl = readFileSync(new URL("../apps/mobile/src/screens/onboarding/PreFeedOnboarding.tsx", import.meta.url), "utf8");
+test("PreFeedOnboarding sequences splash -> location -> vibes -> onDone", () => {
+  assert.match(ctl, /"splash"[\s\S]*"location"[\s\S]*"vibes"/);
+  assert.match(ctl, /onDone\(\{ hood, vibes \}\)/);
+});
