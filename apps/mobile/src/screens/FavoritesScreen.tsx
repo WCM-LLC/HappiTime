@@ -9,6 +9,7 @@ import { SharedItinerarySection } from "../components/SharedItinerarySection";
 import { HappyHourCard } from "../components/HappyHourCard";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useCurrentUser } from "../hooks/useCurrentUser";
+import { useUserProfile } from "../hooks/useUserProfile";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useUserHistory, type HistoryEntry } from "../hooks/useUserHistory";
 import { useUserLists, type UserList } from "../hooks/useUserLists";
@@ -585,6 +586,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
   onShowVenueCard,
   onShowOnMap,
 }) => {
+  const { profile: myProfile } = useUserProfile();
   const [mode, setMode] = useState<"details" | "edit" | "share">("details");
   const [name, setName] = useState(list?.name ?? "");
   const [description, setDescription] = useState(list?.description ?? "");
@@ -648,7 +650,14 @@ const EditListModal: React.FC<EditListModalProps> = ({
       const { data: token } = await (supabase as any).rpc("ensure_share_token", {
         p_list_id: list.id,
       });
-      if (token) shareUrl = `https://happitime.biz/i/${token}`;
+      if (token) {
+        const rawHandle = myProfile?.handle ?? null;
+        const ref =
+          rawHandle && /^[a-z0-9_]{2,30}$/.test(rawHandle)
+            ? `?ref=${rawHandle}`
+            : "";
+        shareUrl = `https://happitime.biz/i/${token}${ref}`;
+      }
     } catch {
       // ignore — fall back to the store-only message
     }

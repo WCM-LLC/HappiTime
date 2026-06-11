@@ -25,7 +25,9 @@ import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
 import { ImageLightbox } from "../components/ImageLightbox";
 import { fetchVenueById } from "@happitime/shared-api";
+import { currentQuarter } from "@happitime/shared-api/quarter";
 import { AddToItinerarySheet } from "../components/AddToItinerarySheet";
+import { SuperUserBadge } from "../components/SuperUserBadge";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { distanceMiles } from "../utils/location";
@@ -89,6 +91,47 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkedIn, setCheckedIn] = useState(false);
   const [fetchedVenueName, setFetchedVenueName] = useState<string | null>(null);
+
+  // Toastmaker: current-quarter Toastmaker for this venue
+  const [toastmakerHandle, setToastmakerHandle] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!venueId) return;
+    let active = true;
+    const quarter = currentQuarter(new Date());
+
+    (async () => {
+      try {
+        // Step 1: fetch the toastmaker row for this venue + quarter
+        const { data: tmRow } = await (supabase as any)
+          .from("venue_toastmakers")
+          .select("user_id")
+          .eq("venue_id", venueId)
+          .eq("quarter", quarter)
+          .maybeSingle();
+
+        if (!active || !tmRow?.user_id) return;
+
+        // Step 2: resolve handle from user_profiles
+        const { data: profile } = await (supabase as any)
+          .from("user_profiles")
+          .select("handle, display_name")
+          .eq("user_id", tmRow.user_id)
+          .maybeSingle();
+
+        if (!active) return;
+        if (profile?.handle) {
+          setToastmakerHandle(profile.handle as string);
+        }
+      } catch {
+        // Non-critical: silently degrade, no toastmaker line shown
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [venueId]);
 
   // Loyalty check-in: venue geo + geofence state
   const [venueGeo, setVenueGeo] = useState<{
@@ -369,6 +412,12 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
         </Animated.View>
       ) : null}
       <Text style={styles.title}>{venueName}</Text>
+      {toastmakerHandle ? (
+        <View style={styles.toastmakerRow}>
+          <SuperUserBadge variant="toastmaker" size="sm" />
+          <Text style={styles.toastmakerText}>Toastmaker: @{toastmakerHandle}</Text>
+        </View>
+      ) : null}
       <AddToItinerarySheet venueId={venueId} />
       {windowsForVenue.length === 0 && events.length === 0 ? (
         <Text style={styles.emptyText}>
@@ -526,6 +575,17 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textMuted,
     fontSize: 14
+  },
+  toastmakerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.xs,
+    marginBottom: spacing.xs,
+  },
+  toastmakerText: {
+    color: colors.textMuted,
+    fontSize: 13,
+    fontWeight: "600",
   },
   section: {
     marginBottom: spacing.lg

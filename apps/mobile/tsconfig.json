@@ -16,6 +16,9 @@
       "@happitime/shared-api": [
         "../../packages/shared-api/src/index.ts"
       ],
+      "@happitime/shared-api/quarter": [
+        "../../packages/shared-api/src/checkin/quarter.d.ts"
+      ],
       "@happitime/shared-env": [
         "../../packages/shared-env/src/index.ts"
       ],

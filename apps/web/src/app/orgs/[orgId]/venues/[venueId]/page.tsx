@@ -15,6 +15,7 @@ import { loginPathFor } from '@/utils/auth-paths';
 import { fetchVenueById, type VenueDetail } from '@happitime/shared-api';
 import { SIZE_PRESETS } from '@happitime/venue-qr';
 import { VenueScanAnalytics } from '@/components/VenueScanAnalytics';
+import { ToastmakerCard } from '@/components/ToastmakerCard';
 import { summarizeScans, computeWindows, type ScanSummary, type ScanEvent } from '@/utils/scan-analytics';
 import { serviceDate, generateCheckinCode } from '@happitime/shared-api/checkin-code';
 import {
@@ -1717,6 +1718,10 @@ export default async function VenuePage({
     </>
   );
 
+  const toastmakerPanel = canManageVenue ? (
+    <ToastmakerCard venueId={venueId} />
+  ) : null;
+
   const tabs: ShellTab[] = [
     { id: 'details', label: 'Details', content: <>{detailsPart1}{tagsPanel}</> },
     { id: 'happy-hours', label: 'Happy Hours', content: happyHoursPanel },
@@ -1724,6 +1729,7 @@ export default async function VenuePage({
     { id: 'events', label: 'Events', content: eventsPanel },
     { id: 'media', label: 'Media & QR', content: mediaQrPanel, show: canManageVenue },
     { id: 'checkins', label: 'Check-ins', content: checkinPanel, show: canManageVenue },
+    { id: 'toastmaker', label: 'Toastmaker', content: toastmakerPanel, show: canManageVenue },
     { id: 'staff', label: 'Staff', content: staffPanel, show: fromAdmin && userIsAdmin },
     { id: 'analytics', label: 'Analytics', content: analyticsPanel },
   ];

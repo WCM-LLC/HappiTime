@@ -13,6 +13,10 @@
     "./checkin-code": {
       "import": "./src/checkin/code.mjs",
       "types": "./src/checkin/code.d.ts"
+    },
+    "./quarter": {
+      "import": "./src/checkin/quarter.mjs",
+      "types": "./src/checkin/quarter.d.ts"
     }
   },
   "scripts": {

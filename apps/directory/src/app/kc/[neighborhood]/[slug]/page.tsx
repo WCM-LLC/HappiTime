@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
 import { getNeighborhood } from "@/lib/neighborhoods";
 import { getHappyHourLandingPageByNeighborhoodSlug } from "@/lib/seoNeighborhoods";
 import { getVenueBySlug } from "@/lib/queries";
@@ -8,6 +9,44 @@ import { PageTracker } from "@/components/PageTracker";
 import { ItineraryButton } from "@/components/ItineraryButton";
 import { venueImageUrl } from "@/lib/mediaUrl";
 import ImageLightbox from "@/components/ImageLightbox";
+
+// ── service-role client (server-only, never exposed to client) ─────────────────
+function getServiceClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+/** Returns the current-quarter Toastmaker handle for a venue, or null. */
+async function fetchToastmakerHandle(venueId: string): Promise<string | null> {
+  try {
+    const db = getServiceClient();
+    if (!db) return null;
+    const y = new Date().getUTCFullYear();
+    const q = Math.floor(new Date().getUTCMonth() / 3) + 1;
+    const quarter = `${y}-Q${q}`;
+
+    const { data: tmRow } = await db
+      .from("venue_toastmakers")
+      .select("user_id")
+      .eq("venue_id", venueId)
+      .eq("quarter", quarter)
+      .maybeSingle();
+
+    if (!tmRow?.user_id) return null;
+
+    const { data: profile } = await db
+      .from("user_profiles")
+      .select("handle")
+      .eq("user_id", tmRow.user_id)
+      .maybeSingle();
+
+    return (profile as { handle?: string | null } | null)?.handle ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export const revalidate = 900;
 
@@ -75,6 +114,9 @@ export default async function VenueDetailPage({ params }: Props) {
   const venue = await getVenueBySlug(slug);
 
   if (!venue) notFound();
+
+  // Fetch Toastmaker server-side (service-role — venue_toastmakers is not anon-readable)
+  const toastmakerHandle = await fetchToastmakerHandle(venue.id);
 
   const jsonLd = venueJsonLd(venue);
   const neighborhoodLandingPage = neighborhood
@@ -153,6 +195,12 @@ export default async function VenueDetailPage({ params }: Props) {
           />
         </div>
         <p className="text-muted">{venue.address}</p>
+        {toastmakerHandle && (
+          <p className="flex items-center gap-1.5 mt-1 text-sm font-semibold text-brand">
+            <span>🥂</span>
+            <span>Toastmaker: @{toastmakerHandle}</span>
+          </p>
+        )}
         <div className="flex flex-wrap items-center gap-3 mt-3 text-sm">
           {venue.rating != null && (
             <span className="font-semibold text-brand">
