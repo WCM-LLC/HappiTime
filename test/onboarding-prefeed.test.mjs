@@ -19,3 +19,13 @@ test("PreFeedOnboarding sequences splash -> location -> vibes -> onDone", () => 
   assert.match(ctl, /"splash"[\s\S]*"location"[\s\S]*"vibes"/);
   assert.match(ctl, /onDone\(\{ hood, vibes \}\)/);
 });
+
+const appsrc = readFileSync(new URL("../apps/mobile/App.tsx", import.meta.url), "utf8");
+test("App gate shows PreFeedOnboarding for new guests + preserves login invariant", () => {
+  assert.match(appsrc, /PreFeedOnboarding/);
+  // LOGIN INVARIANT: the signin + skip branches must remain untouched.
+  assert.match(appsrc, /guestChoice === "signin"[\s\S]*?<AuthScreen \/>/);
+  assert.match(appsrc, /guestChoice === "skip"[\s\S]*?AppNavigator initialTab="Map"/);
+  assert.match(appsrc, /markSeen\(\)[\s\S]*?setGuestChoice\("skip"\)/);
+  assert.doesNotMatch(appsrc, /Create Account \/ Sign In/);
+});
