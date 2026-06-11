@@ -375,6 +375,15 @@ verify_jwt = false
 [functions.send-venue-digest]
 verify_jwt = false
 
+# Invoked hourly by cron (invoke_notify_happy_hours -> pg_net) with x-notify-token, no JWT.
+# Time comparisons use America/Chicago (DST-safe).
+[functions.notify-upcoming-happy-hours]
+verify_jwt = false
+
+# Invoked hourly by cron (invoke_notify_events -> pg_net) with x-notify-token, no JWT.
+[functions.notify-upcoming-events]
+verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
