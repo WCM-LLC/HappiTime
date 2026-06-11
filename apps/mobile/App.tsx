@@ -286,8 +286,12 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
         <PreFeedOnboarding
           onDone={async () => {
             // Guest selections are local-only in Phase 1; persistence is Phase 3.
-            await prefeed.markSeen();
-            setGuestChoice("skip");
+            // Enter guest browse even if the flag write fails (worst case: re-show next launch).
+            try {
+              await prefeed.markSeen();
+            } finally {
+              setGuestChoice("skip");
+            }
           }}
         />
       );
@@ -328,59 +332,6 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
 }
 
 const styles = StyleSheet.create({
-  authPromptContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: spacing.xl,
-  },
-  authPromptCard: {
-    width: "100%",
-    maxWidth: 420,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    padding: spacing.xl,
-    gap: spacing.md,
-  },
-  authPromptTitle: {
-    color: colors.text,
-    fontSize: 24,
-    fontWeight: "800",
-  },
-  authPromptBody: {
-    color: colors.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  authPromptPrimaryButton: {
-    borderRadius: 999,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.md,
-  },
-  authPromptPrimaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  authPromptSecondaryButton: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.md,
-    backgroundColor: colors.surface,
-  },
-  authPromptSecondaryButtonText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: "600",
-  },
   privacyBackdrop: {
     alignItems: "center",
     backgroundColor: "rgba(26, 26, 26, 0.48)",
