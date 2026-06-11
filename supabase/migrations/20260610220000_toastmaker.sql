@@ -78,7 +78,9 @@ grant execute on function public.toastmaker_nominee(uuid) to authenticated;
 -- GM ratifies: insert venue_toastmakers for the current quarter (org-gated).
 create or replace function public.ratify_toastmaker(p_venue_id uuid, p_user_id uuid)
 returns uuid language plpgsql security definer set search_path = public as $$
-declare v_id uuid; v_q text := to_char(now(),'YYYY') || '-Q' || extract(quarter from now())::int;
+-- Quarter pinned to UTC so the stored value matches the JS readers (all UTC),
+-- regardless of the DB session timezone.
+declare v_id uuid; v_q text := to_char((now() at time zone 'utc'),'YYYY') || '-Q' || extract(quarter from (now() at time zone 'utc'))::int;
 begin
   if not exists (select 1 from public.venues v join public.org_members m on m.org_id=v.org_id
                  where v.id=p_venue_id and m.user_id=auth.uid()) then
