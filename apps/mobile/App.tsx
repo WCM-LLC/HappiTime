@@ -18,6 +18,8 @@ import { useVisitRating } from "./src/hooks/useVisitRating";
 import { useVisitTracker, type VenuePoint } from "./src/hooks/useVisitTracker";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { AuthScreen } from "./src/screens/AuthScreen";
+import { PreFeedOnboarding } from "./src/screens/onboarding/PreFeedOnboarding";
+import { usePrefeedOnboarded } from "./src/lib/prefeedOnboarded";
 import { HandleGateScreen } from "./src/screens/HandleGateScreen";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { colors } from "./src/theme/colors";
@@ -199,6 +201,7 @@ function AppRoot() {
   const [guestChoice, setGuestChoice] = useState<"prompt" | "skip" | "signin">("prompt");
   const [handleGate, setHandleGate] = useState<"checking" | "needed" | "satisfied">("checking");
   const onboarding = useOnboardingStatus(session);
+  const prefeed = usePrefeedOnboarded();
   useMagicLinkListener();
 
   // A scanned venue QR must route even before the user is past the auth/welcome
@@ -273,34 +276,28 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       return <AppNavigator initialTab="Map" />;
     }
 
-    return (
-      <View style={styles.authPromptContainer}>
-        <View style={styles.authPromptCard}>
-          <Text style={styles.authPromptTitle}>Welcome to HappiTime</Text>
-          <Text style={styles.authPromptBody}>
-            Sign in to save venues, build itineraries, and interact with the community.
-          </Text>
-          <Pressable
-            style={({ pressed }) => [
-              styles.authPromptPrimaryButton,
-              pressed && styles.privacyButtonPressed,
-            ]}
-            onPress={() => setGuestChoice("signin")}
-          >
-            <Text style={styles.authPromptPrimaryButtonText}>Create Account / Sign In</Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [
-              styles.authPromptSecondaryButton,
-              pressed && styles.privacyButtonPressed,
-            ]}
-            onPress={() => setGuestChoice("skip")}
-          >
-            <Text style={styles.authPromptSecondaryButtonText}>Skip for now</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
+    // guestChoice === "prompt": behavior-first pre-feed onboarding (shown once).
+    // Replaces the old Welcome/Create-Account card — signup is now earned (Phase 2).
+    if (prefeed.loading) {
+      return <LoadingView message={""} />;
+    }
+    if (!prefeed.seen) {
+      return (
+        <PreFeedOnboarding
+          onDone={async () => {
+            // Guest selections are local-only in Phase 1; persistence is Phase 3.
+            // Enter guest browse even if the flag write fails (worst case: re-show next launch).
+            try {
+              await prefeed.markSeen();
+            } finally {
+              setGuestChoice("skip");
+            }
+          }}
+        />
+      );
+    }
+    // Already saw the pre-feed flow but still no account → straight to guest browse.
+    return <AppNavigator initialTab="Map" />;
   }
 
   if (onboarding.loading) {
@@ -335,59 +332,6 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
 }
 
 const styles = StyleSheet.create({
-  authPromptContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: spacing.xl,
-  },
-  authPromptCard: {
-    width: "100%",
-    maxWidth: 420,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    padding: spacing.xl,
-    gap: spacing.md,
-  },
-  authPromptTitle: {
-    color: colors.text,
-    fontSize: 24,
-    fontWeight: "800",
-  },
-  authPromptBody: {
-    color: colors.textMuted,
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  authPromptPrimaryButton: {
-    borderRadius: 999,
-    backgroundColor: colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.md,
-  },
-  authPromptPrimaryButtonText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  authPromptSecondaryButton: {
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacing.md,
-    backgroundColor: colors.surface,
-  },
-  authPromptSecondaryButtonText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: "600",
-  },
   privacyBackdrop: {
     alignItems: "center",
     backgroundColor: "rgba(26, 26, 26, 0.48)",

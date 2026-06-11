@@ -17,12 +17,11 @@ export function useReferralCapture(): void {
 
   useEffect(() => {
     if (!user || done.current) return;
-    const handle = takePendingReferral();
-    if (!handle) return;
     done.current = true;
-    void (supabase as any).rpc("record_referral", {
-      p_referrer_handle: handle,
-      p_source: "code",
-    });
+    void (async () => {
+      const handle = await takePendingReferral();
+      if (!handle) { done.current = false; return; }
+      await (supabase as any).rpc("record_referral", { p_referrer_handle: handle, p_source: "code" });
+    })();
   }, [user]);
 }

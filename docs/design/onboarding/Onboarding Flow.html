@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HappiTime — Consumer Onboarding</title>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="ui_kits/mobile/ios-frame.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="onboarding/ob-atoms.jsx"></script>
+<script type="text/babel" src="onboarding/ob-screens.jsx"></script>
+<script type="text/babel" src="onboarding/ob-feed.jsx"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@800&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; background:#1C1917; min-height:100vh; display:flex; flex-direction:column; align-items:center; padding:48px 24px 72px; gap:24px; }
+  ::-webkit-scrollbar { display:none; }
+  .kit-label { font-size:10px; font-weight:700; color:#78716c; letter-spacing:5px; text-transform:uppercase; }
+  @keyframes obIn { from { opacity:0; transform:translateX(24px); } to { opacity:1; transform:translateX(0); } }
+  @keyframes obFade { from { opacity:0; } to { opacity:1; } }
+  @keyframes obSlideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+  @keyframes obSpin { to { transform:rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="kit-label">HappiTime — Consumer Onboarding</div>
+<div id="root"></div>
+
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "headline": "Kansas City’s happy hours, live.",
+  "vibeStep": true,
+  "accentColor": "#C8965A"
+}/*EDITMODE-END*/;
+
+const OB_INITIAL = {
+  screen: 'splash',
+  hood: '',
+  locationStatus: null,
+  vibes: [],
+  saved: [],
+  checkins: [],
+  signedIn: false,
+  notifStatus: null,
+  tipShown: false,
+};
+
+function App() {
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const accent = t.accentColor;
+
+  // Flow state, persisted so refreshes keep your place
+  const [state, setStateRaw] = React.useState(() => {
+    try { const s = localStorage.getItem('ht_ob2_state'); return s ? {...OB_INITIAL, ...JSON.parse(s)} : OB_INITIAL; }
+    catch(e) { return OB_INITIAL; }
+  });
+  const setState = (fn) => setStateRaw(prev => {
+    const next = typeof fn === 'function' ? fn(prev) : fn;
+    try { localStorage.setItem('ht_ob2_state', JSON.stringify(next)); } catch(e) {}
+    return next;
+  });
+  const go = (screen) => setState(s => ({...s, screen}));
+  const restart = () => setState({...OB_INITIAL});
+
+  // Overlays (not persisted)
+  const [osAlert, setOsAlert] = React.useState(null);
+  const [signup, setSignup] = React.useState(null);   // {action, venue, busy}
+  const [notifVenue, setNotifVenue] = React.useState(null);
+  const [toast, setToast] = React.useState({ text:'', visible:false });
+  const toastTimer = React.useRef(null);
+  const notifTimer = React.useRef(null);
+
+  const showToast = (text) => {
+    clearTimeout(toastTimer.current);
+    setToast({ text, visible:true });
+    toastTimer.current = setTimeout(()=>setToast(tt=>({...tt, visible:false})), 3200);
+  };
+
+  // Simulated OS permission prompt
+  const requestAlert = (cfg) => setOsAlert({
+    ...cfg,
+    buttons: cfg.buttons.map(b => ({ ...b, onPress: () => { setOsAlert(null); b.grant && b.grant(); } })),
+  });
+
+  // Contextual notification prime — fires once, after the first save/check-in
+  const maybePrimeNotifications = (venue) => {
+    clearTimeout(notifTimer.current);
+    notifTimer.current = setTimeout(() => {
+      setStateRaw(prev => {
+        if (prev.notifStatus === null) setNotifVenue(venue);
+        return prev;
+      });
+    }, 1300);
+  };
+
+  const completeAction = (action, venue) => {
+    if (action === 'save') {
+      setState(s => {
+        const adding = !s.saved.includes(venue.id);
+        if (adding) {
+          showToast('Saved to your Favorites.');
+          maybePrimeNotifications(venue);
+        }
+        return {...s, saved: adding ? [...s.saved, venue.id] : s.saved.filter(x=>x!==venue.id)};
+      });
+    } else {
+      setState(s => {
+        if (s.checkins.includes(venue.id)) return s;
+        showToast(`Checked in at ${venue.name}. Rounds started.`);
+        maybePrimeNotifications(venue);
+        return {...s, checkins: [...s.checkins, venue.id]};
+      });
+    }
+  };
+
+  // Gated actions: save / check-in trigger earned signup
+  const onGated = (action, venue) => {
+    if (state.signedIn) completeAction(action, venue);
+    else setSignup({ action, venue, busy:false });
+  };
+
+  const signIn = () => {
+    setSignup(s => ({...s, busy:true}));
+    setTimeout(() => {
+      setSignup(prev => {
+        if (prev) completeAction(prev.action, prev.venue);
+        return null;
+      });
+      setState(s => ({...s, signedIn:true}));
+    }, 900);
+  };
+
+  const onNotify = () => {
+    const venue = notifVenue;
+    setNotifVenue(null);
+    requestAlert({
+      title: '\u201CHappiTime\u201D Would Like to Send You Notifications',
+      message: 'Notifications may include alerts, sounds and icon badges. These can be configured in Settings.',
+      buttons: [
+        { label: 'Allow', bold: true, grant: () => { setState(s=>({...s, notifStatus:'granted'})); showToast(`You\u2019ll get a heads-up 30 minutes before ${venue.name}.`); } },
+        { label: 'Don\u2019t Allow', grant: () => setState(s=>({...s, notifStatus:'denied'})) },
+      ],
+    });
+  };
+
+  // First-feed tooltip: behavior is the personalization
+  React.useEffect(() => {
+    if (state.screen === 'feed' && !state.tipShown) {
+      const id = setTimeout(() => {
+        setState(s => ({...s, tipShown:true}));
+        showToast('Deals get smarter as you browse.');
+      }, 1400);
+      return () => clearTimeout(id);
+    }
+  }, [state.screen]);
+
+  const afterLocation = () => go(t.vibeStep ? 'vibes' : 'feed');
+
+  const renderScreen = () => {
+    if (state.screen === 'splash') return <ObSplash headline={t.headline} accent={accent} onStart={()=>go('location')}/>;
+    if (state.screen === 'location') return <ObLocationPrime accent={accent} state={state} setState={setState} requestAlert={requestAlert} onBack={()=>go('splash')} onContinue={afterLocation}/>;
+    if (state.screen === 'vibes') return <ObVibePicker accent={accent} state={state} setState={setState} onBack={()=>go('location')} onContinue={()=>go('feed')}/>;
+    return <ObFeed accent={accent} state={state} setState={setState} onGated={onGated}/>;
+  };
+
+  return (
+    <React.Fragment>
+      <IOSDevice>
+        <div style={{position:'relative',height:'100%',display:'flex',flexDirection:'column',background:HT.bg,overflow:'hidden'}}>
+          <div key={state.screen} style={{flex:1,display:'flex',flexDirection:'column',paddingTop:54,overflow:'hidden',animation:'obIn 280ms cubic-bezier(0.4,0,0.2,1)'}}>
+            {renderScreen()}
+          </div>
+          {signup ? <ObSignupSheet venue={signup.venue} action={signup.action} accent={accent} busy={signup.busy} onApple={signIn} onGoogle={signIn} onDismiss={()=>setSignup(null)}/> : null}
+          {notifVenue ? <ObNotifSheet venue={notifVenue} accent={accent} onNotify={onNotify} onDismiss={()=>{ setState(s=>({...s, notifStatus:'dismissed'})); setNotifVenue(null); }}/> : null}
+          {osAlert ? <ObSystemAlert title={osAlert.title} message={osAlert.message} buttons={osAlert.buttons}/> : null}
+          <ObToast text={toast.text} visible={toast.visible}/>
+        </div>
+      </IOSDevice>
+
+      <TweaksPanel>
+        <TweakSection label="Flow" />
+        <TweakSelect label="Splash promise" value={t.headline}
+          options={["Happy hour, right now, near you.", "Find the good hours.", "Kansas City\u2019s happy hours, live."]}
+          onChange={(v)=>setTweak('headline', v)} />
+        <TweakToggle label="Vibe picker step (A/B)" value={t.vibeStep} onChange={(v)=>setTweak('vibeStep', v)} />
+        <TweakSection label="Brand" />
+        <TweakColor label="Accent" value={t.accentColor}
+          options={['#C8965A','#8C3A4B','#2A7B6F','#2E4A6E']}
+          onChange={(v)=>setTweak('accentColor', v)} />
+        <TweakSection label="Prototype" />
+        <TweakButton label="Restart flow" onClick={restart} />
+      </TweaksPanel>
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
