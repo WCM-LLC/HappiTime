@@ -146,7 +146,7 @@ export default async function VenueDetailPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
-      <PageTracker pagePath={`/kc/${neighborhoodSlug}/${slug}/`} />
+      <PageTracker pagePath={`/kc/${neighborhoodSlug}/${slug}/`} venueId={venue.id} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

@@ -22,7 +22,19 @@ import { buildVenueScanMessage } from "../_shared/scan-message.mjs";
 // response is sent. Declared for the type-checker.
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
-const VALID_SOURCES = new Set(["qr", "app_checkin", "push_click", "organic"]);
+const VALID_SOURCES = new Set([
+  "qr",
+  "app_checkin",
+  "push_click",
+  "organic",
+  // Social campaign sources — set by the directory's trackEvent when a venue
+  // page is opened with a matching utm_source/src param (see apps/directory/
+  // src/lib/tracking.ts; DB CHECK extended in 20260611_attribution_social_sources).
+  "tiktok",
+  "instagram",
+  "facebook",
+  "social",
+]);
 // One attributed event per (venue, source, session) per 4 hours.
 const RATE_LIMIT = 1;
 const RATE_WINDOW_SECONDS = 4 * 60 * 60;
