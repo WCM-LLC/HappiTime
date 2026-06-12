@@ -12,6 +12,7 @@ import { useHappyHours } from "./src/hooks/useHappyHours";
 import { useMagicLinkListener } from "./src/hooks/useMagicLinkListener";
 import { useOnboardingStatus } from "./src/hooks/useOnboardingStatus";
 import { useReferralCapture } from "./src/hooks/useReferralCapture";
+import { useGatedActionResume } from "./src/hooks/useGatedActionResume";
 import { useVenueLinkCapture } from "./src/hooks/useVenueLinkCapture";
 import { useUserPreferences } from "./src/hooks/useUserPreferences";
 import { useVisitRating } from "./src/hooks/useVisitRating";
@@ -20,8 +21,10 @@ import { AppNavigator } from "./src/navigation/AppNavigator";
 import { AuthScreen } from "./src/screens/AuthScreen";
 import { PreFeedOnboarding } from "./src/screens/onboarding/PreFeedOnboarding";
 import { usePrefeedOnboarded } from "./src/lib/prefeedOnboarded";
-import { HandleGateScreen } from "./src/screens/HandleGateScreen";
+import { PostSignupCapture } from "./src/components/PostSignupCapture";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
+import { EarnedSignupSheet } from "./src/components/EarnedSignupSheet";
+import { setSignInRequestHandler, type GatedActionKind } from "./src/lib/gatedAction";
 import { colors } from "./src/theme/colors";
 import { spacing } from "./src/theme/spacing";
 
@@ -198,6 +201,7 @@ function AppRoot() {
 
   const [booting, setBooting] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
+  const [signupKind, setSignupKind] = useState<GatedActionKind | null>(null);
   const [guestChoice, setGuestChoice] = useState<"prompt" | "skip" | "signin">("prompt");
   const [handleGate, setHandleGate] = useState<"checking" | "needed" | "satisfied">("checking");
   const onboarding = useOnboardingStatus(session);
@@ -213,6 +217,19 @@ function AppRoot() {
   );
   useVenueLinkCapture(enterGuestForVenueScan);
   useReferralCapture();
+  useGatedActionResume();
+
+  // Register the module-level earned-signup handler so gated hooks can open the sheet.
+  useEffect(() => {
+    setSignInRequestHandler((kind) => setSignupKind(kind));
+    return () => setSignInRequestHandler(null);
+  }, []);
+
+  // Auto-close the earned-signup sheet when a session arrives.
+  useEffect(() => {
+    if (session) setSignupKind(null);
+  }, [session]);
+
   console.log("App render");
 
   useEffect(() => {
@@ -273,7 +290,12 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
     }
 
     if (guestChoice === "skip") {
-      return <AppNavigator initialTab="Map" />;
+      return (
+        <>
+          <AppNavigator initialTab="Map" />
+          <EarnedSignupSheet kind={signupKind} onDismiss={() => setSignupKind(null)} />
+        </>
+      );
     }
 
     // guestChoice === "prompt": behavior-first pre-feed onboarding (shown once).
@@ -297,7 +319,12 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       );
     }
     // Already saw the pre-feed flow but still no account → straight to guest browse.
-    return <AppNavigator initialTab="Map" />;
+    return (
+      <>
+        <AppNavigator initialTab="Map" />
+        <EarnedSignupSheet kind={signupKind} onDismiss={() => setSignupKind(null)} />
+      </>
+    );
   }
 
   if (onboarding.loading) {
@@ -321,7 +348,7 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
 
   if (handleGate === "needed") {
     return (
-      <HandleGateScreen
+      <PostSignupCapture
         session={session}
         onComplete={() => setHandleGate("satisfied")}
       />

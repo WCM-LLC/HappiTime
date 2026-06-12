@@ -229,7 +229,7 @@ export const ProfileScreen: React.FC = () => {
 
   if (!user) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, styles.guestContainer]}>
         <View style={[styles.card, { margin: spacing.lg }]}>
           <Text style={styles.sectionTitle}>Profile</Text>
           <Text style={styles.value}>
@@ -595,6 +595,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  guestContainer: {
+    justifyContent: "center", // center the sign-in card vertically on the page
   },
   scrollContent: {
     paddingTop: spacing.xxl + spacing.md,

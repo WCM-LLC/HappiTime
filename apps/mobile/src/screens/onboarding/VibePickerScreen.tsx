@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme/colors";
 import {
   ObBackButton,
@@ -44,6 +45,8 @@ export const VibePickerScreen: React.FC<VibePickerScreenProps> = ({
   vibes,
   setVibes,
 }) => {
+  const insets = useSafeAreaInsets();
+
   const toggle = (v: string) => {
     if (vibes.includes(v)) {
       setVibes(vibes.filter((x) => x !== v));
@@ -64,7 +67,7 @@ export const VibePickerScreen: React.FC<VibePickerScreenProps> = ({
   return (
     <View style={styles.screen}>
       {/* ── Top bar ────────────────────────────────────────────────── */}
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 2 }]}>
         <ObBackButton onPress={onBack} />
         <Pressable
           onPress={handleSkip}

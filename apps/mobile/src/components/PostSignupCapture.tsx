@@ -1,5 +1,5 @@
 import type { Session } from "@supabase/supabase-js";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -14,10 +14,11 @@ import {
 import { isReservedHandle } from "@happitime/shared-types";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { supabase } from "../api/supabaseClient";
+import { peekPendingReferral } from "../lib/pendingReferral";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
-type HandleGateScreenProps = {
+type PostSignupCaptureProps = {
   session: Session;
   onComplete: () => void;
 };
@@ -32,12 +33,21 @@ function validateHandle(value: string): string | null {
   return null;
 }
 
-export function HandleGateScreen({ session, onComplete }: HandleGateScreenProps) {
+export function PostSignupCapture({ session, onComplete }: PostSignupCaptureProps) {
   const [handle, setHandle] = useState("");
   const [handleError, setHandleError] = useState<string | null>(null);
   const [handleSuggestions, setHandleSuggestions] = useState<string[]>([]);
   const [checking, setChecking] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [referrer, setReferrer] = useState("");
+
+  // Prefill the referrer field from the durable stash (peek — does NOT consume it;
+  // the auto-apply via useReferralCapture still runs separately on first session).
+  useEffect(() => {
+    peekPendingReferral().then((v) => {
+      if (v) setReferrer(v);
+    });
+  }, []);
 
   const submit = async () => {
     const trimmed = handle.trim().toLowerCase();
@@ -86,6 +96,21 @@ export function HandleGateScreen({ session, onComplete }: HandleGateScreenProps)
         setHandleError("Could not save your handle. Please try again.");
       }
       return;
+    }
+
+    // Record the referral (confirm/backstop — idempotent, first-wins on the server).
+    // The durable stash auto-apply via useReferralCapture is separate and still runs.
+    // Never block handle completion if this fails.
+    const referrerTrimmed = referrer.trim();
+    if (referrerTrimmed) {
+      try {
+        await (supabase as any).rpc("record_referral", {
+          p_referrer_handle: referrerTrimmed,
+          p_source: "code",
+        });
+      } catch {
+        // Intentionally swallowed — referrer recording is best-effort
+      }
     }
 
     onComplete();
@@ -162,6 +187,31 @@ export function HandleGateScreen({ session, onComplete }: HandleGateScreenProps)
           <Text style={styles.handleHint}>
             3–20 characters. Letters, numbers, and underscores only.
           </Text>
+
+          <View style={styles.referrerSection}>
+            <Text style={styles.label}>Who brought you? (optional)</Text>
+            <View style={styles.handleRow}>
+              <View style={styles.handlePrefix}>
+                <Text style={styles.handlePrefixText}>@</Text>
+              </View>
+              <TextInput
+                accessibilityLabel="Referrer handle"
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="theirhandle"
+                placeholderTextColor={colors.textMuted}
+                style={[styles.input, styles.handleInput]}
+                value={referrer}
+                onChangeText={(text) =>
+                  setReferrer(text.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+                }
+                maxLength={20}
+              />
+            </View>
+            <Text style={styles.referrerHint}>
+              If a HappiTime Insider invited you, their @handle gets the credit.
+            </Text>
+          </View>
 
           <Pressable
             accessibilityRole="button"
@@ -295,6 +345,15 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 14,
     fontWeight: "600",
+  },
+  referrerSection: {
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  referrerHint: {
+    color: colors.textMuted,
+    fontSize: 12,
+    lineHeight: 16,
   },
   primaryButton: {
     minHeight: 52,

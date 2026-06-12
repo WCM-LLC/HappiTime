@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
 import { useCurrentUser } from "./useCurrentUser";
+import { requestSignIn } from "../lib/gatedAction";
+import { setPendingIntent } from "../lib/pendingGatedAction";
 
 type State = {
   venueIds: string[];
@@ -64,13 +66,25 @@ export function useUserFollowedVenues() {
 
   const toggleFollow = useCallback(
     async (venueId: string) => {
+      const isFollowing = state.venueIds.includes(venueId);
+
+      if (!user?.id && !isFollowing) {
+        // Guest attempting a NEW follow — durably record the intent (replayed
+        // post-signup by a fresh, signed-in hook, even across a magic-link cold
+        // start) and open earned signup.
+        await setPendingIntent({ kind: "save", venueId });
+        const requested = requestSignIn("save");
+        if (requested) {
+          return { error: null };
+        }
+        // No handler registered (shouldn't happen at runtime) — fall through.
+      }
+
       if (!user?.id) {
         const error = new Error("Not signed in.");
         setState((prev) => ({ ...prev, error }));
         return { error };
       }
-
-      const isFollowing = state.venueIds.includes(venueId);
       setState((prev) => ({ ...prev, savingVenueId: venueId, error: null }));
 
       const { error } = isFollowing
