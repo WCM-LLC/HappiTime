@@ -30,6 +30,11 @@ const DRINK_OPTS = [
   "Craft Cocktails", "Local Beers", "Margaritas", "Non-Alcoholic", "Whiskey Bar", "Wine Bar",
 ];
 
+// Display name for venues that fall outside every defined neighborhood radius
+// (slug "kansas-city"). Used as both the getNeighborhoodName fallback and a
+// selectable catch-all neighborhood option so those venues stay filterable.
+const DEFAULT_HOOD_NAME = "Kansas City";
+
 // Maps a cuisine chip label → substring keywords matched against both
 // venue.cuisine_type and venue.tags (see the cuisine filter below).
 // cuisine_type is free-form Google Places text (mixed case, "restaurant" suffixes,
@@ -1082,12 +1087,19 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  const neighborhoodNames = neighborhoods.map((n) => n.name);
-
   function getNeighborhoodName(venueId: string): string {
     const slug = bestNeighborhoodSlugMap[venueId];
-    return neighborhoods.find((n) => n.slug === slug)?.name ?? "Kansas City";
+    return neighborhoods.find((n) => n.slug === slug)?.name ?? DEFAULT_HOOD_NAME;
   }
+
+  // Append the city-wide catch-all option when any venue falls back to it, so
+  // venues outside every named district are reachable by neighborhood filter.
+  const neighborhoodNames = [
+    ...neighborhoods.map((n) => n.name),
+    ...(venues.some((v) => getNeighborhoodName(v.id) === DEFAULT_HOOD_NAME)
+      ? [DEFAULT_HOOD_NAME]
+      : []),
+  ];
 
   function getVenueHref(venue: VenueWithWindows): string {
     const slug = bestNeighborhoodSlugMap[venue.id] ?? "kansas-city";
