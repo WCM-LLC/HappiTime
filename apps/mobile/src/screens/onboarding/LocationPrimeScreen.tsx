@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors } from "../../theme/colors";
 import {
   ObBackButton,
@@ -189,6 +190,7 @@ export const LocationPrimeScreen: React.FC<LocationPrimeScreenProps> = ({
   locationDenied,
   setLocationDenied,
 }) => {
+  const insets = useSafeAreaInsets();
   const [manual, setManual] = useState(false);
 
   const showHoods = manual || locationDenied;
@@ -224,7 +226,7 @@ export const LocationPrimeScreen: React.FC<LocationPrimeScreenProps> = ({
   return (
     <View style={styles.screen}>
       {/* ── Top bar ────────────────────────────────────────────────── */}
-      <View style={styles.topBar}>
+      <View style={[styles.topBar, { paddingTop: insets.top + 2 }]}>
         <ObBackButton onPress={onBack} />
       </View>
 
