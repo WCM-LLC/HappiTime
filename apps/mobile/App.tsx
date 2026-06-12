@@ -25,6 +25,7 @@ import { PostSignupCapture } from "./src/components/PostSignupCapture";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { EarnedSignupSheet } from "./src/components/EarnedSignupSheet";
 import { setSignInRequestHandler, type GatedActionKind } from "./src/lib/gatedAction";
+import { setGuestSelections } from "./src/lib/guestSelections";
 import { colors } from "./src/theme/colors";
 import { spacing } from "./src/theme/spacing";
 
@@ -306,10 +307,12 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
     if (!prefeed.seen) {
       return (
         <PreFeedOnboarding
-          onDone={async () => {
-            // Guest selections are local-only in Phase 1; persistence is Phase 3.
-            // Enter guest browse even if the flag write fails (worst case: re-show next launch).
+          onDone={async (guest) => {
+            // Stash the guest's selections durably so the feed can seed its
+            // filter and signup can persist them (Phase 3). Enter guest browse
+            // even if a write fails (worst case: no personalization this run).
             try {
+              await setGuestSelections(guest);
               await prefeed.markSeen();
             } finally {
               setGuestChoice("skip");

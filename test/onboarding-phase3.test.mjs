@@ -33,3 +33,11 @@ test("guestSelections is a durable AsyncStorage stash with take-clears semantics
   assert.match(guest, /export async function takeGuestSelections/); // read + clear (signup)
   assert.match(guest, /removeItem/);                   // take clears
 });
+
+const app = readFileSync(new URL("../apps/mobile/App.tsx", import.meta.url), "utf8");
+
+test("pre-feed completion writes the guest selections to the durable stash", () => {
+  assert.match(app, /setGuestSelections\(/);
+  // onDone now receives the guest payload instead of discarding it
+  assert.match(app, /onDone=\{async \(guest\)/);
+});
