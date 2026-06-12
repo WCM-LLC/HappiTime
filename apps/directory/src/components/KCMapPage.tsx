@@ -45,23 +45,41 @@ const CUISINE_KEYWORDS: Record<string, string[]> = {
   "Sports Bar": ["sports bar", "sports_bar"],
 };
 
-// Maps display label → tag keys stored in venue.tags
+// Maps display label → tag keys stored in venue.tags. Keys are written in
+// normalized form (lowercase, underscores). venue.tags are normalized the same
+// way before comparison (see normTag/venueHasAnyTag), so hyphen/underscore drift
+// in the source data — e.g. "live-music" vs "live_music", "craft-beer" vs
+// "craft_beer", "sports-bar" vs "sports_bar" — can't silently drop a match.
 const AMENITY_TO_TAGS: Record<string, string[]> = {
   "Dog Friendly": ["dog_friendly"],
   "Live Music": ["live_music"],
-  "Patio": ["patio"],
+  "Patio": ["patio", "outdoor_seating"],
   "Private Events": ["private_events"],
   "Rooftop": ["rooftop"],
   "Sports Bar": ["sports_bar_tv", "sports_bar"],
 };
 const DRINK_TO_TAGS: Record<string, string[]> = {
-  "Craft Cocktails": ["cocktails", "craft_cocktails"],
-  "Local Beers": ["local_beers", "craft_beer"],
+  "Craft Cocktails": ["cocktails", "craft_cocktails", "cocktail_bar"],
+  "Local Beers": ["local_beers", "craft_beer", "brewery"],
   "Margaritas": ["margaritas"],
-  "Non-Alcoholic": ["non_alcoholic", "na_options"],
+  "Non-Alcoholic": ["non_alcoholic", "na_options", "sober_friendly"],
   "Whiskey Bar": ["whiskey_bar"],
   "Wine Bar": ["wine_bar"],
 };
+
+// Normalize a tag for comparison: lowercase, collapse hyphens/spaces to "_".
+const normTag = (t: string) => t.toLowerCase().replace(/[-\s]+/g, "_");
+
+// True if the venue carries any of the given (already-normalized) tag keys.
+function venueHasAnyTag(venue: VenueWithWindows, keys: string[]): boolean {
+  if (keys.length === 0) return false;
+  const tagSet = new Set(venue.tags.map(normTag));
+  return keys.some((k) => tagSet.has(k));
+}
+
+// Flat normalized key sets for "does this tag belong to an amenity/drink" lookups.
+const AMENITY_KEY_SET = new Set(Object.values(AMENITY_TO_TAGS).flat());
+const DRINK_KEY_SET = new Set(Object.values(DRINK_TO_TAGS).flat());
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -752,12 +770,8 @@ function VenueRow({ venue, selected, todayDow, now, neighborhoodName, venueHref,
   const firstItem = win?.menu_items[0];
   const todayEvents = venue.venue_events.filter((e) => eventOccursToday(e, now));
 
-  const amenityTags = venue.tags.filter((t) =>
-    Object.values(AMENITY_TO_TAGS).flat().includes(t)
-  );
-  const drinkTags = venue.tags.filter((t) =>
-    Object.values(DRINK_TO_TAGS).flat().includes(t)
-  );
+  const amenityTags = venue.tags.filter((t) => AMENITY_KEY_SET.has(normTag(t)));
+  const drinkTags = venue.tags.filter((t) => DRINK_KEY_SET.has(normTag(t)));
 
   const rowStyle = {
     background: selected ? "#F5EDE3" : "#FFFFFF",
@@ -1095,18 +1109,16 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
     }
 
     if (filters.amenities.length) {
-      const hasAll = filters.amenities.every((label) => {
-        const keys = AMENITY_TO_TAGS[label] ?? [];
-        return v.tags.some((t) => keys.includes(t));
-      });
+      const hasAll = filters.amenities.every((label) =>
+        venueHasAnyTag(v, AMENITY_TO_TAGS[label] ?? [])
+      );
       if (!hasAll) return false;
     }
 
     if (filters.drinks.length) {
-      const hasAny = filters.drinks.some((label) => {
-        const keys = DRINK_TO_TAGS[label] ?? [];
-        return v.tags.some((t) => keys.includes(t));
-      });
+      const hasAny = filters.drinks.some((label) =>
+        venueHasAnyTag(v, DRINK_TO_TAGS[label] ?? [])
+      );
       if (!hasAny) return false;
     }
 
