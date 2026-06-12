@@ -17,7 +17,19 @@ const EDGE_SRC = readFileSync(
 // the pure decision logic is mirrored here. The "mirror stays in sync" test below
 // reads the real source and fails if the mirrored invariants drift from it — so
 // this copy cannot silently diverge from what is deployed.
-const VALID_SOURCES = new Set(["qr", "app_checkin", "push_click", "organic"]);
+const VALID_SOURCES = new Set([
+  "qr",
+  "app_checkin",
+  "push_click",
+  "organic",
+  // Social campaign sources — mirror of track-visit/index.ts and the
+  // venue_attribution_events source CHECK. The drift guard below fails if this
+  // diverges from the deployed edge function.
+  "tiktok",
+  "instagram",
+  "facebook",
+  "social",
+]);
 
 function isValidSource(source) {
   return typeof source === "string" && VALID_SOURCES.has(source);
@@ -36,8 +48,8 @@ function shouldRecord(rateLimitExceeded) {
 }
 // ──────────────────────────────────────────────────────────────────────────────
 
-test("isValidSource accepts the four attribution sources", () => {
-  for (const s of ["qr", "app_checkin", "push_click", "organic"]) {
+test("isValidSource accepts every attribution source", () => {
+  for (const s of ["qr", "app_checkin", "push_click", "organic", "tiktok", "instagram", "facebook", "social"]) {
     assert.equal(isValidSource(s), true, `${s} should be valid`);
   }
 });
@@ -103,7 +115,7 @@ test("venueQrUrl builds the public /v/{slug}?src=qr landing URL (imported, not m
 // REAL source and fail if its invariants change, so the mirror can't pass while
 // the deployed behavior silently diverges (the exact failure that bit this code:
 // duplicate shouldRecord, maybeSingle->limit(1)).
-test("edge source still defines the same four sources as the mirror", () => {
+test("edge source still defines the same sources as the mirror", () => {
   const m = EDGE_SRC.match(/VALID_SOURCES\s*=\s*new Set\(\[([^\]]*)\]\)/);
   assert.ok(m, "VALID_SOURCES set literal not found in edge source");
   const sourcesInEdge = m[1].match(/"([^"]+)"/g).map((s) => s.replace(/"/g, ""));
