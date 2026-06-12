@@ -41,3 +41,12 @@ test("pre-feed completion writes the guest selections to the durable stash", () 
   // onDone now receives the guest payload instead of discarding it
   assert.match(app, /onDone=\{async \(guest\)/);
 });
+
+const persist = readFileSync(new URL("../apps/mobile/src/hooks/useGuestSelectionPersist.ts", import.meta.url), "utf8");
+
+test("guest selections persist to interests on first session, via a fresh signed-in hook", () => {
+  assert.match(persist, /takeGuestSelections\(\)/);           // consume once
+  assert.match(persist, /vibesToTagSlugs\(/);                 // map to taxonomy slugs
+  assert.match(persist, /savePreferences\(\{[^}]*interests/); // write interests
+  assert.match(app, /useGuestSelectionPersist\(\)/);          // mounted at root
+});

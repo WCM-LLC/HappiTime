@@ -13,6 +13,7 @@ import { useMagicLinkListener } from "./src/hooks/useMagicLinkListener";
 import { useOnboardingStatus } from "./src/hooks/useOnboardingStatus";
 import { useReferralCapture } from "./src/hooks/useReferralCapture";
 import { useGatedActionResume } from "./src/hooks/useGatedActionResume";
+import { useGuestSelectionPersist } from "./src/hooks/useGuestSelectionPersist";
 import { useVenueLinkCapture } from "./src/hooks/useVenueLinkCapture";
 import { useUserPreferences } from "./src/hooks/useUserPreferences";
 import { useVisitRating } from "./src/hooks/useVisitRating";
@@ -219,6 +220,7 @@ function AppRoot() {
   useVenueLinkCapture(enterGuestForVenueScan);
   useReferralCapture();
   useGatedActionResume();
+  useGuestSelectionPersist();
 
   // Register the module-level earned-signup handler so gated hooks can open the sheet.
   useEffect(() => {
