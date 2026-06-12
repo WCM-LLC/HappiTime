@@ -1028,3 +1028,66 @@ export async function deleteItem(orgId: string, venueId: string, formData: FormD
   revalidateVenue(orgId, venueId, redirectTo);
   redirectWithSuccess(orgId, venueId, 'item_deleted', redirectTo);
 }
+
+/**
+ * Listing verification loop — "Still accurate?" one-tap re-verify.
+ * Stamps venues.last_confirmed_at; the venues_clear_dispute_on_confirm trigger
+ * clears listing_disputed automatically.
+ */
+export async function reverifyListing(orgId: string, venueId: string, _formData?: FormData) {
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+
+  const { error } = await writeSupabase
+    .from('venues')
+    .update({ last_confirmed_at: new Date().toISOString() })
+    .eq('id', venueId)
+    .eq('org_id', orgId);
+
+  if (error) {
+    console.error(error);
+    redirectWithError(orgId, venueId, 'listing_reverify_failed');
+  }
+
+  revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'listing_reverified');
+}
+
+/**
+ * Resolves a consumer listing report (confirmed = "they were right, fixed it",
+ * rejected = "checked, listing is correct"). listing_reports has no UPDATE
+ * policy by design — resolution goes through the service client after the
+ * same management-access check every other venue write uses.
+ */
+export async function resolveListingReport(orgId: string, venueId: string, formData: FormData) {
+  await requireVenueManagementAccess(orgId, venueId);
+  const reportId = requireField(formData, 'report_id', orgId, venueId, 'missing_report_id');
+  const resolution = String(formData.get('resolution') ?? '');
+  if (resolution !== 'confirmed' && resolution !== 'rejected') {
+    redirectWithError(orgId, venueId, 'report_resolve_failed');
+  }
+
+  let svc: SupabaseServerClient;
+  try {
+    svc = createServiceClient() as SupabaseServerClient;
+  } catch {
+    redirectWithError(orgId, venueId, 'report_resolve_failed');
+    return;
+  }
+
+  // (svc as any): listing_reports lands in generated types on next typegen run —
+  // same precedent as venue_subscriptions / venue_toastmakers.
+  const { error } = await (svc as any)
+    .from('listing_reports')
+    .update({ status: resolution, resolved_at: new Date().toISOString() })
+    .eq('id', reportId)
+    .eq('venue_id', venueId)
+    .eq('status', 'open');
+
+  if (error) {
+    console.error(error);
+    redirectWithError(orgId, venueId, 'report_resolve_failed');
+  }
+
+  revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'report_resolved');
+}

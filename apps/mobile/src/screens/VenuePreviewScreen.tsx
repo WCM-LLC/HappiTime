@@ -28,6 +28,7 @@ import { fetchVenueById } from "@happitime/shared-api";
 import { currentQuarter } from "@happitime/shared-api/quarter";
 import { AddToItinerarySheet } from "../components/AddToItinerarySheet";
 import { SuperUserBadge } from "../components/SuperUserBadge";
+import { ListingFreshness } from "../components/ListingFreshness";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { distanceMiles } from "../utils/location";
@@ -418,6 +419,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           <Text style={styles.toastmakerText}>Toastmaker: @{toastmakerHandle}</Text>
         </View>
       ) : null}
+      <ListingFreshness venueId={venueId ?? null} />
       <AddToItinerarySheet venueId={venueId} />
       {windowsForVenue.length === 0 && events.length === 0 ? (
         <Text style={styles.emptyText}>

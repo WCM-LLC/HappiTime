@@ -40,6 +40,8 @@ import {
   deleteSection,
   createItem,
   deleteItem,
+  reverifyListing,
+  resolveListingReport,
 } from '../../../../../actions/venue-actions';
 import {
   createEvent,
@@ -55,6 +57,15 @@ import {
 } from '../../../../../actions/admin-staff-actions';
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** Verification loop: a listing older than this is shown as stale (matches the consumer app). */
+const LISTING_STALE_AFTER_DAYS = 45;
+
+const LISTING_REPORT_LABELS: Record<string, string> = {
+  hours_wrong: 'Hours are wrong',
+  menu_or_price_wrong: 'Menu or prices are wrong',
+  deal_not_honored: "Deal wasn't honored",
+};
 const RATING_ASPECT_OPTIONS = ["food_quality", "service", "drink_selection", "ambiance", "value"];
 
 const HH_STATUS_PUBLISHED = 'published';
@@ -251,6 +262,9 @@ export default async function VenuePage({
     event_unpublish_failed: 'Unpublishing the event failed.',
     missing_event_title: 'Event title is required.',
     missing_event_date: 'Event start date is required.',
+    listing_reverify_failed: 'Re-verifying the listing failed. Try again.',
+    report_resolve_failed: 'Resolving that report failed. Try again.',
+    missing_report_id: "We couldn't find that report.",
   };
   const errorText = pageError ? (VENUE_ERROR_MESSAGES[pageError] ?? pageError) : null;
 
@@ -310,7 +324,9 @@ export default async function VenuePage({
   ] = await Promise.all([
     fetchVenueById(supabase as any, venueId, { orgId }),
     // fetchVenueById does not select `slug`; fetch it for the QR download caption.
-    supabase.from('venues').select('slug').eq('id', venueId).maybeSingle(),
+    // last_confirmed_at / listing_disputed power the listing-freshness banner.
+    // (supabase as any): listing_disputed lands in generated types on next typegen.
+    (supabase as any).from('venues').select('slug,last_confirmed_at,listing_disputed').eq('id', venueId).maybeSingle(),
     // Read checkin_secret via service-role (always) — it is never sent to the
     // browser; only the derived 4-char code is shown in the sub-bar.
     // Gated to canManageVenue so hosts/viewers don't trigger a service-role read.
@@ -405,6 +421,14 @@ export default async function VenuePage({
   ]);
 
   const qrSlug = (qrVenue?.slug as string | null) ?? null;
+
+  // ── Listing freshness (verification loop) ──────────────────────────────────
+  const listingLastConfirmedAt = (qrVenue?.last_confirmed_at as string | null) ?? null;
+  const listingDisputed = (qrVenue?.listing_disputed as boolean | null) === true;
+  const listingAgeDays = listingLastConfirmedAt
+    ? Math.floor((Date.now() - new Date(listingLastConfirmedAt).getTime()) / 86_400_000)
+    : null;
+  const listingStale = listingAgeDays === null || listingAgeDays > LISTING_STALE_AFTER_DAYS;
   const publishedVenueMenus: PublishedVenueMenuOption[] = publishedVenueMenusData ?? [];
 
   const currentPlan: SubscriptionPlan =
@@ -425,7 +449,7 @@ export default async function VenuePage({
   // 90-day window for check-in stats (covers yesterday / 7d / 30d).
   const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 3600_000).toISOString();
 
-  const [scanSummary, { windowMenus, windowMenusErr }, checkinStats] = await Promise.all([
+  const [scanSummary, { windowMenus, windowMenusErr }, checkinStats, openReports] = await Promise.all([
     (async (): Promise<ScanSummary | null> => {
       if (!scanWindows) return null;
       const svc = createServiceClient();
@@ -513,6 +537,18 @@ export default async function VenuePage({
         redemptions: (rdRows ?? []) as { id: string; created_at: string }[],
         flags: (flRows ?? []) as { id: string; flag_type: string; resolved_at: string | null; created_at: string }[],
       };
+    })(),
+    // Open consumer listing reports ("Something's off" in the app). RLS-locked
+    // table; read via service role, gated by canManageVenue like checkinStats.
+    (async (): Promise<{ id: string; report_type: string; note: string | null; created_at: string }[]> => {
+      if (!canManageVenue) return [];
+      const { data: reportRows } = await (createServiceClient() as any)
+        .from('listing_reports')
+        .select('id,report_type,note,created_at')
+        .eq('venue_id', venueId)
+        .eq('status', 'open')
+        .order('created_at', { ascending: false });
+      return (reportRows ?? []) as { id: string; report_type: string; note: string | null; created_at: string }[];
     })(),
   ]);
 
@@ -699,6 +735,68 @@ export default async function VenuePage({
               <p className="text-body-sm text-error/80 mt-0.5">{(e as { msg: string }).msg}</p>
             </div>
           ))}
+
+        {/* ── Listing freshness (verification loop) ──
+            Quiet when healthy; amber when stale (>45d) or consumer-disputed.
+            "Confirm" stamps last_confirmed_at — the DB trigger clears the dispute. */}
+        {canManageVenue && (listingStale || listingDisputed || openReports.length > 0) ? (
+          <div className="rounded-md border border-warning bg-warning-light px-4 py-3 mb-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-body-sm font-medium text-foreground">
+                  {listingDisputed
+                    ? 'App users reported this listing may be out of date'
+                    : openReports.length > 0
+                    ? 'An app user reported a problem with this listing'
+                    : 'Is your listing still accurate?'}
+                </p>
+                <p className="text-body-sm text-muted mt-0.5">
+                  Last verified {listingAgeDays === null ? 'never' : listingAgeDays === 0 ? 'today' : `${listingAgeDays} days ago`}.
+                  {' '}Fresh listings rank higher in the app — confirming takes one tap.
+                </p>
+              </div>
+              <form className="shrink-0">
+                <SubmitButton
+                  className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer"
+                  formAction={reverifyListing.bind(null, orgId, venueId)}
+                  pendingLabel="Confirming…"
+                >
+                  Still accurate ✓
+                </SubmitButton>
+              </form>
+            </div>
+
+            {openReports.length > 0 ? (
+              <div className="border-t border-warning/30 mt-3 pt-3 flex flex-col gap-2">
+                {openReports.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between gap-3">
+                    <p className="text-body-sm text-foreground min-w-0">
+                      <span className="font-medium">{LISTING_REPORT_LABELS[r.report_type] ?? r.report_type}</span>
+                      {r.note ? <span className="text-muted"> — “{r.note}”</span> : null}
+                      <span className="text-muted-light"> · {new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                    </p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <form>
+                        <input type="hidden" name="report_id" value={r.id} />
+                        <input type="hidden" name="resolution" value="confirmed" />
+                        <SubmitButton className={btnSecondary} formAction={resolveListingReport.bind(null, orgId, venueId)} pendingLabel="Saving…">
+                          Fixed it
+                        </SubmitButton>
+                      </form>
+                      <form>
+                        <input type="hidden" name="report_id" value={r.id} />
+                        <input type="hidden" name="resolution" value="rejected" />
+                        <SubmitButton className={btnSecondary} formAction={resolveListingReport.bind(null, orgId, venueId)} pendingLabel="Saving…">
+                          Listing is correct
+                        </SubmitButton>
+                      </form>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
     </>
   );
 

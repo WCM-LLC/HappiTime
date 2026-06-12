@@ -26,6 +26,8 @@ Canonical schema lives in `supabase/migrations/` and is designed for:
 
 - `happy_hour_places`: optional public dataset used by the consumer app search/browse UI
 
+- `listing_reports`: consumer "Something's off" reports (`hours_wrong|menu_or_price_wrong|deal_not_honored`; status `open|confirmed|rejected`). Users insert directly under RLS (one open report per user/venue/type); resolution is service-role only. 2+ distinct open reporters within 14 days auto-sets `venues.listing_disputed`; any happy-hour window/offer edit or venue re-confirm stamps `last_confirmed_at` and clears the dispute. See `20260611230000_listing_verification_loop.sql`.
+
 ## Relationships (high level)
 - `organizations (1) -> (N) venues`
 - `organizations (1) -> (N) org_members`
