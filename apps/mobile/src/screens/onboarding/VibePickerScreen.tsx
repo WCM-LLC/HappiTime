@@ -23,6 +23,7 @@ const VIBES: [string, string][] = [
   ["dive", "Dive bar"],
   ["cocktails", "Cocktails"],
   ["patio", "Patio"],
+  ["rooftop", "Rooftop"],
   ["sports", "Sports bar"],
   ["late", "Late-night eats"],
   ["brewery", "Brewery"],

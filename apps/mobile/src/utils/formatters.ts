@@ -42,3 +42,17 @@ export function formatDays(dow: (number | string)[]): string {
     .map((value) => value.charAt(0).toUpperCase() + value.slice(1))
     .join(" · ");
 }
+
+/**
+ * Humanizes a raw tag/category slug for display: "cocktail_bar" → "Cocktail Bar",
+ * "late-night" → "Late Night". Idempotent on already-clean labels. Use this for
+ * the legacy venue.tags text[] (which still contains underscored values).
+ */
+export function formatTagLabel(tag: string): string {
+  return tag
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}

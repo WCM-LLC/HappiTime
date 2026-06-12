@@ -27,7 +27,7 @@ import { ErrorState } from "../components/ErrorState";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { getHappyHourDisplayNames } from "../utils/happyHourDisplay";
-import { formatDays, formatTimeRange } from "../utils/formatters";
+import { formatDays, formatTagLabel, formatTimeRange } from "../utils/formatters";
 import { distanceMiles } from "../utils/location";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { SocialIcon } from "../../components/ui/SocialIcon";
@@ -411,7 +411,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
             <View style={styles.tagsRow}>
               {venue.tags.map((tag: string) => (
                 <View key={tag} style={styles.tagPill}>
-                  <Text style={styles.tagPillText}>{tag}</Text>
+                  <Text style={styles.tagPillText}>{formatTagLabel(tag)}</Text>
                 </View>
               ))}
               {window.dow && getDowValues(window).includes(new Date().getDay()) && (
