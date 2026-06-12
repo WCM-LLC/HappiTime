@@ -3,6 +3,7 @@ import { supabase } from "../api/supabaseClient";
 import { useCurrentUser } from "./useCurrentUser";
 import { requestSignIn } from "../lib/gatedAction";
 import { setPendingIntent } from "../lib/pendingGatedAction";
+import { maybeRequestNotifPrime } from "../lib/notifPrime";
 
 type State = {
   venueIds: string[];
@@ -111,6 +112,7 @@ export function useUserFollowedVenues() {
         savingVenueId: null,
       }));
       await load();
+      if (!isFollowing) void maybeRequestNotifPrime(); // first-save value moment
       return { error: null };
     },
     [load, state.venueIds, user?.id]

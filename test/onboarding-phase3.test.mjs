@@ -60,3 +60,16 @@ test("guest feed seeds its tag filter from the stashed vibes (peek, once, guests
   // guarded to guests so a signed-in user's manual filter is never overridden
   assert.match(home, /!user/);
 });
+
+const notifLib = readFileSync(new URL("../apps/mobile/src/lib/notifPrime.ts", import.meta.url), "utf8");
+const notifSheet = readFileSync(new URL("../apps/mobile/src/components/NotifPrimeSheet.tsx", import.meta.url), "utf8");
+const follow = readFileSync(new URL("../apps/mobile/src/hooks/useUserFollowedVenues.ts", import.meta.url), "utf8");
+
+test("notif prime: durable once-only trigger, fired after a save, requests permission at the sheet", () => {
+  assert.match(notifLib, /ht_notif_primed/);               // durable once-only flag
+  assert.match(notifLib, /export function requestNotifPrime/);
+  assert.match(notifLib, /export function setNotifPrimeHandler/);
+  assert.match(follow, /maybeRequestNotifPrime\(\)/);       // fired after a successful save
+  assert.match(notifSheet, /requestPermissionsAsync/);      // asks for push permission
+  assert.match(app, /NotifPrimeSheet/);                     // mounted at root
+});
