@@ -31,3 +31,9 @@ test("save is gated: guest follow queues + requests sign-in, signed-in path inta
   assert.match(follow, /queueGatedAction/);
   assert.match(queue, /runPendingGatedAction/);
 });
+
+const checkin = readFileSync(new URL("../apps/mobile/src/hooks/useCheckin.ts", import.meta.url), "utf8");
+test("check-in is gated: guest check-in queues + requests sign-in", () => {
+  assert.match(checkin, /requestSignIn\("checkin"\)/);
+  assert.match(checkin, /queueGatedAction/);
+});
