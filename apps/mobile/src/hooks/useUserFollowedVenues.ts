@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
 import { useCurrentUser } from "./useCurrentUser";
 import { requestSignIn } from "../lib/gatedAction";
-import { queueGatedAction } from "../lib/pendingGatedAction";
+import { setPendingIntent } from "../lib/pendingGatedAction";
 
 type State = {
   venueIds: string[];
@@ -69,8 +69,9 @@ export function useUserFollowedVenues() {
       const isFollowing = state.venueIds.includes(venueId);
 
       if (!user?.id && !isFollowing) {
-        // Guest attempting a NEW follow — queue the action and open earned signup.
-        queueGatedAction(() => { void toggleFollow(venueId); });
+        // Guest attempting a NEW follow — record the intent (replayed post-signup
+        // by a fresh, signed-in hook) and open earned signup.
+        setPendingIntent({ kind: "save", venueId });
         const requested = requestSignIn("save");
         if (requested) {
           return { error: null };

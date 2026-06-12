@@ -26,7 +26,7 @@ import { useCallback, useState } from "react";
 import { supabase } from "../api/supabaseClient";
 import { useCurrentUser } from "./useCurrentUser";
 import { requestSignIn } from "../lib/gatedAction";
-import { queueGatedAction } from "../lib/pendingGatedAction";
+import { setPendingIntent } from "../lib/pendingGatedAction";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -89,8 +89,9 @@ export function useCheckin() {
   const _invoke = useCallback(
     async (body: Record<string, unknown>): Promise<CheckinResult> => {
       if (!user) {
-        // Guest attempting a check-in — queue the action and open earned signup.
-        queueGatedAction(() => { void _invoke(body); });
+        // Guest attempting a check-in — record the intent (replayed post-signup
+        // by a fresh, signed-in hook via the exposed _invoke) and open earned signup.
+        setPendingIntent({ kind: "checkin", body });
         if (requestSignIn("checkin")) return { ok: false, errorCode: "unknown" };
         // No handler registered — fall through to existing not-signed-in handling.
         return { ok: false, errorCode: "unknown" };
@@ -268,5 +269,7 @@ export function useCheckin() {
     submitFallback,
     submitRedeem,
     reset,
+    // Replays a pre-built check-in body (used by useGatedActionResume after signup).
+    _invoke,
   };
 }

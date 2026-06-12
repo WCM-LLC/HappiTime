@@ -26,14 +26,24 @@ test("gatedAction trigger + sheet reuse SignInOptions, wired at root, closes on 
 
 const follow = readFileSync(new URL("../apps/mobile/src/hooks/useUserFollowedVenues.ts", import.meta.url), "utf8");
 const queue = readFileSync(new URL("../apps/mobile/src/lib/pendingGatedAction.ts", import.meta.url), "utf8");
-test("save is gated: guest follow queues + requests sign-in, signed-in path intact", () => {
+test("save is gated: guest follow records intent + requests sign-in", () => {
   assert.match(follow, /requestSignIn\("save"\)/);
-  assert.match(follow, /queueGatedAction/);
-  assert.match(queue, /runPendingGatedAction/);
+  assert.match(follow, /setPendingIntent\(\{ kind: "save"/);
+  assert.match(queue, /takePendingIntent/);
 });
 
 const checkin = readFileSync(new URL("../apps/mobile/src/hooks/useCheckin.ts", import.meta.url), "utf8");
-test("check-in is gated: guest check-in queues + requests sign-in", () => {
+test("check-in is gated: guest check-in records intent + requests sign-in", () => {
   assert.match(checkin, /requestSignIn\("checkin"\)/);
-  assert.match(checkin, /queueGatedAction/);
+  assert.match(checkin, /setPendingIntent\(\{ kind: "checkin"/);
+});
+
+const resume = readFileSync(new URL("../apps/mobile/src/hooks/useGatedActionResume.ts", import.meta.url), "utf8");
+const app3 = readFileSync(new URL("../apps/mobile/App.tsx", import.meta.url), "utf8");
+test("resume replays the intent via FRESH signed-in hooks (no stale closure)", () => {
+  // dispatches via this hook's own toggleFollow / _invoke (current user), keyed on user
+  assert.match(resume, /takePendingIntent/);
+  assert.match(resume, /toggleFollow\(intent\.venueId\)/);
+  assert.match(resume, /_invoke\(intent\.body\)/);
+  assert.match(app3, /useGatedActionResume\(\)/); // mounted at root
 });
