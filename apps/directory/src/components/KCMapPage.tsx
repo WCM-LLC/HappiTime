@@ -30,7 +30,8 @@ const DRINK_OPTS = [
   "Craft Cocktails", "Local Beers", "Margaritas", "Non-Alcoholic", "Whiskey Bar", "Wine Bar",
 ];
 
-// Maps a cuisine chip label → substring keywords matched against venue.cuisine_type.
+// Maps a cuisine chip label → substring keywords matched against both
+// venue.cuisine_type and venue.tags (see the cuisine filter below).
 // cuisine_type is free-form Google Places text (mixed case, "restaurant" suffixes,
 // underscores), so a naive `includes("bbq")` misses "barbecue", "Barbecue restaurant",
 // etc. Each chip lists every keyword that should count as a match.
@@ -1100,10 +1101,19 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
     ) return false;
 
     if (filters.cuisine.length) {
+      // Match a chip's keywords against the free-text cuisine_type AND the tag
+      // slugs — many venues have a null/sparse cuisine_type but carry the cuisine
+      // in their tags (e.g. "sushi", "steakhouse", "sports_bar"). Tags are
+      // separator-normalized so hyphen/underscore drift can't drop a match.
       const ct = (v.cuisine_type ?? "").toLowerCase();
+      const ntags = v.tags.map(normTag);
       const matches = filters.cuisine.some((c) => {
         const keywords = CUISINE_KEYWORDS[c] ?? [c.toLowerCase()];
-        return keywords.some((k) => ct.includes(k));
+        return keywords.some((k) => {
+          if (ct.includes(k)) return true;
+          const nk = normTag(k);
+          return ntags.some((t) => t.includes(nk));
+        });
       });
       if (!matches) return false;
     }
