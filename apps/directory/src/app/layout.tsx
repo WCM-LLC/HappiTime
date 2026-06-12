@@ -48,9 +48,11 @@ export const metadata: Metadata = {
     description:
       "Find the best happy hours in Kansas City. Browse deals by neighborhood.",
   },
-  verification: {
-    google: "pending",
-  },
+  // Set GOOGLE_SITE_VERIFICATION in Vercel env once you verify Search Console.
+  // Never ship a placeholder string — an invalid token looks broken to crawlers.
+  ...(process.env.GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+    : {}),
   robots: {
     index: true,
     follow: true,
@@ -67,6 +69,43 @@ export const metadata: Metadata = {
 
 import { ItineraryProvider } from "@/components/ItineraryContext";
 import { SiteNav } from "@/components/SiteNav";
+
+/**
+ * Sitewide Organization + WebSite JSON-LD.
+ * Gives AI assistants and search engines a single canonical statement of
+ * what HappiTime is, on every page — not just /kc/.
+ */
+const ORGANIZATION_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "@id": "https://happitime.biz/#organization",
+  name: "HappiTime",
+  url: "https://happitime.biz/",
+  logo: "https://happitime.biz/icon.png",
+  description:
+    "HappiTime is a free happy hour deals marketplace for Kansas City. Browse live drink specials and food deals by neighborhood, updated daily by venues themselves.",
+  areaServed: {
+    "@type": "City",
+    name: "Kansas City",
+  },
+  sameAs: [
+    "https://www.instagram.com/happitime.biz/",
+    "https://www.facebook.com/profile.php?id=61570674155925",
+    "https://www.tiktok.com/@happitime.biz",
+    "https://apps.apple.com/us/app/happitime/id6757933269",
+  ],
+};
+
+const WEBSITE_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": "https://happitime.biz/#website",
+  name: "HappiTime",
+  url: "https://happitime.biz/",
+  publisher: { "@id": "https://happitime.biz/#organization" },
+  description:
+    "Find the best happy hours in Kansas City. Browse deals by neighborhood — Westport, Power & Light, Crossroads, Plaza, and more. Updated daily.",
+};
 
 export default function RootLayout({
   children,
@@ -110,6 +149,18 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', 'G-8MZMX2GH4E');`,
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(ORGANIZATION_JSONLD),
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(WEBSITE_JSONLD),
           }}
         />
       </head>

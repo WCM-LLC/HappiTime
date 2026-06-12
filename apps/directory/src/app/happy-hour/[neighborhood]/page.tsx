@@ -5,10 +5,74 @@ import {
   getHappyHourLandingPage,
   getNeighborhoodForLandingPage,
 } from "@/lib/seoNeighborhoods";
-import { getVenuesByNeighborhood } from "@/lib/queries";
-import { breadcrumbJsonLd } from "@/lib/structuredData";
+import { getVenuesByNeighborhood, type VenueWithWindows } from "@/lib/queries";
+import { breadcrumbJsonLd, faqPageJsonLd } from "@/lib/structuredData";
 import { NeighborhoodVenues } from "@/components/NeighborhoodVenues";
 import { PageTracker } from "@/components/PageTracker";
+
+function formatTime(time: string): string {
+  const [h, m] = time.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const hour = h % 12 || 12;
+  return m === 0
+    ? `${hour} ${period}`
+    : `${hour}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+/**
+ * Build a data-driven FAQ for a neighborhood landing page.
+ * Answers are computed from live venue data so the visible text and the
+ * FAQPage JSON-LD always match — a hard requirement for rich results and
+ * the format AI assistants extract most reliably.
+ */
+function buildNeighborhoodFaqs(
+  neighborhoodName: string,
+  venues: VenueWithWindows[]
+): { question: string; answer: string }[] {
+  if (venues.length === 0) return [];
+
+  const windows = venues.flatMap((v) => v.happy_hour_windows);
+  const faqs: { question: string; answer: string }[] = [];
+
+  if (windows.length > 0) {
+    const starts = windows.map((w) => w.start_time).sort();
+    const ends = windows.map((w) => w.end_time).sort();
+    const earliest = formatTime(starts[0]);
+    const latest = formatTime(ends[ends.length - 1]);
+    faqs.push({
+      question: `What time is happy hour in ${neighborhoodName}?`,
+      answer: `Most ${neighborhoodName} happy hours run on weekday afternoons. Across the ${venues.length} venues HappiTime tracks in ${neighborhoodName}, the earliest specials start at ${earliest} and the latest run until ${latest}. Exact times vary by venue and day — each listing shows its current schedule.`,
+    });
+  }
+
+  faqs.push({
+    question: `How many bars and restaurants in ${neighborhoodName} have happy hour specials?`,
+    answer: `HappiTime currently tracks ${venues.length} ${
+      venues.length === 1 ? "venue" : "venues"
+    } with happy hour specials in ${neighborhoodName}, Kansas City. Listings are updated daily by the venues themselves.`,
+  });
+
+  const topRated = venues
+    .filter((v) => v.rating != null)
+    .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+    .slice(0, 3);
+  if (topRated.length >= 2) {
+    faqs.push({
+      question: `What are the best happy hours in ${neighborhoodName}?`,
+      answer: `Top-rated happy hour spots in ${neighborhoodName} on HappiTime include ${topRated
+        .map((v) => `${v.name} (★ ${v.rating})`)
+        .join(", ")}. Browse all ${venues.length} venues for current drink and food specials.`,
+    });
+  }
+
+  faqs.push({
+    question: "How do I find current happy hour deals near me in Kansas City?",
+    answer:
+      "HappiTime is a free Kansas City happy hour guide, on the web and as an iPhone and Android app. Deals are posted and updated daily by venues, so times and specials reflect what is actually running today.",
+  });
+
+  return faqs;
+}
 
 export const revalidate = 900;
 
@@ -75,6 +139,8 @@ export default async function HappyHourNeighborhoodPage({ params }: Props) {
     },
   ]);
 
+  const faqs = buildNeighborhoodFaqs(neighborhood.name, venues);
+
   const itemListJsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -100,6 +166,14 @@ export default async function HappyHourNeighborhoodPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }}
       />
+      {faqs.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(faqPageJsonLd(faqs)),
+          }}
+        />
+      )}
 
       <nav className="mb-6 flex items-center gap-1.5 text-sm text-muted">
         <a href="/" className="transition-colors hover:text-foreground">
@@ -128,6 +202,24 @@ export default async function HappyHourNeighborhoodPage({ params }: Props) {
         neighborhoodName={neighborhood.name}
         todayIndex={todayIndex}
       />
+
+      {faqs.length > 0 && (
+        <section className="mt-16 border-t border-muted-light/30 pt-10">
+          <h3 className="mb-6 text-2xl font-extrabold tracking-tight text-foreground">
+            {neighborhood.name} Happy Hour FAQ
+          </h3>
+          <dl className="space-y-6 max-w-3xl">
+            {faqs.map((faq) => (
+              <div key={faq.question}>
+                <dt className="mb-1.5 font-semibold text-foreground">
+                  {faq.question}
+                </dt>
+                <dd className="text-muted">{faq.answer}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
     </div>
   );
 }
