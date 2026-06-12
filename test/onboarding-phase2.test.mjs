@@ -33,18 +33,16 @@ test("save is gated: guest follow records intent + requests sign-in", () => {
 });
 
 const checkin = readFileSync(new URL("../apps/mobile/src/hooks/useCheckin.ts", import.meta.url), "utf8");
-test("check-in is gated: guest check-in records intent + requests sign-in", () => {
+test("check-in is gated: guest check-in requests sign-in (re-tapped, not auto-replayed)", () => {
   assert.match(checkin, /requestSignIn\("checkin"\)/);
-  assert.match(checkin, /setPendingIntent\(\{ kind: "checkin"/);
 });
 
 const resume = readFileSync(new URL("../apps/mobile/src/hooks/useGatedActionResume.ts", import.meta.url), "utf8");
 const app3 = readFileSync(new URL("../apps/mobile/App.tsx", import.meta.url), "utf8");
-test("resume replays the intent via FRESH signed-in hooks (no stale closure)", () => {
-  // dispatches via this hook's own toggleFollow / _invoke (current user), keyed on user
+test("resume replays SAVE via a FRESH signed-in hook (no stale closure)", () => {
+  // dispatches via this hook's own toggleFollow (current user), keyed on user
   assert.match(resume, /takePendingIntent/);
   assert.match(resume, /toggleFollow\(intent\.venueId\)/);
-  assert.match(resume, /_invoke\(intent\.body\)/);
   assert.match(app3, /useGatedActionResume\(\)/); // mounted at root
 });
 
