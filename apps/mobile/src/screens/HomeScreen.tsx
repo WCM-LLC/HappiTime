@@ -32,6 +32,9 @@ import { ErrorState } from "../components/ErrorState";
 import { SearchableOptionSheet } from "../components/SearchableOptionSheet";
 import { TagFilterChips } from "../components/TagFilterChips";
 import { useApprovedTags } from "../hooks/useApprovedTags";
+import { useCurrentUser } from "../hooks/useCurrentUser";
+import { peekGuestSelections } from "../lib/guestSelections";
+import { vibesToTagSlugs } from "../lib/vibeTagMap";
 import { IconSymbol } from "../../components/ui/icon-symbol";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
@@ -133,6 +136,7 @@ const promoLabel: Record<PromoVariant, string> = {
 export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { data, loading, error, refreshing, refresh } = useHappyHours();
   const { byCategory: tagsByCategory } = useApprovedTags();
+  const { user } = useCurrentUser();
   const { preferences, savePreferences } = useUserPreferences();
   const { coords, error: locationError } = useUserLocation({
     requestOnMount: preferences.location_enabled,
@@ -158,6 +162,25 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       return next;
     });
   }, []);
+
+  // Seed the guest feed's filter from the vibes picked in onboarding. Guests
+  // only (never override a signed-in user's manual selection), once, and only
+  // after the approved_tags taxonomy has loaded so the slugs resolve to chips.
+  const seededVibes = React.useRef(false);
+  React.useEffect(() => {
+    if (!user && !seededVibes.current) {
+      const vibeTags = Object.values(tagsByCategory).flat();
+      if (vibeTags.length === 0) return; // taxonomy not loaded yet
+      seededVibes.current = true;
+      void peekGuestSelections().then((sel) => {
+        if (!sel) return;
+        const slugs = vibesToTagSlugs(sel.vibes).filter((slug) =>
+          vibeTags.some((t) => t.slug === slug)
+        );
+        if (slugs.length > 0) setSelectedTagSlugs(new Set(slugs));
+      });
+    }
+  }, [user, tagsByCategory]);
 
   // Pre-compute the per-category slug sets the filter step needs.
   const selectedByCategory = useMemo(() => {

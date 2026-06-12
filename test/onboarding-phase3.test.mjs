@@ -50,3 +50,13 @@ test("guest selections persist to interests on first session, via a fresh signed
   assert.match(persist, /savePreferences\(\{[^}]*interests/); // write interests
   assert.match(app, /useGuestSelectionPersist\(\)/);          // mounted at root
 });
+
+const home = readFileSync(new URL("../apps/mobile/src/screens/HomeScreen.tsx", import.meta.url), "utf8");
+
+test("guest feed seeds its tag filter from the stashed vibes (peek, once, guests only)", () => {
+  assert.match(home, /peekGuestSelections\(\)/);
+  assert.match(home, /vibesToTagSlugs\(/);
+  assert.match(home, /setSelectedTagSlugs\(/);
+  // guarded to guests so a signed-in user's manual filter is never overridden
+  assert.match(home, /!user/);
+});
