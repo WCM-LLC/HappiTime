@@ -69,9 +69,10 @@ export function useUserFollowedVenues() {
       const isFollowing = state.venueIds.includes(venueId);
 
       if (!user?.id && !isFollowing) {
-        // Guest attempting a NEW follow — record the intent (replayed post-signup
-        // by a fresh, signed-in hook) and open earned signup.
-        setPendingIntent({ kind: "save", venueId });
+        // Guest attempting a NEW follow — durably record the intent (replayed
+        // post-signup by a fresh, signed-in hook, even across a magic-link cold
+        // start) and open earned signup.
+        await setPendingIntent({ kind: "save", venueId });
         const requested = requestSignIn("save");
         if (requested) {
           return { error: null };

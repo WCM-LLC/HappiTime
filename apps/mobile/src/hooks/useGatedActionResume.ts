@@ -21,11 +21,18 @@ export function useGatedActionResume(): void {
       return;
     }
     if (done.current) return;
-    const intent = takePendingIntent();
-    if (!intent) return;
-    done.current = true;
-    if (intent.kind === "save") {
-      void toggleFollow(intent.venueId);
-    }
+    done.current = true; // claim synchronously so the async read fires exactly once
+
+    let cancelled = false;
+    void (async () => {
+      const intent = await takePendingIntent();
+      if (cancelled || !intent) return;
+      if (intent.kind === "save") {
+        void toggleFollow(intent.venueId);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id, toggleFollow]);
 }

@@ -30,6 +30,8 @@ test("save is gated: guest follow records intent + requests sign-in", () => {
   assert.match(follow, /requestSignIn\("save"\)/);
   assert.match(follow, /setPendingIntent\(\{ kind: "save"/);
   assert.match(queue, /takePendingIntent/);
+  // Intent must be DURABLE (AsyncStorage) so it survives a magic-link cold start.
+  assert.match(queue, /AsyncStorage/);
 });
 
 const checkin = readFileSync(new URL("../apps/mobile/src/hooks/useCheckin.ts", import.meta.url), "utf8");
