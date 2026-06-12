@@ -23,3 +23,11 @@ test("gatedAction trigger + sheet reuse SignInOptions, wired at root, closes on 
   assert.match(app2, /setSignInRequestHandler/);
   assert.match(app2, /setSignupKind\(null\)/); // closes on session
 });
+
+const follow = readFileSync(new URL("../apps/mobile/src/hooks/useUserFollowedVenues.ts", import.meta.url), "utf8");
+const queue = readFileSync(new URL("../apps/mobile/src/lib/pendingGatedAction.ts", import.meta.url), "utf8");
+test("save is gated: guest follow queues + requests sign-in, signed-in path intact", () => {
+  assert.match(follow, /requestSignIn\("save"\)/);
+  assert.match(follow, /queueGatedAction/);
+  assert.match(queue, /runPendingGatedAction/);
+});
