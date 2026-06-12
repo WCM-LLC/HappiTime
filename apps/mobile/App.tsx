@@ -21,7 +21,7 @@ import { AppNavigator } from "./src/navigation/AppNavigator";
 import { AuthScreen } from "./src/screens/AuthScreen";
 import { PreFeedOnboarding } from "./src/screens/onboarding/PreFeedOnboarding";
 import { usePrefeedOnboarded } from "./src/lib/prefeedOnboarded";
-import { HandleGateScreen } from "./src/screens/HandleGateScreen";
+import { PostSignupCapture } from "./src/components/PostSignupCapture";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { EarnedSignupSheet } from "./src/components/EarnedSignupSheet";
 import { setSignInRequestHandler, type GatedActionKind } from "./src/lib/gatedAction";
@@ -348,7 +348,7 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
 
   if (handleGate === "needed") {
     return (
-      <HandleGateScreen
+      <PostSignupCapture
         session={session}
         onComplete={() => setHandleGate("satisfied")}
       />

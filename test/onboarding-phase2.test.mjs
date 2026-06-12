@@ -47,3 +47,11 @@ test("resume replays the intent via FRESH signed-in hooks (no stale closure)", (
   assert.match(resume, /_invoke\(intent\.body\)/);
   assert.match(app3, /useGatedActionResume\(\)/); // mounted at root
 });
+
+const capture = readFileSync(new URL("../apps/mobile/src/components/PostSignupCapture.tsx", import.meta.url), "utf8");
+const app4 = readFileSync(new URL("../apps/mobile/App.tsx", import.meta.url), "utf8");
+test("PostSignupCapture: handle + referrer prefilled from durable stash, recorded", () => {
+  assert.match(capture, /peekPendingReferral/);
+  assert.match(capture, /record_referral/);
+  assert.match(app4, /PostSignupCapture/);
+});
