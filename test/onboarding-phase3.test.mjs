@@ -22,3 +22,14 @@ test("vibeTagMap covers every onboarding vibe key with a real approved_tags slug
   }
   assert.match(map, /export function vibesToTagSlugs/);
 });
+
+const guest = readFileSync(new URL("../apps/mobile/src/lib/guestSelections.ts", import.meta.url), "utf8");
+
+test("guestSelections is a durable AsyncStorage stash with take-clears semantics", () => {
+  assert.match(guest, /AsyncStorage/);                 // durable across restart
+  assert.match(guest, /ht_guest_selections/);          // stable key
+  assert.match(guest, /export async function setGuestSelections/);
+  assert.match(guest, /export async function peekGuestSelections/); // read, no clear (feed)
+  assert.match(guest, /export async function takeGuestSelections/); // read + clear (signup)
+  assert.match(guest, /removeItem/);                   // take clears
+});
