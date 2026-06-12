@@ -13,6 +13,7 @@ import { useMagicLinkListener } from "./src/hooks/useMagicLinkListener";
 import { useOnboardingStatus } from "./src/hooks/useOnboardingStatus";
 import { useReferralCapture } from "./src/hooks/useReferralCapture";
 import { useGatedActionResume } from "./src/hooks/useGatedActionResume";
+import { useGuestSelectionPersist } from "./src/hooks/useGuestSelectionPersist";
 import { useVenueLinkCapture } from "./src/hooks/useVenueLinkCapture";
 import { useUserPreferences } from "./src/hooks/useUserPreferences";
 import { useVisitRating } from "./src/hooks/useVisitRating";
@@ -24,7 +25,10 @@ import { usePrefeedOnboarded } from "./src/lib/prefeedOnboarded";
 import { PostSignupCapture } from "./src/components/PostSignupCapture";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { EarnedSignupSheet } from "./src/components/EarnedSignupSheet";
+import { NotifPrimeSheet } from "./src/components/NotifPrimeSheet";
 import { setSignInRequestHandler, type GatedActionKind } from "./src/lib/gatedAction";
+import { setNotifPrimeHandler } from "./src/lib/notifPrime";
+import { setGuestSelections } from "./src/lib/guestSelections";
 import { colors } from "./src/theme/colors";
 import { spacing } from "./src/theme/spacing";
 
@@ -202,6 +206,7 @@ function AppRoot() {
   const [booting, setBooting] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
   const [signupKind, setSignupKind] = useState<GatedActionKind | null>(null);
+  const [notifPrimeVisible, setNotifPrimeVisible] = useState(false);
   const [guestChoice, setGuestChoice] = useState<"prompt" | "skip" | "signin">("prompt");
   const [handleGate, setHandleGate] = useState<"checking" | "needed" | "satisfied">("checking");
   const onboarding = useOnboardingStatus(session);
@@ -218,11 +223,18 @@ function AppRoot() {
   useVenueLinkCapture(enterGuestForVenueScan);
   useReferralCapture();
   useGatedActionResume();
+  useGuestSelectionPersist();
 
   // Register the module-level earned-signup handler so gated hooks can open the sheet.
   useEffect(() => {
     setSignInRequestHandler((kind) => setSignupKind(kind));
     return () => setSignInRequestHandler(null);
+  }, []);
+
+  // Register the module-level notif-prime handler so save hooks can open the sheet.
+  useEffect(() => {
+    setNotifPrimeHandler(() => setNotifPrimeVisible(true));
+    return () => setNotifPrimeHandler(null);
   }, []);
 
   // Auto-close the earned-signup sheet when a session arrives.
@@ -306,10 +318,12 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
     if (!prefeed.seen) {
       return (
         <PreFeedOnboarding
-          onDone={async () => {
-            // Guest selections are local-only in Phase 1; persistence is Phase 3.
-            // Enter guest browse even if the flag write fails (worst case: re-show next launch).
+          onDone={async (guest) => {
+            // Stash the guest's selections durably so the feed can seed its
+            // filter and signup can persist them (Phase 3). Enter guest browse
+            // even if a write fails (worst case: no personalization this run).
             try {
+              await setGuestSelections(guest);
               await prefeed.markSeen();
             } finally {
               setGuestChoice("skip");
@@ -355,7 +369,12 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
     );
   }
 
-  return <AuthenticatedApp session={session} />;
+  return (
+    <>
+      <AuthenticatedApp session={session} />
+      <NotifPrimeSheet visible={notifPrimeVisible} onDismiss={() => setNotifPrimeVisible(false)} />
+    </>
+  );
 }
 
 const styles = StyleSheet.create({
