@@ -31,4 +31,12 @@ $function$;
 
 -- Hourly, small batch — bounded Places API cost. Sweeps whole table over ~1 day,
 -- then keeps re-checking oldest-first on rotation.
-SELECT cron.schedule('validate-venue-places-hourly', '37 * * * *', 'SELECT public.invoke_validate_venues();');
+-- Guarded by a pg_cron extension check so a fresh migration replay (CI / new
+-- environments without pg_cron) is a no-op rather than erroring on the missing
+-- "cron" schema; mirrors 20260611120000_schedule_upcoming_push.
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    PERFORM cron.schedule('validate-venue-places-hourly', '37 * * * *', 'SELECT public.invoke_validate_venues();');
+  END IF;
+END $$;
