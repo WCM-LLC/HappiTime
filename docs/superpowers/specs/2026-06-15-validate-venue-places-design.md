@@ -69,6 +69,7 @@ Mirrors two established local patterns:
 | `SUPABASE_SERVICE_ROLE_KEY` | existing | service-role client, no session persistence |
 | `GOOGLE_PLACES_API_KEY` | existing | same key `import-places` uses |
 | `VALIDATE_BATCH_LIMIT` | new, default `25` | ~700 venues sweep over ~1 day at hourly cadence |
+| `VALIDATE_MISMATCH_THRESHOLD` | new, default `0.7` | `match_score` below this flags a mismatch; tunable without redeploy-by-edit |
 
 Throw on startup if any of the three required secrets are missing (mirrors
 `geocode-venues`).
@@ -85,7 +86,7 @@ Throw on startup if any of the three required secrets are missing (mirrors
    Google's value: lowercase, strip punctuation, expand common abbreviations
    (St→Street, Ave→Avenue, Blvd→Boulevard, Rd→Road, Dr→Drive, Ste/Suite, etc.).
    Compare **street number + street name + zip** as token similarity in `[0,1]`.
-   `mismatch = match_score < 0.7`.
+   `mismatch = match_score < VALIDATE_MISMATCH_THRESHOLD` (default `0.7`).
 5. **Persist.** Insert a `venue_validation_log` row
    (`venue_id, places_id, stored_address, google_address, match_score, mismatch`);
    `UPDATE venues SET places_validated_at = now(),
@@ -112,7 +113,9 @@ The only non-trivial logic is the pure normalize-and-score function; unit-test i
 in isolation:
 - `St` vs `Street`, `Ave` vs `Avenue` → high score (equivalence).
 - Suite/unit noise (`Ste 200`) → does not by itself produce a mismatch.
-- Different street number, same street → low score (`< 0.7`, flagged).
+- Different street number, same street → low score (below threshold, flagged).
+- Threshold is read from `VALIDATE_MISMATCH_THRESHOLD`; the same score can flag
+  or pass depending on the configured value.
 - Identical normalized address → `1.0`.
 - Different zip → flagged.
 
