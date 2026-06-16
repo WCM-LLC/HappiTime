@@ -34,3 +34,29 @@ test("edge fn only writes the flag when unresolved, and clears on match", () => 
   // resolved venues are left untouched (guard on resolved_at)
   assert.match(fn, /resolved_at|address_review_resolved_at/);
 });
+
+const actions = readFileSync(
+  new URL("../apps/web/src/actions/admin-address-review-actions.ts", import.meta.url),
+  "utf8"
+);
+
+test("actions are admin-guarded server actions", () => {
+  assert.match(actions, /^'use server'/m);
+  assert.match(actions, /assertAdmin\(\)/);
+  assert.match(actions, /getAdminClient\(\)/);
+});
+
+test("acceptGoogleAddress writes fields and clears the flag", () => {
+  assert.match(actions, /export async function acceptGoogleAddress/);
+  assert.match(actions, /needs_address_review:\s*false/);
+});
+
+test("dismissAddressReview stamps resolution state", () => {
+  assert.match(actions, /export async function dismissAddressReview/);
+  assert.match(actions, /address_review_resolved_at/);
+  assert.match(actions, /address_review_resolved_by/);
+});
+
+test("actions revalidate the queue", () => {
+  assert.match(actions, /revalidatePath\(['"]\/admin\/address-review['"]\)/);
+});
