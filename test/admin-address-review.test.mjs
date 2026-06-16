@@ -73,3 +73,15 @@ test("actions component is a client component using the server actions + parser"
   assert.match(actionsUi, /parseFormattedAddress/);
   assert.match(actionsUi, /useTransition/);
 });
+
+const page = readFileSync(
+  new URL("../apps/web/src/app/admin/address-review/page.tsx", import.meta.url),
+  "utf8"
+);
+
+test("page reads the review queue view and renders actions", () => {
+  assert.match(page, /v_address_review_queue/);
+  assert.match(page, /AddressReviewActions/);
+  assert.match(page, /stored_address/);
+  assert.match(page, /google_address/);
+});
