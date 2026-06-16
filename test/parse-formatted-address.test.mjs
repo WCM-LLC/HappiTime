@@ -51,3 +51,14 @@ test("empty / nullish input yields empty fields", () => {
   assert.deepEqual(parseFormattedAddress(""), { address: "", city: "", state: "", zip: "" });
   assert.deepEqual(parseFormattedAddress(null), { address: "", city: "", state: "", zip: "" });
 });
+
+// Google can return a place-only result with no street segment; address is
+// intentionally empty (the admin confirms before saving).
+test("handles city-only input (no street segment)", () => {
+  assert.deepEqual(parseFormattedAddress("Kansas City, MO 64108"), {
+    address: "",
+    city: "Kansas City",
+    state: "MO",
+    zip: "64108",
+  });
+});
