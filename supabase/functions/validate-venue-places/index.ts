@@ -4,7 +4,12 @@ import { addressMatchScore } from "../_shared/address-match.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
 const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-const placesKey = Deno.env.get("GOOGLE_PLACES_API_KEY") ?? "";
+// Mirror import-places: prod stores the key as GOOGLE_GEOCODING_API_KEY
+// (which has Places API v1 enabled); GOOGLE_PLACES_API_KEY is unset.
+const placesKey =
+  Deno.env.get("GOOGLE_PLACES_API_KEY") ??
+  Deno.env.get("GOOGLE_GEOCODING_API_KEY") ??
+  "";
 const batchLimit = Number(Deno.env.get("VALIDATE_BATCH_LIMIT") ?? "25");
 const threshold = Number(Deno.env.get("VALIDATE_MISMATCH_THRESHOLD") ?? "0.7");
 
