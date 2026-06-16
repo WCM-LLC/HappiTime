@@ -85,3 +85,14 @@ test("page reads the review queue view and renders actions", () => {
   assert.match(page, /stored_address/);
   assert.match(page, /google_address/);
 });
+
+const adminIndex = readFileSync(
+  new URL("../apps/web/src/app/admin/page.tsx", import.meta.url),
+  "utf8"
+);
+
+test("admin index counts flagged venues and links the card", () => {
+  assert.match(adminIndex, /needs_address_review.*true|eq\('needs_address_review', true\)/);
+  assert.match(adminIndex, /\/admin\/address-review/);
+  assert.match(adminIndex, /Address Review/);
+});
