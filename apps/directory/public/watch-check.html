@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HappiTime — Match Day Venue Check</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#C8965A; --gold-dark:#A67842; --gold-light:#E8D5BC;
+    --wine:#8C3A4B; --teal:#2A7B6F; --navy:#2E4A6E;
+    --ink:#1A1A1A; --cream:#F5F0EB; --bg:#FAFAF8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 16px 40px}
+  .wrap{width:100%;max-width:460px}
+  .brand{font-family:'Plus Jakarta Sans',sans-serif;font-weight:800;font-size:26px;text-align:center;margin:8px 0 2px}
+  .brand .t{color:var(--gold)}
+  .tagline{text-align:center;color:#666;font-size:13px;margin-bottom:18px}
+  h1{font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;font-weight:800;text-align:center;margin-bottom:4px;white-space:nowrap}
+  .sub{text-align:center;font-size:13.5px;color:#555;margin-bottom:20px;line-height:1.45}
+  .card{background:#fff;border:1px solid #ECE5DC;border-radius:16px;padding:20px;box-shadow:0 2px 10px rgba(26,26,26,.05)}
+  label{display:block;font-size:13px;font-weight:600;margin:16px 0 6px}
+  label:first-of-type{margin-top:0}
+  input[type=text],textarea{width:100%;padding:11px 12px;border:1.5px solid #DDD3C6;border-radius:10px;font:inherit;font-size:15px;background:#fff}
+  input:focus,textarea:focus{outline:none;border-color:var(--gold)}
+  textarea{resize:vertical;min-height:64px}
+  .opts{display:flex;gap:8px;flex-wrap:wrap}
+  .opt{flex:1;min-width:88px;text-align:center;padding:10px 6px;border:1.5px solid #DDD3C6;border-radius:10px;font-size:13.5px;font-weight:500;cursor:pointer;background:#fff;user-select:none}
+  .opt.sel{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:700}
+  .results{border:1.5px solid #DDD3C6;border-top:none;border-radius:0 0 10px 10px;overflow:hidden;display:none}
+  .results.open{display:block}
+  .r{padding:10px 12px;font-size:14.5px;cursor:pointer;border-bottom:1px solid #F0EAE1}
+  .r:last-child{border-bottom:none}
+  .r:hover{background:var(--cream)}
+  .r small{color:#888;display:block;font-size:12px}
+  .picked{display:none;align-items:center;justify-content:space-between;background:var(--cream);border:1.5px solid var(--gold-light);border-radius:10px;padding:10px 12px;font-size:14.5px;font-weight:600}
+  .picked.show{display:flex}
+  .picked button{background:none;border:none;color:var(--wine);font-weight:600;font-size:13px;cursor:pointer}
+  .submit{width:100%;margin-top:22px;padding:14px;background:var(--gold);color:#fff;border:none;border-radius:12px;font:inherit;font-size:16px;font-weight:700;cursor:pointer}
+  .submit:disabled{opacity:.5;cursor:default}
+  .msg{margin-top:14px;font-size:14px;text-align:center;display:none}
+  .msg.err{display:block;color:var(--wine)}
+  .msg.ok{display:block;color:var(--teal);font-weight:600}
+  .done{display:none;text-align:center;padding:28px 10px}
+  .done.show{display:block}
+  .done .big{font-size:44px;margin-bottom:10px}
+  .done h2{font-family:'Plus Jakarta Sans',sans-serif;font-size:19px;margin-bottom:8px}
+  .done p{font-size:14px;color:#555;line-height:1.5}
+  footer{margin-top:26px;width:100%;max-width:460px;border-top:1px solid #E5DED4;padding-top:10px;text-align:center;font-size:12px;color:#999}
+  footer a{color:var(--gold-dark);text-decoration:none;font-weight:600}
+  .hp{position:absolute;left:-9999px;opacity:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">Happi<span class="t">Time</span></div>
+  <div class="tagline">Kansas City's happy hour guide</div>
+
+  <div class="card" id="formCard">
+    <h1>Match Day Venue Check</h1>
+    <p class="sub">Verify a venue's watch-party setup. Approved checks earn the <strong>$5 bounty</strong> — one per venue.</p>
+
+    <label>Venue</label>
+    <div id="pickWrap">
+      <input type="text" id="vsearch" placeholder="Start typing a venue name…" autocomplete="off">
+      <div class="results" id="results"></div>
+    </div>
+    <div class="picked" id="picked"><span id="pickedName"></span><button type="button" onclick="clearVenue()">change</button></div>
+
+    <label>Are they showing the matches?</label>
+    <div class="opts" data-q="shows_games">
+      <div class="opt" data-v="true">Yes</div>
+      <div class="opt" data-v="false">No</div>
+    </div>
+
+    <label>Sound on for big matches?</label>
+    <div class="opts" data-q="sound_on">
+      <div class="opt" data-v="true">Yes</div>
+      <div class="opt" data-v="false">No</div>
+      <div class="opt" data-v="null">Not sure</div>
+    </div>
+
+    <label>Big screen / projector?</label>
+    <div class="opts" data-q="big_screen">
+      <div class="opt" data-v="true">Yes</div>
+      <div class="opt" data-v="false">No</div>
+      <div class="opt" data-v="null">Not sure</div>
+    </div>
+
+    <label>Seating on match day</label>
+    <div class="opts" data-q="reservations">
+      <div class="opt" data-v="walk_in">Walk-in</div>
+      <div class="opt" data-v="recommended">Res. smart</div>
+      <div class="opt" data-v="required">Res. required</div>
+    </div>
+
+    <label>Anything else? <span style="color:#999;font-weight:400">(specials, atmosphere, who they're rooting for)</span></label>
+    <textarea id="notes" maxlength="500"></textarea>
+
+    <label>Your name</label>
+    <input type="text" id="sname" maxlength="80" placeholder="So we can pay you">
+
+    <label>Phone or Instagram <span style="color:#999;font-weight:400">(for the bounty payout)</span></label>
+    <input type="text" id="scontact" maxlength="120">
+
+    <input type="text" id="company" class="hp" tabindex="-1" autocomplete="off">
+
+    <button class="submit" id="go" onclick="submitForm()">Submit check</button>
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="card done" id="doneCard">
+    <div class="big">🍻</div>
+    <h2>Check received!</h2>
+    <p>We'll review it and hit you up about the bounty.<br>Got another venue? <a href="#" style="color:var(--gold-dark);font-weight:700" onclick="location.reload();return false">Submit another check</a></p>
+  </div>
+</div>
+
+<footer>HappiTime · <a href="https://happitime.biz">happitime.biz</a></footer>
+
+<script>
+const SB = "https://ujflcrjsiyhofnomurco.supabase.co";
+const KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVqZmxjcmpzaXlob2Zub211cmNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMTY2MDQsImV4cCI6MjA4MjY5MjYwNH0.oW1YYoBE0TuJg0iyngMSY2RY-X0dEZrjQIhb-Oy2Gqs";
+const H = {"apikey": KEY, "Authorization": "Bearer " + KEY};
+let venue = null, debounce = null;
+const answers = {shows_games: undefined, sound_on: undefined, big_screen: undefined, reservations: undefined};
+
+const pretty = s => (s||"").replace(/_/g," ").replace(/\b\w/g, c => c.toUpperCase());
+
+document.getElementById("vsearch").addEventListener("input", e => {
+  clearTimeout(debounce);
+  const q = e.target.value.trim();
+  if (q.length < 2) { closeResults(); return; }
+  debounce = setTimeout(() => search(q), 250);
+});
+
+async function search(q){
+  try{
+    const safe = q.replace(/[%,()*]/g, "");
+    const r = await fetch(`${SB}/rest/v1/venues?select=id,name,neighborhood&status=eq.published&name=ilike.*${encodeURIComponent(safe)}*&order=review_count.desc.nullslast&limit=8`, {headers: H});
+    const rows = await r.json();
+    const box = document.getElementById("results");
+    box.innerHTML = rows.length ? "" : "<div class='r' style='color:#999;cursor:default'>No match — check spelling</div>";
+    rows.forEach(v => {
+      const d = document.createElement("div");
+      d.className = "r";
+      d.innerHTML = `${v.name}<small>${pretty(v.neighborhood) || "KC"}</small>`;
+      d.onclick = () => pickVenue(v);
+      box.appendChild(d);
+    });
+    box.classList.add("open");
+  }catch(_){}
+}
+function closeResults(){ const b=document.getElementById("results"); b.classList.remove("open"); b.innerHTML=""; }
+function pickVenue(v){
+  venue = v;
+  document.getElementById("pickedName").textContent = v.name + (v.neighborhood ? " · " + pretty(v.neighborhood) : "");
+  document.getElementById("picked").classList.add("show");
+  document.getElementById("pickWrap").style.display = "none";
+  closeResults();
+}
+function clearVenue(){
+  venue = null;
+  document.getElementById("picked").classList.remove("show");
+  document.getElementById("pickWrap").style.display = "";
+  document.getElementById("vsearch").value = "";
+}
+
+document.querySelectorAll(".opts").forEach(g => {
+  g.querySelectorAll(".opt").forEach(o => o.onclick = () => {
+    g.querySelectorAll(".opt").forEach(x => x.classList.remove("sel"));
+    o.classList.add("sel");
+    const raw = o.dataset.v;
+    answers[g.dataset.q] = raw === "null" ? null : (raw === "true" ? true : raw === "false" ? false : raw);
+  });
+});
+
+async function submitForm(){
+  const msg = document.getElementById("msg");
+  msg.className = "msg";
+  if (document.getElementById("company").value) return; // honeypot
+  if (!venue) return showErr("Pick a venue first.");
+  if (answers.shows_games === undefined) return showErr("Tell us if they're showing the matches.");
+  const name = document.getElementById("sname").value.trim();
+  const contact = document.getElementById("scontact").value.trim();
+  if (name.length < 2) return showErr("Add your name so we can pay you.");
+  if (!contact) return showErr("Add a phone or Instagram for the payout.");
+
+  const btn = document.getElementById("go");
+  btn.disabled = true; btn.textContent = "Sending…";
+  const body = {
+    venue_id: venue.id,
+    event_key: "world_cup_2026",
+    shows_games: answers.shows_games,
+    sound_on: answers.sound_on ?? null,
+    big_screen: answers.big_screen ?? null,
+    reservations: answers.reservations ?? null,
+    notes: document.getElementById("notes").value.trim() || null,
+    submitted_by: name,
+    contact: contact
+  };
+  try{
+    const r = await fetch(`${SB}/rest/v1/watch_verifications`, {
+      method: "POST",
+      headers: {...H, "Content-Type": "application/json", "Prefer": "return=minimal"},
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    document.getElementById("formCard").style.display = "none";
+    document.getElementById("doneCard").classList.add("show");
+    window.scrollTo(0,0);
+  }catch(e){
+    showErr("Couldn't send — try again in a sec.");
+    btn.disabled = false; btn.textContent = "Submit check";
+  }
+}
+function showErr(t){ const m = document.getElementById("msg"); m.textContent = t; m.className = "msg err"; }
+</script>
+</body>
+</html>
