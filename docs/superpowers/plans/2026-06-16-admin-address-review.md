@@ -17,6 +17,7 @@
 - **Create** `supabase/migrations/20260616120000_add_address_review_resolution.sql` — `venues.address_review_resolved_at` + `address_review_resolved_by`; `v_address_review_queue` view.
 - **Modify** `supabase/functions/validate-venue-places/index.ts` — select `address_review_resolved_at`; respect it + auto-clear on match.
 - **Create** `apps/web/src/utils/parse-formatted-address.mjs` — pure parser (`formattedAddress` → `{address,city,state,zip}`).
+- **Create** `apps/web/src/utils/parse-formatted-address.d.mts` — type declaration sidecar (web tsconfig has `allowJs:false` + `strict`, so a `.mjs` import from `.tsx` needs a `.d.mts` to avoid TS7016; the `.mjs` stays for `node --test`).
 - **Create** `apps/web/src/actions/admin-address-review-actions.ts` — `acceptGoogleAddress`, `dismissAddressReview`.
 - **Create** `apps/web/src/app/admin/address-review/page.tsx` — server-component queue.
 - **Create** `apps/web/src/app/admin/address-review/AddressReviewActions.tsx` — client actions component.
