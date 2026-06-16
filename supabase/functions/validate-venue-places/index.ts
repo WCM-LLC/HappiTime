@@ -82,7 +82,7 @@ serve(async (req) => {
 
   const { data: venues, error: selErr } = await supabase
     .from("venues")
-    .select("id,address,city,state,zip,places_id")
+    .select("id,address,city,state,zip,places_id,address_review_resolved_at")
     .not("places_id", "is", null)
     .order("places_validated_at", { ascending: true, nullsFirst: true })
     .limit(batchLimit);
@@ -124,11 +124,16 @@ serve(async (req) => {
       mismatch,
     });
 
+    // Resolved venues (a human accepted/dismissed): the cron must not re-flag.
+    // Unresolved venues: keep the flag authoritative — set on mismatch, clear on
+    // match (fixes stale flags left by the old set-only behavior).
+    const resolved = (v as { address_review_resolved_at?: string | null })
+      .address_review_resolved_at != null;
     await supabase
       .from("venues")
       .update({
         places_validated_at: now,
-        ...(mismatch ? { needs_address_review: true } : {}),
+        ...(resolved ? {} : { needs_address_review: mismatch }),
       })
       .eq("id", v.id);
 

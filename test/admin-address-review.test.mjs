@@ -18,3 +18,19 @@ test("migration creates the security-invoker review queue view", () => {
   assert.match(mig, /needs_address_review\s*=\s*true/i);
   assert.match(mig, /venue_validation_log/i);
 });
+
+const fn = readFileSync(
+  new URL("../supabase/functions/validate-venue-places/index.ts", import.meta.url),
+  "utf8"
+);
+
+test("edge fn selects the resolution column", () => {
+  assert.match(fn, /address_review_resolved_at/);
+});
+
+test("edge fn only writes the flag when unresolved, and clears on match", () => {
+  // unresolved venues get needs_address_review = mismatch (true OR false)
+  assert.match(fn, /needs_address_review:\s*mismatch/);
+  // resolved venues are left untouched (guard on resolved_at)
+  assert.match(fn, /resolved_at|address_review_resolved_at/);
+});
