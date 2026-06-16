@@ -60,3 +60,16 @@ test("dismissAddressReview stamps resolution state", () => {
 test("actions revalidate the queue", () => {
   assert.match(actions, /revalidatePath\(['"]\/admin\/address-review['"]\)/);
 });
+
+const actionsUi = readFileSync(
+  new URL("../apps/web/src/app/admin/address-review/AddressReviewActions.tsx", import.meta.url),
+  "utf8"
+);
+
+test("actions component is a client component using the server actions + parser", () => {
+  assert.match(actionsUi, /^'use client'/m);
+  assert.match(actionsUi, /acceptGoogleAddress/);
+  assert.match(actionsUi, /dismissAddressReview/);
+  assert.match(actionsUi, /parseFormattedAddress/);
+  assert.match(actionsUi, /useTransition/);
+});
