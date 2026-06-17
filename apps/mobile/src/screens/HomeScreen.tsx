@@ -21,7 +21,6 @@ import MapView, { Marker } from "react-native-maps";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
-import { useVenueSearch } from "../hooks/useVenueSearch";
 import { tierVariant } from "../lib/venueTier";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useUserPreferences } from "../hooks/useUserPreferences";
@@ -146,9 +145,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { width } = useWindowDimensions();
 
   const [query, setQuery] = useState("");
-  // Search covers all published venues, not just those in the happy-hour feed,
-  // so event-only venues (e.g. T-Mobile Center) are discoverable by name.
-  const { venues: venueSearchResults } = useVenueSearch(query);
   const [selectedTagSlugs, setSelectedTagSlugs] = useState<Set<string>>(
     () => new Set()
   );
@@ -264,45 +260,6 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       });
   }, [dedupedByVenue, effectiveCoords]);
 
-  // Venue ids already represented in the happy-hour feed, so we don't duplicate
-  // them with a venue-only search card.
-  const feedVenueIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const window of dedupedByVenue) {
-      const id = getVenueId(window);
-      if (id) ids.add(id);
-    }
-    return ids;
-  }, [dedupedByVenue]);
-
-  // Published venues matching the search that have no happy-hour window. Shaped
-  // like a feed item so VenueCard renders them; tapping routes to VenuePreview.
-  const venueOnlyResults = useMemo<HappyHourWindow[]>(() => {
-    if (!query.trim()) return [];
-    return venueSearchResults
-      .filter((venue) => venue?.id && !feedVenueIds.has(venue.id))
-      .map((venue) => {
-        const coordinate = getWindowCoordinate({ venue } as HappyHourWindow);
-        const distance =
-          coordinate && effectiveCoords
-            ? distanceMiles(
-                effectiveCoords.lat,
-                effectiveCoords.lng,
-                coordinate.latitude,
-                coordinate.longitude
-              )
-            : null;
-        return {
-          id: `venue:${venue.id}`,
-          venue_id: venue.id,
-          venue,
-          offers: [],
-          distance,
-          __venueOnly: true,
-        } as unknown as HappyHourWindow;
-      });
-  }, [query, venueSearchResults, feedVenueIds, effectiveCoords]);
-
   const priceOptions = useMemo(() => {
     const tiers = new Set<number>();
     for (const place of dedupedByVenue) {
@@ -376,21 +333,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       );
     }
 
-    // Append venue-only matches (published venues with no happy-hour window).
-    // They're already name-matched server-side and deduped against the feed.
-    if (venueOnlyResults.length > 0) {
-      list = [...list, ...venueOnlyResults];
-    }
-
     return list;
-  }, [
-    withDistance,
-    query,
-    selectedTagSlugs,
-    selectedByCategory,
-    selectedPrice,
-    venueOnlyResults,
-  ]);
+  }, [withDistance, query, selectedTagSlugs, selectedByCategory, selectedPrice]);
 
   const filteredVenueIds = useMemo(
     () => filtered.map(getVenueId).filter((id): id is string => !!id),
@@ -719,9 +663,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   onImageSwipeStart={() => setVenueCarouselScrollEnabled(false)}
                   onImageSwipeEnd={() => setVenueCarouselScrollEnabled(true)}
                   onSelect={() =>
-                    (item as { __venueOnly?: boolean }).__venueOnly && venueId
-                      ? navigation.navigate("VenuePreview", { venueId })
-                      : navigation.navigate("HappyHourDetail", { windowId: item.id })
+                    navigation.navigate("HappyHourDetail", { windowId: item.id })
                   }
                 />
               );
