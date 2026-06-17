@@ -93,6 +93,7 @@ export default async function AdminPage({
     { count: pendingGuideCount },
     { count: checkinCount },
     { count: stagingCount },
+    { count: addressReviewCount },
   ] = await Promise.all([
     supabase.from('organizations').select('id', { count: 'exact', head: true }),
     supabase.from('venues').select('id', { count: 'exact', head: true }),
@@ -104,6 +105,7 @@ export default async function AdminPage({
     supabase.from('guides').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
     supabase.from('venue_visits').select('id', { count: 'exact', head: true }),
     supabase.from('staging_venues').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('venues').select('id', { count: 'exact', head: true }).eq('needs_address_review', true),
   ]);
 
   // ─── Organizations ────────────────────────────────────────────────────
@@ -344,6 +346,7 @@ export default async function AdminPage({
     { label: 'Guide Review', value: pendingGuideCount ?? 0, icon: 'GR', href: '/admin/guides?tab=pending' },
     { label: 'Check-ins', value: checkinCount ?? 0, icon: 'CI' },
     { label: 'Staging', value: stagingCount ?? 0, icon: 'ST', href: '/admin/staging' },
+    { label: 'Address Review', value: addressReviewCount ?? 0, icon: 'AR', href: '/admin/address-review' },
   ];
 
   return (
