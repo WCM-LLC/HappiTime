@@ -1,5 +1,5 @@
 // src/screens/FavoritesScreen.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, StyleSheet, FlatList, Modal, TextInput, Pressable, Alert, KeyboardAvoidingView, Platform, ScrollView, Share } from "react-native";
 import { TabActions, useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { supabase } from "../api/supabaseClient";
@@ -52,6 +52,9 @@ export const FavoritesScreen: React.FC = () => {
   const { followers } = useUserFollowers();
   const [editingList, setEditingList] = useState<UserList | null>(null);
   const [showNewListForm, setShowNewListForm] = useState(false);
+  // Holds an itinerary share payload (iOS) between closing the EditListModal and
+  // the Modal's onDismiss, so the share sheet is presented from this root screen.
+  const pendingShareRef = useRef<{ message: string; title: string } | null>(null);
 
   useEffect(() => {
     const requestedTab = route?.params?.tab as "favorites" | "history" | "lists" | undefined;
@@ -328,6 +331,23 @@ export const FavoritesScreen: React.FC = () => {
             })
           );
         }}
+        onShareOutside={(payload) => {
+          // iOS: stash the payload and close the Modal. The native share sheet
+          // is then presented from this root screen's VC in onModalHidden (the
+          // Modal's onDismiss) — never from inside the Modal, which freezes this
+          // screen on dismiss.
+          pendingShareRef.current = payload;
+          setEditingList(null);
+        }}
+        onModalHidden={() => {
+          const payload = pendingShareRef.current;
+          pendingShareRef.current = null;
+          if (payload) {
+            void Share.share(payload).catch(() => {
+              // user cancelled share sheet
+            });
+          }
+        }}
       />
     </View>
   );
@@ -573,6 +593,13 @@ type EditListModalProps = {
   onShareWithFriend: (listId: string, userId: string) => Promise<void>;
   onShowVenueCard: (venueId: string) => void;
   onShowOnMap: (list: UserList) => void;
+  // iOS only: hand the built share payload to the parent so the native share
+  // sheet is presented from the root screen (not from inside this Modal's view
+  // controller, which freezes the underlying screen on dismiss — see onDismiss).
+  onShareOutside: (payload: { message: string; title: string }) => void;
+  // Fires after the Modal has fully dismissed (iOS); the parent uses it to
+  // present a pending share sheet from the root VC.
+  onModalHidden: () => void;
 };
 
 
@@ -585,6 +612,8 @@ const EditListModal: React.FC<EditListModalProps> = ({
   onShareWithFriend,
   onShowVenueCard,
   onShowOnMap,
+  onShareOutside,
+  onModalHidden,
 }) => {
   const { profile: myProfile } = useUserProfile();
   const [mode, setMode] = useState<"details" | "edit" | "share">("details");
@@ -615,12 +644,10 @@ const EditListModal: React.FC<EditListModalProps> = ({
     );
   }, [followers, friendHandleSearch]);
 
-  if (!list) return null;
-
   const isValid = name.trim().length > 0;
 
   const handleSave = async () => {
-    if (!isValid || saving) return;
+    if (!list || !isValid || saving) return;
     setSaving(true);
     await onSave(list.id, {
       name: name.trim(),
@@ -631,6 +658,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
   };
 
   const handleShareFriend = async (userId: string) => {
+    if (!list) return;
     setSharingId(userId);
     await onShareWithFriend(list.id, userId);
     setSharedIds((prev) => new Set(prev).add(userId));
@@ -638,6 +666,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
   };
 
   const handleShareOutside = async () => {
+    if (!list) return;
     const storeUrl =
       Platform.OS === "ios" ? HAPPITIME_APP_STORE_URL : HAPPITIME_PLAY_STORE_URL;
 
@@ -666,18 +695,34 @@ const EditListModal: React.FC<EditListModalProps> = ({
       ? `Check out my "${list.name}" itinerary on HappiTime!\n\n${shareUrl}\n\nDon't have the app yet? ${storeUrl}`
       : `Check out my "${list.name}" itinerary on HappiTime!\n\nDownload the app: ${storeUrl}`;
 
-    try {
-      await Share.share({
-        message,
-        title: `${list.name} — HappiTime Itinerary`,
-      });
-    } catch {
-      // user cancelled share sheet
+    const payload = { message, title: `${list.name} — HappiTime Itinerary` };
+
+    // iOS: presenting the share sheet (UIActivityViewController) from inside this
+    // Modal's view controller leaves an orphaned view over the underlying screen
+    // on dismiss, freezing it. Hand the payload to the parent, which closes this
+    // Modal and presents the sheet from the root VC once it's fully dismissed
+    // (see onModalHidden / the Modal's onDismiss). Android has no such issue and
+    // its Modal has no onDismiss, so share directly there.
+    if (Platform.OS === "ios") {
+      onShareOutside(payload);
+    } else {
+      try {
+        await Share.share(payload);
+      } catch {
+        // user cancelled share sheet
+      }
     }
   };
 
   return (
-    <Modal visible animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={!!list}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+      onDismiss={onModalHidden}
+    >
+      {list ? (
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={editStyles.modalRoot}
@@ -915,6 +960,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
+      ) : null}
     </Modal>
   );
 };
