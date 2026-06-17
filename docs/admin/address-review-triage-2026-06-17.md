@@ -96,4 +96,48 @@ Score 0.65; street name matches, number differs slightly — real correction or 
 leading/middle descriptor segment — `"…, E 16th St entrance, …"` (Belfry),
 `"Located in the, 1370 Grand Blvd, …"` (No Other Pub) — break the simple
 comma-split in `parse-formatted-address.mjs`, mis-mapping fields in the Accept
-prefill. Worth hardening the parser to skip non-address lead segments.
+prefill. See the TODO below.
+
+---
+
+## TODO — harden `parse-formatted-address.mjs` against descriptor segments
+
+> Self-contained task. Safe to hand to an agent.
+
+**File:** `apps/web/src/utils/parse-formatted-address.mjs`
+(+ type sidecar `apps/web/src/utils/parse-formatted-address.d.mts`)
+**Tests:** `test/parse-formatted-address.test.mjs` (Node built-in test runner; run `npm test`)
+**Consumer:** `apps/web/src/app/admin/address-review/AddressReviewActions.tsx` — the
+parsed `{address, city, state, zip}` prefills the **Accept** inline form.
+
+### Problem
+The parser splits Google's `formattedAddress` on commas and maps fields by
+position (`street, city, "ST ZIP", country`). Google sometimes injects a
+non-address descriptor segment, which shifts every field:
+
+| Input `formattedAddress` | Wrong parse today | Correct |
+|---|---|---|
+| `1532 Grand Blvd, E 16th St entrance, Kansas City, MO 64108, USA` | city = `E 16th St entrance` | city = `Kansas City` |
+| `Located in the, 1370 Grand Blvd, Kansas City, MO 64106, USA` | street = `Located in the` | street = `1370 Grand Blvd` |
+
+### Fix approach
+Stop relying on positional indexing. Instead:
+1. Identify the **`ST ZIP` segment** by pattern (`/\b[A-Z]{2}\s+\d{5}\b/`) → that
+   yields `state` + `zip`, and the segment immediately before it is `city`.
+2. Identify the **street segment** as the first segment containing a leading
+   house number (`/^\s*\d/`); drop any leading segment that has no house number
+   and isn't the country (`USA`) — that's a descriptor (`"Located in the"`,
+   `"<x> entrance"`).
+3. Keep current behavior for the normal 4-part shape (don't regress existing
+   passing cases).
+
+### Acceptance criteria
+- [ ] Both rows in the table above parse to the **Correct** column.
+- [ ] Existing `test/parse-formatted-address.test.mjs` cases still pass.
+- [ ] New tests added for both descriptor-segment cases.
+- [ ] `npm test` green; `npm run build:web` green (the `.d.mts` sidecar keeps the
+      strict web `tsc` happy — update it if the export signature changes).
+
+**Priority:** low — admins can correct fields inline before saving; this only
+improves the Accept prefill accuracy for venues with quirky Google formatting.
+**Origin:** surfaced triaging the flagged backlog (this doc); admin surface = PR #94.
