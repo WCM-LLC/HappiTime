@@ -28,6 +28,7 @@ const NOTICE: Record<string, string> = {
 
 const ERRORS: Record<string, string> = {
   title_required: 'A title is required.',
+  body_required: 'Add some body text before saving.',
   save_failed: 'Save failed — try again.',
   submit_failed: 'Submit failed — try again.',
   delete_failed: 'Delete failed — try again.',

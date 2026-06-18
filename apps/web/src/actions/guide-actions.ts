@@ -68,6 +68,17 @@ export async function saveDraft(formData: FormData) {
 
   if (!title) redirect('/dashboard/guides?error=title_required');
 
+  // Guard against empty-body saves. A re-save after a client-side navigation can
+  // resubmit the form with the markdown body state reset to '', which previously
+  // created empty duplicate drafts. Require body before persisting.
+  if (!body_md) {
+    redirect(
+      id
+        ? `/dashboard/guides/${id}/edit?error=body_required`
+        : '/dashboard/guides?error=body_required',
+    );
+  }
+
   let cover_image_url: string | null;
   try {
     cover_image_url = await resolveGuideCoverImageUrl(supabase as any, user.id, formData);

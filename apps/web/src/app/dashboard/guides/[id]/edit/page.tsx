@@ -10,6 +10,7 @@ const NOTICE: Record<string, string> = {
 };
 const ERRORS: Record<string, string> = {
   save_failed: 'Save failed — try again.',
+  body_required: 'Add some body text before saving.',
   submit_failed: 'Submit failed — try again.',
   cover_file_too_large: 'Cover image must be 5 MB or smaller.',
   cover_file_type: 'Cover image must be AVIF, WebP, JPG, or PNG.',
