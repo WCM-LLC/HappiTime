@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import { StoreDownloadCTA } from "@/components/StoreDownloadCTA";
 
 export const metadata: Metadata = {
-  title: "HappiTime — Free on iPhone & Android",
+  // Root layout applies the "%s | HappiTime" title template, so the brand is
+  // appended automatically — don't repeat it here (renders: "Kansas City Happy
+  // Hour App for iPhone & Android | HappiTime", ~59 chars, fits the SERP).
+  title: "Kansas City Happy Hour App for iPhone & Android",
   description:
     "Download HappiTime free on the App Store and Google Play. Get notified when happy hour starts, save your favorites, and find deals near you.",
 };
