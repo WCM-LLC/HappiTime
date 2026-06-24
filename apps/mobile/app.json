@@ -2,7 +2,7 @@
   "expo": {
     "name": "HappiTime",
     "slug": "happyhour-mobile",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "scheme": "happitime",
@@ -30,7 +30,9 @@
         {
           "locationAlwaysAndWhenInUsePermission": "HappiTime uses your location to detect nearby happy hours and optional visit reminders after you enable location features.",
           "locationWhenInUsePermission": "HappiTime uses your location to show nearby happy hours and center the map after you enable location.",
-          "isIosBackgroundLocationEnabled": true
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
         }
       ]
     ],
