@@ -9,6 +9,7 @@ import { PageTracker } from "@/components/PageTracker";
 import { ItineraryButton } from "@/components/ItineraryButton";
 import { venueImageUrl } from "@/lib/mediaUrl";
 import ImageLightbox from "@/components/ImageLightbox";
+import { StoreDownloadCTA } from "@/components/StoreDownloadCTA";
 
 // ── service-role client (server-only, never exposed to client) ─────────────────
 function getServiceClient() {
@@ -559,16 +560,13 @@ export default async function VenueDetailPage({ params }: Props) {
         <h2 className="text-lg font-bold text-foreground mb-2">
           Save {venue.name} to your favorites
         </h2>
-        <p className="text-sm text-muted mb-4">
+        <p className="text-sm text-muted mb-6">
           Get notified when happy hour starts and see what friends are checking
           out nearby.
         </p>
-        <a
-          href="/app/"
-          className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors"
-        >
-          Open in App
-        </a>
+        <div className="flex justify-center">
+          <StoreDownloadCTA />
+        </div>
       </section>
     </div>
   );
