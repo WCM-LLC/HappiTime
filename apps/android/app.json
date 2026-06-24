@@ -36,6 +36,18 @@
       "package": "com.jwill7486.happitime.mobile",
       "versionCode": 2,
       "softwareKeyboardLayoutMode": "resize",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            { "scheme": "https", "host": "happitime.biz", "pathPrefix": "/i" },
+            { "scheme": "https", "host": "happitime.biz", "pathPrefix": "/r" },
+            { "scheme": "https", "host": "happitime.biz", "pathPrefix": "/v" }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#C8965A"
