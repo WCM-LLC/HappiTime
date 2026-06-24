@@ -3,6 +3,7 @@
 import dynamic from 'next/dynamic';
 import { useState } from 'react';
 import { saveDraft, submitGuide } from '@/actions/guide-actions';
+import { SubmitButton } from '@/components/ui/SubmitButton';
 
 // SSR must be disabled — @uiw/react-md-editor uses window on init.
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), {
@@ -191,19 +192,21 @@ export function GuideEditor({
 
         {/* Actions */}
         <div className="flex items-center gap-3">
-          <button
+          <SubmitButton
             formAction={saveAction}
-            className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer"
+            pendingLabel="Saving…"
+            className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {saveLabel}
-          </button>
+          </SubmitButton>
           {canSubmit ? (
-            <button
+            <SubmitButton
               formAction={submitAction}
-              className="inline-flex items-center justify-center h-10 px-5 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer"
+              pendingLabel="Submitting…"
+              className="inline-flex items-center justify-center h-10 px-5 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitLabel}
-            </button>
+            </SubmitButton>
           ) : (
             <span className="text-body-sm text-muted">
               Status: <span className="font-medium text-foreground capitalize">{status.replace('_', ' ')}</span>

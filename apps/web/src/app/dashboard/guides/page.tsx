@@ -4,6 +4,7 @@ import UserBar from '@/components/layout/UserBar';
 import { createClient } from '@/utils/supabase/server';
 import { deleteDraft, submitGuide } from '@/actions/guide-actions';
 import { GUIDE_AUTHORING_PATH, loginPathFor } from '@/utils/auth-paths';
+import { SubmitButton } from '@/components/ui/SubmitButton';
 
 const STATUS_LABEL: Record<string, string> = {
   draft: 'Draft',
@@ -159,23 +160,25 @@ export default async function GuidesListPage({
                           {canSubmit ? (
                             <form>
                               <input type="hidden" name="id" value={g.id} />
-                              <button
+                              <SubmitButton
                                 formAction={submitGuide}
-                                className="text-caption font-medium text-foreground hover:underline cursor-pointer"
+                                pendingLabel="Submitting…"
+                                className="text-caption font-medium text-foreground hover:underline cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                               >
                                 Submit
-                              </button>
+                              </SubmitButton>
                             </form>
                           ) : null}
                           {canDelete ? (
                             <form>
                               <input type="hidden" name="id" value={g.id} />
-                              <button
+                              <SubmitButton
                                 formAction={deleteDraft}
-                                className="text-caption font-medium text-error hover:underline cursor-pointer"
+                                pendingLabel="Deleting…"
+                                className="text-caption font-medium text-error hover:underline cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                               >
                                 Delete
-                              </button>
+                              </SubmitButton>
                             </form>
                           ) : null}
                         </div>
