@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../api/supabaseClient";
+import { BackgroundLocationDisclosure } from "../components/BackgroundLocationDisclosure";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { SuperUserBadge } from "../components/SuperUserBadge";
 import { VenueSuggestionForm } from "./AddScreen";
@@ -12,6 +13,7 @@ import { useUserFollowCounts } from "../hooks/useUserFollowCounts";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useUserProfile } from "../hooks/useUserProfile";
+import { useVisitReminderConsent } from "../hooks/useVisitReminderConsent";
 import {
   HappiTimeIOSPermissionPanel,
   isHappiTimeIOSUIAvailable,
@@ -84,6 +86,10 @@ export const ProfileScreen: React.FC = () => {
   // Android confirmation modal — iOS uses the native Alert.prompt instead.
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [deleteDraft, setDeleteDraft] = useState("");
+  // Visit reminders (background location) — separate, disclosure-gated opt-in.
+  const { enabled: visitReminders, setEnabled: setVisitReminders } =
+    useVisitReminderConsent();
+  const [disclosureVisible, setDisclosureVisible] = useState(false);
   const { state: avatarState, pickAndUpload } = useAvatarUpload();
   const useNativePermissionPanel =
     Platform.OS === "ios" && isHappiTimeIOSUIAvailable;
@@ -441,6 +447,24 @@ export const ProfileScreen: React.FC = () => {
         ) : null}
 
         <View style={styles.switchRow}>
+          <Text style={styles.label}>Visit reminders</Text>
+          <Switch
+            value={visitReminders}
+            onValueChange={(next) => {
+              if (next) {
+                // Show the prominent disclosure BEFORE enabling / requesting
+                // background permission. Consent is set only on accept.
+                setDisclosureVisible(true);
+              } else {
+                void setVisitReminders(false);
+              }
+            }}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={colors.background}
+          />
+        </View>
+
+        <View style={styles.switchRow}>
           <Text style={styles.label}>Push notifications</Text>
           <Switch
             value={notifPush}
@@ -648,6 +672,15 @@ export const ProfileScreen: React.FC = () => {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+
+      <BackgroundLocationDisclosure
+        visible={disclosureVisible}
+        onAccept={() => {
+          setDisclosureVisible(false);
+          void setVisitReminders(true);
+        }}
+        onDecline={() => setDisclosureVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 };
