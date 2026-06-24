@@ -81,6 +81,9 @@ export const ProfileScreen: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusIsError, setStatusIsError] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  // Android confirmation modal — iOS uses the native Alert.prompt instead.
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteDraft, setDeleteDraft] = useState("");
   const { state: avatarState, pickAndUpload } = useAvatarUpload();
   const useNativePermissionPanel =
     Platform.OS === "ios" && isHappiTimeIOSUIAvailable;
@@ -102,6 +105,47 @@ export const ProfileScreen: React.FC = () => {
     ]);
   };
 
+  // Shared deletion routine called by both the iOS Alert.prompt and the
+  // Android confirmation modal, so the delete logic lives in exactly one place.
+  const performAccountDeletion = async (value?: string) => {
+    if ((value ?? "").trim() !== "DELETE") {
+      Alert.alert("Deletion canceled", "You must type DELETE exactly.");
+      return;
+    }
+
+    setDeletingAccount(true);
+    setStatusMessage(null);
+
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+
+    if (sessionError || !accessToken) {
+      setDeletingAccount(false);
+      Alert.alert(
+        "Unable to delete account",
+        "Your session expired. Please sign in again and retry."
+      );
+      return;
+    }
+
+    const { error } = await supabase.functions.invoke("delete-account", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (error) {
+      setDeletingAccount(false);
+      Alert.alert(
+        "Unable to delete account",
+        await getFunctionErrorMessage(error)
+      );
+      return;
+    }
+
+    await supabase.auth.signOut({ scope: "local" });
+    Alert.alert("Account has been removed");
+  };
+
   const handleDeleteAccount = () => {
     if (!user || deletingAccount) return;
     Alert.alert("Delete account", "Do you want to permanently delete your account?", [
@@ -110,56 +154,25 @@ export const ProfileScreen: React.FC = () => {
         text: "Delete account",
         style: "destructive",
         onPress: () => {
-          Alert.prompt(
-            "Final confirmation",
-            "Type DELETE to confirm account deletion.",
-            [
-              { text: "Cancel", style: "cancel" },
-              {
-                text: "Delete",
-                style: "destructive",
-                onPress: async (value?: string) => {
-                  if ((value ?? "").trim() !== "DELETE") {
-                    Alert.alert("Deletion canceled", "You must type DELETE exactly.");
-                    return;
-                  }
-
-                  setDeletingAccount(true);
-                  setStatusMessage(null);
-
-                  const { data: sessionData, error: sessionError } =
-                    await supabase.auth.getSession();
-                  const accessToken = sessionData.session?.access_token;
-
-                  if (sessionError || !accessToken) {
-                    setDeletingAccount(false);
-                    Alert.alert(
-                      "Unable to delete account",
-                      "Your session expired. Please sign in again and retry."
-                    );
-                    return;
-                  }
-
-                  const { error } = await supabase.functions.invoke("delete-account", {
-                    headers: { Authorization: `Bearer ${accessToken}` },
-                  });
-
-                  if (error) {
-                    setDeletingAccount(false);
-                    Alert.alert(
-                      "Unable to delete account",
-                      await getFunctionErrorMessage(error)
-                    );
-                    return;
-                  }
-
-                  await supabase.auth.signOut({ scope: "local" });
-                  Alert.alert("Account has been removed");
+          // Alert.prompt is iOS-only; Android falls back to an in-app modal.
+          if (Platform.OS === "ios") {
+            Alert.prompt(
+              "Final confirmation",
+              "Type DELETE to confirm account deletion.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: (value?: string) => void performAccountDeletion(value),
                 },
-              },
-            ],
-            "plain-text"
-          );
+              ],
+              "plain-text"
+            );
+          } else {
+            setDeleteDraft("");
+            setDeleteModalVisible(true);
+          }
         },
       },
     ]);
@@ -587,6 +600,54 @@ export const ProfileScreen: React.FC = () => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Android delete-account confirmation — iOS uses Alert.prompt above */}
+      <Modal
+        visible={deleteModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalBackdrop}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Final confirmation</Text>
+            <Text style={styles.modalHint}>
+              Type DELETE to confirm account deletion.
+            </Text>
+            <TextInput
+              value={deleteDraft}
+              onChangeText={setDeleteDraft}
+              placeholder="DELETE"
+              placeholderTextColor={colors.textMuted}
+              style={styles.modalInput}
+              autoFocus
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={() => setDeleteModalVisible(false)}
+                style={styles.modalButtonSecondary}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  const value = deleteDraft;
+                  setDeleteModalVisible(false);
+                  void performAccountDeletion(value);
+                }}
+                style={styles.modalButtonPrimary}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -856,5 +917,68 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 12,
     marginTop: spacing.xs
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.lg
+  },
+  modalCard: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: spacing.lg,
+    width: "100%"
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: spacing.xs
+  },
+  modalHint: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginBottom: spacing.md
+  },
+  modalInput: {
+    color: colors.text,
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    marginBottom: spacing.md
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: spacing.sm
+  },
+  modalButtonSecondary: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  modalButtonSecondaryText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "500"
+  },
+  modalButtonPrimary: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: 999,
+    backgroundColor: colors.error
+  },
+  modalButtonPrimaryText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700"
   }
 });
