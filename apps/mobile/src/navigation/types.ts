@@ -55,6 +55,10 @@ export type RootStackParamList = {
     venueName: string;
     lat: number;
     lng: number;
+    // True when reached from the coaster onboarding prime (CheckInPrimeScreen via
+    // the post-signup geofence handoff). Adds an "I'll do this later" exit; the
+    // check-in logic itself is unchanged.
+    fromOnboarding?: boolean;
   };
   // Pilot round redemption: shown when user has ≥5 stamps; confirms with code
   RoundRedemption: {
