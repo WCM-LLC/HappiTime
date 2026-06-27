@@ -1,5 +1,10 @@
 export const ONBOARDING_VERSION = 1;
 
+// NOTE: `checkin_prime` (coaster onboarding) sits between `referrer` and `complete`
+// on purpose. Placing it last means a non-venue user who falls through it advances
+// to the normal `complete` summary without skipping any setup step. Do NOT bump
+// ONBOARDING_VERSION to add it — a bump re-onboards everyone; a new step only
+// affects users still mid-flow, which is exactly what we want.
 export const ONBOARDING_STEPS = [
   "welcome",
   "location",
@@ -8,6 +13,7 @@ export const ONBOARDING_STEPS = [
   "handle",
   "profile",
   "referrer",
+  "checkin_prime",
   "complete",
 ] as const;
 

@@ -49,8 +49,15 @@ function formatTime(d: Date): string {
 }
 
 export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { venueId, venueName, lat, lng } = route.params;
+  const { venueId, venueName, lat, lng, fromOnboarding } = route.params;
   const insets = useSafeAreaInsets();
+
+  // From the coaster onboarding prime there's no prior screen to pop back to
+  // (the navigator just mounted), so "do this later" lands on the tab root.
+  const exitToApp = useCallback(() => {
+    if (navigation.canGoBack()) navigation.goBack();
+    else navigation.navigate("AppTabs");
+  }, [navigation]);
 
   const { state, failCount, submit, submitFallback, reset } = useCheckin();
 
@@ -336,6 +343,19 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityLabel="Try again"
         >
           <Text style={styles.cancelButtonText}>Try again</Text>
+        </Pressable>
+      )}
+
+      {/* Coaster onboarding: an always-available exit so the prime never traps a
+          brand-new user who isn't ready to check in. */}
+      {fromOnboarding && (
+        <Pressable
+          style={styles.cancelButton}
+          onPress={exitToApp}
+          accessibilityRole="button"
+          accessibilityLabel="I'll do this later"
+        >
+          <Text style={styles.cancelButtonText}>I&apos;ll do this later</Text>
         </Pressable>
       )}
     </View>

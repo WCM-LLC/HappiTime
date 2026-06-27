@@ -8,6 +8,7 @@ import { IconSymbol } from "../../components/ui/icon-symbol";
 import { useNotificationNavigation } from "../hooks/useNotificationNavigation";
 import { useVenueDeepLink } from "../hooks/useVenueDeepLink";
 import { useItineraryDeepLink } from "../hooks/useItineraryDeepLink";
+import { useCheckinPrimeHandoff } from "../hooks/useCheckinPrimeHandoff";
 import { SharedItineraryScreen } from "../screens/SharedItineraryScreen";
 import { UpdateAvailableModal } from "../components/UpdateAvailableModal";
 import { useCurrentUser } from "../hooks/useCurrentUser";
@@ -117,6 +118,7 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
   useNotificationNavigation(navigationRef);
   useVenueDeepLink(navigationRef);
   useItineraryDeepLink(navigationRef);
+  useCheckinPrimeHandoff(navigationRef);
 
   return (
     <>
