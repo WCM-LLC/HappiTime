@@ -87,11 +87,18 @@ export default async function GuidesListPage({
               {rows.length} guide{rows.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <Link href="/dashboard/guides/new">
-            <span className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer">
-              + New guide
-            </span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard/referrals">
+              <span className="inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer">
+                My QR
+              </span>
+            </Link>
+            <Link href="/dashboard/guides/new">
+              <span className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer">
+                + New guide
+              </span>
+            </Link>
+          </div>
         </div>
 
         {noticeText ? (
