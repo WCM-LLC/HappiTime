@@ -27,6 +27,14 @@ export type SuperUserRow = {
   redemptions_driven?: number;
 };
 
+// Pin the trailing actions column so buttons (Revoke, Make Super User, etc.)
+// stay visible when the wide table overflows horizontally instead of scrolling
+// off the right edge. Opaque bg keeps scrolled cells from bleeding through; the
+// left shadow signals there's more content beneath.
+const ACTION_TH = 'px-4 py-2.5 sticky right-0 bg-surface';
+const ACTION_TD =
+  'px-4 py-3 sticky right-0 z-10 bg-surface shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.10)]';
+
 function Badge({ role }: { role: string }) {
   if (role === 'super_user') {
     return (
@@ -136,7 +144,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden xl:table-cell">Venues</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Last submit</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Created</th>
-                  <th className="px-4 py-2.5" />
+                  <th className={ACTION_TH} />
                 </tr>
               </thead>
               <tbody>
@@ -209,7 +217,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                     </td>
                     <td className="px-4 py-3 text-muted hidden md:table-cell">{relativeDate(row.last_submission_at)}</td>
                     <td className="px-4 py-3 text-muted hidden md:table-cell">{relativeDate(row.created_at)}</td>
-                    <td className="px-4 py-3">
+                    <td className={ACTION_TD}>
                       <div className="flex items-center gap-3 justify-end">
                         <Link href={`/admin/users/${row.user_id}`} className="text-caption font-medium text-brand hover:underline">
                           Details
@@ -256,7 +264,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Email</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Role</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Joined</th>
-                  <th className="px-4 py-2.5" />
+                  <th className={ACTION_TH} />
                 </tr>
               </thead>
               <tbody>
@@ -271,7 +279,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                     <td className="px-4 py-3 text-muted hidden md:table-cell">{row.email ?? '—'}</td>
                     <td className="px-4 py-3"><Badge role={row.role} /></td>
                     <td className="px-4 py-3 text-muted">{relativeDate(row.created_at)}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className={`${ACTION_TD} text-right`}>
                       <ConfirmingForm
                         action={promoteToSuperUser}
                         message={`Promote ${row.handle ? `@${row.handle}` : row.display_name ?? 'this user'} to Super User?`}

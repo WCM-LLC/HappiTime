@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import UserBar from '@/components/layout/UserBar';
+import ConfirmDeleteForm from '@/components/ConfirmDeleteForm';
 import { createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
+import { revokeSuperUser } from '@/actions/admin-user-actions';
 
 function formatDate(iso: string | null) {
   if (!iso) return '—';
@@ -170,6 +172,22 @@ export default async function AdminSuperUserDetailsPage({
                 <dd className="text-foreground">{formatDate(p.created_at)}</dd>
               </div>
             </dl>
+
+            {p.role === 'super_user' ? (
+              <ConfirmDeleteForm
+                action={revokeSuperUser}
+                message={`Remove Super User access for ${p.handle ? `@${p.handle}` : p.display_name ?? 'this user'}? Their published guides stay live, but they lose Super User tools and auto-publish.`}
+                className="mt-5 pt-4 border-t border-border"
+              >
+                <input type="hidden" name="user_id" value={userId} />
+                <button
+                  type="submit"
+                  className="inline-flex w-full items-center justify-center h-9 px-4 rounded-md border border-error bg-error-light text-body-sm font-medium text-error hover:bg-error hover:text-white transition-colors cursor-pointer"
+                >
+                  Remove Super User
+                </button>
+              </ConfirmDeleteForm>
+            ) : null}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
