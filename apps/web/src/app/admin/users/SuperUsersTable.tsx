@@ -1,11 +1,11 @@
 'use client';
 
-/* eslint-disable @next/next/no-img-element */
-
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { promoteToSuperUser, revokeSuperUser, toggleAutoPublish } from '@/actions/admin-user-actions';
+import UserAvatar from '@/components/UserAvatar';
+import { STICKY_ACTION_HEAD, STICKY_ACTION_CELL } from '@/utils/stickyActionColumn';
 
 export type SuperUserRow = {
   user_id: string;
@@ -26,6 +26,13 @@ export type SuperUserRow = {
   venues_touched?: number;
   redemptions_driven?: number;
 };
+
+// Pin the trailing actions column so buttons (Revoke, Make Super User, etc.)
+// stay visible when the wide table overflows horizontally instead of scrolling
+// off the right edge. Opaque bg keeps scrolled cells from bleeding through; the
+// left shadow signals there's more content beneath.
+const ACTION_TH = `px-4 py-2.5 ${STICKY_ACTION_HEAD}`;
+const ACTION_TD = `px-4 py-3 ${STICKY_ACTION_CELL}`;
 
 function Badge({ role }: { role: string }) {
   if (role === 'super_user') {
@@ -136,7 +143,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden xl:table-cell">Venues</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Last submit</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Created</th>
-                  <th className="px-4 py-2.5" />
+                  <th className={ACTION_TH} />
                 </tr>
               </thead>
               <tbody>
@@ -144,13 +151,12 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                   <tr key={row.user_id} className="border-b border-border last:border-0 hover:bg-background/40 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-brand-subtle overflow-hidden flex items-center justify-center shrink-0">
-                          {row.avatar_url ? (
-                            <img src={row.avatar_url} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            <span className="text-caption font-bold text-brand-dark-alt">{avatarFallback(row)}</span>
-                          )}
-                        </div>
+                        <UserAvatar
+                          url={row.avatar_url}
+                          fallback={avatarFallback(row)}
+                          sizeClassName="h-9 w-9"
+                          textClassName="text-caption font-bold text-brand-dark-alt"
+                        />
                         <div>
                           <Link href={`/admin/users/${row.user_id}`} className="font-medium text-foreground hover:text-brand transition-colors">
                             {row.handle ? `@${row.handle}` : row.display_name ?? 'No handle'}
@@ -209,7 +215,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                     </td>
                     <td className="px-4 py-3 text-muted hidden md:table-cell">{relativeDate(row.last_submission_at)}</td>
                     <td className="px-4 py-3 text-muted hidden md:table-cell">{relativeDate(row.created_at)}</td>
-                    <td className="px-4 py-3">
+                    <td className={ACTION_TD}>
                       <div className="flex items-center gap-3 justify-end">
                         <Link href={`/admin/users/${row.user_id}`} className="text-caption font-medium text-brand hover:underline">
                           Details
@@ -256,7 +262,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Email</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Role</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Joined</th>
-                  <th className="px-4 py-2.5" />
+                  <th className={ACTION_TH} />
                 </tr>
               </thead>
               <tbody>
@@ -271,7 +277,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                     <td className="px-4 py-3 text-muted hidden md:table-cell">{row.email ?? '—'}</td>
                     <td className="px-4 py-3"><Badge role={row.role} /></td>
                     <td className="px-4 py-3 text-muted">{relativeDate(row.created_at)}</td>
-                    <td className="px-4 py-3 text-right">
+                    <td className={`${ACTION_TD} text-right`}>
                       <ConfirmingForm
                         action={promoteToSuperUser}
                         message={`Promote ${row.handle ? `@${row.handle}` : row.display_name ?? 'this user'} to Super User?`}
