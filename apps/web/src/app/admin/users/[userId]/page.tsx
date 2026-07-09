@@ -1,9 +1,8 @@
-/* eslint-disable @next/next/no-img-element */
-
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import UserBar from '@/components/layout/UserBar';
 import ConfirmDeleteForm from '@/components/ConfirmDeleteForm';
+import UserAvatar from '@/components/UserAvatar';
 import { createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
 import { revokeSuperUser } from '@/actions/admin-user-actions';
 
@@ -145,15 +144,12 @@ export default async function AdminSuperUserDetailsPage({
 
         <section className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-6 mb-8">
           <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
-            <div className="h-20 w-20 rounded-full bg-brand-subtle overflow-hidden flex items-center justify-center mb-4">
-              {p.avatar_url ? (
-                <img src={p.avatar_url} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-heading-lg font-bold text-brand-dark-alt">
-                  {(p.display_name ?? p.handle ?? email ?? '?').charAt(0).toUpperCase()}
-                </span>
-              )}
-            </div>
+            <UserAvatar
+              url={p.avatar_url}
+              fallback={(p.display_name ?? p.handle ?? email ?? '?').charAt(0).toUpperCase()}
+              sizeClassName="h-20 w-20 mb-4"
+              textClassName="text-heading-lg font-bold text-brand-dark-alt"
+            />
             <dl className="space-y-3 text-body-sm">
               <div>
                 <dt className="text-caption font-semibold uppercase tracking-wider text-muted">Display name</dt>

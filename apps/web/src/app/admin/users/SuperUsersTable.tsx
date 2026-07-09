@@ -1,11 +1,10 @@
 'use client';
 
-/* eslint-disable @next/next/no-img-element */
-
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { promoteToSuperUser, revokeSuperUser, toggleAutoPublish } from '@/actions/admin-user-actions';
+import UserAvatar from '@/components/UserAvatar';
 
 export type SuperUserRow = {
   user_id: string;
@@ -152,13 +151,12 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                   <tr key={row.user_id} className="border-b border-border last:border-0 hover:bg-background/40 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="h-9 w-9 rounded-full bg-brand-subtle overflow-hidden flex items-center justify-center shrink-0">
-                          {row.avatar_url ? (
-                            <img src={row.avatar_url} alt="" className="h-full w-full object-cover" />
-                          ) : (
-                            <span className="text-caption font-bold text-brand-dark-alt">{avatarFallback(row)}</span>
-                          )}
-                        </div>
+                        <UserAvatar
+                          url={row.avatar_url}
+                          fallback={avatarFallback(row)}
+                          sizeClassName="h-9 w-9"
+                          textClassName="text-caption font-bold text-brand-dark-alt"
+                        />
                         <div>
                           <Link href={`/admin/users/${row.user_id}`} className="font-medium text-foreground hover:text-brand transition-colors">
                             {row.handle ? `@${row.handle}` : row.display_name ?? 'No handle'}
