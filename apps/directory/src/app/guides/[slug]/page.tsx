@@ -6,6 +6,7 @@ import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 import { supabase } from "@/lib/supabase";
 import { guideCoverImageSrc, normalizeGuideCoverImageUrl } from "@/lib/guideCoverUrl";
 import ImageLightbox from "@/components/ImageLightbox";
+import AuthorByline from "@/components/AuthorByline";
 
 const BASE = "https://happitime.biz";
 
@@ -14,9 +15,19 @@ export const dynamic = "force-dynamic";
 async function getGuide(slug: string) {
   const { data } = await supabase
     .from("guides")
-    .select("id, title, subtitle, body_md, city, tags, cover_image_url, published_at, updated_at")
+    .select("id, title, subtitle, body_md, city, tags, cover_image_url, published_at, updated_at, author_id")
     .eq("slug", slug)
     .eq("status", "published")
+    .maybeSingle();
+  return data ?? null;
+}
+
+async function getAuthor(authorId: string | null) {
+  if (!authorId) return null;
+  const { data } = await supabase
+    .from("public_guide_authors")
+    .select("display_name, avatar_url, instagram_url, tiktok_url, website_url, youtube_url")
+    .eq("author_id", authorId)
     .maybeSingle();
   return data ?? null;
 }
@@ -65,6 +76,8 @@ export default async function GuidePage({
   const { slug } = await params;
   const guide = await getGuide(slug);
   if (!guide) notFound();
+
+  const author = await getAuthor(guide.author_id);
 
   const canonical = `${BASE}/guides/${slug}/`;
   const coverImageUrl = normalizeGuideCoverImageUrl(guide.cover_image_url);
@@ -152,6 +165,8 @@ export default async function GuidePage({
             </div>
           ) : null}
         </header>
+
+        {author ? <AuthorByline author={author} /> : null}
 
         {/* Body */}
         <article className="prose prose-gray max-w-none">

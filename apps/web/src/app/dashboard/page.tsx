@@ -4,6 +4,7 @@ import UserBar from '@/components/layout/UserBar';
 import { createClient } from '@/utils/supabase/server';
 import { createOrganization, deleteOrganization, updateOrganization } from '../../actions/dashboard-actions';
 import ConfirmDeleteForm from '@/components/ConfirmDeleteForm';
+import SocialsPromptBanner from './SocialsPromptBanner';
 
 type MembershipRow = {
   role: string;
@@ -34,6 +35,21 @@ export default async function DashboardPage({
   if (!user) {
     redirect('/login');
   }
+
+  const { data: socialProfile } = await supabase
+    .from('user_profiles')
+    .select('role, instagram_url, tiktok_url, website_url, youtube_url, socials_prompt_dismissed_at')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const p = socialProfile as any;
+  const showSocialsPrompt =
+    p?.role === 'super_user' &&
+    !p?.socials_prompt_dismissed_at &&
+    !p?.instagram_url &&
+    !p?.tiktok_url &&
+    !p?.website_url &&
+    !p?.youtube_url;
 
   const { data, error } = await supabase
     .from("org_members")
@@ -75,6 +91,8 @@ export default async function DashboardPage({
             <p className="text-body-sm text-error/80 mt-0.5">{pageErrorMessage}</p>
           </div>
         ) : null}
+
+        {showSocialsPrompt ? <SocialsPromptBanner /> : null}
 
         {/* Create Organization */}
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">

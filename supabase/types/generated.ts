@@ -1482,10 +1482,15 @@ export type Database = {
           created_at: string
           display_name: string | null
           handle: string | null
+          instagram_url: string | null
           is_public: boolean
           role: string
+          socials_prompt_dismissed_at: string | null
+          tiktok_url: string | null
           updated_at: string
           user_id: string
+          website_url: string | null
+          youtube_url: string | null
         }
         Insert: {
           auto_publish_enabled?: boolean
@@ -1494,10 +1499,15 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           handle?: string | null
+          instagram_url?: string | null
           is_public?: boolean
           role?: string
+          socials_prompt_dismissed_at?: string | null
+          tiktok_url?: string | null
           updated_at?: string
           user_id: string
+          website_url?: string | null
+          youtube_url?: string | null
         }
         Update: {
           auto_publish_enabled?: boolean
@@ -1506,10 +1516,15 @@ export type Database = {
           created_at?: string
           display_name?: string | null
           handle?: string | null
+          instagram_url?: string | null
           is_public?: boolean
           role?: string
+          socials_prompt_dismissed_at?: string | null
+          tiktok_url?: string | null
           updated_at?: string
           user_id?: string
+          website_url?: string | null
+          youtube_url?: string | null
         }
         Relationships: []
       }
@@ -2201,6 +2216,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      public_guide_authors: {
+        Row: {
+          author_id: string | null
+          avatar_url: string | null
+          display_name: string | null
+          instagram_url: string | null
+          tiktok_url: string | null
+          website_url: string | null
+          youtube_url: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          avatar_url?: string | null
+          display_name?: string | null
+          instagram_url?: string | null
+          tiktok_url?: string | null
+          website_url?: string | null
+          youtube_url?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          avatar_url?: string | null
+          display_name?: string | null
+          instagram_url?: string | null
+          tiktok_url?: string | null
+          website_url?: string | null
+          youtube_url?: string | null
+        }
+        Relationships: []
       }
       published_happy_hour_windows: {
         Row: {
