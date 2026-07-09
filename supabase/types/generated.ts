@@ -2033,6 +2033,8 @@ export type Database = {
           published_at: string | null
           rating: number | null
           review_count: number | null
+          reward_active: boolean
+          reward_preset: string | null
           slug: string
           state: string | null
           status: string
@@ -2087,6 +2089,8 @@ export type Database = {
           published_at?: string | null
           rating?: number | null
           review_count?: number | null
+          reward_active?: boolean
+          reward_preset?: string | null
           slug: string
           state?: string | null
           status?: string
@@ -2141,6 +2145,8 @@ export type Database = {
           published_at?: string | null
           rating?: number | null
           review_count?: number | null
+          reward_active?: boolean
+          reward_preset?: string | null
           slug?: string
           state?: string | null
           status?: string
