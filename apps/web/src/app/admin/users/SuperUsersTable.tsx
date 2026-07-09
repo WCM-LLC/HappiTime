@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { promoteToSuperUser, revokeSuperUser, toggleAutoPublish } from '@/actions/admin-user-actions';
 import UserAvatar from '@/components/UserAvatar';
+import { STICKY_ACTION_HEAD, STICKY_ACTION_CELL } from '@/utils/stickyActionColumn';
 
 export type SuperUserRow = {
   user_id: string;
@@ -30,9 +31,8 @@ export type SuperUserRow = {
 // stay visible when the wide table overflows horizontally instead of scrolling
 // off the right edge. Opaque bg keeps scrolled cells from bleeding through; the
 // left shadow signals there's more content beneath.
-const ACTION_TH = 'px-4 py-2.5 sticky right-0 bg-surface';
-const ACTION_TD =
-  'px-4 py-3 sticky right-0 z-10 bg-surface shadow-[-8px_0_8px_-8px_rgba(0,0,0,0.10)]';
+const ACTION_TH = `px-4 py-2.5 ${STICKY_ACTION_HEAD}`;
+const ACTION_TD = `px-4 py-3 ${STICKY_ACTION_CELL}`;
 
 function Badge({ role }: { role: string }) {
   if (role === 'super_user') {

@@ -5,6 +5,7 @@ import { useState, useTransition, useMemo } from 'react';
 import { adminToggleWindow, adminToggleVenueStatus, adminSetPromotionTier, type PromotionTier } from '@/actions/admin-actions';
 import { adminSendPasswordReset, adminUpdateUserInfo } from '@/actions/admin-user-actions';
 import { adminUpdateOrganization } from '@/actions/admin-org-actions';
+import { STICKY_ACTION_HEAD, STICKY_ACTION_CELL } from '@/utils/stickyActionColumn';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -358,7 +359,7 @@ function OrgRowItem({ org }: { org: OrgRow }) {
         <td className={`${tdCls} tabular-nums`}>{org.venue_count}</td>
         <td className={`${tdCls} tabular-nums`}>{org.member_count}</td>
         <td className={`${tdCls} text-muted`}>{relativeTime(org.created_at)}</td>
-        <td className={`${tdCls} text-right whitespace-nowrap`}>
+        <td className={`${tdCls} text-right whitespace-nowrap ${STICKY_ACTION_CELL}`}>
           <div className="inline-flex gap-2 items-center justify-end">
             <button
               type="button"
@@ -470,7 +471,7 @@ export function OrgsTable({ orgs }: { orgs: OrgRow[] }) {
                 <SortHeader label="Venues" col="venue_count" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="Members" col="member_count" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="Created" col="created_at" active={col} dir={dir} onClick={toggle} />
-                <th className={`${thCls} text-right`}>Actions</th>
+                <th className={`${thCls} text-right ${STICKY_ACTION_HEAD}`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -632,7 +633,7 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
                 <SortHeader label="Priority" col="promotion_priority" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="HH Windows" col="hh_count" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="Created" col="created_at" active={col} dir={dir} onClick={toggle} />
-                <th className={thCls}></th>
+                <th className={`${thCls} ${STICKY_ACTION_HEAD}`}></th>
               </tr>
             </thead>
             <tbody>
@@ -681,7 +682,7 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
                       {v.hh_count > 0 ? <span className={badgeGreen}>{v.hh_count}</span> : <span className="text-muted">0</span>}
                     </td>
                     <td className={`${tdCls} text-muted`}>{relativeTime(v.created_at)}</td>
-                    <td className={tdCls}>
+                    <td className={`${tdCls} ${STICKY_ACTION_CELL}`}>
                       <Link href={`/orgs/${v.org_id}?from=admin`} className={linkCls}>Edit &rarr;</Link>
                     </td>
                   </tr>
@@ -790,7 +791,7 @@ export function WindowsTable({ windows, venues }: { windows: WindowRow[]; venues
                 <SortHeader label="Days" col="dow" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="Status" col="status" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="Created" col="created_at" active={col} dir={dir} onClick={toggle} />
-                <th className={thCls}></th>
+                <th className={`${thCls} ${STICKY_ACTION_HEAD}`}></th>
               </tr>
             </thead>
             <tbody>
@@ -819,7 +820,7 @@ export function WindowsTable({ windows, venues }: { windows: WindowRow[]; venues
                       </button>
                     </td>
                     <td className={`${tdCls} text-muted`}>{relativeTime(w.created_at)}</td>
-                    <td className={tdCls}>
+                    <td className={`${tdCls} ${STICKY_ACTION_CELL}`}>
                       <Link href={`/orgs/${orgId}/venues/${w.venue_id}?from=admin`} className={linkCls}>Edit &rarr;</Link>
                     </td>
                   </tr>
@@ -895,7 +896,7 @@ function UserRowItem({ user }: { user: UserRow }) {
           )}
         </td>
         <td className={`${tdCls} text-muted`}>{relativeTime(user.last_sign_in_at)}</td>
-        <td className={`${tdCls} text-right whitespace-nowrap`}>
+        <td className={`${tdCls} text-right whitespace-nowrap ${STICKY_ACTION_CELL}`}>
           <div className="inline-flex gap-2 items-center justify-end">
             <button
               type="button"
@@ -1065,7 +1066,7 @@ export function UsersTable({ users }: { users: UserRow[] }) {
                 <th className={thCls}>Roles</th>
                 <th className={thCls}>Org(s)</th>
                 <SortHeader label="Last Sign In" col="last_sign_in_at" active={col} dir={dir} onClick={toggle} />
-                <th className={`${thCls} text-right`}>Actions</th>
+                <th className={`${thCls} text-right ${STICKY_ACTION_HEAD}`}>Actions</th>
               </tr>
             </thead>
             <tbody>

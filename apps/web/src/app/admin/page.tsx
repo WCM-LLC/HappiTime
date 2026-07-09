@@ -6,6 +6,7 @@ import { OrgsTable, VenuesTable, WindowsTable, UsersTable } from './AdminTables'
 import type { OrgRow, VenueRow, WindowRow, UserRow } from './AdminTables';
 import { SUPER_ADMIN_EMAIL } from '@/utils/admin-emails';
 import { addAdminUser, removeAdminUser } from '@/actions/admin-manage-actions';
+import { STICKY_ACTION_HEAD, STICKY_ACTION_CELL } from '@/utils/stickyActionColumn';
 
 const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   slug_taken: 'That organization slug is already in use. Choose a different slug.',
@@ -632,7 +633,7 @@ export default async function AdminPage({
                         <tr className="border-b border-border bg-background/50">
                           <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Email</th>
                           <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Added</th>
-                          <th className="px-4 py-2.5" />
+                          <th className={`px-4 py-2.5 ${STICKY_ACTION_HEAD}`} />
                         </tr>
                       </thead>
                       <tbody>
@@ -649,7 +650,7 @@ export default async function AdminPage({
                             <td className="px-4 py-3 text-muted">
                               {new Date(u.created_at).toLocaleDateString()}
                             </td>
-                            <td className="px-4 py-3 text-right">
+                            <td className={`px-4 py-3 text-right ${STICKY_ACTION_CELL}`}>
                               {u.email !== SUPER_ADMIN_EMAIL ? (
                                 <form>
                                   <input type="hidden" name="email" value={u.email} />
