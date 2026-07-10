@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { REWARD_PRESETS } from '@happitime/shared-types';
-import { saveVenueReward } from '@/actions/reward-actions';
+import { saveVenueReward } from '@/actions/venue-actions';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 
 /**
@@ -27,9 +27,7 @@ export default function RewardConfig({
   const label = REWARD_PRESETS.find((p) => p.key === preset)?.label ?? null;
 
   return (
-    <form action={saveVenueReward} className="rounded-lg border border-border bg-surface p-6 shadow-sm max-w-xl">
-      <input type="hidden" name="org_id" value={orgId} />
-      <input type="hidden" name="venue_id" value={venueId} />
+    <form action={saveVenueReward.bind(null, orgId, venueId)} className="rounded-lg border border-border bg-surface p-6 shadow-sm max-w-xl">
       <input type="hidden" name="reward_preset" value={preset ?? ''} />
 
       <div className="mb-5">
