@@ -22,6 +22,8 @@ export type VenueWithWindows = {
   tiktok_url: string | null;
   promotion_tier: string | null;
   promotion_priority: number;
+  reward_preset: string | null;
+  reward_active: boolean;
   happy_hour_windows: HappyHourWindow[];
   venue_events: VenueEvent[];
   venue_media: VenueMediaItem[];
@@ -85,7 +87,8 @@ const VENUE_FIELDS = `
   id, name, slug, address, city, state, neighborhood,
   lat, lng, price_tier, rating, tags, cuisine_type, phone, website,
   facebook_url, instagram_url, tiktok_url,
-  promotion_tier, promotion_priority
+  promotion_tier, promotion_priority,
+  reward_preset, reward_active
 `;
 
 const WINDOW_FIELDS = `id, label, dow, start_time, end_time, status`;
@@ -164,6 +167,8 @@ function shapeVenue(raw: any): VenueWithWindows {
     tiktok_url: raw.tiktok_url ?? null,
     promotion_tier: raw.promotion_tier ?? null,
     promotion_priority: raw.promotion_priority ?? 0,
+    reward_preset: raw.reward_preset ?? null,
+    reward_active: raw.reward_active ?? false,
     happy_hour_windows: windows,
     venue_events: events,
     venue_media: media,

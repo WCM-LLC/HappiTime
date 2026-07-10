@@ -10,6 +10,7 @@ import { ItineraryButton } from "@/components/ItineraryButton";
 import { venueImageUrl } from "@/lib/mediaUrl";
 import ImageLightbox from "@/components/ImageLightbox";
 import { StoreDownloadCTA } from "@/components/StoreDownloadCTA";
+import { rewardLabel } from "@happitime/shared-types";
 
 // ── service-role client (server-only, never exposed to client) ─────────────────
 function getServiceClient() {
@@ -237,6 +238,16 @@ export default async function VenueDetailPage({ params }: Props) {
           )}
         </div>
       </div>
+
+      {/* Redeemable reward banner — live offer only */}
+      {venue.reward_active && venue.reward_preset && rewardLabel(venue.reward_preset) && (
+        <div className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 mb-8">
+          <span className="text-xl" aria-hidden>🍺</span>
+          <span className="text-sm font-semibold text-amber-900">
+            The next round&rsquo;s on the house — check in 5 times, get {rewardLabel(venue.reward_preset)}.
+          </span>
+        </div>
+      )}
 
       {/* Contact info + social links */}
       {(venue.phone || venue.website || venue.facebook_url || venue.instagram_url || venue.tiktok_url) && (

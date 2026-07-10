@@ -38,6 +38,7 @@ export function FilterableVenueGrid({
   const [cuisineFilter, setCuisineFilter] = useState<string>("all");
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [todayOnly, setTodayOnly] = useState(false);
+  const [rewardsOnly, setRewardsOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Extract unique cuisines and tags from venues
@@ -95,6 +96,11 @@ export function FilterableVenueGrid({
         if (!hasToday) return false;
       }
 
+      // Rewards only — venues advertising a live redeemable reward
+      if (rewardsOnly && !(v.reward_active && v.reward_preset)) {
+        return false;
+      }
+
       return true;
     });
     // Tier-aware ordering (Phase 3): featured → verified → listed, priority,
@@ -107,6 +113,7 @@ export function FilterableVenueGrid({
     cuisineFilter,
     tagFilter,
     todayOnly,
+    rewardsOnly,
     neighborhoods,
     todayIndex,
   ]);
@@ -116,6 +123,7 @@ export function FilterableVenueGrid({
     cuisineFilter !== "all",
     tagFilter !== "all",
     todayOnly,
+    rewardsOnly,
     searchQuery.length > 0,
   ].filter(Boolean).length;
 
@@ -202,6 +210,17 @@ export function FilterableVenueGrid({
             Happy Hour Today
           </button>
 
+          <button
+            onClick={() => setRewardsOnly(!rewardsOnly)}
+            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+              rewardsOnly
+                ? "bg-amber-500 text-white"
+                : "border border-border bg-white text-foreground hover:border-brand"
+            }`}
+          >
+            🍺 Rewards
+          </button>
+
           {activeFilterCount > 0 && (
             <button
               onClick={() => {
@@ -209,6 +228,7 @@ export function FilterableVenueGrid({
                 setCuisineFilter("all");
                 setTagFilter("all");
                 setTodayOnly(false);
+                setRewardsOnly(false);
                 setSearchQuery("");
               }}
               className="rounded-full px-3 py-1.5 text-xs font-semibold text-muted hover:text-foreground transition-colors"
