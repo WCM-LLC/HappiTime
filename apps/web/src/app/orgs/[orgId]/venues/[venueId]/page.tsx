@@ -7,6 +7,7 @@ import VenueDashboardShell, { type ShellTab, OrgMark, ShellCrumb } from '@/compo
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { FlashMessage } from '@/components/FlashMessage';
 import VenueMediaUploader from '@/components/VenueMediaUploader';
+import RewardConfig from './RewardConfig';
 import type { SubscriptionPlan } from '@/utils/stripe';
 import { PLAN_LABEL } from '@/utils/subscription-features';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
@@ -326,7 +327,7 @@ export default async function VenuePage({
     // fetchVenueById does not select `slug`; fetch it for the QR download caption.
     // last_confirmed_at / listing_disputed power the listing-freshness banner.
     // (supabase as any): listing_disputed lands in generated types on next typegen.
-    (supabase as any).from('venues').select('slug,last_confirmed_at,listing_disputed').eq('id', venueId).maybeSingle(),
+    (supabase as any).from('venues').select('slug,last_confirmed_at,listing_disputed,reward_preset,reward_active').eq('id', venueId).maybeSingle(),
     // Read checkin_secret via service-role (always) — it is never sent to the
     // browser; only the derived 4-char code is shown in the sub-bar.
     // Gated to canManageVenue so hosts/viewers don't trigger a service-role read.
@@ -1820,6 +1821,15 @@ export default async function VenuePage({
     <ToastmakerCard venueId={venueId} />
   ) : null;
 
+  const rewardPanel = canManageVenue ? (
+    <RewardConfig
+      orgId={orgId}
+      venueId={venueId}
+      initialPreset={(qrVenue as { reward_preset?: string | null } | null)?.reward_preset ?? null}
+      initialActive={Boolean((qrVenue as { reward_active?: boolean | null } | null)?.reward_active)}
+    />
+  ) : null;
+
   const tabs: ShellTab[] = [
     { id: 'details', label: 'Details', content: <>{detailsPart1}{tagsPanel}</> },
     { id: 'happy-hours', label: 'Happy Hours', content: happyHoursPanel },
@@ -1827,6 +1837,7 @@ export default async function VenuePage({
     { id: 'events', label: 'Events', content: eventsPanel },
     { id: 'media', label: 'Media & QR', content: mediaQrPanel, show: canManageVenue },
     { id: 'checkins', label: 'Check-ins', content: checkinPanel, show: canManageVenue },
+    { id: 'rewards', label: 'Rewards', content: rewardPanel, show: canManageVenue },
     { id: 'toastmaker', label: 'Toastmaker', content: toastmakerPanel, show: canManageVenue },
     { id: 'staff', label: 'Staff', content: staffPanel, show: fromAdmin && userIsAdmin },
     { id: 'analytics', label: 'Analytics', content: analyticsPanel },

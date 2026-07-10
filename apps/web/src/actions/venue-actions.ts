@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
 import { isAdminEmail } from '@/utils/admin-emails';
 import { toStr, toNullableStr, toNumberOrNull, redirectWithError, redirectWithSuccess, requireField } from '@/utils/form';
+import { REWARD_PRESET_KEYS } from '@happitime/shared-types';
 import {
   cloneOrganizationMenuToVenue,
   cloneVenueMenuToVenue,
@@ -314,6 +315,41 @@ export async function updateVenue(orgId: string, venueId: string, formData: Form
 
   revalidateVenue(orgId, venueId);
   redirectWithSuccess(orgId, venueId, 'venue_saved');
+}
+
+/**
+ * Save a venue's redeemable-reward config (preset + advertise toggle).
+ * Presets only — a value outside the canonical key list is stored as null.
+ * Mirrors updateVenue: role-gated via requireVenueManagementAccess, and the
+ * zero-rows check catches an RLS-filtered write that would otherwise report a
+ * false success (grant ≠ RLS — a filtered UPDATE returns 0 rows, no error).
+ */
+export async function saveVenueReward(orgId: string, venueId: string, formData: FormData) {
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+
+  const rawPreset = toStr(formData.get('reward_preset'));
+  const reward_preset = REWARD_PRESET_KEYS.includes(rawPreset) ? rawPreset : null;
+  const reward_active = formData.get('reward_active') === 'on';
+
+  const { data: updated, error } = await writeSupabase
+    .from('venues')
+    .update({ reward_preset, reward_active } as never)
+    .eq('id', venueId)
+    .eq('org_id', orgId)
+    .select('id');
+
+  if (error) {
+    console.error('[saveVenueReward] update failed', error);
+    redirectWithError(orgId, venueId, 'venue_update_failed');
+  }
+
+  if (!updated || updated.length === 0) {
+    console.warn('[saveVenueReward] zero rows updated', { orgId, venueId });
+    redirectWithError(orgId, venueId, 'not_authorized');
+  }
+
+  revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'reward_saved');
 }
 
 export async function publishVenue(orgId: string, venueId: string, _formData?: FormData) {
