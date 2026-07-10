@@ -1,7 +1,7 @@
 import type { VenueWithWindows } from "@/lib/queries";
 import { venueImageUrl } from "@/lib/mediaUrl";
 import { tierPresentation } from "@/lib/venueTier";
-import { rewardLabel } from "@happitime/shared-types";
+import { rewardLabel } from "@/lib/rewards";
 
 function coverUrl(venue: VenueWithWindows): string | null {
   const img = venue.venue_media.find((m) => m.type === "image");

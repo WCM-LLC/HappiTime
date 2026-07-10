@@ -10,7 +10,7 @@ import { ItineraryButton } from "@/components/ItineraryButton";
 import { venueImageUrl } from "@/lib/mediaUrl";
 import ImageLightbox from "@/components/ImageLightbox";
 import { StoreDownloadCTA } from "@/components/StoreDownloadCTA";
-import { rewardLabel } from "@happitime/shared-types";
+import { rewardLabel } from "@/lib/rewards";
 
 // ── service-role client (server-only, never exposed to client) ─────────────────
 function getServiceClient() {

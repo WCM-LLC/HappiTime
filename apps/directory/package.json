@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@happitime/shared-api": "0.0.1",
-    "@happitime/shared-types": "0.0.1",
     "@happitime/venue-qr": "*",
     "@supabase/supabase-js": "^2.49.4",
     "@tailwindcss/typography": "^0.5.19",
