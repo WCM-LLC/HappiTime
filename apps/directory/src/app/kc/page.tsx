@@ -9,6 +9,7 @@ import { getAllKCVenues } from "@/lib/queries";
 import type { VenueWithWindows } from "@/lib/queries";
 import { itemListJsonLd } from "@/lib/structuredData";
 import { KCMapPage } from "@/components/KCMapPage";
+import { PageTracker } from "@/components/PageTracker";
 
 // Revalidate every 15 minutes — keeps venue data fresh
 export const revalidate = 900;
@@ -197,6 +198,7 @@ export default async function KCPage() {
 
   return (
     <>
+      <PageTracker pagePath="/kc/" />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
