@@ -30,6 +30,14 @@
         "track": "production"
       }
     },
+    "internal": {
+      "ios": {
+        "ascAppId": "6757933269"
+      },
+      "android": {
+        "track": "internal"
+      }
+    },
     "closed": {
       "android": {
         "track": "alpha"
