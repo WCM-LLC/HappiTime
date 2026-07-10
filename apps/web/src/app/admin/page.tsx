@@ -95,6 +95,7 @@ export default async function AdminPage({
     { count: checkinCount },
     { count: stagingCount },
     { count: addressReviewCount },
+    { count: crmOpenLeadCount },
   ] = await Promise.all([
     supabase.from('organizations').select('id', { count: 'exact', head: true }),
     supabase.from('venues').select('id', { count: 'exact', head: true }),
@@ -107,6 +108,7 @@ export default async function AdminPage({
     supabase.from('venue_visits').select('id', { count: 'exact', head: true }),
     supabase.from('staging_venues').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('venues').select('id', { count: 'exact', head: true }).eq('needs_address_review', true),
+    supabase.from('crm_leads').select('id', { count: 'exact', head: true }).not('stage', 'in', '("won","lost")'),
   ]);
 
   // ─── Organizations ────────────────────────────────────────────────────
@@ -348,6 +350,7 @@ export default async function AdminPage({
     { label: 'Check-ins', value: checkinCount ?? 0, icon: 'CI' },
     { label: 'Staging', value: stagingCount ?? 0, icon: 'ST', href: '/admin/staging' },
     { label: 'Address Review', value: addressReviewCount ?? 0, icon: 'AR', href: '/admin/address-review' },
+    { label: 'CRM Leads', value: crmOpenLeadCount ?? 0, icon: '💼', href: '/admin/crm' },
   ];
 
   return (
