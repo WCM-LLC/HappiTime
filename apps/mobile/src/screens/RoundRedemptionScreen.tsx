@@ -28,8 +28,17 @@ import { spacing } from "../theme/spacing";
 
 type Props = NativeStackScreenProps<RootStackParamList, "RoundRedemption">;
 
+/** Format an ISO timestamp as a friendly day, e.g. "Tue, Jul 15". */
+function formatEligibleDay(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
 export const RoundRedemptionScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { venueId, venueName, lat, lng } = route.params;
+  const { venueId, venueName, lat, lng, rewardText } = route.params;
+  const reward = rewardText ?? "your free round";
   const insets = useSafeAreaInsets();
 
   const { state, submitRedeem, reset } = useCheckin();
@@ -68,7 +77,8 @@ export const RoundRedemptionScreen: React.FC<Props> = ({ route, navigation }) =>
         <Text style={styles.celebrationEmoji}>🍻</Text>
         <Text style={styles.celebrationTitle}>Round on the house!</Text>
         <Text style={styles.celebrationSubtitle}>
-          Show this screen to your server. Your stamp card resets now — enjoy!
+          The house owes you {reward.toLowerCase()}. Show this screen to your server —
+          your stamp card resets now. Enjoy!
         </Text>
         <Text style={styles.venueName}>{venueName}</Text>
 
@@ -98,7 +108,7 @@ export const RoundRedemptionScreen: React.FC<Props> = ({ route, navigation }) =>
       <Text style={styles.celebrationEmoji}>🎉</Text>
       <Text style={styles.title}>Round on the house!</Text>
       <Text style={styles.subtitle}>
-        You've earned it. Enter today's code one more time to confirm with your server.
+        You've earned {reward.toLowerCase()}. Enter today's code one more time to confirm with your server.
       </Text>
       <Text style={styles.venueName}>{venueName}</Text>
 
@@ -135,6 +145,17 @@ export const RoundRedemptionScreen: React.FC<Props> = ({ route, navigation }) =>
         <View style={styles.errorBox}>
           <Text style={styles.errorText}>
             Not enough stamps to redeem ({state.stamps} of 5). Keep checking in!
+          </Text>
+        </View>
+      )}
+
+      {state.status === "weekly_limit_reached" && (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>
+            You've already redeemed a round here this week.
+            {formatEligibleDay(state.nextEligibleAt)
+              ? ` Come back ${formatEligibleDay(state.nextEligibleAt)} to redeem again.`
+              : " Try again next week."}
           </Text>
         </View>
       )}

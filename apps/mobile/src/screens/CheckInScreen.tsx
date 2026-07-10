@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { useCheckin } from "../hooks/useCheckin";
+import { rewardLabel } from "../lib/rewards.mjs";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -90,6 +91,7 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
         lat,
         lng,
         stamps: result.stamps,
+        rewardText: rewardLabel(result.rewardPreset),
       });
     }
     // Otherwise stay on screen: state shows stamp progress
@@ -108,6 +110,7 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
         lat,
         lng,
         stamps: result.stamps,
+        rewardText: rewardLabel(result.rewardPreset),
       });
     }
   }, [venueId, lat, lng, submitFallback, reset, navigation, venueName]);
@@ -120,8 +123,9 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ── Success view ──────────────────────────────────────────────────────────
   if (state.status === "success") {
-    const { stamps, stampsToNext, isFirstVisit } = state;
+    const { stamps, stampsToNext, isFirstVisit, rewardPreset } = state;
     const roundComplete = stamps >= STAMPS_PER_ROUND;
+    const rewardText = rewardLabel(rewardPreset);
 
     return (
       <View style={[styles.container, { paddingTop: insets.top + spacing.xxl, paddingBottom: insets.bottom + spacing.xl }]}>
@@ -148,11 +152,14 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
           {roundComplete ? (
             <Text style={styles.stampMessage}>
-              The house buys your next round!
+              {rewardText
+                ? `The house buys you ${rewardText.toLowerCase()}!`
+                : "The house buys your next round!"}
             </Text>
           ) : (
             <Text style={styles.stampMessage}>
-              {stampsToNext} more {stampsToNext === 1 ? "visit" : "visits"} until your free round
+              {stampsToNext} more {stampsToNext === 1 ? "visit" : "visits"} until{" "}
+              {rewardText ? rewardText.toLowerCase() : "your free round"}
             </Text>
           )}
         </View>
@@ -171,6 +178,7 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
                 lat,
                 lng,
                 stamps,
+                rewardText,
               })
             }
             accessibilityRole="button"
