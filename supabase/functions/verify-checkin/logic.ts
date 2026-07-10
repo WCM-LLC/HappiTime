@@ -135,3 +135,16 @@ export function attemptsRemaining(limit: number, usedCount: number): number {
 export function canRedeem(stamps: number): boolean {
   return stamps >= STAMPS_PER_ROUND;
 }
+
+/** One redemption per (user, venue) per 7 days — the weekly limit, enforced in data. */
+export const REDEEM_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
+
+/**
+ * True when the user is eligible to redeem again under the weekly cap.
+ * lastRedeemedAtMs=null (no prior redemption) → always allowed.
+ * Otherwise allowed once ≥7 days have elapsed since the last redemption.
+ */
+export function canRedeemWeekly(lastRedeemedAtMs: number | null, nowMs: number): boolean {
+  if (lastRedeemedAtMs === null) return true;
+  return nowMs - lastRedeemedAtMs >= REDEEM_COOLDOWN_MS;
+}

@@ -36,6 +36,8 @@ import {
   isFirstVisit,
   attemptsRemaining,
   canRedeem,
+  canRedeemWeekly,
+  REDEEM_COOLDOWN_MS,
   CHECKIN_RATE_LIMIT,
   FALLBACK_LIFETIME_LIMIT,
   STAMPS_PER_ROUND,
@@ -127,7 +129,7 @@ Deno.serve(async (req) => {
   // ── 0c. Fetch venue (checkin_secret, geofence_radius_m, lat/lng, org_id) ─
   const { data: venueRows, error: venueErr } = await supabase
     .from("venues")
-    .select("id, org_id, lat, lng, checkin_secret, geofence_radius_m")
+    .select("id, org_id, lat, lng, checkin_secret, geofence_radius_m, reward_preset")
     .eq("id", venueId)
     .eq("status", "published")
     .limit(1);
@@ -141,6 +143,7 @@ Deno.serve(async (req) => {
       lng: number | null;
       checkin_secret: string;
       geofence_radius_m: number;
+      reward_preset: string | null;
     }> | null
   )?.[0];
   if (!venue) return json({ error: "Unknown venue" }, 404);
@@ -207,9 +210,20 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const sinceForRedeem =
-      (lastRedemptionForRedeem as { created_at?: string } | null)?.created_at ??
-      "1970-01-01T00:00:00Z";
+    const lastRedeemedAt =
+      (lastRedemptionForRedeem as { created_at?: string } | null)?.created_at ?? null;
+
+    // Weekly cap (enforced in data): one redemption per (user, venue) per 7 days.
+    const lastRedeemedAtMs = lastRedeemedAt ? new Date(lastRedeemedAt).getTime() : null;
+    if (!canRedeemWeekly(lastRedeemedAtMs, now.getTime())) {
+      const nextEligible = new Date(lastRedeemedAtMs! + REDEEM_COOLDOWN_MS).toISOString();
+      return json(
+        { error: "weekly_limit_reached", next_eligible_at: nextEligible },
+        400,
+      );
+    }
+
+    const sinceForRedeem = lastRedeemedAt ?? "1970-01-01T00:00:00Z";
 
     const { count: currentStamps, error: redeemStampsErr } = await supabase
       .from("checkins")
@@ -253,6 +267,7 @@ Deno.serve(async (req) => {
       stamps_to_next_round: stampsToNextRound(0),
       is_first_visit: false,
       redeemed: true,
+      reward_preset: venue.reward_preset ?? null,
     });
   }
 
@@ -427,5 +442,6 @@ Deno.serve(async (req) => {
     stamps,
     stamps_to_next_round: stampsToNextRound(stamps),
     is_first_visit: firstVisit,
+    reward_preset: venue.reward_preset ?? null,
   });
 });

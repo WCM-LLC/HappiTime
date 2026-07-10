@@ -27,6 +27,8 @@ import {
   isFirstVisit,
   attemptsRemaining,
   canRedeem,
+  canRedeemWeekly,
+  REDEEM_COOLDOWN_MS,
   serviceDate as svcDate,
   STAMPS_PER_ROUND,
 } from "./logic.ts";
@@ -268,4 +270,23 @@ Deno.test("canRedeem: STAMPS_PER_ROUND is 5", () => {
 Deno.test("structural review marker — rules 1,2,4,5,6,7 + redeem path verified by code reading", () => {
   // This test passes trivially; it documents coverage intent.
   assertEquals(true, true);
+});
+
+// ---------------------------------------------------------------------------
+// Redeemable Rounds — weekly redemption cap (one redeem / user / venue / 7 days)
+// ---------------------------------------------------------------------------
+Deno.test("canRedeemWeekly: null last redemption is allowed", () => {
+  assertEquals(canRedeemWeekly(null, Date.UTC(2026, 6, 9)), true);
+});
+
+Deno.test("canRedeemWeekly: within 7 days is blocked", () => {
+  const now = Date.UTC(2026, 6, 9, 12, 0, 0);
+  const threeDaysAgo = now - 3 * 24 * 60 * 60 * 1000;
+  assertEquals(canRedeemWeekly(threeDaysAgo, now), false);
+});
+
+Deno.test("canRedeemWeekly: exactly 7 days later is allowed", () => {
+  const now = Date.UTC(2026, 6, 9, 12, 0, 0);
+  const sevenDaysAgo = now - REDEEM_COOLDOWN_MS;
+  assertEquals(canRedeemWeekly(sevenDaysAgo, now), true);
 });
