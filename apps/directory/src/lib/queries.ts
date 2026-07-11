@@ -345,23 +345,21 @@ export type PublicProfile = {
 };
 
 /**
- * Fetch a single public user profile by handle (case-insensitive).
- * Returns null if the handle is not found or the profile is not public.
- * Uses the anon client; permitted by the user_profiles_select_owner_or_public
- * RLS policy (is_public = true branch is open to anon).
+ * Resolve the inviter profile for a referral landing (/r/{handle}) by handle.
+ * Returns (handle, display_name, avatar_url), or null if the handle is unknown.
+ *
+ * Goes through the get_referral_profile SECURITY DEFINER RPC rather than a direct
+ * table read: a referral link is deliberately shared by its owner, so it must
+ * resolve even when that Insider's directory profile is private (is_public=false).
+ * The direct anon read is gated by is_public at BOTH the app layer and the
+ * user_profiles RLS policy, which 404'd private Insiders. The RPC resolves any
+ * is_public=true row (unchanged) OR any super_user, without exposing the wider table.
  */
-export async function getPublicProfileByHandle(
+export async function getReferralProfileByHandle(
   handle: string
 ): Promise<PublicProfile | null> {
-  // Normalize: strip leading @, lowercase. Handles are stored lowercase
-  // (useUserProfile normalizeHandle does the same). Exact match avoids the
-  // ILIKE wildcard pitfall where _ matches any single character.
-  const clean = handle.replace(/^@/, "").toLowerCase();
   const { data, error } = await supabase
-    .from("user_profiles")
-    .select("handle, display_name, avatar_url")
-    .eq("handle", clean)
-    .eq("is_public", true)
+    .rpc("get_referral_profile", { p_handle: handle })
     .maybeSingle();
 
   if (error || !data) return null;

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getPublicProfileByHandle } from "@/lib/queries";
+import { getReferralProfileByHandle } from "@/lib/queries";
 import { ReferralLandingClient } from "./ReferralLandingClient";
 
 // Referral / Insider landing: https://happitime.biz/r/{handle}
@@ -12,7 +12,8 @@ import { ReferralLandingClient } from "./ReferralLandingClient";
 export const dynamic = "force-dynamic";
 
 const APP_STORE_URL = "https://apps.apple.com/us/app/happitime/id6757933269";
-const PLAY_STORE_URL = "https://play.google.com/store/apps/happitime";
+const PLAY_STORE_URL =
+  "https://play.google.com/store/apps/details?id=com.jwill7486.happitime.mobile";
 
 type Props = {
   params: Promise<{ handle: string }>;
@@ -20,7 +21,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { handle } = await params;
-  const profile = await getPublicProfileByHandle(handle);
+  const profile = await getReferralProfileByHandle(handle);
   const name = profile?.display_name ?? `@${handle}`;
   return {
     title: `Join HappiTime — invited by ${name}`,
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ReferralLandingPage({ params }: Props) {
   const { handle } = await params;
-  const profile = await getPublicProfileByHandle(handle);
+  const profile = await getReferralProfileByHandle(handle);
   if (!profile) notFound();
 
   const displayName = profile.display_name ?? `@${profile.handle}`;
@@ -74,7 +75,7 @@ export default async function ReferralLandingPage({ params }: Props) {
           <p className="mt-1 text-xs text-[#9CA3AF]">@{profile.handle}</p>
 
           <p className="mt-4 text-sm text-[#6B6B6B]">
-            The happy-hour layer on top of Google — surfacing what Google buries.
+            Find your next happy hour here!
           </p>
 
           <ReferralLandingClient
