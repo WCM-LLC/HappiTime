@@ -67,6 +67,9 @@ export type RootStackParamList = {
     lat: number;
     lng: number;
     stamps: number;
+    // The venue's configured reward, e.g. "A house draft" — flows through from
+    // the check-in response so the redemption screen names what's owed.
+    rewardText?: string | null;
   };
 };
 

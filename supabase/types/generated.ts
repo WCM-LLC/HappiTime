@@ -106,6 +106,260 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_activities: {
+        Row: {
+          activity_type: string
+          body: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          direction: string | null
+          id: string
+          lead_id: string
+          occurred_at: string
+          outcome: string | null
+          subject: string | null
+        }
+        Insert: {
+          activity_type: string
+          body?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string | null
+          id?: string
+          lead_id: string
+          occurred_at?: string
+          outcome?: string | null
+          subject?: string | null
+        }
+        Update: {
+          activity_type?: string
+          body?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          direction?: string | null
+          id?: string
+          lead_id?: string
+          occurred_at?: string
+          outcome?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_contacts: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          is_primary: boolean
+          lead_id: string
+          name: string
+          notes: string | null
+          organization_id: string | null
+          phone: string | null
+          preferred_contact_method: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          lead_id: string
+          name: string
+          notes?: string | null
+          organization_id?: string | null
+          phone?: string | null
+          preferred_contact_method?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_primary?: boolean
+          lead_id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string | null
+          phone?: string | null
+          preferred_contact_method?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_contacts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_leads: {
+        Row: {
+          city: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          estimated_monthly_value_cents: number | null
+          id: string
+          interested_tier: string | null
+          lead_source: string
+          lost_reason: string | null
+          name: string
+          neighborhood: string | null
+          next_follow_up_at: string | null
+          notes: string | null
+          organization_id: string | null
+          owner_user_id: string | null
+          phone: string | null
+          priority: string
+          stage: string
+          updated_at: string
+          venue_id: string | null
+          website: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          estimated_monthly_value_cents?: number | null
+          id?: string
+          interested_tier?: string | null
+          lead_source?: string
+          lost_reason?: string | null
+          name: string
+          neighborhood?: string | null
+          next_follow_up_at?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+          priority?: string
+          stage?: string
+          updated_at?: string
+          venue_id?: string | null
+          website?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          estimated_monthly_value_cents?: number | null
+          id?: string
+          interested_tier?: string | null
+          lead_source?: string
+          lost_reason?: string | null
+          name?: string
+          neighborhood?: string | null
+          next_follow_up_at?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+          priority?: string
+          stage?: string
+          updated_at?: string
+          venue_id?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_leads_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          due_at: string | null
+          id: string
+          lead_id: string
+          priority: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          lead_id: string
+          priority?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          lead_id?: string
+          priority?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       directory_events: {
         Row: {
           created_at: string
@@ -2033,6 +2287,8 @@ export type Database = {
           published_at: string | null
           rating: number | null
           review_count: number | null
+          reward_active: boolean
+          reward_preset: string | null
           slug: string
           state: string | null
           status: string
@@ -2087,6 +2343,8 @@ export type Database = {
           published_at?: string | null
           rating?: number | null
           review_count?: number | null
+          reward_active?: boolean
+          reward_preset?: string | null
           slug: string
           state?: string | null
           status?: string
@@ -2141,6 +2399,8 @@ export type Database = {
           published_at?: string | null
           rating?: number | null
           review_count?: number | null
+          reward_active?: boolean
+          reward_preset?: string | null
           slug?: string
           state?: string | null
           status?: string
