@@ -59,17 +59,22 @@ export const CheckInPrimeScreen: React.FC<CheckInPrimeScreenProps> = ({
   const insets = useSafeAreaInsets();
   const [target, setTarget] = useState<PendingCheckinPrime | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
-  // The geofence probe must run exactly once even if the step re-renders.
-  const ranRef = useRef(false);
 
+  // Hold the resolve callback in a ref so the one-shot probe effect below does not
+  // depend on its (unstable) identity. OnboardingScreen re-renders right after this
+  // screen mounts (saveProgress → App-level setState), handing `onResolveToComplete`
+  // a fresh identity. If that identity were an effect dependency, React would tear
+  // down and re-run the effect mid-probe — cancelling the in-flight geofence lookup
+  // (via the cleanup's `cancelled = true`) and leaving the spinner stuck forever.
+  const onResolveRef = useRef(onResolveToComplete);
+  onResolveRef.current = onResolveToComplete;
+
+  // Keyed on `userId` only (stable for the screen's lifetime) → runs once per mount.
   useEffect(() => {
-    if (ranRef.current) return;
-    ranRef.current = true;
-
     let cancelled = false;
     const resolveAway = async () => {
       await markCheckinPrimeShown(userId);
-      if (!cancelled) onResolveToComplete();
+      if (!cancelled) onResolveRef.current();
     };
 
     void (async () => {
@@ -77,7 +82,7 @@ export const CheckInPrimeScreen: React.FC<CheckInPrimeScreenProps> = ({
         // Already resolved on a prior run (e.g. app killed while the card was up,
         // with `checkin_prime` saved as the resume step) — never re-probe/re-prompt.
         if (await hasShownCheckinPrime(userId)) {
-          if (!cancelled) onResolveToComplete();
+          if (!cancelled) onResolveRef.current();
           return;
         }
 
@@ -128,7 +133,7 @@ export const CheckInPrimeScreen: React.FC<CheckInPrimeScreenProps> = ({
             lng: userLng,
           });
         } else {
-          onResolveToComplete();
+          if (!cancelled) onResolveRef.current();
         }
       } catch {
         // Never dead-end onboarding on a location/RPC failure — proceed to the app.
@@ -139,7 +144,7 @@ export const CheckInPrimeScreen: React.FC<CheckInPrimeScreenProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [userId, onResolveToComplete]);
+  }, [userId]);
 
   // Detecting (and the brief window before a no-match resolves) — neutral spinner.
   if (!target) {
