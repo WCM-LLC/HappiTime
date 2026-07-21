@@ -64,6 +64,7 @@ export async function POST(req: NextRequest) {
       mode: 'subscription',
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
+      allow_promotion_codes: true,
       subscription_data: {
         metadata: { venue_id: venueId, org_id: orgId, plan },
       },
