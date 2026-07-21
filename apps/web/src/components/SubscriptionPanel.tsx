@@ -105,7 +105,7 @@ export function SubscriptionPanel({ venueId, orgId, currentPlan }: Props) {
       )}
 
       {/* Plan cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-2">
         {ALL_PLANS.map((plan) => {
           const price = PLAN_PRICE[plan];
           const style = PLAN_STYLE[plan];
@@ -153,6 +153,7 @@ export function SubscriptionPanel({ venueId, orgId, currentPlan }: Props) {
           );
         })}
       </div>
+      <p className="text-caption text-muted mb-8">Have a promo code? You can enter it at checkout.</p>
 
       {/* Feature switches — reflect selected preview plan */}
       <div>
