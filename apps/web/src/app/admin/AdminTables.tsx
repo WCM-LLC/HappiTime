@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition, useMemo } from 'react';
-import { adminToggleWindow, adminToggleVenueStatus, adminSetPromotionTier, type PromotionTier } from '@/actions/admin-actions';
+import { useEffect, useState, useTransition, useMemo } from 'react';
+import { adminToggleWindow, adminToggleVenueStatus, adminSetPromotionTier, adminSearchVenues, type PromotionTier } from '@/actions/admin-actions';
 import { adminSendPasswordReset, adminUpdateUserInfo } from '@/actions/admin-user-actions';
 import { adminUpdateOrganization } from '@/actions/admin-org-actions';
 import { STICKY_ACTION_HEAD, STICKY_ACTION_CELL } from '@/utils/stickyActionColumn';
@@ -502,8 +502,10 @@ export function OrgsTable({ orgs }: { orgs: OrgRow[] }) {
 /* ════════════════════════════════════════════════════════════════════════
    VENUES TABLE
    ════════════════════════════════════════════════════════════════════════ */
+const VENUE_SEARCH_MIN_CHARS = 2;
+const VENUE_SEARCH_DEBOUNCE_MS = 250;
+
 export function VenuesTable({ venues }: { venues: VenueRow[] }) {
-  const { sorted, col, dir, toggle } = useSort(venues, 'org_name');
   const [pending, startTransition] = useTransition();
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [promoUpdatingId, setPromoUpdatingId] = useState<string | null>(null);
@@ -516,6 +518,45 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  // Server-side search across ALL venues. The `venues` prop only holds the
+  // 100 most recently created, so typing a query swaps the table's row source
+  // to a database ilike search; clearing it swaps back. If the action fails
+  // (e.g. limited mode without the service-role key) serverRows stays null
+  // and the table degrades to client-side filtering of the loaded rows.
+  const [serverRows, setServerRows] = useState<VenueRow[] | null>(null);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    const trimmed = search.trim();
+    if (trimmed.length < VENUE_SEARCH_MIN_CHARS) {
+      setServerRows(null);
+      setSearching(false);
+      return;
+    }
+    let active = true;
+    setSearching(true);
+    const handle = setTimeout(async () => {
+      try {
+        const { rows, total } = await adminSearchVenues(trimmed);
+        if (!active) return;
+        setServerRows(rows);
+        setServerTotal(total);
+      } catch {
+        if (active) setServerRows(null);
+      } finally {
+        if (active) setSearching(false);
+      }
+    }, VENUE_SEARCH_DEBOUNCE_MS);
+    return () => {
+      active = false;
+      clearTimeout(handle);
+    };
+  }, [search]);
+
+  const baseRows = serverRows ?? venues;
+  const { sorted, col, dir, toggle } = useSort(baseRows, 'org_name');
+
   function resetFilters() {
     setSearch('');
     setStatusFilter([]);
@@ -527,7 +568,10 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
 
   const filtered = useMemo(() => {
     let r = sorted;
-    if (search) {
+    // With server results active the rows already match the query (on more
+    // fields than we have locally, e.g. address) — re-filtering here would
+    // wrongly drop them. Only text-filter when showing the local row set.
+    if (search && !serverRows) {
       const q = searchText(search);
       r = r.filter(
         (v) =>
@@ -550,7 +594,7 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
       r = r.filter((v) => (hasHH[0] === 'yes' ? v.hh_count > 0 : v.hh_count === 0));
     }
     return r;
-  }, [sorted, search, statusFilter, tierFilter, hasMedia, hasHH]);
+  }, [sorted, search, serverRows, statusFilter, tierFilter, hasMedia, hasHH]);
 
   const total = filtered.length;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -585,7 +629,16 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search venues…" />
+        <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search all venues…" />
+        {searching ? (
+          <span className="text-caption text-muted-light whitespace-nowrap">Searching all venues…</span>
+        ) : serverRows ? (
+          <span className="text-caption text-muted whitespace-nowrap">
+            {serverTotal > serverRows.length
+              ? `Showing first ${serverRows.length} of ${serverTotal} matches — refine your search`
+              : `${serverTotal} match${serverTotal === 1 ? '' : 'es'} across all venues`}
+          </span>
+        ) : null}
         <FilterChips
           label="Status"
           options={[

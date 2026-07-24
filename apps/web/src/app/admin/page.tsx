@@ -438,10 +438,13 @@ export default async function AdminPage({
 
         {/* ── Venues ── */}
         <section className="mb-10">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4">
             <h2 className="text-heading-sm font-semibold text-foreground">
-              Venues <span className="text-muted font-normal">({venues.length})</span>
+              Venues <span className="text-muted font-normal">({(venueCount ?? 0).toLocaleString()})</span>
             </h2>
+            <p className="text-body-sm text-muted mt-0.5">
+              Listing the {venues.length} most recently created. Search covers every venue.
+            </p>
           </div>
           <VenuesTable venues={venues} />
         </section>
