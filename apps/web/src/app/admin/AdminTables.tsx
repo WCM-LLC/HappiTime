@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, useTransition, useMemo } from 'react';
 import { adminToggleWindow, adminToggleVenueStatus, adminSetPromotionTier, adminSearchVenues, type PromotionTier } from '@/actions/admin-actions';
-import { adminSendPasswordReset, adminUpdateUserInfo } from '@/actions/admin-user-actions';
+import { adminSendPasswordReset, adminUpdateUserInfo, adminRemoveMembership, adminRemoveAllMemberships } from '@/actions/admin-user-actions';
 import { adminUpdateOrganization } from '@/actions/admin-org-actions';
 import { STICKY_ACTION_HEAD, STICKY_ACTION_CELL } from '@/utils/stickyActionColumn';
 
@@ -923,6 +923,16 @@ function roleSummary(memberships: UserRow['memberships']): string {
 function UserRowItem({ user }: { user: UserRow }) {
   const [editing, setEditing] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [confirmOrgId, setConfirmOrgId] = useState<string | null>(null);
+  const [confirmAll, setConfirmAll] = useState(false);
+
+  function toggleRemoving() {
+    setRemoving((v) => !v);
+    setConfirmOrgId(null);
+    setConfirmAll(false);
+    if (!removing) setEditing(false);
+  }
 
   return (
     <>
@@ -953,10 +963,18 @@ function UserRowItem({ user }: { user: UserRow }) {
           <div className="inline-flex gap-2 items-center justify-end">
             <button
               type="button"
-              onClick={() => setEditing((v) => !v)}
+              onClick={() => { setEditing((v) => !v); if (!editing) setRemoving(false); }}
               className="text-caption font-medium text-brand hover:text-brand-dark cursor-pointer"
             >
               {editing ? 'Cancel' : 'Edit'}
+            </button>
+            <span className="text-muted-light">·</span>
+            <button
+              type="button"
+              onClick={toggleRemoving}
+              className="text-caption font-medium text-error hover:underline cursor-pointer"
+            >
+              {removing ? 'Cancel' : 'Remove…'}
             </button>
             <span className="text-muted-light">·</span>
             {confirmReset ? (
@@ -990,6 +1008,84 @@ function UserRowItem({ user }: { user: UserRow }) {
           </div>
         </td>
       </tr>
+      {removing ? (
+        <tr className="bg-background/40 border-b border-border">
+          <td colSpan={6} className="px-4 py-4">
+            <div className="flex flex-col gap-2">
+              <p className="text-caption text-muted">
+                Removes dashboard access only — the user keeps their app account and can be re-invited
+                from an organization&apos;s Access page.
+              </p>
+              {user.memberships.map((m, i) => (
+                <div key={`${m.org_id}-${i}`} className="flex items-center gap-3">
+                  <span className="text-body-sm text-foreground">
+                    {m.org_name} <span className={roleBadgeCls(m.role)}>{m.role}</span>
+                  </span>
+                  {confirmOrgId === m.org_id ? (
+                    <form className="inline-flex gap-2 items-center">
+                      <input type="hidden" name="user_id" value={user.id} />
+                      <input type="hidden" name="org_id" value={m.org_id} />
+                      <input type="hidden" name="return_path" value="/admin" />
+                      <button
+                        formAction={adminRemoveMembership}
+                        className="text-caption font-medium text-error hover:underline cursor-pointer"
+                      >
+                        Confirm remove from {m.org_name}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmOrgId(null)}
+                        className="text-caption font-medium text-muted hover:text-foreground cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setConfirmOrgId(m.org_id); setConfirmAll(false); }}
+                      className="text-caption font-medium text-error hover:underline cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              {user.memberships.length > 1 ? (
+                <div className="pt-1 border-t border-border mt-1">
+                  {confirmAll ? (
+                    <form className="inline-flex gap-2 items-center">
+                      <input type="hidden" name="user_id" value={user.id} />
+                      <input type="hidden" name="return_path" value="/admin" />
+                      <button
+                        formAction={adminRemoveAllMemberships}
+                        className="text-caption font-semibold text-error hover:underline cursor-pointer"
+                      >
+                        Confirm remove all {user.memberships.length} memberships
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmAll(false)}
+                        className="text-caption font-medium text-muted hover:text-foreground cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setConfirmAll(true); setConfirmOrgId(null); }}
+                      className="text-caption font-medium text-error hover:underline cursor-pointer"
+                    >
+                      Remove all access ({user.memberships.length})
+                    </button>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </td>
+        </tr>
+      ) : null}
       {editing ? (
         <tr className="bg-background/40 border-b border-border">
           <td colSpan={6} className="px-4 py-4">
