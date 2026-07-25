@@ -14,6 +14,7 @@
 //   5b. Fallback cap  — ≤2 lifetime gps_fallback per (user, venue)
 //   5c. Abuse velocity— impossible-geography → venue_flags(abuse_suspected)
 //   6. Insert         — checkins row + venue_attribution_events row
+//                       + venue_visits row (Check Ins tab; _shared/presence-visit.ts)
 //   7. Return         — { stamps, stamps_to_next_round, is_first_visit }
 //
 // GPS fallback (fallback === true):
@@ -28,6 +29,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { serviceDate } from "../_shared/checkin-code.ts";
+import { recordPresenceVisit } from "../_shared/presence-visit.ts";
 import {
   haversineMeters,
   withinGeofence,
@@ -395,6 +397,12 @@ Deno.serve(async (req) => {
     if (attrErr) {
       console.error("[verify-checkin] attribution insert failed:", attrErr.message);
     }
+
+    // Presence bridge: the Check Ins tab reads only venue_visits, so a code
+    // check-in must land there too or the user sees nothing afterward.
+    // Non-critical ("skipped" = 3h cooldown already has a visit; "error" is
+    // logged inside) — stamps come from public.checkins either way.
+    await recordPresenceVisit(supabase, { userId, venueId });
 
     // Fallback: also write staff_code_unknown flag (informational, not a rejection).
     if (fallback) {
