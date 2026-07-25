@@ -1,49 +1,59 @@
 // src/hooks/useNotificationNavigation.ts
 import { useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
+import { resolveNotificationTarget } from "../lib/notificationTarget";
+
+// The navigator may still be mounting (e.g. just left the auth gate). Poll
+// isReady briefly so the tap isn't dropped. Same pattern as useVenueDeepLink /
+// useCheckinPrimeHandoff — on cold start the tap response arrives while App.tsx
+// is still walking its boot gates, well before NavigationContainer is ready.
+async function waitForNav(
+  navigationRef: React.RefObject<any>,
+  timeoutMs = 5000,
+): Promise<any | null> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const nav = navigationRef.current;
+    if (nav?.isReady?.()) return nav;
+    await new Promise<void>((resolve) => setTimeout(() => resolve(), 100));
+  }
+  return null;
+}
 
 /**
- * Handles notification deep linking.
- *
- * Notification payloads should include a `data` object with:
- *   - type: "happy_hour" | "venue" | "friend" | "itinerary" | "general"
- *   - windowId?: string   (for happy_hour type)
- *   - venueId?: string    (for venue type)
- *   - tab?: string        (for friend → Activity, general → Home)
+ * Handles notification deep linking. Payload routing lives in
+ * lib/notificationTarget.mjs (data.type → screen/params).
  */
 export function useNotificationNavigation(
   navigationRef: React.RefObject<any>
 ) {
+  // De-dupes between the warm listener and the cold-start fetch, which can
+  // both deliver the same response. Marked at dispatch time (before the nav
+  // poll) so the two paths can't double-navigate; waitForNav then rides out
+  // the boot gates instead of bailing.
   const lastHandledId = useRef<string | null>(null);
 
   useEffect(() => {
-    const handleResponse = (response: Notifications.NotificationResponse) => {
+    let cancelled = false;
+
+    const handleResponse = async (response: Notifications.NotificationResponse) => {
       const id = response.notification.request.identifier;
       if (lastHandledId.current === id) return;
-      lastHandledId.current = id;
 
       const data = response.notification.request.content.data as
         | Record<string, unknown>
         | undefined;
-      if (!data) return;
+      const target = resolveNotificationTarget(data);
+      if (!target) return; // not ours (e.g. visit_rating) — leave for other hooks
 
-      const nav = navigationRef.current;
-      if (!nav?.isReady()) return;
-
-      const type = data.type as string | undefined;
-
-      if (type === "happy_hour" && typeof data.windowId === "string") {
-        nav.navigate("HappyHourDetail", { windowId: data.windowId });
-      } else if (type === "venue" && typeof data.venueId === "string") {
-        nav.navigate("VenuePreview", { venueId: data.venueId });
-      } else if (type === "friend") {
-        nav.navigate("AppTabs" as any, { screen: "Activity" } as any);
-      } else if (type === "itinerary" && typeof data.listId === "string") {
-        // Open the shared itinerary directly. The screen fetches the list's
-        // header + venues from listId (a recipient can read a list shared with
-        // them via the shared_itinerary_read_grant RLS grant).
-        nav.navigate("ItineraryDetail", { listId: data.listId });
+      lastHandledId.current = id;
+      const nav = await waitForNav(navigationRef);
+      if (cancelled) return;
+      if (!nav) {
+        console.warn("[useNotificationNavigation] navigator never became ready; tap dropped:", target.screen);
+        return;
       }
+      nav.navigate(target.screen as any, target.params as any);
     };
 
     // Handle taps while the app is running
@@ -55,6 +65,9 @@ export function useNotificationNavigation(
       if (response) handleResponse(response);
     });
 
-    return () => subscription.remove();
+    return () => {
+      cancelled = true;
+      subscription.remove();
+    };
   }, [navigationRef]);
 }
