@@ -19,11 +19,18 @@ const migration = read(
 // access to the shared list and opens it in the dedicated detail screen.
 
 test("itinerary-share notification opens the ItineraryDetail screen, not the owner-only Favorites path", () => {
-  const src = read("apps/mobile/src/hooks/useNotificationNavigation.ts");
-  assert.match(src, /type === "itinerary"/);
-  assert.match(src, /navigate\(\s*["']ItineraryDetail["']/);
+  // Payload routing moved from the hook into the pure resolver lib; the
+  // guarantee is unchanged. The hook must consume the resolver, and the
+  // resolver must route itinerary taps to the dedicated detail screen.
+  const resolver = read("apps/mobile/src/lib/notificationTarget.mjs");
+  assert.match(resolver, /type === "itinerary"/);
+  assert.match(resolver, /screen:\s*["']ItineraryDetail["']/);
   // The broken owner-only reuse must be gone from the itinerary branch.
-  assert.doesNotMatch(src, /screen:\s*["']Favorites["'][^}]*openListId/);
+  assert.doesNotMatch(resolver, /screen:\s*["']Favorites["'][^}]*openListId/);
+
+  const hook = read("apps/mobile/src/hooks/useNotificationNavigation.ts");
+  assert.match(hook, /resolveNotificationTarget/);
+  assert.doesNotMatch(hook, /screen:\s*["']Favorites["'][^}]*openListId/);
 });
 
 test("migration adds a SECURITY DEFINER grant predicate that is forgery-proof (share authored by the list owner)", () => {
