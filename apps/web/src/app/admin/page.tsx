@@ -50,6 +50,8 @@ export default async function AdminPage({
     password_reset_sent: 'Password-reset email sent.',
     user_updated: 'User info updated.',
     org_updated: 'Organization updated. Venue display names propagated automatically.',
+    member_removed: 'Membership removed. The user keeps their app account and can be re-invited.',
+    member_access_revoked: 'All dashboard access removed. The user keeps their app account and can be re-invited.',
   };
   const noticeText = pageNotice ? (NOTICE_MESSAGES[pageNotice] ?? null) : null;
 
@@ -62,6 +64,10 @@ export default async function AdminPage({
     invalid_email: 'That email address is not valid.',
     user_update_failed: 'Updating the user failed. Check the logs.',
     member_update_failed: 'Updating the user worked, but their org membership rows failed to sync. Try again.',
+    cannot_remove_self: "You can't remove your own access.",
+    member_not_found: 'No membership rows were deleted — the membership may already be gone. Refresh and check.',
+    member_assignments_delete_failed: "Removing the user's venue assignments failed. Nothing was removed — check the logs.",
+    member_delete_failed: "Deleting the user's membership failed after their venue assignments were cleared. Check the logs.",
 
     // Org-action errors
     missing_org_id: 'No organization was selected.',
