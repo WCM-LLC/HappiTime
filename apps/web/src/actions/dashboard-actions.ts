@@ -68,8 +68,16 @@ async function redirectForDuplicateOrganizationSlug(
 
 /**
  * Server action: creates a new organization and adds the creator as owner.
- * Admin users use a service-role client to bypass the org_members insert RLS policy
- * which would otherwise fail before the membership row exists.
+ *
+ * Platform admins only. Organization creation is the entry point to the venue
+ * creation flow, so leaving it open to any signed-in account let non-owners
+ * (including super users, who are content contributors rather than venue staff)
+ * mint an org and start publishing venues. Real owners are onboarded by an
+ * admin, an org invite, or the venue claim flow — never by self-serve.
+ *
+ * This mirrors the RLS lockdown in
+ * supabase/migrations/20260727120000_lockdown_org_membership_escalation.sql;
+ * the database is the enforcement point and this check is the friendly surface.
  */
 export async function createOrganization(formData: FormData) {
   const supabase = await createClient();
@@ -78,16 +86,19 @@ export async function createOrganization(formData: FormData) {
   const user = auth.user;
   if (!user) redirect("/login");
 
+  if (!hasAdminEmailsConfigured() || !(await isAdmin())) {
+    redirect("/dashboard?error=org_create_forbidden");
+  }
+
   const name = String(formData.get("name") ?? "").trim();
   if (!name) redirect("/dashboard?error=missing_org_name");
 
   const slug = slugify(name);
 
-  // Admin users bypass RLS via service role client — necessary because the
+  // Admins bypass RLS via the service-role client — necessary because the
   // org_members insert policy does a sub-SELECT on organizations, which is
   // filtered by SELECT RLS before the user has any membership row.
-  const useAdmin = hasAdminEmailsConfigured() && (await isAdmin());
-  const dbClient = useAdmin ? getAdminClient() : supabase;
+  const dbClient = getAdminClient();
 
   const existingOrgId = await findOrganizationIdBySlug(dbClient, slug);
   if (existingOrgId) {
