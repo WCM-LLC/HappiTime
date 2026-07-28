@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/server';
 import { createOrganization, deleteOrganization, updateOrganization } from '../../actions/dashboard-actions';
 import ConfirmDeleteForm from '@/components/ConfirmDeleteForm';
 import SocialsPromptBanner from './SocialsPromptBanner';
+import { isAdmin } from '@/utils/admin';
 
 type MembershipRow = {
   role: string;
@@ -18,6 +19,8 @@ const DASHBOARD_ERROR_MESSAGES: Record<string, string> = {
   missing_org_name: 'Enter an organization name.',
   not_org_owner: 'You must be an organization owner to make that change.',
   not_authorized: 'That account does not have Super User or Super Admin access.',
+  org_create_forbidden:
+    'Only HappiTime admins can create organizations. If you manage a venue, ask us for an invite.',
 };
 
 export default async function DashboardPage({
@@ -43,6 +46,8 @@ export default async function DashboardPage({
     .maybeSingle();
 
   const p = socialProfile as any;
+  const isSuperUser = p?.role === 'super_user';
+  const canCreateOrganization = await isAdmin();
   const showSocialsPrompt =
     p?.role === 'super_user' &&
     !p?.socials_prompt_dismissed_at &&
@@ -77,11 +82,13 @@ export default async function DashboardPage({
             <h1 className="text-display-md font-bold text-foreground tracking-tight">Dashboard</h1>
             <p className="text-body-sm text-muted mt-1">Manage your organizations and venues.</p>
           </div>
-          <Link href="/admin">
-            <span className="inline-flex items-center justify-center h-8 px-3 rounded-md text-caption font-medium text-muted hover:text-foreground hover:bg-surface border border-border transition-colors cursor-pointer">
-              Admin Console
-            </span>
-          </Link>
+          {canCreateOrganization ? (
+            <Link href="/admin">
+              <span className="inline-flex items-center justify-center h-8 px-3 rounded-md text-caption font-medium text-muted hover:text-foreground hover:bg-surface border border-border transition-colors cursor-pointer">
+                Admin Console
+              </span>
+            </Link>
+          ) : null}
         </div>
 
         {/* Error Banner */}
@@ -94,35 +101,62 @@ export default async function DashboardPage({
 
         {showSocialsPrompt ? <SocialsPromptBanner /> : null}
 
-        {/* Create Organization */}
-        <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
-          <div className="mb-4">
-            <h2 className="text-heading-sm font-semibold text-foreground">New organization</h2>
-            <p className="text-body-sm text-muted mt-0.5">
-              Organizations group multiple venues with shared staff access.
-            </p>
-          </div>
-          <form className="flex gap-3 items-end">
-            <div className="flex-1">
-              <label htmlFor="org-name" className="text-body-sm font-medium text-foreground block mb-1.5">
-                Organization name
-              </label>
-              <input
-                id="org-name"
-                name="name"
-                placeholder="e.g., The Smith Group"
-                required
-                className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
-              />
+        {/* Create Organization — admins only. Organization creation opens the
+            venue creation flow, so it is not a self-serve surface. */}
+        {canCreateOrganization ? (
+          <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+            <div className="mb-4">
+              <h2 className="text-heading-sm font-semibold text-foreground">New organization</h2>
+              <p className="text-body-sm text-muted mt-0.5">
+                Organizations group multiple venues with shared staff access.
+              </p>
             </div>
-            <button
-              formAction={createOrganization}
-              className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer shrink-0"
-            >
-              Create
-            </button>
-          </form>
-        </div>
+            <form className="flex gap-3 items-end">
+              <div className="flex-1">
+                <label htmlFor="org-name" className="text-body-sm font-medium text-foreground block mb-1.5">
+                  Organization name
+                </label>
+                <input
+                  id="org-name"
+                  name="name"
+                  placeholder="e.g., The Smith Group"
+                  required
+                  className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors"
+                />
+              </div>
+              <button
+                formAction={createOrganization}
+                className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer shrink-0"
+              >
+                Create
+              </button>
+            </form>
+          </div>
+        ) : null}
+
+        {/* Super users are content contributors, not venue staff — send them to
+            their own console rather than an empty org list. */}
+        {isSuperUser && orgMemberships.length === 0 ? (
+          <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
+            <h2 className="text-heading-sm font-semibold text-foreground">Your Insider console</h2>
+            <p className="text-body-sm text-muted mt-0.5 mb-4">
+              Write guides, track your referrals, and manage your public profile.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { href: '/dashboard/guides', label: 'Guides' },
+                { href: '/dashboard/referrals', label: 'Referrals' },
+                { href: '/dashboard/profile', label: 'Profile' },
+              ].map((link) => (
+                <Link key={link.href} href={link.href}>
+                  <span className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-dark text-dark-foreground text-body-sm font-medium hover:bg-dark/90 transition-colors cursor-pointer">
+                    {link.label}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {/* Organizations List */}
         <div>
@@ -140,7 +174,9 @@ export default async function DashboardPage({
               <div className="text-muted-light text-display-md mb-3">&#9881;</div>
               <p className="text-body-sm font-medium text-foreground">No organizations yet</p>
               <p className="text-body-sm text-muted mt-1">
-                Create your first organization above to get started.
+                {canCreateOrganization
+                  ? 'Create your first organization above to get started.'
+                  : 'You have not been added to an organization. If you manage a venue, ask HappiTime for an invite.'}
               </p>
             </div>
           ) : (
