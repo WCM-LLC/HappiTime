@@ -554,8 +554,7 @@ export default async function VenueDetailPage({ params }: Props) {
             Is this your place?
           </h2>
           <p className="text-sm text-muted mt-1">
-            Claim your venue to manage hours, menus, and deals &mdash; 50% off
-            for your first 3 months.
+            Claim your venue to manage your hours, menus, and deals.
           </p>
         </div>
         <a
