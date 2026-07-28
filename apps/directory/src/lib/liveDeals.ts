@@ -1,36 +1,15 @@
 import { getAllKCVenues } from "@/lib/queries";
 import type { LiveDeal } from "@/components/ForkOpener";
+import { formatClock, kcNowParts } from "@/lib/kcTime";
 
 /* The opener's headline reads "in Kansas City", so every time calculation here
    runs in KC's timezone — not the visitor's. Someone opening the site from
-   Denver should still be told what is pouring in KC right now. */
-const KC_TZ = "America/Chicago";
-const DOW: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
-
-export function kcNowParts(date = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: KC_TZ,
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(date);
-
-  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  // Some ICU builds emit "24" for midnight with hour12:false.
-  const hour = Number(get("hour")) % 24;
-  return { dow: DOW[get("weekday")] ?? 0, minutes: hour * 60 + Number(get("minute")) };
-}
+   Denver should still be told what is pouring in KC right now. That rule lives
+   in lib/kcTime, shared with the /kc/ map so the two can never disagree. */
 
 function toMinutes(time: string) {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + (m || 0);
-}
-
-export function formatClock(minutes: number) {
-  const h24 = Math.floor(minutes / 60) % 24;
-  const h = h24 % 12 || 12;
-  return `${h}:${String(minutes % 60).padStart(2, "0")} ${h24 >= 12 ? "PM" : "AM"}`;
 }
 
 /* Window labels are frequently a schedule ("Daily", "Mon-Fri") rather than a
