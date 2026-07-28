@@ -263,10 +263,10 @@ export default function StartOpener({
               className="flex cursor-pointer flex-col gap-2.5 rounded-lg border border-brand-light bg-brand-subtle p-7 text-left transition-shadow duration-normal ease-default hover:shadow-xl disabled:cursor-default md:p-8"
             >
               <span className="text-[26px] font-bold leading-[1.1] tracking-[-0.02em] md:text-[30px]">
-                I am here for the drinks
+                I am here for the deals
               </span>
               <span className="text-base leading-[1.5] text-brand-dark-alt">
-                Show me what is pouring near me, right now.
+                Show me what is on near me, right now.
               </span>
               <span className="mt-2.5 flex items-center gap-2.5 text-sm font-semibold text-brand-dark">
                 {pressing === "deals" && <Spinner />}
