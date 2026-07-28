@@ -18,6 +18,7 @@
 import type { Metadata } from "next";
 import ComingSoon from "./coming-soon";
 import ForkOpener from "@/components/ForkOpener";
+import { PageTracker } from "@/components/PageTracker";
 import { getOpenerProps } from "@/lib/liveDeals";
 
 export const revalidate = 60;
@@ -40,5 +41,14 @@ export default async function HomePage() {
     return <ComingSoon />;
   }
 
-  return <ForkOpener {...(await getOpenerProps())} />;
+  return (
+    <>
+      {/* The fork is only worth keeping if people pass through it. This
+          page_view is the denominator; the doors fire cta_click as the
+          numerator, and both share a session_id because the doors navigate
+          client-side. Without it every session looks like a bounce. */}
+      <PageTracker pagePath="/" />
+      <ForkOpener {...(await getOpenerProps())} />
+    </>
+  );
 }
