@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { trackEvent } from "@/lib/tracking";
 
 export type LiveDeal = {
   id: string;
@@ -136,6 +137,17 @@ export default function StartOpener({
         /* non-fatal */
       }
 
+      /* Fire-and-forget: this shares a session_id with the page_view on `/`
+         because the doors navigate client-side, which is what makes
+         "did they pass through the fork" answerable. Not awaited — the
+         request survives an SPA navigation, and analytics must never be able
+         to delay or block the door. */
+      void trackEvent({
+        eventType: "cta_click",
+        pagePath: "/",
+        meta: { door: role, resumed: remembered === role },
+      });
+
       if (prefersReducedMotion()) {
         router.push(DESTINATIONS[role]);
         return;
@@ -156,7 +168,7 @@ export default function StartOpener({
         }, 420)
       );
     },
-    [pressing, router]
+    [pressing, remembered, router]
   );
 
   const forget = () => {
