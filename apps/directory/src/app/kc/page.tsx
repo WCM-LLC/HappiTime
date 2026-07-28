@@ -9,6 +9,7 @@ import { getAllKCVenues } from "@/lib/queries";
 import type { VenueWithWindows } from "@/lib/queries";
 import { itemListJsonLd } from "@/lib/structuredData";
 import { KCMapPage } from "@/components/KCMapPage";
+import { PageTracker } from "@/components/PageTracker";
 
 // Revalidate every 15 minutes — keeps venue data fresh
 export const revalidate = 900;
@@ -222,6 +223,12 @@ export default async function KCPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(webPageJsonLd) }}
       />
+      {/* The directory landing page was the one major surface with no
+          page_view, which left the front door's numbers with nothing to be
+          compared against. Sessions that arrive here from the fork already
+          carry a page_view on `/`, so entry point is the discriminator when
+          reading these: first event on `/kc/` = landed here directly. */}
+      <PageTracker pagePath="/kc/" />
       <KCMapPage
         venues={venues}
         neighborhoods={KC_NEIGHBORHOODS}
