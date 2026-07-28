@@ -91,7 +91,7 @@ const ORGANIZATION_JSONLD = {
   sameAs: [
     "https://www.instagram.com/happitime.biz/",
     "https://www.facebook.com/profile.php?id=61570674155925",
-    "https://www.tiktok.com/@happitime.biz",
+    "https://www.tiktok.com/@_happitime_",
     "https://apps.apple.com/us/app/happitime/id6757933269",
   ],
 };
@@ -255,7 +255,7 @@ function SiteFooter() {
             Facebook
           </a>
           <a
-            href="https://www.tiktok.com/@happitime.biz"
+            href="https://www.tiktok.com/@_happitime_"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-foreground transition-colors"
