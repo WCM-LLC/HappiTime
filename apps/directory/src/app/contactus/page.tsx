@@ -1,8 +1,16 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type SubmitState = "idle" | "loading" | "success" | "error";
+
+/** Subjects pre-filled when a venue owner arrives from a /pricing plan CTA, so
+ *  the lead carries which plan was clicked instead of landing on a blank form. */
+const PLAN_SUBJECTS: Record<string, string> = {
+  featured: "Featured plan ($99/mo) — start 30 days free",
+  verified: "Verified plan ($49/mo) — get Verified",
+};
 
 const MAX_SUBJECT_LENGTH = 160;
 const MAX_MESSAGE_LENGTH = 4000;
@@ -16,9 +24,12 @@ const ACCEPTED_FILE_TYPES = [
   "text/plain",
 ];
 
-export default function ContactUsPage() {
+function ContactUsForm() {
+  const plan = useSearchParams().get("plan");
+  const planSubject = plan ? (PLAN_SUBJECTS[plan] ?? "") : "";
+
   const [email, setEmail] = useState("");
-  const [subject, setSubject] = useState("");
+  const [subject, setSubject] = useState(planSubject);
   const [message, setMessage] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [state, setState] = useState<SubmitState>("idle");
@@ -112,10 +123,12 @@ export default function ContactUsPage() {
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-12">
       <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">
-        Contact Support
+        {planSubject ? "Get your venue listed" : "Contact Support"}
       </h1>
       <p className="text-sm text-muted mb-8">
-        Need help with HappiTime? Send us your question and our team will follow up.
+        {planSubject
+          ? "Tell us about your venue and we'll get you set up — typically within one business day."
+          : "Need help with HappiTime? Send us your question and our team will follow up."}
       </p>
 
       <form onSubmit={onSubmit} className="rounded-xl border border-border bg-surface p-6 shadow-sm space-y-5">
@@ -207,5 +220,15 @@ export default function ContactUsPage() {
         </button>
       </form>
     </main>
+  );
+}
+
+export default function ContactUsPage() {
+  // useSearchParams() needs a Suspense boundary or the whole route opts into
+  // client-side rendering at build time.
+  return (
+    <Suspense fallback={<main className="mx-auto w-full max-w-3xl px-6 py-12" />}>
+      <ContactUsForm />
+    </Suspense>
   );
 }

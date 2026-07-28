@@ -1,0 +1,79 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const repoRoot = join(__dirname, "..");
+const read = (rel) => readFileSync(join(repoRoot, rel), "utf8");
+
+const pricing = read("apps/directory/src/app/pricing/page.tsx");
+const contact = read("apps/directory/src/app/contactus/page.tsx");
+const globals = read("apps/directory/src/app/globals.css");
+const layout = read("apps/directory/src/app/layout.tsx");
+
+// /pricing is the port of the "Venue Pricing" design. There is no public
+// self-serve checkout -- /api/stripe/checkout requires an authenticated owner
+// with an existing venue+org -- so the paid CTAs hand off to the contact flow
+// carrying the plan. The paid CTAs now point at live Stripe Payment Links.
+
+test("paid plan CTAs point at live Stripe Payment Links", () => {
+  const links = [...pricing.matchAll(/https:\/\/buy\.stripe\.com\/[A-Za-z0-9]+/g)].map((m) => m[0]);
+  assert.ok(links.length >= 2, "expected a Payment Link for both paid plans");
+
+  // Copy-paste guard: billing Verified at the Featured link (or vice versa) would
+  // charge the wrong amount, and the page would still look correct.
+  assert.equal(new Set(links).size, 2, "Featured and Verified must not share a link");
+
+  // The design shipped with unresolved placeholders; they must not reach prod.
+  assert.doesNotMatch(pricing, /STRIPE_PAYMENT_LINK/, "placeholder hrefs must be replaced");
+  // Paid plans go to Stripe now, not the contact form.
+  assert.doesNotMatch(pricing, /\/contactus\?plan=/, "paid CTAs should be Payment Links");
+});
+
+test("the free tier still goes to /claim, not to a paid checkout", () => {
+  // Regression guard: sending the $0 tier to a Payment Link would ask a free
+  // signup for a card.
+  assert.match(pricing, /href="\/claim"/);
+});
+
+test("the contact form can still prefill a subject for each paid plan", () => {
+  // /pricing no longer links here, but the plan-specific subjects remain valid
+  // for hand-sent links and bundle conversations.
+  for (const plan of ["featured", "verified"]) {
+    assert.match(
+      contact,
+      new RegExp(`^\\s*${plan}:`, "m"),
+      `PLAN_SUBJECTS is missing "${plan}"`
+    );
+  }
+});
+
+test("useSearchParams in the contact form is wrapped in Suspense", () => {
+  // Without a boundary the whole route silently opts into client rendering.
+  assert.match(contact, /useSearchParams/);
+  assert.match(contact, /<Suspense/);
+});
+
+test("the pricing page does not duplicate the site chrome", () => {
+  // layout.tsx already renders SiteHeader/SiteFooter around every page; the
+  // source design was standalone and carried its own nav + footer.
+  assert.match(layout, /SiteHeader|SiteFooter/);
+  assert.doesNotMatch(pricing, /<nav\b/, "site nav comes from the layout");
+  assert.doesNotMatch(pricing, /<footer\b/, "site footer comes from the layout");
+});
+
+test("headings opt out of the Boska serif via an unlayered rule", () => {
+  // A Tailwind font utility loses to the unlayered `h1,h2,h3` rule in
+  // globals.css (unlayered styles beat any @layer), so the override must be
+  // unlayered too -- not an @utility/@layer declaration.
+  assert.match(pricing, /heading-sans/);
+  assert.match(globals, /\.heading-sans\s*\{[^}]*--font-jakarta/);
+  assert.doesNotMatch(
+    globals,
+    /@layer[^{]*\{[^}]*\.heading-sans/s,
+    "heading-sans must stay unlayered or the serif wins"
+  );
+});
