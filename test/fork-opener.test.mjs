@@ -54,12 +54,18 @@ test("every time calculation is in Kansas City time, not the visitor's", () => {
 });
 
 test("the headline copy defers to live data before falling back to hour buckets", () => {
-  // Regression: at 7am the hour bucket claimed "Nothing is pouring yet" directly
-  // above a ticker listing an active happy hour.
+  // Regression: at 7am the hour bucket claimed nothing was on, directly above a
+  // ticker listing an active happy hour.
   const fn = opener.slice(opener.indexOf("function timeCopy"));
   const body = fn.slice(0, fn.indexOf("\nfunction "));
+  const liveBranch = body.indexOf("liveCount > 0");
+  // Anchored on the branch structure, not on the wording — copy gets rewritten,
+  // and this guard is about ordering, not about any particular sentence.
+  const firstHourBucket = body.indexOf("h < 11");
+  assert.notEqual(liveBranch, -1, "expected a live-count branch");
+  assert.notEqual(firstHourBucket, -1, "expected the hour-bucket fallback");
   assert.ok(
-    body.indexOf("liveCount > 0") < body.indexOf("Nothing is pouring yet"),
+    liveBranch < firstHourBucket,
     "the live-count branch must precede the hour buckets"
   );
 });
