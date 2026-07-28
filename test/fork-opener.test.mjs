@@ -12,6 +12,7 @@ const read = (rel) => readFileSync(join(repoRoot, rel), "utf8");
 const page = read("apps/directory/src/app/page.tsx");
 const opener = read("apps/directory/src/components/ForkOpener.tsx");
 const deals = read("apps/directory/src/lib/liveDeals.ts");
+const kcTime = read("apps/directory/src/lib/kcTime.mjs");
 const startRoute = read("apps/directory/src/app/start/page.tsx");
 
 // /start is take "1a — the clock leads" from the HappiTime Opener design canvas:
@@ -44,7 +45,10 @@ test("no fabricated specials or prices from the design canvas survive", () => {
 test("every time calculation is in Kansas City time, not the visitor's", () => {
   // The headline literally reads "in Kansas City", so a visitor in Denver must
   // still be told KC's time. The design's original used visitor-local time.
-  assert.match(deals, /America\/Chicago/);
+  // The rule itself lives in lib/kcTime (behaviour covered by kc-time.test.mjs);
+  // liveDeals must consume it rather than re-deriving the day locally.
+  assert.match(kcTime, /America\/Chicago/);
+  assert.match(deals, /from "@\/lib\/kcTime"/);
   assert.match(opener, /America\/Chicago/);
   assert.doesNotMatch(opener, /new Date\(\)\.getHours\(\)/, "getHours() is visitor-local");
 });

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import type { VenueWithWindows, VenueEvent } from "@/lib/queries";
 import type { Neighborhood } from "@/lib/neighborhoods";
 import { eventOccursToday } from "@/lib/eventUtils";
+import { kcNow } from "@/lib/kcTime";
 import { venueImageUrl } from "@/lib/mediaUrl";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -892,7 +893,8 @@ function EventsCalendarModal({
   bestNeighborhoodSlugMap: Record<string, string>;
   onClose: () => void;
 }) {
-  const today = new Date();
+  // Same rule as the listing: the event calendar opens on Kansas City's today.
+  const today = kcNow();
   const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDay, setSelectedDay] = useState<Date>(today);
 
@@ -1065,7 +1067,12 @@ type KCMapPageProps = {
 };
 
 export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KCMapPageProps) {
-  const now = new Date();
+  /* Kansas City's wall clock, not the visitor's. "Open now", "today's hours"
+     and "today's events" all key off this — using the browser's clock showed
+     the wrong day to anyone outside Central time, and to everyone in the hours
+     either side of midnight. It also keeps the server render and the client
+     hydration agreeing on which day it is. */
+  const now = kcNow();
   const todayDow = now.getDay();
 
   const [filters, setFilters] = useState<Filters>({
