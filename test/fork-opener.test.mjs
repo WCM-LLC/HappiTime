@@ -9,8 +9,10 @@ const __dirname = dirname(__filename);
 const repoRoot = join(__dirname, "..");
 const read = (rel) => readFileSync(join(repoRoot, rel), "utf8");
 
-const page = read("apps/directory/src/app/start/page.tsx");
-const opener = read("apps/directory/src/app/start/StartOpener.tsx");
+const page = read("apps/directory/src/app/page.tsx");
+const opener = read("apps/directory/src/components/ForkOpener.tsx");
+const deals = read("apps/directory/src/lib/liveDeals.ts");
+const startRoute = read("apps/directory/src/app/start/page.tsx");
 
 // /start is take "1a — the clock leads" from the HappiTime Opener design canvas:
 // a live KC clock and a two-door fork (drinkers vs. venue operators).
@@ -42,7 +44,7 @@ test("no fabricated specials or prices from the design canvas survive", () => {
 test("every time calculation is in Kansas City time, not the visitor's", () => {
   // The headline literally reads "in Kansas City", so a visitor in Denver must
   // still be told KC's time. The design's original used visitor-local time.
-  assert.match(page, /America\/Chicago/);
+  assert.match(deals, /America\/Chicago/);
   assert.match(opener, /America\/Chicago/);
   assert.doesNotMatch(opener, /new Date\(\)\.getHours\(\)/, "getHours() is visitor-local");
 });
@@ -58,9 +60,34 @@ test("the headline copy defers to live data before falling back to hour buckets"
   );
 });
 
-test("the opener stays out of the index while / still serves the directory", () => {
-  // Two entry points competing for the same terms reads as a doorway page.
-  assert.match(page, /robots:\s*\{\s*index:\s*false/);
+test("the opener is the front door and is indexable", () => {
+  // It briefly lived at /start behind a noindex. As `/` it is the site's only
+  // indexable entry point, so that guard must be gone.
+  assert.doesNotMatch(page, /index:\s*false/, "the front door must not be noindexed");
+  assert.doesNotMatch(page, /redirect\("\/kc\//, "`/` no longer bounces to the directory");
+  assert.match(page, /<ForkOpener/);
+});
+
+test("the pre-launch splash still short-circuits the opener", () => {
+  // Regression: promoting the opener must not strand NEXT_PUBLIC_COMING_SOON.
+  const body = page.slice(page.indexOf("export default async function HomePage"));
+  assert.ok(
+    body.indexOf("NEXT_PUBLIC_COMING_SOON") < body.indexOf("<ForkOpener"),
+    "the coming-soon branch must return before the opener renders"
+  );
+});
+
+test("/start folds into the front door instead of duplicating it", () => {
+  assert.match(startRoute, /redirect\("\/"\)/, "the same page must not serve at two URLs");
+});
+
+test("the front door still targets happy-hour search intent", () => {
+  // `/` used to be a redirect, so /kc/ carried the keywords. Now that `/` is a
+  // real indexable page, a fork with two buttons is thin on its own — the
+  // metadata has to do the ranking work.
+  assert.match(page, /Kansas City Happy Hour/i);
+  assert.match(page, /description:/);
+  assert.match(page, /canonical:\s*"\/"/);
 });
 
 test("motion-sensitive visitors skip the transition instead of waiting", () => {
