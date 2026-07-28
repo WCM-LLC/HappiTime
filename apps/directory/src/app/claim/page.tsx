@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Claim Your Venue — List Your Happy Hour on HappiTime",
   description:
-    "Own a bar or restaurant? Claim your venue on HappiTime and manage your happy hour listings. New business launch — 50% off for the first 3 months.",
+    "Own a bar or restaurant? Claim your venue on HappiTime and manage your happy hour listings — hours, menus, deals, and photos, updated by you.",
 };
 
 export default function ClaimPage() {
@@ -22,7 +22,7 @@ export default function ClaimPage() {
       <div className="text-center mb-12">
         <div className="inline-flex items-center gap-2 rounded-full bg-brand-subtle px-4 py-1.5 text-sm font-semibold text-brand mb-6">
           <span className="w-2 h-2 rounded-full bg-brand animate-pulse" />
-          Launch Special — 50% Off
+          For KC bars &amp; restaurants
         </div>
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-foreground mb-4">
           Is this your place?
@@ -30,18 +30,6 @@ export default function ClaimPage() {
         <p className="text-lg text-muted max-w-xl mx-auto">
           Claim your venue on HappiTime and put your happy hour in front of
           thousands of locals looking for their next spot.
-        </p>
-      </div>
-
-      {/* Promo card */}
-      <div className="rounded-2xl border-2 border-brand bg-brand-subtle/30 p-8 mb-12 text-center">
-        <h2 className="text-2xl font-extrabold text-foreground mb-3">
-          50% off for the first 3 months
-        </h2>
-        <p className="text-muted max-w-md mx-auto mb-1">
-          We&rsquo;re a new business and we want to grow with you. Sign up now
-          and lock in half-price for your first three months &mdash; no
-          commitment after that.
         </p>
       </div>
 
