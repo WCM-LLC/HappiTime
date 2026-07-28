@@ -26,11 +26,19 @@ const FEATURED_PRICE = 99;
 const EXTRA_REVENUE = AVG_TAB * 2;
 const NET_MONTHLY = EXTRA_REVENUE - FEATURED_PRICE;
 
-/* Paid plans have no public self-serve checkout — /api/stripe/checkout requires
-   an authenticated owner with an existing venue+org. Paid CTAs open the contact
-   flow with the plan carried through so the lead knows what was clicked. */
-const FEATURED_CTA = "/contactus?plan=featured";
-const VERIFIED_CTA = "/contactus?plan=verified";
+/* Live Stripe Payment Links. They bill the same products the venue console
+   checkout uses, so revenue reporting stays in one place:
+     Featured — price_1TRj8H0lEKgQwNRsRg2AUHkS, $99/mo, 30-day trial ($0 today)
+     Verified — price_1TRi7F0lEKgQwNRswEDWdTXC, $49/mo, no trial
+
+   A Payment Link carries no venue/org context, so the resulting subscription has
+   no venue_id metadata and the Stripe webhook deliberately skips it (see
+   handleSubscriptionUpsert in apps/web/src/app/api/stripe/webhook/route.ts).
+   Both links therefore collect venue name + city as required checkout fields so
+   the payment can be matched to a listing by hand — which is what the "We connect
+   your venue" step below promises. */
+const FEATURED_CTA = "https://buy.stripe.com/dRm5kvctPgrQctW7QF7Re00";
+const VERIFIED_CTA = "https://buy.stripe.com/28E9ALbpL7Vkdy02wl7Re01";
 
 const SHELL = "mx-auto max-w-5xl px-6";
 /* The source design sets Plus Jakarta Sans on every heading. The site shell
@@ -582,14 +590,14 @@ export default function PricingPage() {
                 title: "Pick a plan",
                 body: (
                   <>
-                    Tell us which plan fits and we&rsquo;ll get you set up. Featured starts with{" "}
+                    Check out securely with Stripe. Featured starts with{" "}
                     <b className="text-foreground">30 days free</b> — $0 charged today.
                   </>
                 ),
               },
               {
                 title: "We connect your venue",
-                body: "We match your account to your listing and email your venue console login — typically within one business day.",
+                body: "You tell us your venue name at checkout, we match your payment to your listing, and we email your venue console login — typically within one business day.",
               },
               {
                 title: "You take the wheel",
@@ -675,8 +683,8 @@ export default function PricingPage() {
               a: "Unlike AI-scraped aggregators, HappiTime only shows happy-hour data that's been confirmed with the venue. That's why locals trust the listings — and why a Verified badge means something to them.",
             },
             {
-              q: "What happens after I sign up?",
-              a: "We match your account to your venue and send your console login — typically within one business day. Your badge and ranking upgrade go live as soon as your venue is connected.",
+              q: "What happens right after I pay?",
+              a: "Stripe emails you a receipt, and because you enter your venue name and city at checkout, we can match the payment straight to your listing. You get console access within one business day, and your badge and ranking upgrade go live as soon as your venue is connected.",
             },
             {
               q: "How do I update my specials?",
@@ -688,7 +696,7 @@ export default function PricingPage() {
             },
             {
               q: "How does the free 30 days of Featured work?",
-              a: "Your first 30 days of Featured are free — $0 charged today, with billing starting on day 31 at $99/mo. Cancel anytime during those 30 days and you pay nothing at all. We'll email you a reminder before the trial ends.",
+              a: "Start Featured and Stripe collects your card but charges $0 today. Your first $99 charge lands on day 31. Cancel anytime during the 30 days and you pay nothing at all. You'll get an email reminder before the trial ends.",
             },
           ].map((item) => (
             <details

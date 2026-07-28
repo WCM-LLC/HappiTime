@@ -17,29 +17,36 @@ const layout = read("apps/directory/src/app/layout.tsx");
 // /pricing is the port of the "Venue Pricing" design. There is no public
 // self-serve checkout -- /api/stripe/checkout requires an authenticated owner
 // with an existing venue+org -- so the paid CTAs hand off to the contact flow
-// carrying the plan. These two files have to agree or the lead loses context.
+// carrying the plan. The paid CTAs now point at live Stripe Payment Links.
 
-test("paid plan CTAs carry the plan through to the contact flow", () => {
-  for (const plan of ["featured", "verified"]) {
-    assert.match(
-      pricing,
-      new RegExp(`/contactus\\?plan=${plan}`),
-      `the ${plan} CTA must hand off to /contactus?plan=${plan}`
-    );
-  }
+test("paid plan CTAs point at live Stripe Payment Links", () => {
+  const links = [...pricing.matchAll(/https:\/\/buy\.stripe\.com\/[A-Za-z0-9]+/g)].map((m) => m[0]);
+  assert.ok(links.length >= 2, "expected a Payment Link for both paid plans");
+
+  // Copy-paste guard: billing Verified at the Featured link (or vice versa) would
+  // charge the wrong amount, and the page would still look correct.
+  assert.equal(new Set(links).size, 2, "Featured and Verified must not share a link");
+
   // The design shipped with unresolved placeholders; they must not reach prod.
   assert.doesNotMatch(pricing, /STRIPE_PAYMENT_LINK/, "placeholder hrefs must be replaced");
+  // Paid plans go to Stripe now, not the contact form.
+  assert.doesNotMatch(pricing, /\/contactus\?plan=/, "paid CTAs should be Payment Links");
 });
 
-test("the contact form prefills a subject for every plan /pricing links to", () => {
-  const linked = [...pricing.matchAll(/\/contactus\?plan=([a-z]+)/g)].map((m) => m[1]);
-  assert.ok(linked.length > 0, "expected /pricing to link at least one plan");
+test("the free tier still goes to /claim, not to a paid checkout", () => {
+  // Regression guard: sending the $0 tier to a Payment Link would ask a free
+  // signup for a card.
+  assert.match(pricing, /href="\/claim"/);
+});
 
-  for (const plan of new Set(linked)) {
+test("the contact form can still prefill a subject for each paid plan", () => {
+  // /pricing no longer links here, but the plan-specific subjects remain valid
+  // for hand-sent links and bundle conversations.
+  for (const plan of ["featured", "verified"]) {
     assert.match(
       contact,
       new RegExp(`^\\s*${plan}:`, "m"),
-      `PLAN_SUBJECTS is missing "${plan}", so that CTA would land on a blank form`
+      `PLAN_SUBJECTS is missing "${plan}"`
     );
   }
 });
