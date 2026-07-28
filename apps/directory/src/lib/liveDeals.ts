@@ -4,7 +4,7 @@ import { formatClock, kcNowParts } from "@/lib/kcTime";
 
 /* The opener's headline reads "in Kansas City", so every time calculation here
    runs in KC's timezone — not the visitor's. Someone opening the site from
-   Denver should still be told what is pouring in KC right now. That rule lives
+   Denver should still be told what is on in KC right now. That rule lives
    in lib/kcTime, shared with the /kc/ map so the two can never disagree. */
 
 function toMinutes(time: string) {

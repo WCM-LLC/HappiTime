@@ -41,7 +41,7 @@ function formatClock(minutes: number) {
 /**
  * The design bucketed this line purely by hour, which was fine when the deals
  * were hardcoded. Against live data that contradicts itself — at 7am it claimed
- * "nothing is pouring yet" directly above a ticker listing an active happy hour.
+ * "nothing is on yet" directly above a ticker listing an active happy hour.
  * Real counts win; the hour buckets are the fallback for when nothing is on.
  */
 function timeCopy(minutes: number, liveCount: number, firstEndsAt: string | null) {
@@ -51,11 +51,11 @@ function timeCopy(minutes: number, liveCount: number, firstEndsAt: string | null
       : `${liveCount} happy hours are running right now. The first ends at ${firstEndsAt}.`;
   }
   const h = Math.floor(minutes / 60);
-  if (h < 11) return "Nothing is pouring yet. Bookmark this and come back at three.";
-  if (h < 15) return "Two hours until the first pours. Pick your spot early.";
-  if (h < 19) return "Somewhere within a mile of you is pouring half-off. We know where.";
+  if (h < 11) return "Nothing is on yet. Bookmark this and come back at three.";
+  if (h < 15) return "Two hours until the first deals start. Pick your spot early.";
+  if (h < 19) return "Somewhere within a mile of you is half-off right now. We know where.";
   if (h < 23) return "Late-night menus are live. The good ones run until close.";
-  return "Last call is close, but a few kitchens are still open.";
+  return "Most specials are winding down, but a few kitchens are still open.";
 }
 
 function prefersReducedMotion() {
@@ -255,7 +255,7 @@ export default function StartOpener({
             aria-labelledby="fork-label"
             className="grid grid-cols-1 gap-5 md:grid-cols-2"
           >
-            {/* Door 1 — drinkers */}
+            {/* Door 1 — deal seekers */}
             <button
               type="button"
               onClick={() => go("deals")}
@@ -309,7 +309,7 @@ export default function StartOpener({
           <div className="flex flex-col gap-3 border-t border-border pt-6">
             <span className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.1em] text-muted-light">
               <span aria-hidden="true" className="size-1.5 animate-pulse rounded-full bg-success" />
-              Pouring right now
+              Happening right now
             </span>
             <ul className="flex flex-col gap-2 md:flex-row md:flex-wrap md:gap-x-8">
               {ticker.map((d) => (
