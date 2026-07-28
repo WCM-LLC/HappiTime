@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageTracker } from "@/components/PageTracker";
 
 export const metadata: Metadata = {
   title: "Venue Pricing — Get Your Happy Hour Found on HappiTime",
@@ -139,6 +140,11 @@ function FeatureList({ items }: { items: Feature[] }) {
 export default function PricingPage() {
   return (
     <>
+      {/* Completes the venue-side funnel. The fork's cta_click already records
+          that someone chose the "pouring" door; this records whether they
+          actually arrived, so a door that gets pressed but never lands is
+          distinguishable from one that converts. */}
+      <PageTracker pagePath="/pricing/" />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(PRICING_JSONLD) }}
