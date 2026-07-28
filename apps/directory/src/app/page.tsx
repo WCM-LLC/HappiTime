@@ -26,12 +26,12 @@ export const revalidate = 60;
 export const metadata: Metadata = {
   title: "HappiTime — Kansas City Happy Hour Deals, Live Right Now",
   description:
-    "See which Kansas City happy hours are pouring right now, sorted by what ends soonest — Westport, Power & Light, Crossroads, the Plaza and more. Own a venue? See what it costs to fill your slow hours.",
+    "See which Kansas City happy hours are on right now, sorted by what ends soonest — Westport, Power & Light, Crossroads, the Plaza and more. Own a venue? See what it costs to fill your slow hours.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "HappiTime — Kansas City Happy Hour Deals, Live Right Now",
     description:
-      "Which Kansas City happy hours are pouring right now, sorted by what ends soonest.",
+      "Which Kansas City happy hours are on right now, sorted by what ends soonest.",
     url: "https://happitime.biz",
   },
 };
