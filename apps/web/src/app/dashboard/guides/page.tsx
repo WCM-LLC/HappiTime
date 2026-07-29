@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/server';
 import { deleteDraft, submitGuide } from '@/actions/guide-actions';
 import { GUIDE_AUTHORING_PATH, loginPathFor } from '@/utils/auth-paths';
 import { SubmitButton } from '@/components/ui/SubmitButton';
+import { GUIDE_ERRORS as ERRORS, GUIDE_NOTICE as NOTICE } from './guide-messages';
 
 const STATUS_LABEL: Record<string, string> = {
   draft: 'Draft',
@@ -18,28 +19,6 @@ const STATUS_STYLE: Record<string, string> = {
   pending_review: 'bg-warning-light border border-warning text-warning',
   published: 'bg-success-light border border-success text-success',
   archived: 'bg-surface border border-border text-muted-light',
-};
-
-const NOTICE: Record<string, string> = {
-  draft_saved: 'Draft saved.',
-  draft_deleted: 'Draft deleted.',
-  guide_submitted: 'Guide submitted for review.',
-  guide_published: 'Guide published.',
-};
-
-const ERRORS: Record<string, string> = {
-  title_required: 'A title is required.',
-  body_required: 'Add some body text before saving.',
-  save_failed: 'Save failed — try again.',
-  submit_failed: 'Submit failed — try again.',
-  delete_failed: 'Delete failed — try again.',
-  guide_not_found: 'Guide not found.',
-  already_published: 'This guide is already published.',
-  missing_guide_id: 'No guide selected.',
-  not_authorized: 'You need Super User access to author guides.',
-  cover_file_too_large: 'Cover image must be 5 MB or smaller.',
-  cover_file_type: 'Cover image must be AVIF, WebP, JPG, or PNG.',
-  cover_upload_failed: 'Cover image upload failed — try again.',
 };
 
 export default async function GuidesListPage({

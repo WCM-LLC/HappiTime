@@ -66,7 +66,15 @@ export async function saveDraft(formData: FormData) {
   const neighborhood = toStr(formData.get('neighborhood')) || null;
   const tags = parseTags(toStr(formData.get('tags')));
 
-  if (!title) redirect('/dashboard/guides?error=title_required');
+  // Validation failures must land back on the editor (which renders the error
+  // and offers the localStorage backup) — the list page would abandon the form.
+  if (!title) {
+    redirect(
+      id
+        ? `/dashboard/guides/${id}/edit?error=title_required`
+        : '/dashboard/guides/new?error=title_required',
+    );
+  }
 
   // Guard against empty-body saves. A re-save after a client-side navigation can
   // resubmit the form with the markdown body state reset to '', which previously
@@ -75,7 +83,7 @@ export async function saveDraft(formData: FormData) {
     redirect(
       id
         ? `/dashboard/guides/${id}/edit?error=body_required`
-        : '/dashboard/guides?error=body_required',
+        : '/dashboard/guides/new?error=body_required',
     );
   }
 
@@ -85,7 +93,7 @@ export async function saveDraft(formData: FormData) {
   } catch (error) {
     console.error('[guide] cover upload failed', error);
     const code = coverUploadErrorCode(error);
-    redirect(id ? `/dashboard/guides/${id}/edit?error=${code}` : `/dashboard/guides?error=${code}`);
+    redirect(id ? `/dashboard/guides/${id}/edit?error=${code}` : `/dashboard/guides/new?error=${code}`);
   }
 
   if (!id) {
@@ -124,7 +132,7 @@ export async function saveDraft(formData: FormData) {
 
     if (error || !inserted) {
       console.error('[guide] insert failed', error);
-      redirect('/dashboard/guides?error=save_failed');
+      redirect('/dashboard/guides/new?error=save_failed');
     }
 
     revalidatePath('/dashboard/guides');
