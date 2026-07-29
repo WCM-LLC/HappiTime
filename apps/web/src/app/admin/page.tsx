@@ -105,7 +105,9 @@ export default async function AdminPage({
   ] = await Promise.all([
     supabase.from('organizations').select('id', { count: 'exact', head: true }),
     supabase.from('venues').select('id', { count: 'exact', head: true }),
-    supabase.from('org_members').select('id', { count: 'exact', head: true }),
+    // org_members has no `id` (composite PK org_id,user_id) — selecting one
+    // threw `column org_members.id does not exist` on every /admin render.
+    supabase.from('org_members').select('user_id', { count: 'exact', head: true }),
     supabase.from('happy_hour_windows').select('id', { count: 'exact', head: true }),
     supabase.from('venue_media').select('id', { count: 'exact', head: true }),
     supabase.from('user_events').select('id', { count: 'exact', head: true }).eq('event_type', 'venue_suggestion'),

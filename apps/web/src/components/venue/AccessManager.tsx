@@ -125,7 +125,10 @@ export default function AccessManager({
                   </label>
                 ))}
               </div>
-              <p className="text-caption text-muted mt-2">You can update assignments later.</p>
+              <p className="text-caption text-muted mt-2">
+                Leave all venues unchecked to grant access to every venue in the organization
+                (including ones added later). You can update assignments any time.
+              </p>
             </div>
           ) : (
             <p className="text-caption text-muted">No venues yet. Add venues first, then assign them here.</p>
@@ -272,6 +275,12 @@ export default function AccessManager({
                         {venueRows.length ? (
                           <div>
                             <p className="text-body-sm font-medium text-foreground mb-2">Assigned venues</p>
+                            {assignedVenueIds.length === 0 ? (
+                              <p className="text-caption text-muted mb-2">
+                                No specific venues selected — this member can manage all venues in this
+                                organization, including ones added later.
+                              </p>
+                            ) : null}
                             <div className="flex flex-wrap gap-x-5 gap-y-2">
                               {venueRows.map((venue) => (
                                 <label key={venue.id} className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
