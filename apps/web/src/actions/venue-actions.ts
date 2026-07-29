@@ -91,15 +91,20 @@ async function requireVenueScopedWriteAccess(
   }
 
   if (role !== 'owner') {
-    const { data: assignment } = await lookupSupabase
+    // Mirrors public.has_venue_assignment(): explicit venue_members rows
+    // restrict a member to those venues; ZERO rows in the org means every
+    // venue, including future ones (owner decision 2026-07-29 — the invite UI
+    // can create managers with no venue selection).
+    const { data: assignments } = await lookupSupabase
       .from('venue_members')
       .select('venue_id')
       .eq('org_id', orgId)
-      .eq('venue_id', venueId)
-      .eq('user_id', user.id)
-      .maybeSingle();
+      .eq('user_id', user.id);
 
-    if (!assignment) redirectWithError(orgId, venueId, 'not_authorized');
+    const assignmentRows = (assignments ?? []) as { venue_id: string }[];
+    if (assignmentRows.length > 0 && !assignmentRows.some((a) => a.venue_id === venueId)) {
+      redirectWithError(orgId, venueId, 'not_authorized');
+    }
   }
 
   return { supabase, writeSupabase: supabase };

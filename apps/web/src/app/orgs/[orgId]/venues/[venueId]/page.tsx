@@ -290,12 +290,29 @@ export default async function VenuePage({
     .maybeSingle();
 
   const role = String(membership?.role ?? '');
+
+  // Mirrors public.has_venue_assignment(): explicit venue_members rows restrict
+  // a manager/host to those venues; zero rows in the org means every venue
+  // (owner decision 2026-07-29). Keeping this gate in sync with the write path
+  // avoids showing an editable form that a save would then reject.
+  let managesThisVenue = true;
+  if (role === 'manager' || role === 'host') {
+    const { data: myAssignments } = await (await createClient())
+      .from('venue_members')
+      .select('venue_id')
+      .eq('org_id', orgId)
+      .eq('user_id', user.id);
+    const assignmentRows = (myAssignments ?? []) as { venue_id: string }[];
+    managesThisVenue =
+      assignmentRows.length === 0 || assignmentRows.some((a) => a.venue_id === venueId);
+  }
+
   // Admin users always get full management access regardless of how they navigated
   // (used to require ?from=admin in the URL — that bug caused the misleading
   //  "editing requires manager access" message after a successful save).
   const isOwner = role === 'owner' || userIsAdmin;
-  const isManager = role === 'manager' || role === 'admin' || role === 'editor';
-  const isHost = role === 'host';
+  const isManager = role === 'admin' || role === 'editor' || (role === 'manager' && managesThisVenue);
+  const isHost = role === 'host' && managesThisVenue;
   const canManageVenue = isOwner || isManager || userIsAdmin;
   const canEditMenuItems = canManageVenue || isHost;
 
