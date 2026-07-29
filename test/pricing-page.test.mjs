@@ -29,20 +29,34 @@ test("paid plan CTAs point at live Stripe Payment Links", () => {
 
   // The design shipped with unresolved placeholders; they must not reach prod.
   assert.doesNotMatch(pricing, /STRIPE_PAYMENT_LINK/, "placeholder hrefs must be replaced");
-  // Paid plans go to Stripe now, not the contact form.
-  assert.doesNotMatch(pricing, /\/contactus\?plan=/, "paid CTAs should be Payment Links");
+  // Paid plans go to Stripe now, not the contact form (the free tier may).
+  assert.doesNotMatch(pricing, /\/contactus\?plan=(featured|verified)/, "paid CTAs should be Payment Links");
 });
 
-test("the free tier still goes to /claim, not to a paid checkout", () => {
+test("the free tier hands off to the contact form, not a paid checkout", () => {
   // Regression guard: sending the $0 tier to a Payment Link would ask a free
-  // signup for a card.
-  assert.match(pricing, /href="\/claim"/);
+  // signup for a card. /claim is retired, so the handoff is the contact form
+  // with the plan prefilled.
+  assert.match(pricing, /href="\/contactus\?plan=listed"/);
+});
+
+test("/claim is fully retired — no live links, and the 301 stays", () => {
+  // The page was deleted (it duplicated /pricing with a sales-call funnel).
+  // Any surviving href would be a 404; the URL was indexed so the redirect
+  // in next.config.ts must remain.
+  const venueDetail = read("apps/directory/src/app/kc/[neighborhood]/[slug]/page.tsx");
+  const sitemap = read("apps/directory/src/app/sitemap.ts");
+  const nextConfig = read("apps/directory/next.config.ts");
+  for (const [name, src] of [["pricing", pricing], ["venue detail", venueDetail], ["sitemap", sitemap]]) {
+    assert.doesNotMatch(src, /["'`]\/claim\/?["'`]/, `${name} still references /claim`);
+  }
+  assert.match(nextConfig, /source: "\/claim"/, "the /claim 301 redirect was removed");
 });
 
 test("the contact form can still prefill a subject for each paid plan", () => {
   // /pricing no longer links here, but the plan-specific subjects remain valid
   // for hand-sent links and bundle conversations.
-  for (const plan of ["featured", "verified"]) {
+  for (const plan of ["featured", "verified", "listed"]) {
     assert.match(
       contact,
       new RegExp(`^\\s*${plan}:`, "m"),

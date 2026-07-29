@@ -224,7 +224,7 @@ export default function PricingPage() {
                 ]}
               />
               <a
-                href="/claim"
+                href="/contactus?plan=listed"
                 className="block w-full rounded-full border-[1.5px] border-border-strong px-[26px] py-3 text-center text-[15px] font-bold text-foreground transition-all duration-normal ease-default hover:border-foreground"
               >
                 Claim your free listing
