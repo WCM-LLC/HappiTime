@@ -558,7 +558,7 @@ export default async function VenueDetailPage({ params }: Props) {
           </p>
         </div>
         <a
-          href="/claim/"
+          href="/pricing/"
           className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors shrink-0"
         >
           Claim This Venue

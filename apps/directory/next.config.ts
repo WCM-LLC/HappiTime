@@ -29,13 +29,18 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    return HAPPY_HOUR_LANDING_PAGES.map((page) => ({
-      source: `/kc/${page.neighborhoodSlug}`,
-      destination: page.canonicalPath,
-      // Explicit 301 (not Next's `permanent: true`, which emits 308) to match
-      // the canonical-URL spec for this work. Both are SEO-permanent.
-      statusCode: 301,
-    }));
+    return [
+      // /claim was retired (its sales-call funnel duplicated /pricing); the
+      // URL was indexed, so keep a permanent redirect.
+      { source: "/claim", destination: "/pricing/", statusCode: 301 as const },
+      ...HAPPY_HOUR_LANDING_PAGES.map((page) => ({
+        source: `/kc/${page.neighborhoodSlug}`,
+        destination: page.canonicalPath,
+        // Explicit 301 (not Next's `permanent: true`, which emits 308) to match
+        // the canonical-URL spec for this work. Both are SEO-permanent.
+        statusCode: 301,
+      })),
+    ];
   },
 };
 

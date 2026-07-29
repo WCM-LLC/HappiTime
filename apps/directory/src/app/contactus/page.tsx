@@ -10,6 +10,7 @@ type SubmitState = "idle" | "loading" | "success" | "error";
 const PLAN_SUBJECTS: Record<string, string> = {
   featured: "Featured plan ($99/mo) — start 30 days free",
   verified: "Verified plan ($49/mo) — get Verified",
+  listed: "Free listing ($0) — claim my venue",
 };
 
 const MAX_SUBJECT_LENGTH = 160;
