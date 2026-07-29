@@ -1,9 +1,15 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { saveDraft, submitGuide } from '@/actions/guide-actions';
 import { SubmitButton } from '@/components/ui/SubmitButton';
+import {
+  backupKey,
+  buildBackup,
+  classifyBackup,
+  type GuideBackup,
+} from '@/utils/guideDraftBackup.mjs';
 
 // SSR must be disabled — @uiw/react-md-editor uses window on init.
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), {
@@ -51,10 +57,118 @@ export function GuideEditor({
   showSubmit = true,
 }: GuideEditorProps) {
   const [bodyMd, setBodyMd] = useState(initialBodyMd);
-  const canSubmit = showSubmit && status === 'draft';
+  const [pendingBackup, setPendingBackup] = useState<GuideBackup | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  // Ref mirror of bodyMd: schedulePersist's timeout would otherwise capture a
+  // stale render's state and persist one edit behind.
+  const bodyRef = useRef(initialBodyMd);
+  const persistTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const key = backupKey(id ?? null);
+  // Submit posts the draft's id; before the first save there is no row, so the
+  // action could only fail (missing_guide_id) and dump the author on the list.
+  const canSubmit = showSubmit && status === 'draft' && Boolean(id);
+
+  // The form is the only holder of the author's text until a save succeeds —
+  // any server-action redirect (validation, expired session) unmounts it. Keep
+  // a localStorage copy so nothing typed is ever lost.
+  const readFields = (): Record<string, string> => {
+    const form = formRef.current;
+    const value = (name: string) =>
+      (form?.elements.namedItem(name) as HTMLInputElement | null)?.value ?? '';
+    return {
+      title: value('title'),
+      subtitle: value('subtitle'),
+      city: value('city'),
+      neighborhood: value('neighborhood'),
+      tags: value('tags'),
+      cover_image_url: value('cover_image_url'),
+      body_md: bodyRef.current,
+    };
+  };
+
+  const schedulePersist = () => {
+    clearTimeout(persistTimer.current);
+    persistTimer.current = setTimeout(() => {
+      try {
+        localStorage.setItem(key, JSON.stringify(buildBackup(readFields(), Date.now())));
+      } catch {
+        // Quota/private-mode failures must never break typing.
+      }
+    }, 500);
+  };
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      const backup = raw ? (JSON.parse(raw) as GuideBackup) : null;
+      const kind = classifyBackup(backup, initialBodyMd);
+      if (kind === 'stale') localStorage.removeItem(key);
+      if (kind === 'restorable') setPendingBackup(backup);
+      if (id) {
+        // A successful first save moves the author from /new to this page;
+        // clear the now-persisted 'new' backup so it isn't offered later.
+        const newKey = backupKey(null);
+        const rawNew = localStorage.getItem(newKey);
+        const newBackup = rawNew ? (JSON.parse(rawNew) as GuideBackup) : null;
+        if (classifyBackup(newBackup, initialBodyMd) !== 'restorable') {
+          localStorage.removeItem(newKey);
+        }
+      }
+    } catch {
+      // Malformed storage — start fresh.
+    }
+    return () => clearTimeout(persistTimer.current);
+    // Mount-only: the key and initial body are fixed for this page load.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const restoreBackup = () => {
+    if (!pendingBackup) return;
+    const form = formRef.current;
+    for (const [name, val] of Object.entries(pendingBackup.fields)) {
+      if (name === 'body_md') continue;
+      const el = form?.elements.namedItem(name) as HTMLInputElement | null;
+      if (el) el.value = val;
+    }
+    bodyRef.current = pendingBackup.fields.body_md ?? '';
+    setBodyMd(pendingBackup.fields.body_md ?? '');
+    setPendingBackup(null);
+  };
+
+  const discardBackup = () => {
+    try {
+      localStorage.removeItem(key);
+    } catch {}
+    setPendingBackup(null);
+  };
 
   return (
     <div>
+      {pendingBackup ? (
+        <div className="rounded-md border border-warning bg-warning-light px-4 py-3 mb-6 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-body-sm font-medium text-warning">
+            You have unsaved writing from {new Date(pendingBackup.savedAt).toLocaleString()}
+            {pendingBackup.fields.title ? ` — “${pendingBackup.fields.title}”` : ''}. Restore it?
+          </p>
+          <span className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={restoreBackup}
+              className="h-8 px-3 rounded-md bg-brand text-white text-caption font-semibold hover:bg-brand-dark transition-colors cursor-pointer"
+            >
+              Restore
+            </button>
+            <button
+              type="button"
+              onClick={discardBackup}
+              className="h-8 px-3 rounded-md border border-border bg-surface text-caption font-medium text-foreground hover:bg-background transition-colors cursor-pointer"
+            >
+              Discard
+            </button>
+          </span>
+        </div>
+      ) : null}
+
       {noticeText ? (
         <div className="rounded-md border border-success bg-success-light px-4 py-3 mb-6">
           <p className="text-body-sm font-medium text-success">{noticeText}</p>
@@ -67,7 +181,7 @@ export function GuideEditor({
         </div>
       ) : null}
 
-      <form>
+      <form ref={formRef} onInput={schedulePersist}>
         {id ? <input type="hidden" name="id" value={id} /> : null}
         <input type="hidden" name="body_md" value={bodyMd} />
 
@@ -183,7 +297,11 @@ export function GuideEditor({
           <div data-color-mode="light">
             <MDEditor
               value={bodyMd}
-              onChange={(v) => setBodyMd(v ?? '')}
+              onChange={(v) => {
+                bodyRef.current = v ?? '';
+                setBodyMd(v ?? '');
+                schedulePersist();
+              }}
               height={480}
               preview="edit"
             />
