@@ -8,7 +8,9 @@
 // Time comparisons are computed in America/Chicago (DST-safe).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendExpoPush, type ExpoPushMessage } from "../_shared/expo-push.ts";
+import { sendUserNotifications } from "../_shared/notify.ts";
+import { categoryGatedRecipients } from "../_shared/notify-recipients.mjs";
+import { happyHourStartingCopy } from "../_shared/notification-copy.mjs";
 
 const LOOKAHEAD_MINUTES = 60;
 
@@ -90,64 +92,64 @@ Deno.serve(async (req) => {
   }
 
 
-  // Find users who follow these venues and have push tokens + HH notifications enabled
-  const { data: tokenRows, error: tokenErr } = await supabase
+  // Followers of the eligible venues, user-first (no token join).
+  const eligibleIds = [...new Set(eligibleWindows.map((w: any) => w.venue_id))];
+  const { data: followerRows, error: followerErr } = await supabase
     .from("user_followed_venues")
-    .select(`
-      user_id,
-      venue_id,
-      token:user_push_tokens!inner(expo_push_token),
-      prefs:user_preferences!inner(notifications_push, notifications_happy_hours)
-    `)
-    .in("venue_id", venueIds);
+    .select("user_id, venue_id")
+    .in("venue_id", eligibleIds);
 
-  if (tokenErr) {
-    console.error("[notify] token fetch failed:", tokenErr.message);
-    return new Response(JSON.stringify({ error: tokenErr.message }), { status: 500 });
+  if (followerErr) {
+    console.error("[notify] follower fetch failed:", followerErr.message);
+    return new Response(JSON.stringify({ error: followerErr.message }), { status: 500 });
   }
 
-  if (!tokenRows || tokenRows.length === 0) {
-    return new Response(JSON.stringify({ sent: 0, reason: "no tokens for followed venues" }));
+  if (!followerRows || followerRows.length === 0) {
+    return new Response(JSON.stringify({ sent: 0, reason: "no followers for eligible venues" }));
   }
 
-  // Build one message per user per venue window
-  const messages: ExpoPushMessage[] = [];
-  const venueWindowMap = new Map<string, typeof windows[0]>();
-  for (const w of eligibleWindows as any[]) {
-    venueWindowMap.set(w.venue_id, w);
+  const allFollowerIds = [...new Set((followerRows as any[]).map((r) => r.user_id))];
+  const { data: prefRows } = await supabase
+    .from("user_preferences")
+    .select("user_id, notifications_happy_hours")
+    .in("user_id", allFollowerIds);
+
+  // Group followers per venue, then send one notification per eligible window.
+  const followersByVenue = new Map<string, string[]>();
+  for (const r of followerRows as any[]) {
+    const list = followersByVenue.get(r.venue_id) ?? [];
+    list.push(r.user_id);
+    followersByVenue.set(r.venue_id, list);
   }
 
-  for (const row of tokenRows as any[]) {
-    const token = row.token?.expo_push_token;
-    if (!token || !token.startsWith("ExponentPushToken")) continue;
-    // Skip if user disabled push or happy hour notifications
-    const pushEnabled = row.prefs?.notifications_push !== false;
-    const hhEnabled = row.prefs?.notifications_happy_hours !== false;
-    if (!pushEnabled || !hhEnabled) continue;
+  let inserted = 0;
+  let pushed = 0;
+  for (const window of eligibleWindows as any[]) {
+    const recipients = categoryGatedRecipients(
+      followersByVenue.get(window.venue_id) ?? [],
+      prefRows ?? [],
+      "notifications_happy_hours",
+    );
+    if (recipients.length === 0) continue;
 
-    const window = venueWindowMap.get(row.venue_id);
-    if (!window) continue;
+    const venueName = (window.venue as any)?.name ?? null;
+    const { title, body } = happyHourStartingCopy(
+      venueName,
+      window.start_time.slice(0, 5),
+      window.label ?? null,
+    );
 
-    const venueName = (window.venue as any)?.name ?? "a saved venue";
-    const label = window.label ? ` – ${window.label}` : "";
-    const startTime = window.start_time.slice(0, 5); // HH:MM
-
-    messages.push({
-      to: token,
-      title: `🍹 Happy hour starting at ${startTime}`,
-      body: `${venueName}${label} starts soon`,
-      sound: "default",
-      data: { type: "happy_hour", venueId: row.venue_id, windowId: window.id }
+    const result = await sendUserNotifications(supabase, recipients, {
+      type: "happy_hour",
+      title,
+      body,
+      data: { type: "happy_hour", venueId: window.venue_id, windowId: window.id },
     });
+    inserted += result.inserted;
+    pushed += result.pushed;
   }
 
-  if (messages.length === 0) {
-    return new Response(JSON.stringify({ sent: 0, reason: "no valid tokens" }));
-  }
-
-  const totalSent = await sendExpoPush(messages);
-
-  return new Response(JSON.stringify({ sent: totalSent }), {
-    headers: { "Content-Type": "application/json" }
+  return new Response(JSON.stringify({ inserted, sent: pushed }), {
+    headers: { "Content-Type": "application/json" },
   });
 });
