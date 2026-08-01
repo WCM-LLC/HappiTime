@@ -10,17 +10,9 @@
 //   - user_events  INSERT         (event = "venue_save" | "itinerary_share")
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
-const BATCH_SIZE = 100;
-
-type ExpoPushMessage = {
-  to: string;
-  title: string;
-  body: string;
-  data?: Record<string, unknown>;
-  sound?: "default";
-};
+import { sendUserNotifications } from "../_shared/notify.ts";
+import { categoryGatedRecipients } from "../_shared/notify-recipients.mjs";
+import { followCopy, venueSaveCopy, itineraryShareCopy } from "../_shared/notification-copy.mjs";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
@@ -130,112 +122,63 @@ Deno.serve(async (req) => {
     );
   }
 
-  // ── Fetch push tokens + preference check ──────────────────────────
+  // ── Resolve recipients user-first ─────────────────────────────────
+  // Category pref gates the row itself; push gating happens inside the
+  // helper. Token-less users still get inbox rows.
 
-  const { data: tokenRows, error: tokenErr } = await supabase
-    .from("user_push_tokens")
-    .select("user_id, expo_push_token")
-    .in("user_id", targetUserIds);
-
-  if (tokenErr) {
-    console.error("[notify-friend] token fetch failed:", tokenErr.message);
-    return new Response(JSON.stringify({ error: tokenErr.message }), {
-      status: 500,
-    });
+  const targetIds = [...new Set(targetUserIds)].filter((id) => id && id !== actorId);
+  if (targetIds.length === 0) {
+    return new Response(JSON.stringify({ sent: 0, reason: "no target users" }));
   }
 
-  if (!tokenRows || tokenRows.length === 0) {
-    return new Response(
-      JSON.stringify({ sent: 0, reason: "no push tokens" })
-    );
-  }
-
-  // Check preferences — only send to users with push + friend activity enabled
-  const userIds = [...new Set(tokenRows.map((r: any) => r.user_id))];
   const { data: prefRows } = await supabase
     .from("user_preferences")
-    .select("user_id, notifications_push, notifications_friend_activity")
-    .in("user_id", userIds);
+    .select("user_id, notifications_friend_activity")
+    .in("user_id", targetIds);
 
-  const disabledUsers = new Set(
-    (prefRows ?? [])
-      .filter(
-        (p: any) =>
-          p.notifications_push === false ||
-          p.notifications_friend_activity === false
-      )
-      .map((p: any) => p.user_id)
-  );
+  const recipients = categoryGatedRecipients(targetIds, prefRows ?? [], "notifications_friend_activity");
+  if (recipients.length === 0) {
+    return new Response(JSON.stringify({ sent: 0, reason: "all recipients opted out" }));
+  }
 
-  // ── Build notification messages ───────────────────────────────────
+  // ── Build message ─────────────────────────────────────────────────
 
-  let title = "";
-  let body = "";
+  let copy: { title: string; body: string };
+  let type = "";
   let navData: Record<string, unknown> = {};
 
   if (event === "follow") {
-    title = `👋 New follower`;
-    body = `${actorName} started following you`;
+    copy = followCopy(actorName);
+    type = "friend";
     navData = { type: "friend", actorId };
   } else if (event === "venue_save") {
-    // Resolve venue name for a richer message
     const venueId = meta.venueId as string | null;
-    let venueName = "a venue";
+    let venueName: string | null = null;
     if (venueId) {
       const { data: venue } = await supabase
         .from("venues")
         .select("name")
         .eq("id", venueId)
         .maybeSingle();
-      venueName = venue?.name ?? "a venue";
+      venueName = venue?.name ?? null;
     }
-    title = `🍸 ${actorName} saved a spot`;
-    body = `${actorName} saved ${venueName} — check it out!`;
+    copy = venueSaveCopy(actorName, venueName);
+    type = "venue";
     navData = { type: "venue", venueId: meta.venueId };
-  } else if (event === "itinerary_share") {
-    title = `📋 ${actorName} shared a list with you`;
-    body = `Check out the itinerary ${actorName} put together`;
+  } else {
+    copy = itineraryShareCopy(actorName);
+    type = "itinerary";
     navData = { type: "itinerary", actorId, listId: meta.listId };
   }
 
-  const messages: ExpoPushMessage[] = [];
-  for (const row of tokenRows as any[]) {
-    const token = row.expo_push_token;
-    if (!token || !token.startsWith("ExponentPushToken")) continue;
-    if (disabledUsers.has(row.user_id)) continue;
-    // Don't notify the actor about their own action
-    if (row.user_id === actorId) continue;
+  const { inserted, pushed } = await sendUserNotifications(supabase, recipients, {
+    type,
+    title: copy.title,
+    body: copy.body,
+    data: navData,
+  });
 
-    messages.push({
-      to: token,
-      title,
-      body,
-      sound: "default",
-      data: navData,
-    });
-  }
-
-  if (messages.length === 0) {
-    return new Response(
-      JSON.stringify({ sent: 0, reason: "no valid tokens after filtering" })
-    );
-  }
-
-  // ── Send in batches ───────────────────────────────────────────────
-
-  let totalSent = 0;
-  for (let i = 0; i < messages.length; i += BATCH_SIZE) {
-    const batch = messages.slice(i, i + BATCH_SIZE);
-    const res = await fetch(EXPO_PUSH_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(batch),
-    });
-    if (res.ok) totalSent += batch.length;
-    else console.error("[notify-friend] expo push failed:", await res.text());
-  }
-
-  return new Response(JSON.stringify({ sent: totalSent }), {
+  return new Response(JSON.stringify({ inserted, sent: pushed }), {
     headers: { "Content-Type": "application/json" },
   });
 });
