@@ -7,17 +7,9 @@
 // happy_hour_windows INSERT/UPDATE where status = 'published'.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
-const BATCH_SIZE = 100;
-
-type ExpoPushMessage = {
-  to: string;
-  title: string;
-  body: string;
-  data?: Record<string, unknown>;
-  sound?: "default";
-};
+import { sendUserNotifications } from "../_shared/notify.ts";
+import { categoryGatedRecipients } from "../_shared/notify-recipients.mjs";
+import { happyHourPublishedCopy, happyHourUpdatedCopy } from "../_shared/notification-copy.mjs";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
@@ -78,78 +70,46 @@ Deno.serve(async (req) => {
 
   const venueName = venue?.name ?? "A venue you saved";
 
-  // Find users who follow this venue and have push tokens + notifications enabled
-  const { data: tokenRows, error: tokenErr } = await supabase
+  // Followers of this venue, user-first: no token join, so token-less
+  // followers still get inbox rows. Category pref gates the row.
+  const { data: followerRows, error: followerErr } = await supabase
     .from("user_followed_venues")
-    .select(`
-      user_id,
-      token:user_push_tokens!inner(expo_push_token),
-      prefs:user_preferences!inner(notifications_push, notifications_venue_updates)
-    `)
+    .select("user_id")
     .eq("venue_id", venueId);
 
-  if (tokenErr) {
-    console.error("[notify-venue] token fetch failed:", tokenErr.message);
-    return new Response(JSON.stringify({ error: tokenErr.message }), {
-      status: 500,
-    });
+  if (followerErr) {
+    console.error("[notify-venue] follower fetch failed:", followerErr.message);
+    return new Response(JSON.stringify({ error: followerErr.message }), { status: 500 });
   }
 
-  if (!tokenRows || tokenRows.length === 0) {
-    return new Response(
-      JSON.stringify({ sent: 0, reason: "no followers with tokens" })
-    );
+  const followerIds = [...new Set((followerRows ?? []).map((r: { user_id: string }) => r.user_id))];
+  if (followerIds.length === 0) {
+    return new Response(JSON.stringify({ sent: 0, reason: "no followers" }));
+  }
+
+  const { data: prefRows } = await supabase
+    .from("user_preferences")
+    .select("user_id, notifications_venue_updates")
+    .in("user_id", followerIds);
+
+  const recipients = categoryGatedRecipients(followerIds, prefRows ?? [], "notifications_venue_updates");
+  if (recipients.length === 0) {
+    return new Response(JSON.stringify({ sent: 0, reason: "all followers opted out" }));
   }
 
   const isNew = eventType === "INSERT";
-  const title = isNew
-    ? `🆕 New happy hour at ${venueName}`
-    : `📝 ${venueName} updated their happy hour`;
-  const body = isNew
-    ? `${venueName} just published a new happy hour — check it out!`
-    : `${venueName} updated their happy hour details.`;
+  const { title, body } = isNew
+    ? happyHourPublishedCopy(venueName)
+    : happyHourUpdatedCopy(venueName);
 
-  const messages: ExpoPushMessage[] = [];
-  for (const row of tokenRows as any[]) {
-    const token = row.token?.expo_push_token;
-    const pushEnabled = row.prefs?.notifications_push !== false;
-    const venueUpdatesEnabled = row.prefs?.notifications_venue_updates !== false;
-    if (!token || !token.startsWith("ExponentPushToken") || !pushEnabled || !venueUpdatesEnabled) {
-      continue;
-    }
+  const { inserted, pushed } = await sendUserNotifications(supabase, recipients, {
+    type: "happy_hour",
+    title,
+    body,
+    data: { type: "happy_hour", venueId, windowId },
+  });
 
-    messages.push({
-      to: token,
-      title,
-      body,
-      sound: "default",
-      data: {
-        type: "happy_hour",
-        venueId,
-        windowId,
-      },
-    });
-  }
-
-  if (messages.length === 0) {
-    return new Response(
-      JSON.stringify({ sent: 0, reason: "no valid tokens" })
-    );
-  }
-
-  let totalSent = 0;
-  for (let i = 0; i < messages.length; i += BATCH_SIZE) {
-    const batch = messages.slice(i, i + BATCH_SIZE);
-    const res = await fetch(EXPO_PUSH_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(batch),
-    });
-    if (res.ok) totalSent += batch.length;
-    else console.error("[notify-venue] expo push failed:", await res.text());
-  }
-
-  return new Response(JSON.stringify({ sent: totalSent }), {
+  return new Response(JSON.stringify({ inserted, sent: pushed }), {
     headers: { "Content-Type": "application/json" },
   });
 });
