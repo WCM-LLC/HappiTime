@@ -1,6 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
+import { sendUserNotifications } from "../_shared/notify.ts";
+import { visitRatingCopy } from "../_shared/notification-copy.mjs";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
@@ -32,34 +32,31 @@ Deno.serve(async (req) => {
     const awayLongEnough = exitedAt ? Date.now() - exitedAt >= 60 * 60 * 1000 : false;
     if (!stayedLongEnough || !awayLongEnough || venue?.post_visit_rating_enabled === false) continue;
 
-    const { data: tokenRows } = await supabase
-      .from("user_push_tokens")
-      .select("expo_push_token")
-      .eq("user_id", (visit as any).user_id);
-
-    const tokens = (tokenRows ?? [])
-      .map((r: any) => r.expo_push_token)
-      .filter((t: string) => typeof t === "string" && t.startsWith("ExponentPushToken"));
-
-    if (tokens.length === 0) continue;
-
+    const { title, body } = visitRatingCopy(venue?.name);
     const aspects = Array.isArray(venue?.post_visit_rating_aspects) ? venue.post_visit_rating_aspects : [];
-    const messages = tokens.map((to: string) => ({
-      to,
-      title: `How was ${venue?.name ?? "your visit"}?`,
-      body: "Tap to rate your experience",
-      sound: "default",
-      data: { type: "visit_rating", visitId: (visit as any).id, venueId: (visit as any).venue_id, venueName: venue?.name, aspects, source: "server" },
-    }));
 
-    const pushRes = await fetch(EXPO_PUSH_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(messages),
-    });
+    const { inserted, pushed } = await sendUserNotifications(
+      supabase,
+      [{ userId: (visit as any).user_id }],
+      {
+        type: "visit_rating",
+        title,
+        body,
+        data: {
+          type: "visit_rating",
+          visitId: (visit as any).id,
+          venueId: (visit as any).venue_id,
+          venueName: venue?.name,
+          aspects,
+          source: "server",
+        },
+      },
+    );
 
-    if (pushRes.ok) {
-      sent += messages.length;
+    // The prompt now exists in the inbox even when no push token exists, so
+    // an insert alone counts as prompted (previously only a push did).
+    if (inserted > 0 || pushed > 0) {
+      sent += pushed;
       await supabase
         .from("venue_visits")
         .update({ rating_prompted_at: new Date().toISOString(), rating_prompt_source: "server_push" })

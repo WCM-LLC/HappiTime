@@ -19,7 +19,8 @@
 // visit_recorded=false means the 3h cooldown (or an error) swallowed that row.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendExpoPush } from "../_shared/expo-push.ts";
+import { sendUserNotifications } from "../_shared/notify.ts";
+import { categoryGatedRecipients } from "../_shared/notify-recipients.mjs";
 import { buildVenueScanMessage } from "../_shared/scan-message.mjs";
 import { recordPresenceVisit, shouldRecordPresenceVisit } from "../_shared/presence-visit.ts";
 
@@ -90,10 +91,12 @@ function toFiniteNumber(value: unknown): number | null {
 }
 
 /**
- * Push to the venue's owners + managers that a visit was recorded. Runs in the
+ * Notify the venue's owners + managers that a visit was recorded. Runs in the
  * background (EdgeRuntime), so any failure here never affects the
- * track-visit response. Respects the per-user push + venue-scan opt-outs
- * (a missing user_preferences row counts as opted-in).
+ * track-visit response. Writes inbox rows first, then pushes:
+ * notifications_venue_scans gates the row itself; notifications_push is
+ * applied push-only inside sendUserNotifications (a missing
+ * user_preferences row counts as opted-in for both).
  */
 async function notifyVenueTeam(
   // deno-lint-ignore no-explicit-any
@@ -113,42 +116,21 @@ async function notifyVenueTeam(
 
     const { data: prefs } = await supabase
       .from("user_preferences")
-      .select("user_id, notifications_push, notifications_venue_scans")
+      .select("user_id, notifications_venue_scans")
       .in("user_id", memberIds);
-    const optedOut = new Set(
-      (prefs ?? [])
-        .filter(
-          (p: { notifications_push?: boolean; notifications_venue_scans?: boolean }) =>
-            p.notifications_push === false || p.notifications_venue_scans === false,
-        )
-        .map((p: { user_id: string }) => p.user_id),
-    );
-    const recipientIds = memberIds.filter((id) => !optedOut.has(id));
-    if (recipientIds.length === 0) return;
 
-    const { data: tokenRows } = await supabase
-      .from("user_push_tokens")
-      .select("expo_push_token")
-      .in("user_id", recipientIds);
-    const tokens = [
-      ...new Set(
-        (tokenRows ?? [])
-          .map((t: { expo_push_token: string }) => t.expo_push_token)
-          .filter((tok) => typeof tok === "string" && tok.startsWith("ExponentPushToken")),
-      ),
-    ];
-    if (tokens.length === 0) return;
+    // notifications_venue_scans gates the row; notifications_push is applied
+    // push-only inside sendUserNotifications.
+    const recipients = categoryGatedRecipients(memberIds, prefs ?? [], "notifications_venue_scans");
+    if (recipients.length === 0) return;
 
     const { title, body } = buildVenueScanMessage(source, venueName);
-    await sendExpoPush(
-      tokens.map((to) => ({
-        to,
-        title,
-        body,
-        sound: "default" as const,
-        data: { type: "venue", venueId },
-      })),
-    );
+    await sendUserNotifications(supabase, recipients, {
+      type: "venue",
+      title,
+      body,
+      data: { type: "venue", venueId },
+    });
   } catch (err) {
     console.error(
       "[track-visit] venue-team push failed:",

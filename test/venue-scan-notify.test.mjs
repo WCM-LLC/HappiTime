@@ -63,11 +63,10 @@ test("track-visit selects org_id + name and notifies the team AFTER a recorded i
   assert.ok(insertIdx > 0 && waitIdx > insertIdx, "push hook must come after the insert");
 });
 
-test("track-visit targets owners/managers, respects prefs, and opens the venue", () => {
+test("track-visit targets owners/managers, respects the scan pref, and opens the venue", () => {
   const src = read("supabase/functions/track-visit/index.ts");
   assert.match(src, /\.in\("role", \["owner", "manager"\]\)/);
   assert.match(src, /notifications_venue_scans/);
-  assert.match(src, /notifications_push/);
+  assert.match(src, /sendUserNotifications\(/);
   assert.match(src, /type: "venue"/);
-  assert.match(src, /ExponentPushToken/);
 });
