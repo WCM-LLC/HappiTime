@@ -20,6 +20,14 @@ test("ActivityScreen has the Notifications segment wired to the inbox hook", () 
   assert.match(src, /markAllRead/);
 });
 
+test("ActivityScreen defaults to the Notifications tab", () => {
+  const src = read("apps/mobile/src/screens/ActivityScreen.tsx");
+  // The segment-array assertion above survives a revert of the *default* tab
+  // (e.g. back to "friends") since that string never changes — this pins the
+  // actual useState initializer so such a revert fails CI.
+  assert.match(src, /useState<Tab>\("notifications"\)/);
+});
+
 test("inbox taps route via the existing routing table; visit_rating bypasses it", () => {
   const src = read("apps/mobile/src/screens/ActivityScreen.tsx");
   const visitIdx = src.indexOf('data.type === "visit_rating"');
@@ -46,14 +54,26 @@ test("App.tsx registers the visit-rating bridge", () => {
 
 test("markRead is guarded against clobbering an existing read_at", () => {
   const src = read("apps/mobile/src/hooks/useUserNotifications.ts");
-  assert.match(src, /\.is\("read_at", null\)/);
-  assert.match(src, /order\("created_at", \{ ascending: false \}\)/);
+  // .is("read_at", null) also appears in markAllRead (same clobber guard),
+  // so a plain whole-file match would still pass if it were deleted from
+  // markRead specifically. Scope the check to the markRead closure by
+  // slicing the source between its declaration and markAllRead's.
+  const markReadStart = src.indexOf("const markRead = useCallback");
+  const markAllReadStart = src.indexOf("const markAllRead = useCallback");
+  assert.ok(markReadStart > 0 && markAllReadStart > markReadStart, "markRead must precede markAllRead");
+  const markReadBody = src.slice(markReadStart, markAllReadStart);
+  assert.match(markReadBody, /\.is\("read_at", null\)/, "markRead must guard its update against an already-read row");
   // Task 9 deviation: generated.ts is stale and lacks user_notifications, so
   // the hook casts the client ((supabase as any).from(...)) instead of the
   // brief's untyped supabase.from(...). Match on the table-name substring so
   // this guard covers both call forms and still proves the hook targets the
   // right table.
   assert.match(src, /\.from\("user_notifications"\)/);
+});
+
+test("refresh orders the inbox newest-first", () => {
+  const src = read("apps/mobile/src/hooks/useUserNotifications.ts");
+  assert.match(src, /order\("created_at", \{ ascending: false \}\)/);
 });
 
 test("badge hook refreshes on foreground and on the unread bus", () => {
