@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
     .eq("id", venueId)
     .maybeSingle();
 
-  const venueName = venue?.name ?? "A venue you saved";
+  const venueName = venue?.name ?? null;
 
   // Followers of this venue, user-first: no token join, so token-less
   // followers still get inbox rows. Category pref gates the row.
