@@ -75,18 +75,19 @@ export function useUserNotifications() {
   }, [refresh]);
 
   const markRead = useCallback(async (id: string) => {
-    const now = new Date().toISOString();
-    // Only rows that were actually unread before this call get reverted on
-    // failure — a row already read (readAt already set) is left untouched.
-    let wasUnread = false;
-    setNotifications((prev) =>
-      prev.map((n) => {
-        if (n.id !== id || n.readAt) return n;
-        wasUnread = true;
-        return { ...n, readAt: now };
-      })
-    );
+    // Decide from the `notifications` state value captured in this closure
+    // — not from a variable written inside the setNotifications updater.
+    // Reading it back out of the updater relies on React's eager-update fast
+    // path, which is skipped once another update is already queued in the
+    // same tick (e.g. a caller looping over ids without awaiting), silently
+    // skipping the DB write below while the optimistic flip still lands.
+    const wasUnread = notifications.some((n) => n.id === id && !n.readAt);
     if (!wasUnread) return;
+
+    const now = new Date().toISOString();
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id && !n.readAt ? { ...n, readAt: now } : n))
+    );
 
     const { error } = await (supabase as any)
       .from("user_notifications")
@@ -102,20 +103,20 @@ export function useUserNotifications() {
       );
     }
     emitUnreadChanged();
-  }, []);
+  }, [notifications]);
 
   const markAllRead = useCallback(async () => {
     if (!user?.id) return;
-    const now = new Date().toISOString();
-    const revertIds = new Set<string>();
-    setNotifications((prev) =>
-      prev.map((n) => {
-        if (n.readAt) return n;
-        revertIds.add(n.id);
-        return { ...n, readAt: now };
-      })
-    );
+    // Same reasoning as markRead: derive the target ids from the closure's
+    // `notifications` snapshot, not from a variable side-effected inside the
+    // setNotifications updater (see comment above).
+    const revertIds = new Set(notifications.filter((n) => !n.readAt).map((n) => n.id));
     if (revertIds.size === 0) return;
+
+    const now = new Date().toISOString();
+    setNotifications((prev) =>
+      prev.map((n) => (revertIds.has(n.id) ? { ...n, readAt: now } : n))
+    );
 
     const { error } = await (supabase as any)
       .from("user_notifications")
@@ -131,7 +132,7 @@ export function useUserNotifications() {
       );
     }
     emitUnreadChanged();
-  }, [user?.id]);
+  }, [user?.id, notifications]);
 
   const unreadCount = notifications.filter((n) => !n.readAt).length;
 
