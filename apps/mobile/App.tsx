@@ -30,6 +30,7 @@ import { NotifPrimeSheet } from "./src/components/NotifPrimeSheet";
 import { setSignInRequestHandler, type GatedActionKind } from "./src/lib/gatedAction";
 import { setNotifPrimeHandler } from "./src/lib/notifPrime";
 import { setGuestSelections } from "./src/lib/guestSelections";
+import { registerVisitRatingHandler } from "./src/lib/ratingRequest";
 import { colors } from "./src/theme/colors";
 import { spacing } from "./src/theme/spacing";
 
@@ -39,6 +40,12 @@ function AuthenticatedApp({ session }: { session: Session }) {
   const { data: happyHours } = useHappyHours();
   const { pendingVisit, submitRating, dismissRating, submitting, triggerRating } =
     useVisitRating();
+
+  useEffect(() => {
+    return registerVisitRatingHandler((req) =>
+      triggerRating(req.venueId, req.venueName, req.visitId, req.aspects ?? [], "server")
+    );
+  }, [triggerRating]);
 
   // Build venue points from happy hour data.
   // Each venue aggregates all its happy hour windows so the visit tracker can
