@@ -47,10 +47,11 @@ test("shared expo-push exports sendExpoPush and batches at 100", () => {
   assert.match(src, /BATCH_SIZE = 100/);
 });
 
-test("notify-upcoming-happy-hours uses the shared sender (one sender, not two)", () => {
+test("notify-upcoming-happy-hours routes through the shared inbox helper (one sender, not two)", () => {
   const src = read("supabase/functions/notify-upcoming-happy-hours/index.ts");
-  assert.match(src, /from "\.\.\/_shared\/expo-push\.ts"/);
-  assert.match(src, /sendExpoPush\(/);
+  assert.match(src, /from "\.\.\/_shared\/notify\.ts"/);
+  assert.match(src, /sendUserNotifications\(/);
+  assert.doesNotMatch(src, /exp\.host/);
 });
 
 test("track-visit selects org_id + name and notifies the team AFTER a recorded insert", () => {
@@ -62,11 +63,10 @@ test("track-visit selects org_id + name and notifies the team AFTER a recorded i
   assert.ok(insertIdx > 0 && waitIdx > insertIdx, "push hook must come after the insert");
 });
 
-test("track-visit targets owners/managers, respects prefs, and opens the venue", () => {
+test("track-visit targets owners/managers, respects the scan pref, and opens the venue", () => {
   const src = read("supabase/functions/track-visit/index.ts");
   assert.match(src, /\.in\("role", \["owner", "manager"\]\)/);
   assert.match(src, /notifications_venue_scans/);
-  assert.match(src, /notifications_push/);
+  assert.match(src, /sendUserNotifications\(/);
   assert.match(src, /type: "venue"/);
-  assert.match(src, /ExponentPushToken/);
 });

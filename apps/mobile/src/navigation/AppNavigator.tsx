@@ -9,6 +9,7 @@ import { useNotificationNavigation } from "../hooks/useNotificationNavigation";
 import { useVenueDeepLink } from "../hooks/useVenueDeepLink";
 import { useItineraryDeepLink } from "../hooks/useItineraryDeepLink";
 import { useCheckinPrimeHandoff } from "../hooks/useCheckinPrimeHandoff";
+import { useUnreadNotificationsBadge } from "../hooks/useUnreadNotificationsBadge";
 import { SharedItineraryScreen } from "../screens/SharedItineraryScreen";
 import { UpdateAvailableModal } from "../components/UpdateAvailableModal";
 import { useCurrentUser } from "../hooks/useCurrentUser";
@@ -49,6 +50,7 @@ function AppTabs({ initialRouteName }: { initialRouteName?: keyof MainTabParamLi
   const insets = useSafeAreaInsets();
   const isGuest = !user;
   const tabBarHeight = 56 + insets.bottom;
+  const unread = useUnreadNotificationsBadge();
   return (
     <Tab.Navigator
       initialRouteName={initialRouteName}
@@ -107,6 +109,10 @@ function AppTabs({ initialRouteName }: { initialRouteName?: keyof MainTabParamLi
       <Tab.Screen
         name="Activity"
         component={ActivityScreen}
+        options={{
+          tabBarBadge: unread > 0 ? (unread > 99 ? "99+" : unread) : undefined,
+          tabBarBadgeStyle: styles.tabBarBadge,
+        }}
       />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
@@ -264,3 +270,19 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  // Copied from the dead navigation/index.tsx badge so the look is identical
+  // if that file is ever revived.
+  tabBarBadge: {
+    backgroundColor: colors.error,
+    color: colors.surface,
+    fontSize: 11,
+    fontWeight: "600",
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    lineHeight: 18,
+    textAlign: "center"
+  },
+});
