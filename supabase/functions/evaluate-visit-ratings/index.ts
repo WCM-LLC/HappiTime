@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
 
   const { data: visits, error } = await supabase
     .from("venue_visits")
-    .select("id,user_id,venue_id,entered_at,exited_at,duration_minutes,venues(name,post_visit_rating_enabled,post_visit_rating_aspects)")
+    .select("id,user_id,venue_id,entered_at,exited_at,duration_minutes,venues(name)")
     .is("rating_prompted_at", null)
     .is("rating", null)
     .lte("entered_at", new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString())
@@ -30,10 +30,12 @@ Deno.serve(async (req) => {
 
     const stayedLongEnough = (durationMinutes ?? 0) >= 60 || (exitedAt && exitedAt - enteredAt >= 60 * 60 * 1000);
     const awayLongEnough = exitedAt ? Date.now() - exitedAt >= 60 * 60 * 1000 : false;
-    if (!stayedLongEnough || !awayLongEnough || venue?.post_visit_rating_enabled === false) continue;
+    if (!stayedLongEnough || !awayLongEnough) continue;
 
     const { title, body } = visitRatingCopy(venue?.name);
-    const aspects = Array.isArray(venue?.post_visit_rating_aspects) ? venue.post_visit_rating_aspects : [];
+    // venues.post_visit_rating_enabled / _aspects were dropped in the
+    // 20260601130000 reconcile; every venue prompts and aspects default empty.
+    const aspects: string[] = [];
 
     const { inserted, pushed } = await sendUserNotifications(
       supabase,
