@@ -1,5 +1,5 @@
 // src/screens/ActivityScreen.tsx
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,9 @@ import {
   ActivityIndicator,
   TextInput,
 } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
+import type { MainTabParamList } from "../navigation/types";
 import { SuperUserBadge } from "../components/SuperUserBadge";
 import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity";
 import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendSuggestions";
@@ -399,8 +400,20 @@ type DiscoverListItem =
 export const ActivityScreen: React.FC = () => {
   const { user } = useCurrentUser();
   const navigation = useNavigation<any>();
+  const route = useRoute();
   const isGuest = !user;
   const [tab, setTab] = useState<Tab>("notifications");
+
+  // Navigation can request a specific segment (e.g. follower notifications
+  // land on Friends, where accept/decline lives). Consume the param so a
+  // later tap with the same segment still triggers the switch.
+  const requestedSegment = (route.params as MainTabParamList["Activity"])?.segment;
+  useEffect(() => {
+    if (requestedSegment) {
+      setTab(requestedSegment);
+      navigation.setParams({ segment: undefined });
+    }
+  }, [requestedSegment, navigation]);
   const {
     pendingRequests,
     loading: followersLoading,
@@ -573,7 +586,7 @@ export const ActivityScreen: React.FC = () => {
           data={notifications}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ItemSeparatorComponent={() => <View style={styles.notifSeparator} />}
           onRefresh={() => void refreshNotifications()}
           refreshing={notificationsLoading}
           ListHeaderComponent={
@@ -996,6 +1009,13 @@ const styles = StyleSheet.create({
   },
 
   /* ── Notification card ── */
+  notifSeparator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+    // Aligns with the title text: the 56px avatar inset of `separator`
+    // reads wrong next to the notification rows' 16px dot gutter.
+    marginLeft: 16,
+  },
   notifRow: {
     flexDirection: "row",
     alignItems: "flex-start",

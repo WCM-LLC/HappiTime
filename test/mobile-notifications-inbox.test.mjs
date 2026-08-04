@@ -40,6 +40,21 @@ test("notificationTarget stays the single routing table (no inbox-specific route
   assert.doesNotMatch(src, /user_notifications/);
 });
 
+test("follower notifications land on the Friends segment (owner decision 2026-08-04)", () => {
+  // The friend branch must carry the nested segment param, and ActivityScreen
+  // must honor it — otherwise a follower tap strands users on the inbox,
+  // one segment away from accept/decline.
+  const resolver = read("apps/mobile/src/lib/notificationTarget.mjs");
+  const friendIdx = resolver.indexOf('type === "friend"');
+  const nextBranchIdx = resolver.indexOf('type === "itinerary"');
+  assert.ok(friendIdx > 0 && nextBranchIdx > friendIdx);
+  assert.match(resolver.slice(friendIdx, nextBranchIdx), /segment:\s*"friends"/);
+
+  const screen = read("apps/mobile/src/screens/ActivityScreen.tsx");
+  assert.match(screen, /route\.params[^\n]*\.segment/);
+  assert.match(screen, /setTab\(requestedSegment\)/);
+});
+
 test("AppNavigator badges the Activity tab from the unread hook", () => {
   const src = read("apps/mobile/src/navigation/AppNavigator.tsx");
   assert.match(src, /useUnreadNotificationsBadge/);
