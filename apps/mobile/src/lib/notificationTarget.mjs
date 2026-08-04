@@ -18,7 +18,9 @@ export function resolveNotificationTarget(data) {
     return { screen: "VenuePreview", params: { venueId: data.venueId } };
   }
   if (type === "friend") {
-    return { screen: "AppTabs", params: { screen: "Activity" } };
+    // Owner decision (2026-08-04): follower notifications land on the Friends
+    // segment, where accept/decline lives — not the default Notifications one.
+    return { screen: "AppTabs", params: { screen: "Activity", params: { segment: "friends" } } };
   }
   if (type === "itinerary" && typeof data.listId === "string") {
     return { screen: "ItineraryDetail", params: { listId: data.listId } };

@@ -85,6 +85,6 @@ export type MainTabParamList = {
     itineraryShareToken?: string;
   } | undefined;
   Favorites: { openListId?: string; tab?: "favorites" | "history" | "lists" } | undefined;
-  Activity: undefined;
+  Activity: { segment?: "notifications" | "friends" | "discover" | "checkins" | "people" } | undefined;
   Profile: undefined;
 };
