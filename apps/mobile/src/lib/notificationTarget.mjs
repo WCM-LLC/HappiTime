@@ -4,7 +4,8 @@
 //
 // Payload contract (kept in sync with supabase/functions/notify-*/index.ts):
 //   happy_hour → { windowId }   venue → { venueId }   itinerary → { listId }
-//   friend → (none)             event → { venueId, eventId }
+//   friend → (none)             event → { venueId, eventId } (routes to the
+//     venue's VenueEvents page; falls back to EventCalendar without venueId)
 // visit_rating is deliberately NOT routed here — useVisitRating owns it
 // (opens the rating modal instead of navigating).
 export function resolveNotificationTarget(data) {
@@ -26,8 +27,11 @@ export function resolveNotificationTarget(data) {
     return { screen: "ItineraryDetail", params: { listId: data.listId } };
   }
   if (type === "event") {
-    // EventCalendar takes no params (navigation/types.ts); the calendar
-    // surfaces the upcoming event the push was about.
+    // Land on the venue's in-app Events & Specials page when the payload
+    // carries the venue; old payloads fall back to the calendar.
+    if (typeof data.venueId === "string") {
+      return { screen: "VenueEvents", params: { venueId: data.venueId } };
+    }
     return { screen: "EventCalendar", params: undefined };
   }
   return null;

@@ -21,10 +21,10 @@ test("venue with venueId → VenuePreview", () => {
   );
 });
 
-test("friend → Activity tab", () => {
+test("friend → Activity tab, friends segment", () => {
   assert.deepEqual(
     resolveNotificationTarget({ type: "friend" }),
-    { screen: "AppTabs", params: { screen: "Activity" } }
+    { screen: "AppTabs", params: { screen: "Activity", params: { segment: "friends" } } }
   );
 });
 
@@ -35,9 +35,16 @@ test("itinerary with listId → ItineraryDetail", () => {
   );
 });
 
-test("event → EventCalendar (previously an unhandled dead tap)", () => {
+test("event with venueId → VenueEvents (lands on the venue's events page)", () => {
   assert.deepEqual(
     resolveNotificationTarget({ type: "event", venueId: "v1", eventId: "e1" }),
+    { screen: "VenueEvents", params: { venueId: "v1" } }
+  );
+});
+
+test("event without venueId → EventCalendar (old-payload fallback)", () => {
+  assert.deepEqual(
+    resolveNotificationTarget({ type: "event", eventId: "e1" }),
     { screen: "EventCalendar", params: undefined }
   );
 });

@@ -17,6 +17,7 @@ import { ActivityScreen } from "../screens/ActivityScreen";
 import { AuthScreen } from "../screens/AuthScreen";
 import { FavoritesScreen } from "../screens/FavoritesScreen";
 import { HappyHourDetailScreen } from "../screens/HappyHourDetailScreen";
+import { VenueEventsScreen } from "../screens/VenueEventsScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { MapScreen } from "../screens/MapScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
@@ -154,6 +155,19 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
               fontSize: 17,
               fontWeight: "600",
             },
+          }}
+        />
+        <Stack.Screen
+          name="VenueEvents"
+          component={VenueEventsScreen}
+          options={{
+            headerShown: true,
+            title: "Events & Specials",
+            headerBackTitle: "Back",
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontSize: 17, fontWeight: "600" },
           }}
         />
         <Stack.Screen
