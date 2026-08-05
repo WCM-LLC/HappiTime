@@ -320,7 +320,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
     sections.push(
       <View key="events" style={styles.section}>
         <Text style={styles.sectionTitle}>Upcoming Events</Text>
-        {events.map((ev) => (
+        {events.slice(0, 3).map((ev) => (
           <View key={ev.id} style={styles.eventCard}>
             <View style={styles.eventHeader}>
               <View style={styles.eventTypeBadge}>
@@ -353,22 +353,21 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
                 {ev.description}
               </Text>
             ) : null}
-            {ev.external_url || ev.ticket_url ? (
+            {ev.ticket_url ? (
               <View style={styles.eventLinks}>
-                {ev.external_url ? (
-                  <Pressable onPress={() => Linking.openURL(ev.external_url!)}>
-                    <Text style={styles.eventLink}>More info</Text>
-                  </Pressable>
-                ) : null}
-                {ev.ticket_url ? (
-                  <Pressable onPress={() => Linking.openURL(ev.ticket_url!)}>
-                    <Text style={styles.eventLink}>Get tickets</Text>
-                  </Pressable>
-                ) : null}
+                <Pressable onPress={() => Linking.openURL(ev.ticket_url!)}>
+                  <Text style={styles.eventLink}>Get tickets</Text>
+                </Pressable>
               </View>
             ) : null}
           </View>
         ))}
+        <Pressable
+          onPress={() => navigation.navigate("VenueEvents", { venueId: venueId!, venueName })}
+          style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+        >
+          <Text style={styles.eventLink}>See all events & specials →</Text>
+        </Pressable>
       </View>
     );
   }
@@ -400,8 +399,6 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
         </Text>
       ) : (
         <>
-          <Text style={styles.subtitle}>Tap below to see Menus</Text>
-
           <Pressable
             onPress={handleCheckIn}
             disabled={checkingIn || checkedIn}
@@ -453,12 +450,22 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           </Pressable>
 
           <FlatList
+            // keep this prop above the windows-list `data` prop below: the
+            // menus-hint guard in test/venue-events-page.test.mjs asserts
+            // source order, not just presence.
+            ListHeaderComponent={
+              <>
+                {sections}
+                {windowsForVenue.length > 0 ? (
+                  <Text style={styles.subtitle}>Tap here to see menus</Text>
+                ) : null}
+              </>
+            }
             data={windowsForVenue}
             keyExtractor={(item) => item.id}
             contentContainerStyle={[styles.listContent, { paddingBottom: spacing.xl + insets.bottom }]}
             refreshing={refreshing}
             onRefresh={refresh}
-            ListHeaderComponent={<>{sections}</>}
             renderItem={({ item }) => (
               <HappyHourCard
                 window={item}

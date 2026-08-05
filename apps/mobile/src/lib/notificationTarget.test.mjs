@@ -21,10 +21,10 @@ test("venue with venueId → VenuePreview", () => {
   );
 });
 
-test("friend → Activity tab", () => {
+test("friend → Activity tab, friends segment", () => {
   assert.deepEqual(
     resolveNotificationTarget({ type: "friend" }),
-    { screen: "AppTabs", params: { screen: "Activity" } }
+    { screen: "AppTabs", params: { screen: "Activity", params: { segment: "friends" } } }
   );
 });
 
