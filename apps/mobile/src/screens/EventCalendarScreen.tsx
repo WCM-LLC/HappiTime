@@ -143,7 +143,7 @@ function applyFilter(
 
 /* ── Sub-components ── */
 
-const EventCard: React.FC<{ event: UpcomingEvent; onPress: () => void }> = ({ event: ev, onPress }) => {
+const EventCard: React.FC<{ event: UpcomingEvent; onPress: () => void; onMoreInfo: () => void }> = ({ event: ev, onPress, onMoreInfo }) => {
   const venueName = ev.venues?.name ?? null;
   const neighborhood = ev.venues?.neighborhood ?? ev.venues?.city ?? null;
 
@@ -194,20 +194,16 @@ const EventCard: React.FC<{ event: UpcomingEvent; onPress: () => void }> = ({ ev
         </Text>
       ) : null}
 
-      {ev.external_url || ev.ticket_url ? (
-        <View style={styles.eventLinks}>
-          {ev.external_url ? (
-            <Pressable onPress={() => Linking.openURL(ev.external_url!)}>
-              <Text style={styles.eventLink}>More info</Text>
-            </Pressable>
-          ) : null}
-          {ev.ticket_url ? (
-            <Pressable onPress={() => Linking.openURL(ev.ticket_url!)}>
-              <Text style={styles.eventLink}>Get tickets</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      ) : null}
+      <View style={styles.eventLinks}>
+        <Pressable onPress={onMoreInfo}>
+          <Text style={styles.eventLink}>More info</Text>
+        </Pressable>
+        {ev.ticket_url ? (
+          <Pressable onPress={() => Linking.openURL(ev.ticket_url!)}>
+            <Text style={styles.eventLink}>Get tickets</Text>
+          </Pressable>
+        ) : null}
+      </View>
     </Pressable>
   );
 };
@@ -339,6 +335,12 @@ export const EventCalendarScreen: React.FC = () => {
           <EventCard
             event={item}
             onPress={() => navigation.navigate("VenuePreview", { venueId: item.venue_id })}
+            onMoreInfo={() =>
+              navigation.navigate("VenueEvents", {
+                venueId: item.venue_id,
+                venueName: item.venues?.name ?? undefined,
+              })
+            }
           />
         )}
         ListEmptyComponent={
