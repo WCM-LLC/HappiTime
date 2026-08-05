@@ -363,7 +363,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         ))}
         <Pressable
-          onPress={() => navigation.navigate("VenueEvents", { venueId: venueId!, venueName })}
+          onPress={() => navigation.navigate("VenueEvents", { venueId: venueId!, venueName: fetchedVenueName ?? windowsForVenue[0]?.venue?.name ?? undefined })}
           style={({ pressed }) => [pressed && { opacity: 0.7 }]}
         >
           <Text style={styles.eventLink}>See all events & specials →</Text>

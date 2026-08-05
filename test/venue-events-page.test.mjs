@@ -46,6 +46,7 @@ test("menus hint says 'Tap here to see menus' and sits with the windows list", (
   // The hint renders in the windows-list region, not up by the check-in buttons:
   // it must appear AFTER the check-in button block in source order.
   const checkInIdx = src.indexOf("I'm here 🍻");
+  assert.ok(checkInIdx > 0, "check-in anchor must exist");
   assert.ok(hintIdx > checkInIdx, "hint must come after the check-in buttons");
   assert.ok(hintIdx < windowsIdx, "hint must come before the windows list");
 });

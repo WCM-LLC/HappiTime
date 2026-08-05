@@ -7,6 +7,7 @@ import { useRoute } from "@react-navigation/native";
 import { useVenueEvents, type VenueEventItem } from "../hooks/useVenueEvents";
 import { EVENT_TYPE_LABELS, formatEventDate, formatRecurrenceRule } from "../lib/eventDisplay";
 import { LoadingSpinner } from "../components/LoadingSpinner";
+import { ErrorState } from "../components/ErrorState";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import type { RootStackParamList } from "../navigation/types";
@@ -47,12 +48,20 @@ const EventRow: React.FC<{ ev: VenueEventItem }> = ({ ev }) => (
 export const VenueEventsScreen: React.FC = () => {
   const route = useRoute();
   const { venueId, venueName } = (route.params as RootStackParamList["VenueEvents"]) ?? { venueId: "" };
-  const { data: events, loading } = useVenueEvents(venueId || null);
+  const { data: events, loading, error } = useVenueEvents(venueId || null);
 
   const recurring = events.filter((e) => e.is_recurring);
   const upcoming = events.filter((e) => !e.is_recurring);
 
   if (loading) return <LoadingSpinner />;
+
+  if (error) {
+    return (
+      <View style={styles.centered}>
+        <ErrorState message={error.message} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
@@ -80,6 +89,7 @@ export const VenueEventsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  centered: { flex: 1, backgroundColor: colors.background, justifyContent: "center", alignItems: "center" },
   screen: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xl },
   pageTitle: { fontSize: 22, fontWeight: "700", color: colors.text, marginBottom: spacing.md },
