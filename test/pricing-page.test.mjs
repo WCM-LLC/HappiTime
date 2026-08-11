@@ -14,23 +14,25 @@ const contact = read("apps/directory/src/app/contactus/page.tsx");
 const globals = read("apps/directory/src/app/globals.css");
 const layout = read("apps/directory/src/app/layout.tsx");
 
-// /pricing is the port of the "Venue Pricing" design. There is no public
-// self-serve checkout -- /api/stripe/checkout requires an authenticated owner
-// with an existing venue+org -- so the paid CTAs hand off to the contact flow
-// carrying the plan. The paid CTAs now point at live Stripe Payment Links.
+// /pricing is the port of the "Venue Pricing" design. Paid CTAs route into
+// the venue console's /upgrade flow, whose checkout carries venue_id/org_id
+// metadata so the Stripe webhook activates plans automatically. The old
+// Stripe Payment Links are retired -- they carried no venue context and every
+// sale through them required manual reconciliation.
 
-test("paid plan CTAs point at live Stripe Payment Links", () => {
-  const links = [...pricing.matchAll(/https:\/\/buy\.stripe\.com\/[A-Za-z0-9]+/g)].map((m) => m[0]);
-  assert.ok(links.length >= 2, "expected a Payment Link for both paid plans");
+test("paid plan CTAs route to the venue console upgrade flow", () => {
+  const links = [
+    ...pricing.matchAll(/https:\/\/happitime-console\.vercel\.app\/upgrade\?plan=(featured|verified)/g),
+  ].map((m) => m[1]);
+  assert.ok(
+    links.includes("featured") && links.includes("verified"),
+    "expected console upgrade links for both paid plans"
+  );
 
-  // Copy-paste guard: billing Verified at the Featured link (or vice versa) would
-  // charge the wrong amount, and the page would still look correct.
-  assert.equal(new Set(links).size, 2, "Featured and Verified must not share a link");
-
-  // The design shipped with unresolved placeholders; they must not reach prod.
-  assert.doesNotMatch(pricing, /STRIPE_PAYMENT_LINK/, "placeholder hrefs must be replaced");
-  // Paid plans go to Stripe now, not the contact form (the free tier may).
-  assert.doesNotMatch(pricing, /\/contactus\?plan=(featured|verified)/, "paid CTAs should be Payment Links");
+  // Payment Links forced manual reconciliation; they must not come back.
+  assert.doesNotMatch(pricing, /buy\.stripe\.com/, "Stripe Payment Links are retired");
+  // Paid plans go to console checkout, not the contact form (the free tier may).
+  assert.doesNotMatch(pricing, /\/contactus\?plan=(featured|verified)/, "paid CTAs should be console checkout");
 });
 
 test("the free tier hands off to the contact form, not a paid checkout", () => {
