@@ -8,6 +8,7 @@ import { FlashMessage } from '@/components/FlashMessage';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import VenueDashboardShell, { type ShellTab, OrgMark, ShellCrumb } from '@/components/venue/VenueDashboardShell';
 import AccessManager, { type InviteRow, type MemberRow } from '@/components/venue/AccessManager';
+import AddVenueForm from '@/components/AddVenueForm';
 import Disclosure from '@/components/venue/Disclosure';
 import ConfirmDeleteToast from '@/components/venue/ConfirmDeleteToast';
 import VenueMenusManager, {
@@ -472,53 +473,7 @@ export default async function OrgPage({
             <h3 className="text-heading-sm font-semibold text-foreground">Add a venue</h3>
             <p className="text-body-sm text-muted mt-0.5">Add a new location to this organization.</p>
           </div>
-          <form className="flex flex-col gap-4">
-            <div>
-              <label htmlFor="venue-name" className="text-body-sm font-medium text-foreground block mb-1.5">
-                Venue name
-              </label>
-              <input id="venue-name" name="name" placeholder="e.g., Smith's Taproom" required className={inputCls} />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="address" className="text-body-sm font-medium text-foreground block mb-1.5">
-                  Street address
-                </label>
-                <input id="address" name="address" placeholder="123 Main St" required className={inputCls} />
-              </div>
-              <div>
-                <label htmlFor="city" className="text-body-sm font-medium text-foreground block mb-1.5">
-                  City
-                </label>
-                <input id="city" name="city" placeholder="Austin" required className={inputCls} />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label htmlFor="state" className="text-body-sm font-medium text-foreground block mb-1.5">
-                  State
-                </label>
-                <input id="state" name="state" placeholder="TX" required className={inputCls} />
-              </div>
-              <div>
-                <label htmlFor="zip" className="text-body-sm font-medium text-foreground block mb-1.5">
-                  ZIP code
-                </label>
-                <input id="zip" name="zip" placeholder="78701" required className={inputCls} />
-              </div>
-              <div>
-                <label htmlFor="timezone" className="text-body-sm font-medium text-foreground block mb-1.5">
-                  Timezone
-                </label>
-                <input id="timezone" name="timezone" defaultValue="America/Chicago" className={inputCls} />
-              </div>
-            </div>
-            <div>
-              <button formAction={createVenue.bind(null, orgId)} className={btnPrimary}>
-                Create venue
-              </button>
-            </div>
-          </form>
+          <AddVenueForm action={createVenue.bind(null, orgId)} />
         </div>
       ) : null}
 

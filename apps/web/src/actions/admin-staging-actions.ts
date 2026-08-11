@@ -5,7 +5,11 @@ import { assertAdmin, getAdminClient } from '@/utils/admin';
 import { slugify } from '@/utils/slugify';
 import { resolveOrgForVenue } from '@/utils/org-resolution';
 
-export async function adminPromoteStagingVenue(stagingId: string, orgId?: string) {
+export async function adminPromoteStagingVenue(
+  stagingId: string,
+  orgId?: string,
+  confirmedPlacesId?: string,
+) {
   await assertAdmin();
   const supabase = getAdminClient();
 
@@ -27,7 +31,9 @@ export async function adminPromoteStagingVenue(stagingId: string, orgId?: string
   if (!name) throw new Error('Payload is missing a venue name');
   if (!city || !state || !zip) throw new Error('Payload is missing city, state, or zip — edit the record first');
 
-  const placesId = staging.external_ref ?? null;
+  // An operator-confirmed Google match (from the promote form's autocomplete)
+  // beats the scraped external_ref.
+  const placesId = (confirmedPlacesId?.trim() || staging.external_ref) ?? null;
 
   // Dedupe: if a venue with this places_id already exists, just link the staging row
   if (placesId) {

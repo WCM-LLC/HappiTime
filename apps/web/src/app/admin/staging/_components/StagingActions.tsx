@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { adminPromoteStagingVenue, adminRejectStagingVenue } from '@/actions/admin-staging-actions';
+import VenueAddressAutocomplete from '@/components/VenueAddressAutocomplete';
+import type { VenuePrefill } from '@/app/api/places/details/route';
 
 export type OrgOption = { id: string; name: string; slug: string };
 
@@ -22,6 +24,7 @@ export function PromoteForm({
 }) {
   const [mode, setMode] = useState<'auto' | 'existing'>('auto');
   const [orgId, setOrgId] = useState(orgs[0]?.id ?? '');
+  const [confirmed, setConfirmed] = useState<VenuePrefill | null>(null);
   const [isPending, startTransition] = useTransition();
   const [err, setErr] = useState('');
 
@@ -30,7 +33,11 @@ export function PromoteForm({
     setErr('');
     startTransition(async () => {
       try {
-        const result = await adminPromoteStagingVenue(rowId, mode === 'existing' ? orgId : undefined);
+        const result = await adminPromoteStagingVenue(
+          rowId,
+          mode === 'existing' ? orgId : undefined,
+          confirmed?.placeId,
+        );
         const msg = result.alreadyExisted
           ? 'Linked to existing venue (duplicate places_id).'
           : result.orgCreated
@@ -45,11 +52,32 @@ export function PromoteForm({
 
   return (
     <div className="flex flex-col gap-2 min-w-[220px]">
-      {hasNoExternalRef && (
+      {hasNoExternalRef && !confirmed && (
         <p className="text-caption text-[#92400E] bg-[#FEF3C7] px-2 py-1 rounded">
           No places_id — photo sync won&apos;t auto-run
         </p>
       )}
+      {/* Operator confirms the Google match in one pick; kills the address-typo
+          class validate-venue-places exists to catch. */}
+      <div>
+        <p className="text-caption font-medium text-muted mb-1">Confirm Google match</p>
+        <VenueAddressAutocomplete
+          initialQuery={venueName}
+          placeholder="Search Google to confirm the match…"
+          onResolve={setConfirmed}
+        />
+        {confirmed && (
+          <p className="text-caption text-muted mt-1">
+            Matched: <span className="font-medium text-foreground">{confirmed.name}</span>
+            {confirmed.address ? ` — ${confirmed.address}, ${confirmed.city}` : ''}
+          </p>
+        )}
+        {confirmed?.businessStatus === 'CLOSED_PERMANENTLY' && (
+          <p className="text-caption text-error mt-1">
+            Google marks this place permanently closed — double-check before promoting.
+          </p>
+        )}
+      </div>
       <div className="flex flex-col gap-1 text-body-sm">
         <label className="flex items-center gap-1.5 cursor-pointer">
           <input

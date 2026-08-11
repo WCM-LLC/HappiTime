@@ -132,6 +132,12 @@ export async function createVenue(orgId: string, formData: FormData) {
   // Admin users bypass RLS via service role client
   const dbClient = useAdmin ? getAdminClient() : supabase;
 
+  // Places prefill (from VenueAddressAutocomplete): a venue born with a
+  // confirmed places_id skips the wait for the enrichment cron's basics.
+  const placesId = String(formData.get('places_id') ?? '').trim() || null;
+  const lat = Number.parseFloat(String(formData.get('lat') ?? ''));
+  const lng = Number.parseFloat(String(formData.get('lng') ?? ''));
+
   const payload = {
     org_id: orgId,
     name,
@@ -140,6 +146,16 @@ export async function createVenue(orgId: string, formData: FormData) {
     state: String(formData.get('state') ?? '').trim() || null,
     zip: String(formData.get('zip') ?? '').trim() || null,
     timezone: String(formData.get('timezone') ?? '').trim() || 'America/Chicago',
+    ...(placesId
+      ? {
+          places_id: placesId,
+          places_status: 'matched',
+          ...(Number.isFinite(lat) ? { lat } : {}),
+          ...(Number.isFinite(lng) ? { lng } : {}),
+          phone: String(formData.get('phone') ?? '').trim() || null,
+          website: String(formData.get('website') ?? '').trim() || null,
+        }
+      : {}),
   };
 
   const { data: venue, error } = await dbClient
