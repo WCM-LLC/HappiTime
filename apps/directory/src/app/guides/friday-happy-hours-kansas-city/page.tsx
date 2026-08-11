@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 
 const BASE = "https://happitime.biz";
@@ -103,9 +104,9 @@ export default function FridayHappyHours() {
       />
 
       <nav className="text-sm text-muted mb-6 flex items-center gap-1.5">
-        <a href="/" className="hover:text-foreground transition-colors">HappiTime</a>
+        <Link href="/" className="hover:text-foreground transition-colors">HappiTime</Link>
         <span className="text-muted-light">/</span>
-        <a href="/guides/" className="hover:text-foreground transition-colors">Guides</a>
+        <Link href="/guides/" className="hover:text-foreground transition-colors">Guides</Link>
         <span className="text-muted-light">/</span>
         <span className="text-foreground font-medium">Friday Happy Hours</span>
       </nav>
@@ -148,7 +149,7 @@ export default function FridayHappyHours() {
           Power &amp; Light — The After-Work Surge
         </h3>
         <p className="text-muted leading-relaxed mb-3">
-          <a href="/happy-hour/power-light-kansas-city/" className="text-brand font-medium hover:underline">Power &amp; Light</a>{" "}
+          <Link href="/happy-hour/power-light-kansas-city/" className="text-brand font-medium hover:underline">Power &amp; Light</Link>{" "}
           draws the biggest Friday crowd in KC. Office workers pour out of
           downtown towers into the pedestrian district by 4 PM. Rooftop
           patios are the first to fill. If you want a seat outdoors, plan to
@@ -159,7 +160,7 @@ export default function FridayHappyHours() {
           Westport — Crawl-Ready
         </h3>
         <p className="text-muted leading-relaxed mb-3">
-          <a href="/happy-hour/westport-kansas-city/" className="text-brand font-medium hover:underline">Westport</a>{" "}
+          <Link href="/happy-hour/westport-kansas-city/" className="text-brand font-medium hover:underline">Westport</Link>{" "}
           is the best Friday option if you want to move between bars. The
           neighborhood&apos;s walkability means you can start with cheap
           drafts on a patio, shift to a cocktail spot, and end up at a live
@@ -171,7 +172,7 @@ export default function FridayHappyHours() {
         </h3>
         <p className="text-muted leading-relaxed mb-3">
           The{" "}
-          <a href="/happy-hour/crossroads-kansas-city/" className="text-brand font-medium hover:underline">Crossroads</a>{" "}
+          <Link href="/happy-hour/crossroads-kansas-city/" className="text-brand font-medium hover:underline">Crossroads</Link>{" "}
           shines on the first Friday of every month, when gallery openings
           and street vendors create a festival atmosphere. Bars and
           restaurants capitalize with extended specials and special menus.
@@ -185,9 +186,9 @@ export default function FridayHappyHours() {
         <p className="text-muted leading-relaxed">
           If the Friday crowds at P&amp;L and Westport are not your speed,
           the{" "}
-          <a href="/happy-hour/river-market-kansas-city/" className="text-brand font-medium hover:underline">River Market</a>{" "}
+          <Link href="/happy-hour/river-market-kansas-city/" className="text-brand font-medium hover:underline">River Market</Link>{" "}
           and{" "}
-          <a href="/happy-hour/midtown-kansas-city/" className="text-brand font-medium hover:underline">Midtown</a>{" "}
+          <Link href="/happy-hour/midtown-kansas-city/" className="text-brand font-medium hover:underline">Midtown</Link>{" "}
           offer a mellower Friday experience — brewery taprooms, neighborhood
           bars, and patio seating without the wait.
         </p>
@@ -203,7 +204,7 @@ export default function FridayHappyHours() {
           <li><strong>4:00-5:00 PM:</strong> Peak happy hour — bars are full but deals are at their best.</li>
           <li><strong>5:30-6:00 PM:</strong> Last call on most specials. Order your final round before cutoff.</li>
           <li><strong>6:00 PM+:</strong> Happy hour ends at most spots, but the energy carries into the evening. Some venues switch to weekend drink menus or live music.</li>
-          <li><strong>Pro tip:</strong> Check <a href="/kc/" className="text-brand hover:underline">HappiTime</a> before you leave — some venues have extended Friday hours that the crowd does not know about.</li>
+          <li><strong>Pro tip:</strong> Check <Link href="/kc/" className="text-brand hover:underline">HappiTime</Link> before you leave — some venues have extended Friday hours that the crowd does not know about.</li>
         </ul>
       </section>
 
@@ -223,7 +224,7 @@ export default function FridayHappyHours() {
           </div>
           <div>
             <h3 className="font-semibold text-foreground">Where is the best neighborhood for Friday happy hour?</h3>
-            <p className="text-muted text-sm leading-relaxed mt-1">Power &amp; Light for the biggest crowd, <a href="/happy-hour/westport-kansas-city/" className="text-brand hover:underline">Westport</a> for crawl-friendly vibes, and the Crossroads for creative cocktails (especially on First Fridays).</p>
+            <p className="text-muted text-sm leading-relaxed mt-1">Power &amp; Light for the biggest crowd, <Link href="/happy-hour/westport-kansas-city/" className="text-brand hover:underline">Westport</Link> for crawl-friendly vibes, and the Crossroads for creative cocktails (especially on First Fridays).</p>
           </div>
           <div>
             <h3 className="font-semibold text-foreground">Can I transition from happy hour into nightlife?</h3>
@@ -241,12 +242,12 @@ export default function FridayHappyHours() {
           See which KC bars are running Friday specials right now.
         </p>
         <div className="flex items-center justify-center gap-3">
-          <a
+          <Link
             href="/kc/"
             className="inline-block rounded-full border border-brand px-6 py-2.5 text-brand font-semibold text-sm hover:bg-brand hover:text-white transition-colors"
           >
             Browse KC Happy Hours
-          </a>
+          </Link>
           <a
             href="/app/"
             className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors"

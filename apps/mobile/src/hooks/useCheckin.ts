@@ -116,7 +116,6 @@ export function useCheckin() {
           // from error.context (the raw Response).
           let parsed: Record<string, unknown> = {};
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             parsed = await (error as any).context?.json?.() ?? {};
           } catch {
             // If JSON parse fails, fall through to generic mapping

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import {
   KC_NEIGHBORHOODS,
@@ -107,13 +108,13 @@ export default async function NeighborhoodPage({ params }: Props) {
 
       {/* Breadcrumb nav */}
       <nav className="text-sm text-muted mb-6 flex items-center gap-1.5">
-        <a href="/" className="hover:text-foreground transition-colors">
+        <Link href="/" className="hover:text-foreground transition-colors">
           HappiTime
-        </a>
+        </Link>
         <span className="text-muted-light">/</span>
-        <a href="/kc/" className="hover:text-foreground transition-colors">
+        <Link href="/kc/" className="hover:text-foreground transition-colors">
           Kansas City
-        </a>
+        </Link>
         <span className="text-muted-light">/</span>
         <span className="text-foreground font-medium">{neighborhood.name}</span>
       </nav>

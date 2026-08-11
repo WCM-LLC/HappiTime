@@ -314,7 +314,7 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       const existingHandle = data?.handle;
       setHandleGate(existingHandle && String(existingHandle).trim().length > 0 ? "satisfied" : "needed");
     })();
-  }, [session?.user?.id, onboarding.loading, onboarding.hasCompletedOnboarding]);
+  }, [session, onboarding.loading, onboarding.hasCompletedOnboarding]);
 
   if (booting) {
     console.log("booting:", booting, "session:", !!session);

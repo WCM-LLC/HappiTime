@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useItinerary } from "@/components/ItineraryContext";
 import { useState } from "react";
 
@@ -31,13 +32,13 @@ export function ItineraryPageClient() {
     <div className="mx-auto max-w-3xl px-6 py-12">
       {/* Breadcrumb */}
       <nav className="text-sm text-muted mb-6 flex items-center gap-1.5">
-        <a href="/" className="hover:text-foreground transition-colors">
+        <Link href="/" className="hover:text-foreground transition-colors">
           HappiTime
-        </a>
+        </Link>
         <span className="text-muted-light">/</span>
-        <a href="/kc/" className="hover:text-foreground transition-colors">
+        <Link href="/kc/" className="hover:text-foreground transition-colors">
           Kansas City
-        </a>
+        </Link>
         <span className="text-muted-light">/</span>
         <span className="text-foreground font-medium">My Itinerary</span>
       </nav>
@@ -106,10 +107,10 @@ export function ItineraryPageClient() {
             Plan Your Happy Hour Route
           </h2>
           <p className="text-sm text-muted mb-6 max-w-sm mx-auto">
-            Browse venues and tap "Add to Itinerary" to build your personalized
+            Browse venues and tap &ldquo;Add to Itinerary&rdquo; to build your personalized
             happy hour crawl.
           </p>
-          <a
+          <Link
             href="/kc/"
             className="inline-flex items-center gap-2 rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors"
           >
@@ -127,7 +128,7 @@ export function ItineraryPageClient() {
                 d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
               />
             </svg>
-          </a>
+          </Link>
         </div>
       ) : (
         <div className="space-y-3">
@@ -196,12 +197,12 @@ export function ItineraryPageClient() {
       {/* CTA at bottom */}
       {count > 0 && (
         <div className="mt-8 pt-6 border-t border-border text-center">
-          <a
+          <Link
             href="/kc/"
             className="text-sm font-semibold text-brand hover:underline"
           >
             + Add more venues
-          </a>
+          </Link>
         </div>
       )}
     </div>
