@@ -63,8 +63,11 @@ Server-only (required to delete Cloudinary-backed venue media):
 
 Do not expose Cloudinary API credentials with `NEXT_PUBLIC_` names.
 
-Optional (analytics / error reporting):
-- `NEXT_PUBLIC_ANALYTICS_PROVIDER`
+Optional (analytics / error reporting — analytics must never block a build;
+all of these no-op when unset):
+- `NEXT_PUBLIC_ANALYTICS_PROVIDER` — `posthog` enables the PostHog init in `AnalyticsProvider`
+- `NEXT_PUBLIC_POSTHOG_KEY` — the `phc_...` project key (publishable client key)
+- `NEXT_PUBLIC_POSTHOG_HOST` — defaults to `https://us.i.posthog.com`
 - `NEXT_PUBLIC_ANALYTICS_DEBUG`
 - `NEXT_PUBLIC_ERROR_REPORTING_PROVIDER`
 

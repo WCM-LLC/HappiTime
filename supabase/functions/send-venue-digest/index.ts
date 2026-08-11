@@ -388,6 +388,13 @@ function buildDigestHtml(args: {
   </table>
   ${toastmakerLine}
 
+  <p style="margin-top:20px">
+    <a href="https://happitime-console.vercel.app/dashboard?utm_source=venue_digest&utm_medium=email"
+       style="display:inline-block;background:#C0773A;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px 18px;border-radius:999px">
+      Manage your listing
+    </a>
+  </p>
+
   <p style="color:#aaa;font-size:11px;margin-top:24px;border-top:1px solid #eee;padding-top:12px">
     You're receiving this because you're an owner or manager of ${venueName} on HappiTime.
     To update notification preferences, visit your venue dashboard.
