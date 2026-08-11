@@ -27,19 +27,14 @@ const FEATURED_PRICE = 99;
 const EXTRA_REVENUE = AVG_TAB * 2;
 const NET_MONTHLY = EXTRA_REVENUE - FEATURED_PRICE;
 
-/* Live Stripe Payment Links. They bill the same products the venue console
-   checkout uses, so revenue reporting stays in one place:
-     Featured — price_1TRj8H0lEKgQwNRsRg2AUHkS, $99/mo, 30-day trial ($0 today)
-     Verified — price_1TRi7F0lEKgQwNRswEDWdTXC, $49/mo, no trial
-
-   A Payment Link carries no venue/org context, so the resulting subscription has
-   no venue_id metadata and the Stripe webhook deliberately skips it (see
-   handleSubscriptionUpsert in apps/web/src/app/api/stripe/webhook/route.ts).
-   Both links therefore collect venue name + city as required checkout fields so
-   the payment can be matched to a listing by hand — which is what the "We connect
-   your venue" step below promises. */
-const FEATURED_CTA = "https://buy.stripe.com/dRm5kvctPgrQctW7QF7Re00";
-const VERIFIED_CTA = "https://buy.stripe.com/28E9ALbpL7Vkdy02wl7Re01";
+/* CTAs route into the venue console's checkout (/upgrade resolves the owner's
+   venue and forwards to its subscription page). Unlike the retired Stripe
+   Payment Links, console checkout carries venue_id/org_id metadata, so the
+   webhook activates the plan automatically — no manual reconciliation.
+   Featured's 30-day trial is applied by the checkout route
+   (apps/web/src/app/api/stripe/checkout/route.ts). */
+const FEATURED_CTA = "https://happitime-console.vercel.app/upgrade?plan=featured";
+const VERIFIED_CTA = "https://happitime-console.vercel.app/upgrade?plan=verified";
 
 const SHELL = "mx-auto max-w-5xl px-6";
 /* The source design sets Plus Jakarta Sans on every heading. The site shell
@@ -593,21 +588,21 @@ export default function PricingPage() {
           <div className="mx-auto grid max-w-[440px] grid-cols-1 gap-[22px] sm:max-w-none sm:grid-cols-3">
             {[
               {
+                title: "Claim your venue",
+                body: "Tell us which venue is yours and we email your venue console login — typically within one business day. Already have console access? Skip straight to checkout.",
+              },
+              {
                 title: "Pick a plan",
                 body: (
                   <>
-                    Check out securely with Stripe. Featured starts with{" "}
+                    Sign in and check out securely with Stripe. Featured starts with{" "}
                     <b className="text-foreground">30 days free</b> — $0 charged today.
                   </>
                 ),
               },
               {
-                title: "We connect your venue",
-                body: "You tell us your venue name at checkout, we match your payment to your listing, and we email your venue console login — typically within one business day.",
-              },
-              {
                 title: "You take the wheel",
-                body: "Update specials, hours, menus, and photos anytime. Your badge and placement go live immediately.",
+                body: "Your badge and placement go live the moment checkout completes. Update specials, hours, menus, and photos anytime.",
               },
             ].map((step, i) => (
               <div
@@ -690,7 +685,7 @@ export default function PricingPage() {
             },
             {
               q: "What happens right after I pay?",
-              a: "Stripe emails you a receipt, and because you enter your venue name and city at checkout, we can match the payment straight to your listing. You get console access within one business day, and your badge and ranking upgrade go live as soon as your venue is connected.",
+              a: "Your payment is tied to your venue automatically, so your badge and ranking upgrade go live the moment checkout completes. Stripe emails you a receipt, and you manage everything from the venue console from then on.",
             },
             {
               q: "How do I update my specials?",

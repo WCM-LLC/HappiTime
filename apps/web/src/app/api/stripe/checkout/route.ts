@@ -67,6 +67,9 @@ export async function POST(req: NextRequest) {
       allow_promotion_codes: true,
       subscription_data: {
         metadata: { venue_id: venueId, org_id: orgId, plan },
+        // Featured carries the public 30-day trial promised on the pricing
+        // page (previously configured on the retired Stripe Payment Link).
+        ...(plan === 'featured' ? { trial_period_days: 30 } : {}),
       },
       success_url: `${origin}/orgs/${orgId}/venues/${venueId}/subscription?subscription=success`,
       cancel_url:  `${origin}/orgs/${orgId}/venues/${venueId}/subscription?subscription=cancelled`,
