@@ -2,6 +2,18 @@ import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import { createClient, createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
 import { AddressReviewActions } from './AddressReviewActions';
+import { ClosureReviewActions } from './ClosureReviewActions';
+
+type ClosureRow = {
+  id: string;
+  org_id: string | null;
+  name: string;
+  address: string | null;
+  city: string | null;
+  places_id: string | null;
+  places_business_status: string | null;
+  places_validated_at: string | null;
+};
 
 type QueueRow = {
   venue_id: string;
@@ -49,6 +61,17 @@ export default async function AddressReviewPage() {
 
   const rows: QueueRow[] = (raw ?? []) as QueueRow[];
 
+  // Suspected closures live on the venue row itself (closure_suspected is set
+  // by the validation cron; a human confirms or dismisses every one here).
+  const { data: closureRaw, error: closureError } = await (supabase as any)
+    .from('venues')
+    .select('id, org_id, name, address, city, places_id, places_business_status, places_validated_at')
+    .eq('closure_suspected', true)
+    .order('places_validated_at', { ascending: true })
+    .limit(200);
+
+  const closureRows: ClosureRow[] = (closureRaw ?? []) as ClosureRow[];
+
   return (
     <div className="min-h-screen bg-background">
       <UserBar />
@@ -93,6 +116,85 @@ export default async function AddressReviewPage() {
             <p className="text-body-sm text-muted">
               When the hourly validator finds an address mismatch it will appear here.
             </p>
+          </div>
+        )}
+
+        {/* ── Suspected closed ─────────────────────────────────────────── */}
+        <div className="flex items-center gap-3 mb-4 mt-10">
+          <span className="text-heading-sm font-semibold text-foreground">
+            Suspected closed
+          </span>
+          <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-error-light text-error">
+            {closureRows.length}
+          </span>
+        </div>
+
+        {closureError && (
+          <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-6">
+            <p className="text-body-sm font-medium text-error">Failed to load closure queue</p>
+            <p className="text-body-sm text-error/80 mt-0.5">{closureError.message}</p>
+          </div>
+        )}
+
+        {closureRows.length === 0 && !closureError && (
+          <div className="rounded-lg border border-dashed border-border-strong bg-surface/50 p-8 text-center mb-10">
+            <p className="text-body-sm text-muted">
+              When Google marks a venue permanently closed (or its place id disappears),
+              it will appear here. The cron only flags — deleting is always a human call.
+            </p>
+          </div>
+        )}
+
+        {closureRows.length > 0 && (
+          <div className="rounded-lg border border-border bg-surface shadow-sm overflow-hidden mb-10">
+            <table className="w-full text-body-sm">
+              <thead>
+                <tr className="border-b border-border bg-background">
+                  <th className="text-left px-4 py-3 text-caption font-semibold text-muted uppercase tracking-wider">Venue</th>
+                  <th className="text-left px-4 py-3 text-caption font-semibold text-muted uppercase tracking-wider">Address</th>
+                  <th className="text-left px-4 py-3 text-caption font-semibold text-muted uppercase tracking-wider">Google status</th>
+                  <th className="text-left px-4 py-3 text-caption font-semibold text-muted uppercase tracking-wider">Checked</th>
+                  <th className="text-left px-4 py-3 text-caption font-semibold text-muted uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {closureRows.map((r, i) => (
+                  <tr key={r.id} className={`border-b border-border last:border-0 align-top ${i % 2 === 1 ? 'bg-background/50' : ''}`}>
+                    <td className="px-4 py-3 font-medium text-foreground">
+                      {r.org_id ? (
+                        <Link href={`/orgs/${r.org_id}/venues/${r.id}?from=admin`} className="text-brand hover:underline">
+                          {r.name}
+                        </Link>
+                      ) : (
+                        r.name
+                      )}
+                      {r.places_id && (
+                        <a
+                          href={`https://www.google.com/maps/place/?q=place_id:${r.places_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-caption text-muted-light hover:text-muted mt-0.5"
+                        >
+                          View on Google ↗
+                        </a>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-muted max-w-xs">
+                      {[r.address, r.city].filter(Boolean).join(', ') || <span className="text-muted-light">—</span>}
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-error-light text-error">
+                        {r.places_business_status ?? 'place id not found'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted whitespace-nowrap">{formatDate(r.places_validated_at)}</td>
+                    <td className="px-4 py-3">
+                      <ClosureReviewActions venueId={r.id} venueName={r.name} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
 
