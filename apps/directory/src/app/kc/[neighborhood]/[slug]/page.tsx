@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
@@ -481,14 +482,15 @@ export default async function VenueDetailPage({ params }: Props) {
                 .map((m) => (
                   <div
                     key={m.id}
-                    className="aspect-[4/3] rounded-xl overflow-hidden border border-border"
+                    className="relative aspect-[4/3] rounded-xl overflow-hidden border border-border"
                   >
-                    <img
+                    <Image
                       src={venueImageUrl(m, { w: 800 })}
                       data-lightbox-src={venueImageUrl(m, { w: 1600 })}
                       alt={m.title ?? `${venue.name} photo`}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
+                      fill
+                      sizes="(max-width: 640px) 50vw, 33vw"
+                      className="object-cover"
                     />
                   </div>
                 ))}

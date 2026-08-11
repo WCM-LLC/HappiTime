@@ -65,6 +65,9 @@ function StoreQR({ platform }: { platform: Platform }) {
         title={`Download HappiTime for ${name}`}
         className="block rounded-2xl border border-border bg-white p-2.5 leading-none shadow-sm hover:shadow-md transition-shadow"
       >
+        {/* External QR endpoint returns an SVG at the exact display size;
+            next/image can't optimize SVGs and would add a remote pattern for nothing. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={qrSrc(url, 104)}
           width={104}
