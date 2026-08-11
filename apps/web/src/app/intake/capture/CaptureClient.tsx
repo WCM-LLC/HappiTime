@@ -14,7 +14,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { createClient as createSupabaseBrowser } from '@supabase/supabase-js';
+import posthog from 'posthog-js';
+import { createClient } from '@/utils/supabase/client';
 
 type Venue = { id: string; name: string; address: string | null; city: string | null };
 
@@ -43,12 +44,6 @@ type MenuItem = { name: string; price: number | null; description?: string };
 type MenuSection = { name: string; items: MenuItem[] };
 
 const DOW_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
-function getBrowserSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
-  return createSupabaseBrowser(url, anon);
-}
 
 /** Downscale a 4 MB iPhone JPEG to ~400 KB before upload. Falls back to original on failure. */
 async function resizeImageIfNeeded(file: File, maxWidth = 1600, quality = 0.85): Promise<File> {
@@ -109,7 +104,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<Venue[]>([]);
   const [venue, setVenue] = useState<Venue | null>(null);
-  const supabase = useMemo(() => getBrowserSupabase(), []);
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     if (venue) return;
@@ -258,6 +253,12 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
         hasMenu: newSections.length > 0,
         hasWindows: ws.length > 0,
       });
+      posthog.capture('intake_extraction_completed', {
+        has_menu: newSections.length > 0,
+        has_windows: ws.length > 0,
+        section_count: newSections.length,
+        window_count: ws.length,
+      });
     } catch (err: any) {
       setExtractError(err?.message ?? 'extract_failed');
     } finally {
@@ -350,6 +351,13 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
         );
         return;
       }
+      posthog.capture(mode === 'publish' ? 'intake_menu_published' : 'intake_menu_draft_saved', {
+        section_count: sections.length,
+        item_count: totalItems,
+        attached_window_count: totalAttachedWindows,
+        created_window_count: newWindowsToCreate.length,
+        owner_confirmation_requested: mode === 'publish' && sendConfirmation,
+      });
       setCommitResult(json);
     } catch (err: any) {
       setCommitError(err?.message ?? 'commit_failed');
