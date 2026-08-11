@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 
 const BASE = "https://happitime.biz";
@@ -95,9 +96,9 @@ export default function WestportGuide() {
       />
 
       <nav className="text-sm text-muted mb-6 flex items-center gap-1.5">
-        <a href="/" className="hover:text-foreground transition-colors">HappiTime</a>
+        <Link href="/" className="hover:text-foreground transition-colors">HappiTime</Link>
         <span className="text-muted-light">/</span>
-        <a href="/guides/" className="hover:text-foreground transition-colors">Guides</a>
+        <Link href="/guides/" className="hover:text-foreground transition-colors">Guides</Link>
         <span className="text-muted-light">/</span>
         <span className="text-foreground font-medium">Westport</span>
       </nav>
@@ -107,7 +108,7 @@ export default function WestportGuide() {
         <span className="text-brand">Best Bars &amp; Deals</span>
       </h1>
       <p className="text-muted text-lg mb-10 max-w-2xl">
-        <a href="/happy-hour/westport-kansas-city/" className="text-brand font-medium hover:underline">Westport</a>{" "}
+        <Link href="/happy-hour/westport-kansas-city/" className="text-brand font-medium hover:underline">Westport</Link>{" "}
         is Kansas City&apos;s original entertainment district and arguably its
         best happy hour destination. A dense strip of bars, restaurants, and
         lounges means competitive pricing and an easy walk from one deal to
@@ -208,9 +209,9 @@ export default function WestportGuide() {
       <section className="mb-10">
         <h2 className="text-lg font-bold text-foreground mb-3">Related Guides</h2>
         <div className="flex flex-wrap gap-2">
-          <a href="/guides/best-happy-hours-kansas-city/" className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted hover:text-brand hover:border-brand transition-colors">Best Happy Hours in KC</a>
-          <a href="/guides/best-happy-hour-food-kansas-city/" className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted hover:text-brand hover:border-brand transition-colors">Best Happy Hour Food</a>
-          <a href="/guides/friday-happy-hours-kansas-city/" className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted hover:text-brand hover:border-brand transition-colors">Friday Happy Hours</a>
+          <Link href="/guides/best-happy-hours-kansas-city/" className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted hover:text-brand hover:border-brand transition-colors">Best Happy Hours in KC</Link>
+          <Link href="/guides/best-happy-hour-food-kansas-city/" className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted hover:text-brand hover:border-brand transition-colors">Best Happy Hour Food</Link>
+          <Link href="/guides/friday-happy-hours-kansas-city/" className="rounded-full border border-border px-4 py-1.5 text-sm font-medium text-muted hover:text-brand hover:border-brand transition-colors">Friday Happy Hours</Link>
         </div>
       </section>
 
@@ -223,12 +224,12 @@ export default function WestportGuide() {
           Browse live deals, menus, and times for every Westport venue on HappiTime.
         </p>
         <div className="flex items-center justify-center gap-3">
-          <a
+          <Link
             href="/happy-hour/westport-kansas-city/"
             className="inline-block rounded-full border border-brand px-6 py-2.5 text-brand font-semibold text-sm hover:bg-brand hover:text-white transition-colors"
           >
             Westport Happy Hours
-          </a>
+          </Link>
           <a
             href="/app/"
             className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors"

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { getNeighborhood } from "@/lib/neighborhoods";
@@ -160,13 +161,13 @@ export default async function VenueDetailPage({ params }: Props) {
 
       {/* Breadcrumb */}
       <nav className="text-sm text-muted mb-6 flex items-center gap-1.5 flex-wrap">
-        <a href="/" className="hover:text-foreground transition-colors">
+        <Link href="/" className="hover:text-foreground transition-colors">
           HappiTime
-        </a>
+        </Link>
         <span className="text-muted-light">/</span>
-        <a href="/kc/" className="hover:text-foreground transition-colors">
+        <Link href="/kc/" className="hover:text-foreground transition-colors">
           Kansas City
-        </a>
+        </Link>
         {neighborhood && (
           <>
             <span className="text-muted-light">/</span>

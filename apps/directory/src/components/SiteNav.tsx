@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ItineraryBadge } from "@/components/ItineraryBadge";
 
 export function SiteNav() {
@@ -11,12 +12,12 @@ export function SiteNav() {
     <>
       {/* Desktop nav */}
       <nav className="hidden md:flex items-center gap-4 text-sm font-medium text-muted">
-        <a href="/kc/" className="hover:text-foreground transition-colors">
+        <Link href="/kc/" className="hover:text-foreground transition-colors">
           Kansas City
-        </a>
-        <a href="/guides/" className="hover:text-foreground transition-colors">
+        </Link>
+        <Link href="/guides/" className="hover:text-foreground transition-colors">
           Guides
-        </a>
+        </Link>
         <ItineraryBadge />
         <a
           href="https://happitime-console.vercel.app/login"
@@ -64,20 +65,20 @@ export function SiteNav() {
           {/* Backdrop — closes menu on outside tap */}
           <div className="fixed inset-0 z-40" onClick={close} />
           <nav className="absolute top-full left-0 right-0 z-50 bg-surface border-b border-border shadow-lg">
-            <a
+            <Link
               href="/kc/"
               onClick={close}
               className="block px-6 py-4 text-sm font-medium text-foreground border-b border-border hover:bg-background transition-colors"
             >
               Kansas City
-            </a>
-            <a
+            </Link>
+            <Link
               href="/guides/"
               onClick={close}
               className="block px-6 py-4 text-sm font-medium text-foreground border-b border-border hover:bg-background transition-colors"
             >
               Guides
-            </a>
+            </Link>
             <div className="px-6 py-4 border-b border-border">
               <ItineraryBadge />
             </div>

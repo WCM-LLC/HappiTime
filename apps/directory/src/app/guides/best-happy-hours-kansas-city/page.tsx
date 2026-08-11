@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 
 const BASE = "https://happitime.biz";
@@ -104,9 +105,9 @@ export default function BestHappyHoursKC() {
       />
 
       <nav className="text-sm text-muted mb-6 flex items-center gap-1.5">
-        <a href="/" className="hover:text-foreground transition-colors">HappiTime</a>
+        <Link href="/" className="hover:text-foreground transition-colors">HappiTime</Link>
         <span className="text-muted-light">/</span>
-        <a href="/guides/" className="hover:text-foreground transition-colors">Guides</a>
+        <Link href="/guides/" className="hover:text-foreground transition-colors">Guides</Link>
         <span className="text-muted-light">/</span>
         <span className="text-foreground font-medium">Best Happy Hours in KC</span>
       </nav>
@@ -128,7 +129,7 @@ export default function BestHappyHoursKC() {
           Westport — The Happy Hour Capital
         </h2>
         <p className="text-muted leading-relaxed mb-3">
-          <a href="/happy-hour/westport-kansas-city/" className="text-brand font-medium hover:underline">Westport</a>{" "}
+          <Link href="/happy-hour/westport-kansas-city/" className="text-brand font-medium hover:underline">Westport</Link>{" "}
           has the highest density of happy hour spots in the metro. Within a
           few walkable blocks you can find $3 wells, half-price craft drafts,
           and two-for-one cocktails. The neighborhood rewards bar-hoppers:
@@ -149,9 +150,9 @@ export default function BestHappyHoursKC() {
         </h2>
         <p className="text-muted leading-relaxed mb-3">
           The{" "}
-          <a href="/happy-hour/power-light-kansas-city/" className="text-brand font-medium hover:underline">
+          <Link href="/happy-hour/power-light-kansas-city/" className="text-brand font-medium hover:underline">
             Power &amp; Light District
-          </a>{" "}
+          </Link>{" "}
           is where after-work KC converges. Two pedestrian-friendly blocks of
           restaurants and bars deliver everything from rooftop margaritas to
           bourbon flights at steep discounts. Happy hours here lean upscale —
@@ -171,7 +172,7 @@ export default function BestHappyHoursKC() {
         </h2>
         <p className="text-muted leading-relaxed">
           The{" "}
-          <a href="/happy-hour/crossroads-kansas-city/" className="text-brand font-medium hover:underline">Crossroads</a>{" "}
+          <Link href="/happy-hour/crossroads-kansas-city/" className="text-brand font-medium hover:underline">Crossroads</Link>{" "}
           is KC&apos;s most inventive cocktail neighborhood. Happy hour menus
           here feature seasonal ingredients, house-made syrups, and bartender
           originals at approachable prices. If you care about craft over
@@ -187,7 +188,7 @@ export default function BestHappyHoursKC() {
         </h2>
         <p className="text-muted leading-relaxed">
           The{" "}
-          <a href="/happy-hour/plaza-kansas-city/" className="text-brand font-medium hover:underline">Plaza</a>{" "}
+          <Link href="/happy-hour/plaza-kansas-city/" className="text-brand font-medium hover:underline">Plaza</Link>{" "}
           delivers a more polished happy hour experience — think wine lists,
           charcuterie boards, and classic cocktails with a view. It&apos;s the go-to
           for date-night happy hours and client dinners that need to impress
@@ -202,9 +203,9 @@ export default function BestHappyHoursKC() {
         </h2>
         <p className="text-muted leading-relaxed">
           KC&apos;s historic{" "}
-          <a href="/happy-hour/18th-and-vine-kansas-city/" className="text-brand font-medium hover:underline">
+          <Link href="/happy-hour/18th-and-vine-kansas-city/" className="text-brand font-medium hover:underline">
             18th &amp; Vine Jazz District
-          </a>{" "}
+          </Link>{" "}
           pairs soul food and live music with no-frills drink specials. Happy
           hours here feel like stepping into Kansas City&apos;s cultural heartbeat —
           affordable, authentic, and always accompanied by a great soundtrack.
@@ -218,7 +219,7 @@ export default function BestHappyHoursKC() {
         </h2>
         <p className="text-muted leading-relaxed">
           The{" "}
-          <a href="/happy-hour/river-market-kansas-city/" className="text-brand font-medium hover:underline">River Market</a>{" "}
+          <Link href="/happy-hour/river-market-kansas-city/" className="text-brand font-medium hover:underline">River Market</Link>{" "}
           district offers brewery taprooms, waterfront patios, and a relaxed
           vibe that pairs perfectly with a lazy afternoon pour. Saturday
           farmers-market energy spills into nearby bars, making it a weekend
@@ -275,12 +276,12 @@ export default function BestHappyHoursKC() {
           real-time reminders.
         </p>
         <div className="flex items-center justify-center gap-3">
-          <a
+          <Link
             href="/kc/"
             className="inline-block rounded-full border border-brand px-6 py-2.5 text-brand font-semibold text-sm hover:bg-brand hover:text-white transition-colors"
           >
             Browse KC Happy Hours
-          </a>
+          </Link>
           <a
             href="/app/"
             className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors"

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { AppDownloadStrip } from "@/components/AppDownloadStrip";
@@ -201,9 +202,9 @@ function SiteHeader() {
   return (
     <header className="border-b border-border bg-surface sticky top-0 z-50 relative">
       <div className="mx-auto max-w-5xl flex items-center justify-between px-6 py-4">
-        <a href="/" className="flex items-center">
+        <Link href="/" className="flex items-center">
           <HappiTimeLogo className="h-8" />
-        </a>
+        </Link>
         <SiteNav />
       </div>
     </header>

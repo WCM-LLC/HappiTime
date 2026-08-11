@@ -52,17 +52,6 @@ const formatTagLabel = (tag: string) =>
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 
-const getPlaceTagSlugs = (window: HappyHourWindow): string[] => {
-  const joined = (window.venue as any)?.venue_tags;
-  if (!Array.isArray(joined)) return [];
-  const slugs: string[] = [];
-  for (const row of joined) {
-    const tag = row?.approved_tags;
-    if (tag?.slug) slugs.push(tag.slug);
-  }
-  return slugs;
-};
-
 const getPlaceTagsByCategory = (
   window: HappyHourWindow
 ): Record<string, Set<string>> => {
