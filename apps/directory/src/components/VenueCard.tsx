@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { VenueWithWindows } from "@/lib/queries";
 import { venueImageUrl } from "@/lib/mediaUrl";
 import { tierPresentation } from "@/lib/venueTier";
@@ -59,11 +60,12 @@ export function VenueCard({ venue, neighborhoodSlug, todayIndex }: VenueCardProp
       {/* Hero image */}
       <div className="h-40 bg-brand-subtle overflow-hidden relative">
         {cover ? (
-          <img
+          <Image
             src={cover}
             alt={venue.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

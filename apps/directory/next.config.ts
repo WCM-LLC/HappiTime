@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
   // so venue data stays fresh without rebuilding the whole site
   outputFileTracingRoot: path.join(__dirname, "../../"),
   trailingSlash: true,
+  // Cloudinary serves venue images with its own transforms; the custom loader
+  // maps next/image widths onto Cloudinary URLs so we get responsive srcsets
+  // without routing through (and paying for) Vercel image optimization.
+  images: {
+    loader: "custom",
+    loaderFile: "./src/lib/imageLoader.ts",
+  },
   // Canonicalize the legacy neighborhood URL (`/kc/[neighborhood]/`) to the
   // canonical happy-hour landing page (`/happy-hour/[slug]/`). The
   // neighborhood→canonical slug mapping is irregular (e.g. power-and-light →

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { VenueWithWindows, VenueEvent } from "@/lib/queries";
 import type { Neighborhood } from "@/lib/neighborhoods";
@@ -453,10 +454,12 @@ function MapPopup({ venue, todayDow, venueHref, isMobile, onClose }: MapPopupPro
       {!isMobile && (
         <div style={{ height: 90, background: "#F5EDE3", position: "relative", overflow: "hidden" }}>
           {cover && (
-            <img
+            <Image
               src={cover}
               alt={venue.name}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              fill
+              sizes="400px"
+              style={{ objectFit: "cover" }}
             />
           )}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 60%)" }} />
