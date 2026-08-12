@@ -20,8 +20,20 @@ type SubmissionRow = {
   venue_id: string;
   menu_id: string | null;
   submitted_by: string;
+  content_type: string | null;
   created_at: string;
 };
+
+/** Human label for what this submission is asking the org to approve. */
+function contentSummary(contentType: string | null, eventCount: number): string {
+  if (contentType === 'event' || contentType === 'event_series') {
+    return eventCount === 1 ? '1 event' : `${eventCount} events`;
+  }
+  if (contentType === 'mixed') {
+    return eventCount === 1 ? 'Menu + 1 event' : `Menu + ${eventCount} events`;
+  }
+  return 'Happy hour menu';
+}
 
 function formatDate(iso: string | null) {
   if (!iso) return '—';
@@ -48,7 +60,7 @@ export default async function OrgIntakeReviewPage({
     (db as any).from('organizations').select('name').eq('id', orgId).maybeSingle(),
     (db as any)
       .from('intake_submissions')
-      .select('id, venue_id, menu_id, submitted_by, created_at')
+      .select('id, venue_id, menu_id, submitted_by, content_type, created_at')
       .eq('status', 'pending')
       .eq('review_route', 'owner')
       .eq('review_org_id', orgId)
@@ -56,6 +68,18 @@ export default async function OrgIntakeReviewPage({
       .limit(200),
   ]);
   const rows: SubmissionRow[] = (raw ?? []) as SubmissionRow[];
+
+  // What each submission actually contains, so nobody approves blind.
+  const eventCountBySubmission = new Map<string, number>();
+  if (rows.length > 0) {
+    const { data: links } = await (db as any)
+      .from('intake_submission_events')
+      .select('submission_id')
+      .in('submission_id', rows.map((r) => r.id));
+    for (const l of ((links ?? []) as Array<{ submission_id: string }>)) {
+      eventCountBySubmission.set(l.submission_id, (eventCountBySubmission.get(l.submission_id) ?? 0) + 1);
+    }
+  }
 
   const venueIds = [...new Set(rows.map((r) => r.venue_id))];
   const { data: venues } = venueIds.length
@@ -94,7 +118,7 @@ export default async function OrgIntakeReviewPage({
             </div>
             <h1 className="text-display-md font-bold text-foreground tracking-tight">Menu approvals</h1>
             <p className="text-body-sm text-muted mt-1">
-              Someone scanned a happy hour menu for one of your venues. Nothing here is public until you approve it.
+              Someone scanned a menu or an event for one of your venues. Nothing here is public until you approve it.
             </p>
           </div>
           <Link href={`/orgs/${orgId}`}>
@@ -132,6 +156,7 @@ export default async function OrgIntakeReviewPage({
               <thead>
                 <tr className="border-b border-border bg-background">
                   <th className="text-left px-4 py-3 text-caption font-semibold text-muted uppercase tracking-wider">Venue</th>
+                  <th className="text-left px-4 py-3 text-caption font-semibold text-muted uppercase tracking-wider">Content</th>
                   <th className="text-left px-4 py-3 text-caption font-semibold text-muted uppercase tracking-wider">Scanned by</th>
                   <th className="text-left px-4 py-3 text-caption font-semibold text-muted uppercase tracking-wider">Submitted</th>
                   <th className="text-left px-4 py-3 text-caption font-semibold text-muted uppercase tracking-wider">Actions</th>
@@ -144,6 +169,9 @@ export default async function OrgIntakeReviewPage({
                       <Link href={`/orgs/${orgId}/venues/${r.venue_id}`} className="text-brand hover:underline">
                         {venueById.get(r.venue_id)?.name ?? r.venue_id}
                       </Link>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-foreground">
+                      {contentSummary(r.content_type, eventCountBySubmission.get(r.id) ?? 0)}
                     </td>
                     <td className="px-4 py-3 text-muted">{emailBySubmitter.get(r.submitted_by) ?? 'A HappiTime super user'}</td>
                     <td className="px-4 py-3 text-muted whitespace-nowrap">{formatDate(r.created_at)}</td>

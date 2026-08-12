@@ -280,3 +280,48 @@ test("the migration records the type and links the events", () => {
   assert.match(m, /m\.role in \('owner', 'admin'\)/);
   assert.match(m, /s\.submitted_by = \(select auth\.uid\(\)\)/);
 });
+
+// ── Regressions found in review ──────────────────────────────────────────────
+test("an events-only commit is not rejected by menu validation", () => {
+  const route = read("apps/web/src/app/api/intake/commit/route.ts");
+  // save_as_draft is coerced AFTER validateBody runs, so keying the menu
+  // requirements on it rejected every events-only scan with a menu error.
+  assert.match(route, /const carriesMenu = content_type === 'happy_hour' \|\| content_type === 'mixed'/);
+  assert.match(route, /const menuRequired = carriesMenu && !save_as_draft/);
+  for (const rule of [
+    /if \(menuRequired\) errors\.push\('menu required'\)/,
+    /if \(menuRequired && sections\.length === 0\)/,
+    /if \(menuRequired && window_ids\.length === 0 && new_windows\.length === 0\)/,
+  ]) {
+    assert.match(route, rule, "menu strictness must key off content type, not draft mode");
+  }
+});
+
+test("an events-only scan writes no empty menu", () => {
+  const route = read("apps/web/src/app/api/intake/commit/route.ts");
+  assert.match(route, /let menu_id: string \| null = null;\s*\n\s*if \(carriesMenu\) \{/);
+  // The owner-confirmation link resolves to a menu, so it needs one.
+  assert.match(route, /send_owner_confirmation only applies to a happy-hour menu/);
+  assert.match(route, /confirmation_requires_menu/);
+});
+
+test("both queues name what a reviewer is about to publish", () => {
+  for (const rel of [
+    "apps/web/src/app/admin/intake-review/page.tsx",
+    "apps/web/src/app/orgs/[orgId]/intake-review/page.tsx",
+  ]) {
+    const page = read(rel);
+    assert.match(page, /content_type/, `${rel} must select content_type`);
+    assert.match(page, /function contentSummary/, `${rel} must label the content`);
+    assert.match(page, /from\('intake_submission_events'\)/, `${rel} must count linked events`);
+    assert.match(page, />Content</, `${rel} must render a Content column`);
+  }
+});
+
+test("events the server couldn't schedule reach the person who scanned them", () => {
+  const client = read("apps/mobile/src/api/intake.ts");
+  assert.match(client, /unschedulable_events\?: string\[\]/);
+  const screen = read("apps/mobile/src/screens/ScanMenuScreen.tsx");
+  assert.match(screen, /unschedulable: res\.unschedulable_events \?\? \[\]/);
+  assert.match(screen, /outcome\.unschedulable\.length > 0 \?/, "the done step must show them");
+});

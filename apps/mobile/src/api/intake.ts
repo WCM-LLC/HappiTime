@@ -90,8 +90,12 @@ export type CommitResult = {
   drafted?: boolean;
   in_review?: boolean;
   review_route?: "owner" | "admin" | null;
+  content_type?: ContentType;
+  event_ids?: string[];
+  /** Titles the server could not place on a calendar. Must be shown, not dropped. */
+  unschedulable_events?: string[];
   venue_id: string;
-  menu_id: string;
+  menu_id: string | null;
 };
 
 /** Human-readable failure with the server's error code kept for branching. */

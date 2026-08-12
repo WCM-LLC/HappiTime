@@ -92,6 +92,9 @@ type Outcome = {
   venueName: string;
   /** Who owns the approval when it wasn't published — null when it was. */
   reviewRoute: "owner" | "admin" | null;
+  /** Events the server couldn't schedule. Surfaced so they aren't lost silently. */
+  unschedulable: string[];
+  eventCount: number;
 };
 
 export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -377,6 +380,8 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
         published: Boolean(res.published),
         venueName: venue.name,
         reviewRoute: res.review_route ?? null,
+        unschedulable: res.unschedulable_events ?? [],
+        eventCount: (res.event_ids ?? []).length,
       });
       setStep("done");
     } catch (e) {
@@ -738,6 +743,17 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
                 ? `The team behind ${outcome.venueName} has been emailed. You'll hear back when they decide.`
                 : `${outcome.venueName} has no owner on HappiTime yet, so our team will review it. You'll hear back either way.`}
           </Text>
+          {outcome.unschedulable.length > 0 ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>
+                We couldn&apos;t work out when {outcome.unschedulable.join(", ")}{" "}
+                {outcome.unschedulable.length === 1 ? "happens" : "happen"}, so{" "}
+                {outcome.unschedulable.length === 1 ? "it wasn't" : "they weren't"} added. Add{" "}
+                {outcome.unschedulable.length === 1 ? "it" : "them"} by hand, or rescan with the
+                date showing.
+              </Text>
+            </View>
+          ) : null}
           <Pressable style={styles.primaryBtn} onPress={startOver}>
             <Text style={styles.primaryBtnText}>Scan another</Text>
           </Pressable>
