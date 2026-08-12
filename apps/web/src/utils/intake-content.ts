@@ -111,3 +111,60 @@ export function resolveEventStart(
   const dd = String(first.getDate()).padStart(2, '0');
   return { date: `${yyyy}-${mm}-${dd}`, time };
 }
+
+/**
+ * Turns confirmed proposals into venue_events rows.
+ *
+ * `starts_at` is written as a naive `YYYY-MM-DDTHH:MM` string with the venue's
+ * timezone in its own column, matching exactly what createEvent in
+ * actions/event-actions.ts already writes from its datetime-local field. That
+ * convention is arguable, but a scan writing a DIFFERENT one would put two
+ * incompatible shapes in the same column.
+ *
+ * Anything that cannot be placed on a calendar is returned in `unschedulable`
+ * rather than dropped, so the caller can tell a human instead of silently
+ * losing an event.
+ */
+export function buildEventRows(
+  events: ProposedEvent[],
+  opts: {
+    venueId: string;
+    timezone: string;
+    status: 'draft' | 'published';
+    createdBy: string | null;
+    now?: Date;
+  },
+): { rows: Record<string, unknown>[]; unschedulable: string[] } {
+  const now = opts.now ?? new Date();
+  const rows: Record<string, unknown>[] = [];
+  const unschedulable: string[] = [];
+
+  for (const e of events) {
+    const title = (e.title ?? '').trim();
+    if (!title) continue;
+
+    const start = resolveEventStart(e, now, opts.timezone);
+    if (!start) {
+      unschedulable.push(title);
+      continue;
+    }
+
+    const isRecurring = Boolean(e.is_recurring);
+    rows.push({
+      venue_id: opts.venueId,
+      title,
+      description: e.description?.trim() || null,
+      event_type: e.event_type ?? 'event',
+      starts_at: `${start.date}T${start.time}`,
+      ends_at: e.end_time ? `${start.date}T${e.end_time}` : null,
+      is_recurring: isRecurring,
+      recurrence_rule: isRecurring ? buildRecurrenceRule(e.recurrence_dow ?? []) : null,
+      timezone: opts.timezone,
+      price_info: e.price_info?.trim() || null,
+      status: opts.status,
+      created_by: opts.createdBy,
+    });
+  }
+
+  return { rows, unschedulable };
+}

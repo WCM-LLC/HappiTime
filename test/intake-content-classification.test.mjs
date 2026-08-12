@@ -222,3 +222,61 @@ test("an undated one-off is called out rather than silently sent", () => {
   const s = screen();
   assert.match(s, /This one has no date/);
 });
+
+// ── The venue_events write ───────────────────────────────────────────────────
+test("events are written with the same publish-or-queue rule as menus", () => {
+  const route = read("apps/web/src/app/api/intake/commit/route.ts");
+  assert.match(route, /status: save_as_draft \? 'draft' : 'published'/);
+  // Events go in after the menu work so a failure can't strand a half-written
+  // menu behind them.
+  // Anchor on the call site, not the import at the top of the file.
+  assert.ok(
+    route.indexOf("buildEventRows(events, {") > route.indexOf("window_menus_insert_failed"),
+    "the events insert must follow the menu/window writes"
+  );
+});
+
+test("the commit refuses an unconfirmed or mismatched payload", () => {
+  const route = read("apps/web/src/app/api/intake/commit/route.ts");
+  assert.match(route, /content_type must be confirmed before commit/);
+  assert.match(route, /events required when content_type is an event type/);
+  assert.match(route, /events sent but content_type is not an event type/);
+});
+
+test("an event that can't be scheduled is reported, not dropped", () => {
+  const route = read("apps/web/src/app/api/intake/commit/route.ts");
+  assert.match(route, /unschedulable_events: unschedulableEvents/);
+  const content = read("apps/web/src/utils/intake-content.ts");
+  assert.match(content, /unschedulable\.push\(title\)/);
+});
+
+test("approving publishes the events, not just the menu", () => {
+  const review = read("apps/web/src/utils/intake-review.ts");
+  assert.match(review, /from\('intake_submission_events'\)/);
+  assert.match(review, /\.from\('venue_events'\)\s*\.update\(\{ status: 'published' \}\)/);
+  // An events-only submission has no menu; requiring one made it unapprovable.
+  assert.match(review, /if \(eventIds\.length === 0\) \{[\s\S]{0,120}nothing to publish/);
+});
+
+test("events written by a scan match the console's own column shape", () => {
+  const content = read("apps/web/src/utils/intake-content.ts");
+  const actions = read("apps/web/src/actions/event-actions.ts");
+  // Same naive starts_at + separate timezone column the console already writes.
+  assert.match(content, /starts_at: `\$\{start\.date\}T\$\{start\.time\}`/);
+  for (const col of ["venue_id", "title", "event_type", "starts_at", "is_recurring", "recurrence_rule", "timezone", "price_info", "status", "created_by"]) {
+    assert.ok(content.includes(`${col}:`), `buildEventRows must set ${col}`);
+    assert.ok(actions.includes(col), `${col} must match the console's insert`);
+  }
+});
+
+test("the migration records the type and links the events", () => {
+  const m = read("supabase/migrations/20260812190000_intake_content_type.sql");
+  assert.match(m, /add column if not exists content_type text not null default 'happy_hour'/);
+  assert.match(m, /check \(content_type in \('happy_hour', 'event', 'event_series', 'mixed'\)\)/);
+  assert.match(m, /create table if not exists public\.intake_submission_events/);
+  // Reverse lookup needs its own index; the PK only covers (submission, event).
+  assert.match(m, /create index if not exists intake_submission_events_event_id_idx/);
+  // Readable by exactly who can see the parent submission.
+  assert.match(m, /m\.role in \('owner', 'admin'\)/);
+  assert.match(m, /s\.submitted_by = \(select auth\.uid\(\)\)/);
+});

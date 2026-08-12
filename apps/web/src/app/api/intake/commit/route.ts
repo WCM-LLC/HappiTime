@@ -52,6 +52,12 @@ import {
   resolveReviewRoute,
   notifyIntakeReviewers,
 } from '@/utils/intake-access';
+import {
+  buildEventRows,
+  normalizeContentType,
+  type ContentType,
+  type ProposedEvent,
+} from '@/utils/intake-content';
 import { isIntakeConfirmConfigured, signIntakeConfirmToken } from '@/utils/intake-token';
 import { sendVenueOwnerConfirmation } from '@/utils/email';
 
@@ -68,6 +74,8 @@ type NewWindowIn = { dow: number[]; start_time: string; end_time: string; label?
 
 type ParsedBody = {
   venue_id: string;
+  content_type: ContentType;
+  events: ProposedEvent[];
   window_ids: string[];
   new_windows: NewWindowIn[];
   menu: MenuIn;
@@ -100,6 +108,17 @@ function validateBody(body: any): { ok: true; data: ParsedBody } | { ok: false; 
     if (typeof w.end_time !== 'string' || !TIME_RE.test(w.end_time))
       errors.push(`new_windows[${i}].end_time invalid`);
   });
+
+  // The type a HUMAN confirmed in the review step. Defaults to happy_hour so
+  // an older client that predates classification keeps working unchanged.
+  const content_type = normalizeContentType(body.content_type ?? 'happy_hour');
+  if (content_type === 'unknown') errors.push('content_type must be confirmed before commit');
+  const events: ProposedEvent[] = Array.isArray(body.events) ? body.events : [];
+  const wantsEvents = content_type === 'event' || content_type === 'event_series' || content_type === 'mixed';
+  if (wantsEvents && events.length === 0)
+    errors.push('events required when content_type is an event type');
+  if (!wantsEvents && events.length > 0)
+    errors.push('events sent but content_type is not an event type');
 
   const save_as_draft = Boolean(body.save_as_draft);
   const send = Boolean(body.send_owner_confirmation);
@@ -147,6 +166,8 @@ function validateBody(body: any): { ok: true; data: ParsedBody } | { ok: false; 
     ok: true,
     data: {
       venue_id: body.venue_id,
+      content_type,
+      events,
       window_ids,
       new_windows,
       menu: menu ?? { name: 'Happy Hour', sections: [] },
@@ -175,11 +196,15 @@ export async function POST(req: NextRequest) {
   } = v.data;
   const {
     venue_id,
+    content_type,
+    events,
     window_ids,
     new_windows,
     menu,
     owner_email,
   } = v.data;
+  const wantsEvents =
+    content_type === 'event' || content_type === 'event_series' || content_type === 'mixed';
 
   // Venue scope is re-checked server-side for every non-admin tier — never
   // trust the picker.
@@ -218,7 +243,7 @@ export async function POST(req: NextRequest) {
   // 1. Look up venue + its org_id (menus.org_id is NOT NULL).
   const { data: venue, error: venueErr } = (await db
     .from('venues')
-    .select('id, name, org_id')
+    .select('id, name, org_id, timezone')
     .eq('id', venue_id)
     .single()) as any;
   if (venueErr || !venue) return NextResponse.json({ error: 'venue_not_found' }, { status: 404 });
@@ -389,6 +414,41 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // Events, when that is what the person confirmed they photographed. These
+  // are written AFTER the menu work so a failure here cannot leave a
+  // half-written menu behind; the menu path has already committed or rolled
+  // back by this point.
+  const eventIds: string[] = [];
+  let unschedulableEvents: string[] = [];
+  if (wantsEvents) {
+    const { rows: eventRows, unschedulable } = buildEventRows(events, {
+      venueId: venue_id,
+      timezone: (venue?.timezone as string | null) ?? 'America/Chicago',
+      // Same publish-or-queue rule as the menu: only someone who can publish
+      // this venue gets live events.
+      status: save_as_draft ? 'draft' : 'published',
+      createdBy: user.id,
+    });
+
+    if (eventRows.length > 0) {
+      const { data: insertedEvents, error: eventErr } = (await db
+        .from('venue_events')
+        .insert(eventRows)
+        .select('id')) as any;
+      if (eventErr) {
+        console.error('[intake/commit] event_insert_failed:', eventErr);
+        return NextResponse.json(
+          { error: 'event_insert_failed', detail: eventErr.message, code: eventErr.code },
+          { status: 500 },
+        );
+      }
+      for (const r of (insertedEvents ?? []) as Array<{ id: string }>) eventIds.push(r.id);
+    }
+    // Reported, never swallowed: an event the model could not place on a
+    // calendar has to come back to a human rather than vanish.
+    unschedulableEvents = unschedulable;
+  }
+
   // Done writing. Three exit paths depending on mode:
   //   save_as_draft           → done; menu lives in draft for later editing.
   //   auto-publish            → done; menu is live.
@@ -410,6 +470,7 @@ export async function POST(req: NextRequest) {
           menu_id,
           submitted_by: user.id,
           tier,
+          content_type,
           review_route: routed.route,
           review_org_id: routed.orgId,
         })
@@ -419,6 +480,14 @@ export async function POST(req: NextRequest) {
         console.error('[intake/commit] submission_insert_failed:', subErr);
       } else {
         submissionId = submission?.id ?? null;
+        // Link the drafted events so the queue can say "3 events" and the
+        // approve action knows what to publish.
+        if (submissionId && eventIds.length > 0) {
+          const { error: linkErr } = await db
+            .from('intake_submission_events')
+            .insert(eventIds.map((id) => ({ submission_id: submissionId, event_id: id })));
+          if (linkErr) console.error('[intake/commit] event_link_failed:', linkErr);
+        }
         await notifyIntakeReviewers({
           route: routed.route,
           orgId: routed.orgId,
@@ -432,6 +501,9 @@ export async function POST(req: NextRequest) {
       in_review: !canPublish,
       review_route: reviewRoute,
       submission_id: submissionId,
+      content_type,
+      event_ids: eventIds,
+      unschedulable_events: unschedulableEvents,
       venue_id,
       menu_id,
       window_ids: allWindowIds,
@@ -443,6 +515,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       ok: true,
       published: true,
+      content_type,
+      event_ids: eventIds,
+      unschedulable_events: unschedulableEvents,
       venue_id,
       menu_id,
       window_ids: allWindowIds,
