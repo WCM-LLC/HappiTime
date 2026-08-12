@@ -46,6 +46,9 @@ export type RootStackParamList = {
   InviteScreen: undefined;
   EventCalendar: undefined;
   InsiderCode: undefined;
+  // Self-serve menu intake for venue owners and super users. Opened without
+  // params from Profile; deep links may preselect a venue and skip the picker.
+  ScanMenu: { venueId?: string; venueName?: string } | undefined;
   // Read-only viewer for an itinerary opened via a share link (Universal Link or
   // happitime://itinerary?token=). Fetches by token through get_shared_itinerary,
   // which bypasses RLS, so it works even for private lists the viewer can't read.

@@ -16,7 +16,9 @@
       "**/*"
     ],
     "plugins": [
-      ["expo-apple-authentication"],
+      [
+        "expo-apple-authentication"
+      ],
       [
         "react-native-maps",
         {
@@ -33,6 +35,13 @@
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "HappiTime uses your photos so you can upload a profile picture and pick a happy hour menu to scan.",
+          "cameraPermission": "HappiTime uses your camera so you can photograph a happy hour menu and have it read automatically."
         }
       ]
     ],
@@ -52,7 +61,9 @@
         "UIBackgroundModes": [
           "fetch",
           "location"
-        ]
+        ],
+        "NSCameraUsageDescription": "HappiTime uses your camera so you can photograph a happy hour menu and have it read automatically.",
+        "NSPhotoLibraryUsageDescription": "HappiTime uses your photos so you can upload a profile picture and pick a happy hour menu to scan."
       },
       "config": {
         "googleMapsApiKey": ""
@@ -67,11 +78,26 @@
           "action": "VIEW",
           "autoVerify": true,
           "data": [
-            { "scheme": "https", "host": "happitime.biz", "pathPrefix": "/i" },
-            { "scheme": "https", "host": "happitime.biz", "pathPrefix": "/r" },
-            { "scheme": "https", "host": "happitime.biz", "pathPrefix": "/v" }
+            {
+              "scheme": "https",
+              "host": "happitime.biz",
+              "pathPrefix": "/i"
+            },
+            {
+              "scheme": "https",
+              "host": "happitime.biz",
+              "pathPrefix": "/r"
+            },
+            {
+              "scheme": "https",
+              "host": "happitime.biz",
+              "pathPrefix": "/v"
+            }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ],
       "adaptiveIcon": {
@@ -80,7 +106,8 @@
       },
       "permissions": [
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA"
       ],
       "config": {
         "googleMaps": {

@@ -37,11 +37,21 @@
  *   send_owner_confirmation=true             → menu.status='draft', sends email; requires full payload
  *   neither (auto-publish)                   → menu.status='published'; requires full payload
  *
- * Auth: admin-only.
+ * Auth: cookie session (console) or bearer token (HappiTime app). Admins get
+ * the matrix above unchanged. Everyone else is checked per venue: an org
+ * owner/admin publishes their own venue, while an org editor or a super user
+ * is forced to draft + a review-queue entry no matter what they send.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
-import { getIntakeTier, canUseIntakeForVenue } from '@/utils/intake-access';
+import { createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
+import { authenticateIntakeRequest } from '@/utils/intake-auth';
+import {
+  getIntakeTier,
+  canUseIntakeForVenue,
+  canPublishIntakeForVenue,
+  resolveReviewRoute,
+  notifyIntakeReviewers,
+} from '@/utils/intake-access';
 import { isIntakeConfirmConfigured, signIntakeConfirmToken } from '@/utils/intake-token';
 import { sendVenueOwnerConfirmation } from '@/utils/email';
 
@@ -148,11 +158,9 @@ function validateBody(body: any): { ok: true; data: ParsedBody } | { ok: false; 
 }
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const caller = await authenticateIntakeRequest(req);
+  if (!caller) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const { supabase, user } = caller;
   const tier = await getIntakeTier(supabase, user);
   if (!tier) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
@@ -173,15 +181,27 @@ export async function POST(req: NextRequest) {
     owner_email,
   } = v.data;
 
-  // Owner/super tiers ALWAYS land as a draft plus a review-queue entry —
-  // enforced here, not in the UI, so a hand-crafted autoPublish request
-  // cannot bypass review. Owner confirmation emails are an admin workflow.
+  // Venue scope is re-checked server-side for every non-admin tier — never
+  // trust the picker.
   if (tier !== 'admin') {
-    save_as_draft = true;
-    send_owner_confirmation = false;
     if (!(await canUseIntakeForVenue(supabase, user, tier, venue_id))) {
       return NextResponse.json({ error: 'forbidden_venue' }, { status: 403 });
     }
+    // Confirmation emails ask a venue's owner to vouch for someone else's
+    // edit — meaningless when the submitter is the owner, and the wrong
+    // channel for a super user (they go through review instead).
+    send_owner_confirmation = false;
+  }
+
+  // Who may publish without review is a per-venue question, not a per-tier
+  // one: an org owner/admin publishes their own venue, but an editor of that
+  // same org does not, and a super user never does. Anyone who can't publish
+  // is forced to a draft HERE, not in the UI, so a hand-crafted autoPublish
+  // request cannot bypass review.
+  const canPublish =
+    tier === 'admin' || (await canPublishIntakeForVenue(supabase, user, tier, venue_id));
+  if (!canPublish) {
+    save_as_draft = true;
   }
 
   if (send_owner_confirmation && !isIntakeConfirmConfigured()) {
@@ -374,25 +394,43 @@ export async function POST(req: NextRequest) {
   //   auto-publish            → done; menu is live.
   //   send_owner_confirmation → sign token + email; menu lives in draft.
   if (save_as_draft) {
-    // Non-admin commits enter the review queue; an admin approves (publishes
-    // menu + windows) or rejects from /admin/intake-review.
+    // A draft from someone who can't publish enters a review queue — the
+    // venue's own org when it has someone who can act, otherwise HappiTime
+    // staff. A draft saved by someone who COULD have published is just a
+    // draft: nobody else has to bless it.
     let submissionId: string | null = null;
-    if (tier !== 'admin') {
+    let reviewRoute: 'owner' | 'admin' | null = null;
+    if (!canPublish) {
+      const routed = await resolveReviewRoute(venue_id);
+      reviewRoute = routed.route;
       const { data: submission, error: subErr } = (await db
         .from('intake_submissions')
-        .insert({ venue_id, menu_id, submitted_by: user.id, tier })
+        .insert({
+          venue_id,
+          menu_id,
+          submitted_by: user.id,
+          tier,
+          review_route: routed.route,
+          review_org_id: routed.orgId,
+        })
         .select('id')
         .single()) as any;
       if (subErr) {
         console.error('[intake/commit] submission_insert_failed:', subErr);
       } else {
         submissionId = submission?.id ?? null;
+        await notifyIntakeReviewers({
+          route: routed.route,
+          orgId: routed.orgId,
+          venueName: venue?.name ?? 'a venue',
+        });
       }
     }
     return NextResponse.json({
       ok: true,
       drafted: true,
-      in_review: tier !== 'admin',
+      in_review: !canPublish,
+      review_route: reviewRoute,
       submission_id: submissionId,
       venue_id,
       menu_id,

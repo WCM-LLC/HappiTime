@@ -262,6 +262,23 @@ export default async function OrgPage({
       .order('created_at', { ascending: false }),
   ]);
 
+  // Who may action the intake queue — must match the redirect guard on
+  // /orgs/[orgId]/intake-review (isOrgIntakeReviewer → INTAKE_APPROVE_ROLES).
+  // Editors and managers can scan but not approve, and showing them a button
+  // that bounces straight back here is worse than showing nothing.
+  const canReviewIntake = role === 'owner' || role === 'admin' || (fromAdmin && userIsAdmin);
+
+  // Scans waiting on this org: an editor's own scan, or a super user's scan of
+  // one of its venues. Owner/admin scans publish on commit and never queue.
+  const { count: pendingIntakeCount } = isSelfServeIntakeEnabled() && canReviewIntake
+    ? await (supabase as any)
+        .from('intake_submissions')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending')
+        .eq('review_route', 'owner')
+        .eq('review_org_id', orgId)
+    : { count: 0 };
+
   const venueCount = (venues ?? []).length;
   const orgBundle = orgBundleRow && orgBundleRow.status !== 'canceled'
     ? {
@@ -468,22 +485,31 @@ export default async function OrgPage({
         </div>
       )}
 
-      {/* Self-serve intake entry (feature-flagged): scan a menu photo → draft
-          + admin review. The capture page itself re-checks access. */}
-      {isSelfServeIntakeEnabled() && (isOwner || fromAdmin) ? (
+      {/* Self-serve intake (feature-flagged). Scanning lives in the HappiTime
+          app — the console's job is approving scans someone else submitted for
+          these venues. Owner scans publish on the spot and never queue. */}
+      {isSelfServeIntakeEnabled() && canManageOrganizationMenus ? (
         <div className="rounded-lg border border-brand/40 bg-brand-subtle/40 p-5 shadow-sm mb-6 flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <h3 className="text-heading-sm font-semibold text-foreground">Scan your happy hour menu</h3>
+            <h3 className="text-heading-sm font-semibold text-foreground">
+              {pendingIntakeCount
+                ? `${pendingIntakeCount} menu${pendingIntakeCount === 1 ? '' : 's'} waiting on your approval`
+                : 'Scan your happy hour menu'}
+            </h3>
             <p className="text-body-sm text-muted mt-0.5">
-              Photograph your chalkboard or menu — we read it and update your listing after a quick review.
+              {pendingIntakeCount
+                ? 'Someone scanned a menu for one of your venues. It stays hidden until you approve it.'
+                : 'Open the HappiTime app and photograph your chalkboard — we read it and your listing updates on the spot.'}
             </p>
           </div>
-          <Link
-            href="/intake/capture"
-            className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-brand text-white text-body-sm font-semibold hover:bg-brand-dark transition-colors shrink-0"
-          >
-            Scan a menu
-          </Link>
+          {pendingIntakeCount ? (
+            <Link
+              href={`/orgs/${orgId}/intake-review`}
+              className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-brand text-white text-body-sm font-semibold hover:bg-brand-dark transition-colors shrink-0"
+            >
+              Review now
+            </Link>
+          ) : null}
         </div>
       ) : null}
 

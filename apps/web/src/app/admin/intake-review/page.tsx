@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import { createClient, createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
-import { IntakeReviewActions } from './IntakeReviewActions';
+import { IntakeReviewActions } from '@/components/intake/IntakeReviewActions';
+import { approveIntakeSubmission, rejectIntakeSubmission } from '@/actions/admin-intake-review-actions';
 
 type SubmissionRow = {
   id: string;
@@ -27,6 +28,9 @@ export default async function IntakeReviewPage() {
     .from('intake_submissions')
     .select('id, venue_id, menu_id, submitted_by, tier, created_at')
     .eq('status', 'pending')
+    // Owner-routed submissions belong to the venue's own org queue; staff only
+    // see the ones nobody else can act on (ownerless venues, empty orgs).
+    .eq('review_route', 'admin')
     .order('created_at', { ascending: true })
     .limit(200);
   const rows: SubmissionRow[] = (raw ?? []) as SubmissionRow[];
@@ -65,7 +69,8 @@ export default async function IntakeReviewPage() {
             </div>
             <h1 className="text-display-md font-bold text-foreground tracking-tight">Intake Review</h1>
             <p className="text-body-sm text-muted mt-1">
-              Menus scanned by venue owners and super users. Approve to publish the menu and its windows; reject with a reason.
+              Super-user scans of venues with nobody to approve them. Venues that belong to an org
+              are reviewed by that org. Approve to publish the menu and its windows; reject with a reason.
             </p>
           </div>
           <Link href="/admin">
@@ -92,7 +97,7 @@ export default async function IntakeReviewPage() {
           <div className="rounded-lg border border-dashed border-border-strong bg-surface/50 p-12 text-center">
             <p className="text-body-md font-semibold text-foreground mb-1">Nothing to review</p>
             <p className="text-body-sm text-muted">
-              When an owner or super user scans a menu, it lands here for approval.
+              When a super user scans a menu for a venue with no org behind it, it lands here.
             </p>
           </div>
         )}
@@ -131,7 +136,11 @@ export default async function IntakeReviewPage() {
                       </td>
                       <td className="px-4 py-3 text-muted whitespace-nowrap">{formatDate(r.created_at)}</td>
                       <td className="px-4 py-3">
-                        <IntakeReviewActions submissionId={r.id} />
+                        <IntakeReviewActions
+                          submissionId={r.id}
+                          approve={approveIntakeSubmission}
+                          reject={rejectIntakeSubmission}
+                        />
                       </td>
                     </tr>
                   );

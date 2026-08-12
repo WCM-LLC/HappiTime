@@ -1,9 +1,22 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { approveIntakeSubmission, rejectIntakeSubmission } from '@/actions/admin-intake-review-actions';
 
-export function IntakeReviewActions({ submissionId }: { submissionId: string }) {
+/**
+ * Approve / reject controls for one queued submission. The server actions are
+ * passed in so the same UI serves both queues — staff at /admin/intake-review
+ * and a venue's own org at /orgs/[orgId]/intake-review — each with its own
+ * authorization on the far side.
+ */
+export function IntakeReviewActions({
+  submissionId,
+  approve,
+  reject,
+}: {
+  submissionId: string;
+  approve: (submissionId: string) => Promise<unknown>;
+  reject: (submissionId: string, reason?: string) => Promise<unknown>;
+}) {
   const [mode, setMode] = useState<'idle' | 'reject'>('idle');
   const [reason, setReason] = useState('');
   const [isPending, startTransition] = useTransition();
@@ -27,7 +40,7 @@ export function IntakeReviewActions({ submissionId }: { submissionId: string }) 
         <div className="flex gap-1.5">
           <button
             type="button"
-            onClick={() => run(() => approveIntakeSubmission(submissionId))}
+            onClick={() => run(() => approve(submissionId))}
             disabled={isPending}
             className="h-7 px-3 rounded bg-brand text-white text-caption font-medium hover:bg-brand-dark disabled:opacity-50 transition-colors cursor-pointer"
           >
@@ -59,7 +72,7 @@ export function IntakeReviewActions({ submissionId }: { submissionId: string }) 
       <div className="flex gap-1.5">
         <button
           type="button"
-          onClick={() => run(() => rejectIntakeSubmission(submissionId, reason))}
+          onClick={() => run(() => reject(submissionId, reason))}
           disabled={isPending}
           className="h-7 px-3 rounded bg-error text-white text-caption font-medium hover:opacity-80 disabled:opacity-50 transition-opacity cursor-pointer"
         >

@@ -13,7 +13,7 @@
  */
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
-import { getIntakeTier } from '@/utils/intake-access';
+import { isAdminEmail } from '@/utils/admin-emails';
 import { isIntakeConfirmConfigured } from '@/utils/intake-token';
 import CaptureClient from './CaptureClient';
 
@@ -27,8 +27,10 @@ export default async function CapturePage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect('/login?next=/intake/capture');
-  const tier = await getIntakeTier(supabase, user);
-  if (!tier) redirect('/');
+  // Web capture is a staff tool. Owners and super users scan from the
+  // HappiTime app instead — see apps/mobile ScanMenuScreen — which is why
+  // /api/intake/* is tier-aware while this page is not.
+  if (!(await isAdminEmail(user.email))) redirect('/');
 
-  return <CaptureClient confirmationConfigured={isIntakeConfirmConfigured()} tier={tier} />;
+  return <CaptureClient confirmationConfigured={isIntakeConfirmConfigured()} />;
 }

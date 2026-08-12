@@ -5,7 +5,8 @@
  * Server runs a vision model on the image and returns a draft of
  * happy_hour_windows + happy_hour_offers ready for review.
  *
- * Auth: requires an authenticated user who is in the platform admin list.
+ * Auth: cookie session (console) or bearer token (HappiTime app). Admins are
+ * uncapped; owners and super users get INTAKE_DAILY_EXTRACT_CAP scans a day.
  *
  * Provider selection: INTAKE_VISION_PROVIDER = 'gemini' (default) | 'anthropic'
  *   - gemini    → Google Gemini Flash. Free tier: 15 RPM, 1,500/day.
@@ -17,7 +18,8 @@
  * Per-provider model default can be overridden with INTAKE_MODEL.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient, createServiceClient } from '@/utils/supabase/server';
+import { createServiceClient } from '@/utils/supabase/server';
+import { authenticateIntakeRequest } from '@/utils/intake-auth';
 import {
   getIntakeTier,
   extractsUsedToday,
@@ -338,11 +340,9 @@ function validate(draft: any): string[] {
 // ─── Route handler ──────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const caller = await authenticateIntakeRequest(req);
+  if (!caller) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const { supabase, user } = caller;
   const tier = await getIntakeTier(supabase, user);
   if (!tier) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });

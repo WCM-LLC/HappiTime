@@ -99,14 +99,7 @@ function findMatchingExisting(ex: ExtractedWindow, existings: ExistingWindow[]):
   return null;
 }
 
-export default function CaptureClient({
-  confirmationConfigured,
-  tier,
-}: {
-  confirmationConfigured: boolean;
-  tier: 'admin' | 'owner' | 'super_user';
-}) {
-  const isAdminTier = tier === 'admin';
+export default function CaptureClient({ confirmationConfigured }: { confirmationConfigured: boolean }) {
   // ── venue picker ────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<Venue[]>([]);
@@ -714,14 +707,7 @@ export default function CaptureClient({
       {/* STEP 6: publish */}
       {venue ? (
         <section style={section}>
-          <label style={labelStyle}>{isAdminTier ? '6. Save or publish' : '6. Submit for review'}</label>
-          {!isAdminTier ? (
-            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>
-              Your scan is saved as a draft and reviewed by the HappiTime team —
-              usually same-day. You&apos;ll get an email when it goes live.
-            </p>
-          ) : null}
-          {isAdminTier ? (
+          <label style={labelStyle}>6. Save or publish</label>
           <div style={card}>
             <label
               style={{
@@ -761,7 +747,6 @@ export default function CaptureClient({
               />
             ) : null}
           </div>
-          ) : null}
 
           {!canPublishStrict ? (
             <p style={{ fontSize: 12, color: '#92400e', marginTop: 8 }}>
@@ -773,7 +758,6 @@ export default function CaptureClient({
             </p>
           ) : null}
 
-          {isAdminTier ? (
           <button
             onClick={() => commit('publish')}
             disabled={committing || !canPublishStrict}
@@ -785,9 +769,8 @@ export default function CaptureClient({
               ? 'Draft + send owner link'
               : 'Auto-publish'}
           </button>
-          ) : null}
-          <button onClick={() => commit('draft')} disabled={committing} style={isAdminTier ? draftBtn : primaryBtn}>
-            {committing ? 'Saving…' : isAdminTier ? 'Save as draft' : 'Submit for review'}
+          <button onClick={() => commit('draft')} disabled={committing} style={draftBtn}>
+            {committing ? 'Saving…' : 'Save as draft'}
           </button>
           {commitError ? <p style={errStyle}>{commitError}</p> : null}
         </section>
