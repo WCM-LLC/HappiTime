@@ -5,7 +5,8 @@
  * Server runs a vision model on the image and returns a draft of
  * happy_hour_windows + happy_hour_offers ready for review.
  *
- * Auth: requires an authenticated user who is in the platform admin list.
+ * Auth: cookie session (console) or bearer token (HappiTime app). Admins are
+ * uncapped; owners and super users get INTAKE_DAILY_EXTRACT_CAP scans a day.
  *
  * Provider selection: INTAKE_VISION_PROVIDER = 'gemini' (default) | 'anthropic'
  *   - gemini    → Google Gemini Flash. Free tier: 15 RPM, 1,500/day.
@@ -17,8 +18,13 @@
  * Per-provider model default can be overridden with INTAKE_MODEL.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
-import { isAdminEmail } from '@/utils/admin-emails';
+import { createServiceClient } from '@/utils/supabase/server';
+import { authenticateIntakeRequest } from '@/utils/intake-auth';
+import {
+  getIntakeTier,
+  extractsUsedToday,
+  INTAKE_DAILY_EXTRACT_CAP,
+} from '@/utils/intake-access';
 
 export const runtime = 'nodejs';
 // This route waits synchronously on a vision-LLM round-trip. The internal
@@ -334,13 +340,25 @@ function validate(draft: any): string[] {
 // ─── Route handler ──────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  if (!(await isAdminEmail(user.email))) {
+  const caller = await authenticateIntakeRequest(req);
+  if (!caller) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const { supabase, user } = caller;
+  const tier = await getIntakeTier(supabase, user);
+  if (!tier) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+  // Owner/super tiers ride the Gemini free tier — cap extracts per service day.
+  if (tier !== 'admin') {
+    const used = await extractsUsedToday(user.id);
+    if (used >= INTAKE_DAILY_EXTRACT_CAP) {
+      return NextResponse.json(
+        {
+          error: 'daily_limit_reached',
+          detail: `You've used all ${INTAKE_DAILY_EXTRACT_CAP} menu scans for today — the counter resets at midnight. Your saved drafts are still there.`,
+        },
+        { status: 429 },
+      );
+    }
   }
 
   let form: FormData;
@@ -366,9 +384,20 @@ export async function POST(req: NextRequest) {
   const buf = Buffer.from(await image.arrayBuffer());
   const base64 = buf.toString('base64');
 
+  const extractStartedAt = Date.now();
   try {
     const { parsed, usage } = await runVisionExtract(base64, image.type, venueName);
     const errors = validate(parsed);
+    // Feed the daily cap + the provider/latency log (analytics feeds off this).
+    try {
+      await createServiceClient().from('intake_extract_log').insert({
+        user_id: user.id,
+        provider: PROVIDER,
+        latency_ms: Date.now() - extractStartedAt,
+      });
+    } catch (logErr) {
+      console.error('[intake/extract] extract_log_insert_failed:', logErr);
+    }
     return NextResponse.json({
       ok: errors.length === 0,
       draft: parsed,

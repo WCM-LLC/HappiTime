@@ -86,3 +86,73 @@ export async function sendVenueOwnerConfirmation(params: {
     return { sent: false, reason: 'send_failed', error: err?.message ?? String(err) };
   }
 }
+
+/**
+ * Tells reviewers a scanned menu is waiting on them. Recipients are BCC'd so
+ * one org's members never see each other's addresses. Soft-fails like the
+ * rest of this module — a missing email key must not fail a commit.
+ */
+export async function sendIntakeReviewNotice(params: {
+  to: string[];
+  venueName: string;
+  reviewUrl: string;
+}): Promise<{ sent: boolean; reason?: 'no_resend' | 'no_recipients' | 'send_failed'; error?: string }> {
+  if (params.to.length === 0) return { sent: false, reason: 'no_recipients' };
+  const resend = getResend();
+  if (!resend) {
+    console.warn('[email] RESEND_API_KEY not set — intake review notice skipped');
+    return { sent: false, reason: 'no_resend' };
+  }
+  try {
+    await resend.emails.send({
+      from: 'HappiTime <noreply@happitime.biz>',
+      to: 'HappiTime <noreply@happitime.biz>',
+      bcc: params.to,
+      subject: `A happy hour menu for ${params.venueName} needs your approval`,
+      html:
+        `<p>Someone scanned an updated happy hour menu for <strong>${params.venueName}</strong>.</p>` +
+        `<p>It's saved as a draft and won't show publicly until you approve it.</p>` +
+        `<p><a href="${params.reviewUrl}">Review it now</a></p>`,
+    });
+    return { sent: true };
+  } catch (err: any) {
+    return { sent: false, reason: 'send_failed', error: err?.message ?? String(err) };
+  }
+}
+
+/**
+ * Notifies an intake submitter that a reviewer approved or rejected their
+ * scanned menu. Soft-fails when Resend is unconfigured — the review action
+ * itself must never be blocked by email.
+ */
+export async function sendIntakeDecisionEmail(params: {
+  to: string;
+  venueName: string;
+  approved: boolean;
+  rejectReason?: string | null;
+}): Promise<{ sent: boolean; reason?: 'no_resend' | 'send_failed'; error?: string }> {
+  const resend = getResend();
+  if (!resend) {
+    console.warn('[email] RESEND_API_KEY not set — intake decision email skipped');
+    return { sent: false, reason: 'no_resend' };
+  }
+  const subject = params.approved
+    ? `Your ${params.venueName} menu is live on HappiTime`
+    : `Your ${params.venueName} menu needs another look`;
+  const body = params.approved
+    ? `<p>Good news — the menu you scanned for <strong>${params.venueName}</strong> was approved and is now live.</p>`
+    : `<p>The menu you scanned for <strong>${params.venueName}</strong> wasn't approved yet.</p>${
+        params.rejectReason ? `<p>Reviewer note: ${params.rejectReason}</p>` : ''
+      }<p>It's saved as a draft — fix it up and resubmit anytime.</p>`;
+  try {
+    await resend.emails.send({
+      from: 'HappiTime <noreply@happitime.biz>',
+      to: params.to,
+      subject,
+      html: body,
+    });
+    return { sent: true };
+  } catch (err: any) {
+    return { sent: false, reason: 'send_failed', error: err?.message ?? String(err) };
+  }
+}

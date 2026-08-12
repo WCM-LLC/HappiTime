@@ -71,6 +71,9 @@ all of these no-op when unset):
 - `NEXT_PUBLIC_ANALYTICS_DEBUG`
 - `NEXT_PUBLIC_ERROR_REPORTING_PROVIDER`
 
+Optional (self-serve intake):
+- `INTAKE_SELF_SERVE_ENABLED` — `true` lets org owners/editors and super users scan menus from the HappiTime app. Owner scans publish immediately; super-user scans always land as drafts routed to the venue's org (`/orgs/[orgId]/intake-review`), or to staff (`/admin/intake-review`) when the venue has no org behind it. Unset keeps intake admin-only. The web `/intake/capture` page is staff-only either way.
+
 ## Directory (`apps/directory`)
 Copy `apps/directory/.env.example` → `apps/directory/.env.local`.
 
@@ -119,6 +122,11 @@ Required:
 Optional (maps):
 - `EXPO_PUBLIC_MAPS_PROVIDER` (`google` or `mapbox`)
 - `EXPO_PUBLIC_MAPS_API_KEY`
+
+Optional (menu scanning):
+- `EXPO_PUBLIC_CONSOLE_URL` — console origin the app calls for `/api/intake/*`; defaults to `https://happitime-console.vercel.app`. Point it at a LAN address to scan against a local console. `EXPO_PUBLIC_*` values are inlined when the bundle is built, so set it in the EAS environment before `eas update` or the default is what ships.
+
+**Menu scanning — OTA vs. native build.** The scan flow adds no native module (`expo-image-picker` and `expo-image-manipulator` were already shipped for avatars), so it goes out with `eas update` on the `production` channel and reaches every install on the current `version` (runtimeVersion policy is `appVersion`). One native gap remains: the shipped Android binary has no `android.permission.CAMERA`, and a manifest entry cannot be added over the air. The in-app camera is therefore gated to iOS (`Platform.OS === "ios"` in `ScanMenuScreen`); Android users pick an existing photo. `app.json` now declares `CAMERA` plus the `expo-image-picker` plugin (which writes the branded iOS usage strings), and since `apps/mobile/{ios,android}` are gitignored prebuild output, that file is the whole source of truth. The **next native build lifts the gate** — drop the `cameraAvailable` constant in `ScanMenuScreen` when it ships.
 
 Note: `apps/mobile/app.config.js` reads `.env`/`.env.local` from the app root
 or repo root to inject values into `expo.extra`. Restart Expo with `-c` after

@@ -27,6 +27,9 @@ export default async function CapturePage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect('/login?next=/intake/capture');
+  // Web capture is a staff tool. Owners and super users scan from the
+  // HappiTime app instead — see apps/mobile ScanMenuScreen — which is why
+  // /api/intake/* is tier-aware while this page is not.
   if (!(await isAdminEmail(user.email))) redirect('/');
 
   return <CaptureClient confirmationConfigured={isIntakeConfirmConfigured()} />;

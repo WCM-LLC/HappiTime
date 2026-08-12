@@ -85,6 +85,10 @@ module.exports = ({ config }) => {
     env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const supabasePublishableKey = env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
+  // Console origin for /api/intake/* (menu scanning). Optional — the intake
+  // client falls back to the production console when unset.
+  const consoleUrl = env.EXPO_PUBLIC_CONSOLE_URL;
+
   const mapsProvider = env.EXPO_PUBLIC_MAPS_PROVIDER;
   const mapsApiKey = env.EXPO_PUBLIC_MAPS_API_KEY;
 
@@ -106,6 +110,7 @@ module.exports = ({ config }) => {
       supabaseUrl,
       supabaseAnonKey,
       supabasePublishableKey,
+      consoleUrl,
       mapsProvider,
       mapsApiKey,
     },

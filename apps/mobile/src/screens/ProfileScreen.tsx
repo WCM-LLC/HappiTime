@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../api/supabaseClient";
+import { fetchIntakeSession } from "../api/intake";
 import { BackgroundLocationDisclosure } from "../components/BackgroundLocationDisclosure";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { SuperUserBadge } from "../components/SuperUserBadge";
@@ -67,6 +68,10 @@ export const ProfileScreen: React.FC = () => {
     saving: prefSaving,
     savePreferences,
   } = useUserPreferences();
+
+  // Menu scanning only appears for accounts the console says may use it —
+  // venue owners and super users, and only while the feature flag is on.
+  const [canScanMenus, setCanScanMenus] = useState(false);
 
   const [displayName, setDisplayName] = useState("");
   const [homeCity, setHomeCity] = useState("");
@@ -183,6 +188,22 @@ export const ProfileScreen: React.FC = () => {
       },
     ]);
   };
+
+  // Ask the console once per signed-in session whether this account may scan
+  // menus. Any failure (guest, offline, flag off) simply hides the entry.
+  useEffect(() => {
+    if (!user?.id) {
+      setCanScanMenus(false);
+      return;
+    }
+    let alive = true;
+    fetchIntakeSession()
+      .then((s) => alive && setCanScanMenus(Boolean(s.tier)))
+      .catch(() => alive && setCanScanMenus(false));
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!profile) return;
@@ -567,6 +588,15 @@ export const ProfileScreen: React.FC = () => {
             onPress={() => navigation.navigate("InsiderCode")}
           >
             <Text style={styles.secondaryButtonText}>My Insider Code</Text>
+          </Pressable>
+        ) : null}
+
+        {canScanMenus ? (
+          <Pressable
+            style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
+            onPress={() => navigation.navigate("ScanMenu")}
+          >
+            <Text style={styles.secondaryButtonText}>Scan a Happy Hour Menu</Text>
           </Pressable>
         ) : null}
 

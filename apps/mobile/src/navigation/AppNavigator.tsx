@@ -23,6 +23,7 @@ import { MapScreen } from "../screens/MapScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { InviteScreen } from "../screens/InviteScreen";
 import { InsiderCodeScreen } from "../screens/InsiderCodeScreen";
+import { ScanMenuScreen } from "../screens/ScanMenuScreen";
 import { VenuePreviewScreen } from "../screens/VenuePreviewScreen";
 import { ItineraryDetailScreen } from "../screens/ItineraryDetailScreen";
 import { EventCalendarScreen } from "../screens/EventCalendarScreen";
@@ -271,6 +272,19 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
           options={{
             headerShown: true,
             title: "My Insider Code",
+            headerBackTitle: "Back",
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontSize: 17, fontWeight: "600" },
+          }}
+        />
+        <Stack.Screen
+          name="ScanMenu"
+          component={ScanMenuScreen}
+          options={{
+            headerShown: true,
+            title: "Scan a Menu",
             headerBackTitle: "Back",
             headerTintColor: colors.text,
             headerStyle: { backgroundColor: colors.background },

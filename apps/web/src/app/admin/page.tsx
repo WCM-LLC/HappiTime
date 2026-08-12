@@ -102,6 +102,7 @@ export default async function AdminPage({
     { count: stagingCount },
     { count: addressReviewCount },
     { count: crmOpenLeadCount },
+    { count: intakeReviewCount },
   ] = await Promise.all([
     supabase.from('organizations').select('id', { count: 'exact', head: true }),
     supabase.from('venues').select('id', { count: 'exact', head: true }),
@@ -117,6 +118,7 @@ export default async function AdminPage({
     supabase.from('staging_venues').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('venues').select('id', { count: 'exact', head: true }).eq('needs_address_review', true),
     supabase.from('crm_leads').select('id', { count: 'exact', head: true }).not('stage', 'in', '("won","lost")'),
+    supabase.from('intake_submissions').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
   ]);
 
   // ─── Organizations ────────────────────────────────────────────────────
@@ -359,6 +361,7 @@ export default async function AdminPage({
     { label: 'Staging', value: stagingCount ?? 0, icon: 'ST', href: '/admin/staging' },
     { label: 'Address Review', value: addressReviewCount ?? 0, icon: 'AR', href: '/admin/address-review' },
     { label: 'CRM Leads', value: crmOpenLeadCount ?? 0, icon: '💼', href: '/admin/crm' },
+    { label: 'Intake Review', value: intakeReviewCount ?? 0, icon: 'IR', href: '/admin/intake-review' },
   ];
 
   return (

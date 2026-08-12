@@ -114,13 +114,15 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
       return;
     }
     const t = setTimeout(async () => {
-      const { data } = await supabase
-        .from('venues')
-        .select('id, name, address, city')
-        .ilike('name', `%${q}%`)
-        .order('name', { ascending: true })
-        .limit(8);
-      setResults((data ?? []) as Venue[]);
+      // Server route scopes results by tier (owners: their org's venues;
+      // super users: published venues; admins: everything).
+      try {
+        const res = await fetch(`/api/intake/venues?q=${encodeURIComponent(q)}`);
+        const json = await res.json();
+        setResults((json?.venues ?? []) as Venue[]);
+      } catch {
+        setResults([]);
+      }
     }, 200);
     return () => clearTimeout(t);
   }, [search, venue, supabase]);
