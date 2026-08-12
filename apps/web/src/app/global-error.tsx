@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
+import posthog from 'posthog-js';
+
 // App-wide fallback. Catches errors that escape nested boundaries (including in
 // the root layout). Must render its own <html>/<body>. Prevents fully blank pages.
 export default function GlobalError({
@@ -9,6 +12,10 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  useEffect(() => {
+    posthog.captureException(error);
+  }, [error]);
+
   return (
     <html>
       <body

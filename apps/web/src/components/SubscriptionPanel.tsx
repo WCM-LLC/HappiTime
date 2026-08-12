@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { trackEvent } from '@/services/analytics';
 import {
   FEATURES,
   PLAN_FEATURES,
@@ -49,6 +50,7 @@ export function SubscriptionPanel({ venueId, orgId, currentPlan }: Props) {
         });
         const data = await res.json();
         if (!res.ok) { setError(data.error ?? 'Checkout failed'); return; }
+        trackEvent('subscription_checkout_started', { plan, org_id: orgId, venue_id: venueId });
         window.location.href = data.url;
       } catch {
         setError('Network error — please try again');
@@ -67,6 +69,7 @@ export function SubscriptionPanel({ venueId, orgId, currentPlan }: Props) {
         });
         const data = await res.json();
         if (!res.ok) { setError(data.error ?? 'Could not open portal'); return; }
+        trackEvent('billing_portal_opened', { org_id: orgId, venue_id: venueId });
         window.location.href = data.url;
       } catch {
         setError('Network error — please try again');

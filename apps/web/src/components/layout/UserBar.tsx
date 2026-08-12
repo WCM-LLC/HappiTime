@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { resetAnalytics } from '@/services/analytics';
 import { Logo } from '@/components/ui/Logo';
 
 export default function UserBar() {
@@ -20,8 +21,9 @@ export default function UserBar() {
   }, []);
 
   async function signOut() {
-    const supabase = await createClient();
+    const supabase = createClient();
     await supabase.auth.signOut();
+    resetAnalytics(); // unlink the device from the user before the next session
     window.location.href = '/login';
   }
 

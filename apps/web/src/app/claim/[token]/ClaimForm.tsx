@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { trackEvent } from '@/services/analytics';
 
 export default function ClaimForm({ token }: { token: string }) {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function ClaimForm({ token }: { token: string }) {
           setError(json?.error ?? 'publish_failed');
           return;
         }
+        trackEvent('claim_published');
         router.refresh();
       } catch (err: any) {
         setError(err?.message ?? 'publish_failed');

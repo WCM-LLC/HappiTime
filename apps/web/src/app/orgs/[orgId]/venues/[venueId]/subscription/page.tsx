@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import { SubscriptionPanel } from '@/components/SubscriptionPanel';
+import TrackOnMount from '@/components/TrackOnMount';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
 import { checkVenueBillingAccess } from '@/utils/billing-access';
 import type { SubscriptionPlan } from '@/utils/stripe';
@@ -76,6 +77,11 @@ export default async function SubscriptionPage({
         {subscriptionResult === 'success' && (
           <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 mb-6">
             <p className="text-body-sm font-medium text-green-700">Subscription activated — your plan is now live.</p>
+            <TrackOnMount
+              event="subscription_checkout_completed"
+              props={{ org_id: orgId, venue_id: venueId, plan: currentPlan }}
+              once={`sub-completed:${venueId}`}
+            />
           </div>
         )}
         {subscriptionResult === 'cancelled' && (

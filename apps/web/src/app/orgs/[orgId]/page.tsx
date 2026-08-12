@@ -9,6 +9,7 @@ import { SubmitButton } from '@/components/ui/SubmitButton';
 import VenueDashboardShell, { type ShellTab, OrgMark, ShellCrumb } from '@/components/venue/VenueDashboardShell';
 import AccessManager, { type InviteRow, type MemberRow } from '@/components/venue/AccessManager';
 import AddVenueForm from '@/components/AddVenueForm';
+import TrackOnMount from '@/components/TrackOnMount';
 import Disclosure from '@/components/venue/Disclosure';
 import ConfirmDeleteToast from '@/components/venue/ConfirmDeleteToast';
 import VenueMenusManager, {
@@ -1341,6 +1342,7 @@ export default async function OrgPage({
       <Suspense>
         <FlashMessage />
       </Suspense>
+      <TrackOnMount event="org_dashboard_viewed" props={{ org_id: orgId, venue_count: venueCount }} />
       <VenueDashboardShell
         storeKey={`hh-venue:${orgId}`}
         tabs={tabs}
