@@ -3,6 +3,11 @@ name: Auth Health
 # Daily tripwire for the email magic-link auth path — added after the 2026-06
 # outage (every POST /otp -> 500) ran ~30 days undetected. A failed run emails
 # the repo watchers via GitHub notifications. See scripts/check-auth-health.mjs.
+#
+# Checks 5xx on the email-auth endpoints, plus whether requested magic links
+# actually convert. It deliberately says nothing when nobody requests one: the
+# earlier "zero signups in 7 days" rule measured demand and sat red for 16 days
+# straight while auth was fine.
 on:
   schedule:
     - cron: '37 13 * * *'   # daily sweep (13:37 UTC)
@@ -26,5 +31,5 @@ jobs:
             echo "::error::SUPABASE_ACCESS_TOKEN / SUPABASE_PROJECT_REF repository secrets are not configured (see DEPLOYMENT.md)."
             exit 1
           fi
-      - name: Check auth health (24h 5xx + 7d email-signup flatline)
+      - name: Check auth health (24h 5xx + magic-link conversion)
         run: node scripts/check-auth-health.mjs
