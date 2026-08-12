@@ -2,6 +2,8 @@
 import type { Venue } from "@happitime/shared-types";
 import { useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
+import { fetchEffectiveTierRows, mergeEffectiveTiers } from "../lib/effectiveTier";
+import { tierRank } from "../lib/venueTier";
 
 // Field set mirrors what VenueCard / display helpers read so a venue-only
 // search result renders identically to a happy-hour feed card.
@@ -30,6 +32,24 @@ const VENUE_FIELDS = `
 const MIN_QUERY_LENGTH = 2;
 const DEBOUNCE_MS = 250;
 const RESULT_LIMIT = 20;
+
+/**
+ * Featured -> verified -> listed, then promotion priority, then rating.
+ * Ordering has to happen here rather than in the query: promotion_tier is
+ * text with a custom rank, and the effective tier (org bundles) is not even a
+ * column on venues. Without this the search returned rows in whatever order
+ * Postgres produced them, so a Featured venue had no advantage — the bug that
+ * left Vine Street Brewing below its own neighbors when searching "vine".
+ */
+function rankVenues(venues: Venue[]): Venue[] {
+  return [...venues].sort((a, b) => {
+    const r = tierRank((a as any).promotion_tier) - tierRank((b as any).promotion_tier);
+    if (r !== 0) return r;
+    const prio = ((b as any).promotion_priority ?? 0) - ((a as any).promotion_priority ?? 0);
+    if (prio !== 0) return prio;
+    return ((b as any).rating ?? 0) - ((a as any).rating ?? 0);
+  });
+}
 
 /**
  * Searches *all* published venues by name/org/neighborhood/address/city.
@@ -88,9 +108,22 @@ export function useVenueSearch(query: string): { venues: Venue[]; loading: boole
       if (error) {
         console.warn("[useVenueSearch] venue search failed", error.message);
         setVenues([]);
-      } else {
-        setVenues((data ?? []) as unknown as Venue[]);
+        setLoading(false);
+        return;
       }
+
+      const rows = (data ?? []) as unknown as Venue[];
+
+      // Fold in org-bundle tiers before ranking: a venue paying through a
+      // bundle carries a null promotion_tier of its own and would otherwise
+      // rank as "listed". Fail-open — a failed fetch leaves raw tiers.
+      const withTiers = mergeEffectiveTiers(
+        rows as unknown as Array<Venue & { id: string; promotion_tier?: string | null }>,
+        await fetchEffectiveTierRows(rows.map((v) => (v as any).id)),
+      ) as unknown as Venue[];
+
+      if (!active) return;
+      setVenues(rankVenues(withTiers));
       setLoading(false);
     }, DEBOUNCE_MS);
 

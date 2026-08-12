@@ -7,6 +7,7 @@ import type { Neighborhood } from "@/lib/neighborhoods";
 import { eventOccursToday } from "@/lib/eventUtils";
 import { kcNow } from "@/lib/kcTime";
 import { venueImageUrl } from "@/lib/mediaUrl";
+import { compareByTier } from "@/lib/venueTier";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -1169,7 +1170,13 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
     }
 
     return true;
-  });
+  })
+    // Tier-aware ordering: featured -> verified -> listed, then promotion
+    // priority, then rating. Without this the list renders in whatever order
+    // the query returned, so a Featured venue had no ranking advantage at all
+    // — searching "vine" buried Vine Street Brewing under the seven venues
+    // that merely sit in the 18th & Vine neighborhood.
+    .sort(compareByTier);
 
   const selectedVenue = filteredVenues.find((v) => v.id === selectedId) ?? null;
 
