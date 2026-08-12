@@ -71,6 +71,9 @@ all of these no-op when unset):
 - `NEXT_PUBLIC_ANALYTICS_DEBUG`
 - `NEXT_PUBLIC_ERROR_REPORTING_PROVIDER`
 
+Optional (self-serve intake):
+- `INTAKE_SELF_SERVE_ENABLED` — `true` lets org owners/editors and super users scan menus (always draft + admin review at `/admin/intake-review`); unset keeps intake admin-only.
+
 ## Directory (`apps/directory`)
 Copy `apps/directory/.env.example` → `apps/directory/.env.local`.
 

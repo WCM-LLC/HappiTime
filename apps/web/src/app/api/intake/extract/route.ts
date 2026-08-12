@@ -17,8 +17,12 @@
  * Per-provider model default can be overridden with INTAKE_MODEL.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
-import { isAdminEmail } from '@/utils/admin-emails';
+import { createClient, createServiceClient } from '@/utils/supabase/server';
+import {
+  getIntakeTier,
+  extractsUsedToday,
+  INTAKE_DAILY_EXTRACT_CAP,
+} from '@/utils/intake-access';
 
 export const runtime = 'nodejs';
 // This route waits synchronously on a vision-LLM round-trip. The internal
@@ -339,8 +343,22 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  if (!(await isAdminEmail(user.email))) {
+  const tier = await getIntakeTier(supabase, user);
+  if (!tier) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+  // Owner/super tiers ride the Gemini free tier — cap extracts per service day.
+  if (tier !== 'admin') {
+    const used = await extractsUsedToday(user.id);
+    if (used >= INTAKE_DAILY_EXTRACT_CAP) {
+      return NextResponse.json(
+        {
+          error: 'daily_limit_reached',
+          detail: `You've used all ${INTAKE_DAILY_EXTRACT_CAP} menu scans for today — the counter resets at midnight. Your saved drafts are still there.`,
+        },
+        { status: 429 },
+      );
+    }
   }
 
   let form: FormData;
@@ -366,9 +384,20 @@ export async function POST(req: NextRequest) {
   const buf = Buffer.from(await image.arrayBuffer());
   const base64 = buf.toString('base64');
 
+  const extractStartedAt = Date.now();
   try {
     const { parsed, usage } = await runVisionExtract(base64, image.type, venueName);
     const errors = validate(parsed);
+    // Feed the daily cap + the provider/latency log (analytics feeds off this).
+    try {
+      await createServiceClient().from('intake_extract_log').insert({
+        user_id: user.id,
+        provider: PROVIDER,
+        latency_ms: Date.now() - extractStartedAt,
+      });
+    } catch (logErr) {
+      console.error('[intake/extract] extract_log_insert_failed:', logErr);
+    }
     return NextResponse.json({
       ok: errors.length === 0,
       draft: parsed,

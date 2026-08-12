@@ -10,6 +10,7 @@ import VenueDashboardShell, { type ShellTab, OrgMark, ShellCrumb } from '@/compo
 import AccessManager, { type InviteRow, type MemberRow } from '@/components/venue/AccessManager';
 import AddVenueForm from '@/components/AddVenueForm';
 import TrackOnMount from '@/components/TrackOnMount';
+import { isSelfServeIntakeEnabled } from '@/utils/intake-access';
 import Disclosure from '@/components/venue/Disclosure';
 import ConfirmDeleteToast from '@/components/venue/ConfirmDeleteToast';
 import VenueMenusManager, {
@@ -466,6 +467,25 @@ export default async function OrgPage({
           <OrgBundlePanel orgId={orgId} venueCount={venueCount} bundle={orgBundle} justCheckedOut={sp?.bundle === 'success'} />
         </div>
       )}
+
+      {/* Self-serve intake entry (feature-flagged): scan a menu photo → draft
+          + admin review. The capture page itself re-checks access. */}
+      {isSelfServeIntakeEnabled() && (isOwner || fromAdmin) ? (
+        <div className="rounded-lg border border-brand/40 bg-brand-subtle/40 p-5 shadow-sm mb-6 flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h3 className="text-heading-sm font-semibold text-foreground">Scan your happy hour menu</h3>
+            <p className="text-body-sm text-muted mt-0.5">
+              Photograph your chalkboard or menu — we read it and update your listing after a quick review.
+            </p>
+          </div>
+          <Link
+            href="/intake/capture"
+            className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-brand text-white text-body-sm font-semibold hover:bg-brand-dark transition-colors shrink-0"
+          >
+            Scan a menu
+          </Link>
+        </div>
+      ) : null}
 
       {/* Add Venue Form */}
       {isOwner ? (

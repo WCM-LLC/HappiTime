@@ -99,7 +99,14 @@ function findMatchingExisting(ex: ExtractedWindow, existings: ExistingWindow[]):
   return null;
 }
 
-export default function CaptureClient({ confirmationConfigured }: { confirmationConfigured: boolean }) {
+export default function CaptureClient({
+  confirmationConfigured,
+  tier,
+}: {
+  confirmationConfigured: boolean;
+  tier: 'admin' | 'owner' | 'super_user';
+}) {
+  const isAdminTier = tier === 'admin';
   // ── venue picker ────────────────────────────────────────────────────────
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<Venue[]>([]);
@@ -114,13 +121,15 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
       return;
     }
     const t = setTimeout(async () => {
-      const { data } = await supabase
-        .from('venues')
-        .select('id, name, address, city')
-        .ilike('name', `%${q}%`)
-        .order('name', { ascending: true })
-        .limit(8);
-      setResults((data ?? []) as Venue[]);
+      // Server route scopes results by tier (owners: their org's venues;
+      // super users: published venues; admins: everything).
+      try {
+        const res = await fetch(`/api/intake/venues?q=${encodeURIComponent(q)}`);
+        const json = await res.json();
+        setResults((json?.venues ?? []) as Venue[]);
+      } catch {
+        setResults([]);
+      }
     }, 200);
     return () => clearTimeout(t);
   }, [search, venue, supabase]);
@@ -705,7 +714,14 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
       {/* STEP 6: publish */}
       {venue ? (
         <section style={section}>
-          <label style={labelStyle}>6. Save or publish</label>
+          <label style={labelStyle}>{isAdminTier ? '6. Save or publish' : '6. Submit for review'}</label>
+          {!isAdminTier ? (
+            <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>
+              Your scan is saved as a draft and reviewed by the HappiTime team —
+              usually same-day. You&apos;ll get an email when it goes live.
+            </p>
+          ) : null}
+          {isAdminTier ? (
           <div style={card}>
             <label
               style={{
@@ -745,6 +761,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
               />
             ) : null}
           </div>
+          ) : null}
 
           {!canPublishStrict ? (
             <p style={{ fontSize: 12, color: '#92400e', marginTop: 8 }}>
@@ -756,6 +773,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
             </p>
           ) : null}
 
+          {isAdminTier ? (
           <button
             onClick={() => commit('publish')}
             disabled={committing || !canPublishStrict}
@@ -767,8 +785,9 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
               ? 'Draft + send owner link'
               : 'Auto-publish'}
           </button>
-          <button onClick={() => commit('draft')} disabled={committing} style={draftBtn}>
-            {committing ? 'Saving…' : 'Save as draft'}
+          ) : null}
+          <button onClick={() => commit('draft')} disabled={committing} style={isAdminTier ? draftBtn : primaryBtn}>
+            {committing ? 'Saving…' : isAdminTier ? 'Save as draft' : 'Submit for review'}
           </button>
           {commitError ? <p style={errStyle}>{commitError}</p> : null}
         </section>

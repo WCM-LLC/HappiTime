@@ -13,7 +13,7 @@
  */
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
-import { isAdminEmail } from '@/utils/admin-emails';
+import { getIntakeTier } from '@/utils/intake-access';
 import { isIntakeConfirmConfigured } from '@/utils/intake-token';
 import CaptureClient from './CaptureClient';
 
@@ -27,7 +27,8 @@ export default async function CapturePage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect('/login?next=/intake/capture');
-  if (!(await isAdminEmail(user.email))) redirect('/');
+  const tier = await getIntakeTier(supabase, user);
+  if (!tier) redirect('/');
 
-  return <CaptureClient confirmationConfigured={isIntakeConfirmConfigured()} />;
+  return <CaptureClient confirmationConfigured={isIntakeConfirmConfigured()} tier={tier} />;
 }

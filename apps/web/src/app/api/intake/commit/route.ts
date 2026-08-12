@@ -41,7 +41,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
-import { isAdminEmail } from '@/utils/admin-emails';
+import { getIntakeTier, canUseIntakeForVenue } from '@/utils/intake-access';
 import { isIntakeConfirmConfigured, signIntakeConfirmToken } from '@/utils/intake-token';
 import { sendVenueOwnerConfirmation } from '@/utils/email';
 
@@ -153,22 +153,36 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  if (!(await isAdminEmail(user.email))) {
+  const tier = await getIntakeTier(supabase, user);
+  if (!tier) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   }
 
   const json = await req.json().catch(() => null);
   const v = validateBody(json);
   if (!v.ok) return NextResponse.json({ error: 'invalid_payload', errors: v.errors }, { status: 400 });
+  let {
+    save_as_draft,
+    send_owner_confirmation,
+  } = v.data;
   const {
     venue_id,
     window_ids,
     new_windows,
     menu,
-    save_as_draft,
-    send_owner_confirmation,
     owner_email,
   } = v.data;
+
+  // Owner/super tiers ALWAYS land as a draft plus a review-queue entry —
+  // enforced here, not in the UI, so a hand-crafted autoPublish request
+  // cannot bypass review. Owner confirmation emails are an admin workflow.
+  if (tier !== 'admin') {
+    save_as_draft = true;
+    send_owner_confirmation = false;
+    if (!(await canUseIntakeForVenue(supabase, user, tier, venue_id))) {
+      return NextResponse.json({ error: 'forbidden_venue' }, { status: 403 });
+    }
+  }
 
   if (send_owner_confirmation && !isIntakeConfirmConfigured()) {
     return NextResponse.json(
@@ -360,9 +374,26 @@ export async function POST(req: NextRequest) {
   //   auto-publish            → done; menu is live.
   //   send_owner_confirmation → sign token + email; menu lives in draft.
   if (save_as_draft) {
+    // Non-admin commits enter the review queue; an admin approves (publishes
+    // menu + windows) or rejects from /admin/intake-review.
+    let submissionId: string | null = null;
+    if (tier !== 'admin') {
+      const { data: submission, error: subErr } = (await db
+        .from('intake_submissions')
+        .insert({ venue_id, menu_id, submitted_by: user.id, tier })
+        .select('id')
+        .single()) as any;
+      if (subErr) {
+        console.error('[intake/commit] submission_insert_failed:', subErr);
+      } else {
+        submissionId = submission?.id ?? null;
+      }
+    }
     return NextResponse.json({
       ok: true,
       drafted: true,
+      in_review: tier !== 'admin',
+      submission_id: submissionId,
       venue_id,
       menu_id,
       window_ids: allWindowIds,
