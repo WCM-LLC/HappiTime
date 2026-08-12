@@ -22,7 +22,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
 import { useVenueSearch } from "../hooks/useVenueSearch";
-import { tierVariant } from "../lib/venueTier";
+import { tierRank, tierVariant } from "../lib/venueTier";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
@@ -241,7 +241,14 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         };
       })
       .sort((a, b) => {
-        // Promoted venues sort first, by priority descending
+        // Tier first: featured -> verified -> listed. promotion_priority alone
+        // used to drive this, but it is 0 for every venue in production, so
+        // the "promoted first" sort silently fell through to distance and a
+        // Featured venue got no advantage anywhere in the app.
+        const aRank = tierRank((a.venue as any)?.promotion_tier);
+        const bRank = tierRank((b.venue as any)?.promotion_tier);
+        if (aRank !== bRank) return aRank - bRank;
+        // Then hand-set priority within a tier
         const aPrio = getPromoPriority(a);
         const bPrio = getPromoPriority(b);
         if (aPrio !== bPrio) return bPrio - aPrio;
@@ -365,10 +372,20 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       );
     }
 
-    // Append venue-only matches (published venues with no happy-hour window).
-    // They're already name-matched server-side and deduped against the feed.
+    // Merge in venue-only matches (published venues with no happy-hour window)
+    // and re-rank by tier. These used to be appended unconditionally, which
+    // pinned them below every feed item no matter what they paid for: Vine
+    // Street Brewing is a founding pilot whose only window is unpublished, so
+    // it could never rank above a free listing. Ranking only applies while a
+    // search is active; browsing keeps the feed's distance-led order, and
+    // venueOnlyResults is empty then anyway.
     if (venueOnlyResults.length > 0) {
-      list = [...list, ...venueOnlyResults];
+      list = [...list, ...venueOnlyResults].sort((a, b) => {
+        const aRank = tierRank((a.venue as any)?.promotion_tier);
+        const bRank = tierRank((b.venue as any)?.promotion_tier);
+        if (aRank !== bRank) return aRank - bRank;
+        return getPromoPriority(b) - getPromoPriority(a);
+      });
     }
 
     return list;
