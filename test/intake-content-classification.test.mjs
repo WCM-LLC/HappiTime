@@ -177,3 +177,48 @@ test("scheduling uses the venue's calendar, not the server's", () => {
   assert.match(content, /toLocaleString\("en-US", \{ timeZone \}\)|toLocaleString\('en-US', \{ timeZone \}\)/);
   assert.match(content, /timeZone = 'America\/Chicago'/);
 });
+
+// ── The human gate ───────────────────────────────────────────────────────────
+//
+// The whole point of the classification work: a person confirms what the photo
+// is before anything is written. A flyer misread as a happy hour would put a
+// one-night event's hours on a venue's public listing as if they ran weekly.
+const screen = () => read("apps/mobile/src/screens/ScanMenuScreen.tsx");
+
+test("the model's proposal is never auto-confirmed", () => {
+  const s = screen();
+  assert.match(s, /setConfirmedType\(null\)/, "each extraction must reset the confirmation");
+  assert.doesNotMatch(
+    s,
+    /setConfirmedType\(contentType\)/,
+    "pre-selecting the model's guess turns the gate into a rubber stamp"
+  );
+});
+
+test("submit is blocked until a type is confirmed", () => {
+  const s = screen();
+  assert.match(s, /confirmedType != null &&/);
+  assert.match(s, /confirmedType !== "unknown" &&/, "'unknown' must not be submittable");
+});
+
+test("'unknown' is a model output, not a human choice", () => {
+  const s = screen();
+  assert.match(s, /const CONFIRMABLE_TYPES: ContentType\[\] = \["happy_hour", "event", "event_series", "mixed"\]/);
+});
+
+test("the confirmed type decides what gets written, not the proposal", () => {
+  const s = screen();
+  assert.match(s, /contentType: confirmedType \?\? "unknown"/);
+  // Reclassifying a menu as an event must not still create happy-hour windows.
+  assert.match(s, /windowIds: isHappyHour \? windowIds : \[\]/);
+  assert.match(s, /newWindows: isHappyHour \? newWindows : \[\]/);
+  assert.match(s, /events: isEventy \? events : \[\]/);
+  // The derived flags must come from the confirmation, never the proposal.
+  assert.match(s, /const isHappyHour = confirmedType === "happy_hour"/);
+  assert.doesNotMatch(s, /const isHappyHour = proposedType/);
+});
+
+test("an undated one-off is called out rather than silently sent", () => {
+  const s = screen();
+  assert.match(s, /This one has no date/);
+});

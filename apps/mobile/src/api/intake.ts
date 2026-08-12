@@ -58,9 +58,28 @@ export type ExtractedItem = {
 
 export type ExtractedSection = { name: string; items: ExtractedItem[] };
 
+/** What the photo turned out to be. A human confirms this before commit. */
+export type ContentType = "happy_hour" | "event" | "event_series" | "mixed" | "unknown";
+
+export type ProposedEvent = {
+  title: string;
+  description?: string | null;
+  event_type?: "event" | "special" | "live_music" | "trivia" | "sports" | "other" | null;
+  /** YYYY-MM-DD for a one-off; null when it recurs. */
+  date?: string | null;
+  start_time: string;
+  end_time?: string | null;
+  is_recurring?: boolean;
+  /** Weekdays it repeats on, 0=Sunday. The SERVER turns this into an RRULE. */
+  recurrence_dow?: number[];
+  price_info?: string | null;
+};
+
 export type ExtractedDraft = {
+  content_type?: ContentType;
   windows: ExtractedWindow[];
   menu: { name: string; sections: ExtractedSection[] };
+  events?: ProposedEvent[];
   _confidence?: "high" | "medium" | "low";
   _notes?: string;
 };
@@ -180,7 +199,7 @@ export async function extractMenuFromPhoto(params: {
   uri: string;
   mimeType?: string;
   venueName?: string;
-}): Promise<{ draft: ExtractedDraft; ok: boolean; errors: string[] }> {
+}): Promise<{ draft: ExtractedDraft; contentType: ContentType; ok: boolean; errors: string[] }> {
   const form = new FormData();
   form.append("image", {
     uri: params.uri,
@@ -197,21 +216,28 @@ export async function extractMenuFromPhoto(params: {
   const json = await parseOrThrow(res);
   return {
     draft: json.draft as ExtractedDraft,
+    // The server normalizes an unrecognized label to "unknown" — the review
+    // step asks the human either way, so this is a starting position only.
+    contentType: (json?.content_type ?? "unknown") as ContentType,
     ok: Boolean(json.ok),
     errors: (json?.validation?.errors ?? []) as string[],
   };
 }
 
 /**
- * Writes the reviewed menu. The server decides what actually happens: an
- * owner's scan publishes, a super user's is forced into a review queue no
- * matter what this client sends.
+ * Writes the reviewed content. Two things stay the server's call regardless of
+ * what this client sends: whether it publishes or queues for approval, and
+ * whether the payload is even allowed for this venue. The client's job is to
+ * carry the human's confirmed content_type, not to decide anything.
  */
 export async function commitMenu(params: {
   venueId: string;
+  /** The type a HUMAN confirmed, not the model's proposal. */
+  contentType: ContentType;
   windowIds: string[];
   newWindows: ExtractedWindow[];
   menu: { name: string; sections: ExtractedSection[] };
+  events?: ProposedEvent[];
   saveAsDraft?: boolean;
 }): Promise<CommitResult> {
   const res = await fetch(`${CONSOLE_URL}/api/intake/commit`, {
@@ -219,9 +245,11 @@ export async function commitMenu(params: {
     headers: { ...(await authHeader()), "Content-Type": "application/json" },
     body: JSON.stringify({
       venue_id: params.venueId,
+      content_type: params.contentType,
       window_ids: params.windowIds,
       new_windows: params.newWindows,
       menu: params.menu,
+      events: params.events ?? [],
       save_as_draft: Boolean(params.saveAsDraft),
       send_owner_confirmation: false,
     }),
