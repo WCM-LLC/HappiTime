@@ -20,6 +20,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/utils/supabase/server';
 import { authenticateIntakeRequest } from '@/utils/intake-auth';
+import { EVENT_TYPES, DATE_RE, normalizeContentType } from '@/utils/intake-content';
 import {
   getIntakeTier,
   extractsUsedToday,
@@ -50,13 +51,33 @@ const MAX_BYTES = 8 * 1024 * 1024; // 8 MB upload cap
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 
 const SYSTEM_PROMPT = `You are an extraction agent for HappiTime. You receive a
-photo of bar/restaurant happy-hour content — a menu, chalkboard, table tent,
-sandwich board, or printed sign — and you extract EVERYTHING relevant into a
-strict JSON shape that matches HappiTime's data model.
+photo of bar/restaurant content — a menu, chalkboard, table tent, sandwich
+board, event flyer, or printed sign — and you extract EVERYTHING relevant into
+a strict JSON shape that matches HappiTime's data model.
+
+FIRST decide what you are looking at, then extract accordingly. A recurring
+happy hour and a one-off event are different things in HappiTime and are
+stored differently, so this classification matters more than any single field.
+A human confirms your answer before anything is saved, so say what you actually
+see and use "unknown" when the photo does not tell you.
 
 Return STRICT JSON in this exact shape, no markdown, no commentary:
 
 {
+  "content_type": "happy_hour" | "event" | "event_series" | "mixed" | "unknown",
+  "events": [
+    {
+      "title": "Trivia Night",
+      "description": null,
+      "event_type": "trivia",
+      "date": "2026-08-21",
+      "start_time": "19:00",
+      "end_time": "21:00",
+      "is_recurring": false,
+      "recurrence_dow": [],
+      "price_info": "$5 cover"
+    }
+  ],
   "windows": [
     { "dow": [1,2,3,4,5], "start_time": "15:00", "end_time": "18:00", "label": "Weekday Happy Hour" }
   ],
@@ -80,6 +101,39 @@ Return STRICT JSON in this exact shape, no markdown, no commentary:
   "_confidence": "high" | "medium" | "low",
   "_notes": "short string for any ambiguity"
 }
+
+CLASSIFICATION RULES (decide this first):
+- "happy_hour": recurring discounted food/drink tied to times of day. Words
+  like "Happy Hour", "Daily Specials", "3-6pm", "$2 off drafts". This is the
+  default for a menu board with prices and a time range.
+- "event": ONE dated thing. A specific calendar date, or a named one-off
+  ("Aug 21", "this Saturday", "Oktoberfest Kickoff").
+- "event_series": something that repeats on a weekday without being a happy
+  hour — "Trivia every Thursday", "Live Music Fridays", "Sunday Funday".
+- "mixed": the image clearly shows BOTH a happy hour AND one or more events.
+  Fill in windows/menu AND events, and say so in "_notes".
+- "unknown": you cannot tell (a plain food menu with no times, a logo, a photo
+  of a room). Return empty arrays and explain in "_notes". Do NOT guess
+  "happy_hour" just because it is a bar.
+- Discounted drinks during a named event are still an event, not a happy hour,
+  when the drinks exist because of the event ("Game Day: $3 drafts").
+
+EVENTS RULES (extract IFF content_type is event, event_series, or mixed):
+- "title": the event's name as printed. Required.
+- "event_type": one of "event", "special", "live_music", "trivia", "sports",
+  "other". Pick the closest; use "event" when nothing fits.
+- "date": "YYYY-MM-DD" ONLY when a specific calendar date is visible. Use null
+  for anything recurring or undated. Never infer a date from a weekday name,
+  and never assume the current year unless the sign prints it.
+- "start_time" / "end_time": 24-hour HH:MM, same as windows. Use null for
+  end_time when only a start is shown.
+- "is_recurring": true for anything that repeats ("every Thursday", "Fridays").
+- "recurrence_dow": the weekdays it repeats on, 0=Sunday .. 6=Saturday. Empty
+  array when it does not recur. Do NOT write a recurrence rule string.
+- "price_info": free text exactly as printed ("$5 cover", "Free", "No cover").
+  Use null when no price is shown.
+- Return one entry per distinct event. A flyer listing a week of shows is one
+  entry per show, not one entry for the week.
 
 GENERAL RULES:
 - Extract EVERY field you can see in the image. The UI handles missing fields
@@ -110,12 +164,18 @@ MENU RULES (extract IFF menu items are visible):
 - "description": optional. Use for modifiers ("frozen or rocks") or
   discount-style items where the deal is "X off" instead of a fixed dollar
   ({ name: "All Drafts", price: null, description: "$2 off" }).
-- If no menu content visible, return menu.sections: [].`;
+- If no menu content visible, return menu.sections: [].
+
+WINDOWS vs EVENTS:
+- Never put an event's hours in "windows". Windows are happy-hour times only.
+- When content_type is "event" or "event_series", windows and menu.sections
+  are normally empty — put the timing on the event entry instead.`;
 
 function buildUserPrompt(venueName?: string): string {
-  return venueName
-    ? `Venue: ${venueName}. Extract the happy-hour windows AND menu visible in this image.`
-    : 'Extract the happy-hour windows AND menu visible in this image.';
+  const task =
+    'Classify what this image shows, then extract it: happy-hour windows and ' +
+    'menu, and/or events.';
+  return venueName ? `Venue: ${venueName}. ${task}` : task;
 }
 
 function stripFences(text: string): string {
@@ -297,6 +357,30 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 function validate(draft: any): string[] {
   const errors: string[] = [];
 
+  // Events: optional, but a malformed entry must not reach the review step
+  // pretending to be a real date or a real recurrence.
+  const events = Array.isArray(draft?.events) ? draft.events : [];
+  events.forEach((e: any, i: number) => {
+    if (typeof e?.title !== 'string' || !e.title.trim()) errors.push(`events[${i}].title required`);
+    if (e?.event_type != null && !(EVENT_TYPES as readonly string[]).includes(e.event_type))
+      errors.push(`events[${i}].event_type must be one of ${EVENT_TYPES.join(', ')}`);
+    if (e?.date != null && (typeof e.date !== 'string' || !DATE_RE.test(e.date)))
+      errors.push(`events[${i}].date must be YYYY-MM-DD or null`);
+    if (typeof e?.start_time !== 'string' || !TIME_RE.test(e.start_time))
+      errors.push(`events[${i}].start_time invalid`);
+    if (e?.end_time != null && (typeof e.end_time !== 'string' || !TIME_RE.test(e.end_time)))
+      errors.push(`events[${i}].end_time must be HH:MM or null`);
+    const dow = Array.isArray(e?.recurrence_dow) ? e.recurrence_dow : [];
+    if (dow.some((d: any) => !Number.isInteger(d) || d < 0 || d > 6))
+      errors.push(`events[${i}].recurrence_dow must be 0-6`);
+    // A recurring event with no weekday is unschedulable, and a one-off with
+    // neither a date nor a weekday cannot be placed on a calendar at all.
+    if (e?.is_recurring && dow.length === 0)
+      errors.push(`events[${i}] is recurring but has no recurrence_dow`);
+    if (!e?.is_recurring && e?.date == null)
+      errors.push(`events[${i}] needs a date (or mark it recurring)`);
+  });
+
   // Windows: every entry that's present must be well-formed. Empty array OK.
   const windows = Array.isArray(draft?.windows) ? draft.windows : [];
   windows.forEach((w: any, i: number) => {
@@ -400,6 +484,9 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({
       ok: errors.length === 0,
+      // The label the model proposed, normalized. The review step shows this
+      // for a human to confirm or change — nothing commits on it alone.
+      content_type: normalizeContentType((parsed as any)?.content_type),
       draft: parsed,
       validation: { errors },
       usage,

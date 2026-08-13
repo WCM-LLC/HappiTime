@@ -13,7 +13,9 @@ type AdminClient = ReturnType<typeof createServiceClient>;
 export type PendingSubmission = {
   id: string;
   venue_id: string;
+  /** Null for an events-only submission. */
   menu_id: string | null;
+  content_type?: 'happy_hour' | 'event' | 'event_series' | 'mixed';
   submitted_by: string;
   review_route: 'owner' | 'admin';
   review_org_id: string | null;
@@ -27,13 +29,31 @@ export async function loadPendingSubmission(
 ): Promise<PendingSubmission> {
   const { data, error } = await (db as any)
     .from('intake_submissions')
-    .select('id, venue_id, menu_id, submitted_by, review_route, review_org_id, status')
+    .select('id, venue_id, menu_id, content_type, submitted_by, review_route, review_org_id, status')
     .eq('id', id)
     .single();
   if (error || !data) throw new Error('Submission not found');
   const sub = data as PendingSubmission;
   if (sub.status !== 'pending') throw new Error('Submission was already reviewed');
   return sub;
+}
+
+/** Stamps the decision on the submission row. */
+async function markReviewed(
+  db: AdminClient,
+  sub: PendingSubmission,
+  reviewerId: string | null,
+  status: 'approved' | 'rejected',
+  rejectReason?: string,
+): Promise<void> {
+  const patch: Record<string, unknown> = {
+    status,
+    reviewed_by: reviewerId,
+    reviewed_at: new Date().toISOString(),
+  };
+  if (status === 'rejected') patch.reject_reason = rejectReason?.trim() || null;
+  const { error } = await (db as any).from('intake_submissions').update(patch).eq('id', sub.id);
+  if (error) throw new Error(error.message);
 }
 
 /** Best-effort note to the person who scanned the menu. Never throws. */
@@ -71,8 +91,32 @@ export async function approveSubmission(
   sub: PendingSubmission,
   reviewerId: string | null,
 ): Promise<void> {
-  if (!sub.menu_id) throw new Error('Submission has no menu (it may have been deleted)');
   const db = createServiceClient();
+
+  // Events first: a submission can be events-only, in which case there is no
+  // menu to publish and requiring one would make it unapprovable.
+  const { data: links } = await (db as any)
+    .from('intake_submission_events')
+    .select('event_id')
+    .eq('submission_id', sub.id);
+  const eventIds = ((links ?? []) as Array<{ event_id: string }>).map((l) => l.event_id);
+  if (eventIds.length > 0) {
+    const { error: evErr } = await db
+      .from('venue_events')
+      .update({ status: 'published' })
+      .in('id', eventIds)
+      .eq('status', 'draft');
+    if (evErr) throw new Error(evErr.message);
+  }
+
+  if (!sub.menu_id) {
+    if (eventIds.length === 0) {
+      throw new Error('Submission has nothing to publish (it may have been deleted)');
+    }
+    await markReviewed(db, sub, reviewerId, 'approved');
+    await notifySubmitter(db, sub.submitted_by, sub.venue_id, true);
+    return;
+  }
 
   const { error: menuErr } = await db
     .from('menus')

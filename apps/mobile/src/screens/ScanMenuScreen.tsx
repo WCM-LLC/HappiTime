@@ -46,9 +46,11 @@ import {
   findMatchingWindow,
   searchIntakeVenues,
   IntakeError,
+  type ContentType,
   type ExistingWindow,
   type ExtractedSection,
   type ExtractedWindow,
+  type ProposedEvent,
   type IntakeSession,
   type IntakeVenue,
 } from "../api/intake";
@@ -58,6 +60,7 @@ import { spacing } from "../theme/spacing";
 type Props = NativeStackScreenProps<RootStackParamList, "ScanMenu">;
 
 const DOW_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+const DAY_NAMES = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 // Wide enough for a chalkboard shot to stay legible, small enough that the
 // upload finishes on a bar's wifi and lands well under the server's 8 MB cap.
@@ -65,11 +68,33 @@ const MAX_UPLOAD_WIDTH = 1600;
 
 type Step = "venue" | "photo" | "review" | "done";
 
+/** The types a person can pick. "unknown" is a model output, never a choice. */
+const CONFIRMABLE_TYPES: ContentType[] = ["happy_hour", "event", "event_series", "mixed"];
+
+const TYPE_LABELS: Record<ContentType, string> = {
+  happy_hour: "A happy hour",
+  event: "A one-time event",
+  event_series: "A weekly event",
+  mixed: "Both a happy hour and an event",
+  unknown: "Not sure",
+};
+
+const TYPE_HINTS: Record<ContentType, string> = {
+  happy_hour: "Recurring deals tied to times of day",
+  event: "Happens once, on a specific date",
+  event_series: "Repeats every week, like trivia night",
+  mixed: "The board shows both",
+  unknown: "",
+};
+
 type Outcome = {
   published: boolean;
   venueName: string;
   /** Who owns the approval when it wasn't published — null when it was. */
   reviewRoute: "owner" | "admin" | null;
+  /** Events the server couldn't schedule. Surfaced so they aren't lost silently. */
+  unschedulable: string[];
+  eventCount: number;
 };
 
 export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -92,7 +117,14 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
 
-  // review
+  // review — what the photo is, as PROPOSED by the model and then confirmed
+  // (or corrected) by the person holding the phone. Nothing commits on the
+  // model's label alone: a flyer read as a happy hour would put an event's
+  // hours on a venue's listing as if they ran every week.
+  const [proposedType, setProposedType] = useState<ContentType>("unknown");
+  const [confirmedType, setConfirmedType] = useState<ContentType | null>(null);
+  const [events, setEvents] = useState<ProposedEvent[]>([]);
+
   const [windows, setWindows] = useState<ExtractedWindow[]>([]);
   // The venue's published windows. A scan that lines up with one of these
   // ATTACHES to it — commit inserts new_windows[] without deduping, so
@@ -167,7 +199,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
         // whether submitting publishes. Failing that lookup therefore BLOCKS
         // submit rather than falling back to "everything is new" — the scan is
         // kept on screen and retryable.
-        const [{ draft }, context] = await Promise.all([
+        const [{ draft, contentType }, context] = await Promise.all([
           extractMenuFromPhoto({
             uri: shrunk.uri,
             mimeType: "image/jpeg",
@@ -185,6 +217,11 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
         if (!context.ok) {
           setError("We couldn't load this venue's current happy hours. Tap retry before submitting.");
         }
+        setProposedType(contentType);
+        // Deliberately NOT pre-confirmed. The person has to say what it is,
+        // even when the model sounds certain.
+        setConfirmedType(null);
+        setEvents(Array.isArray(draft?.events) ? draft.events : []);
         setWindows(Array.isArray(draft?.windows) ? draft.windows : []);
         setMenuName(draft?.menu?.name?.trim() || "Happy Hour");
         setSections(Array.isArray(draft?.menu?.sections) ? draft.menu.sections : []);
@@ -281,8 +318,22 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
   const badTimes = windows.some(
     (w) => !TIME_RE.test(w.start_time) || !TIME_RE.test(w.end_time) || w.dow.length === 0,
   );
+  // What the person confirmed drives everything below — never proposedType.
+  const isHappyHour = confirmedType === "happy_hour" || confirmedType === "mixed";
+  const isEventy = confirmedType === "event" || confirmedType === "event_series" || confirmedType === "mixed";
+
+  const happyHourReady = windows.length > 0 && itemCount > 0 && !badTimes;
+  const eventsReady = events.length > 0 && events.every((e) => e.title.trim().length > 0);
+
   const canSubmit =
-    Boolean(venue) && contextLoaded && windows.length > 0 && itemCount > 0 && !badTimes && !submitting;
+    Boolean(venue) &&
+    contextLoaded &&
+    confirmedType != null &&
+    confirmedType !== "unknown" &&
+    !submitting &&
+    (isHappyHour ? happyHourReady : true) &&
+    (isEventy ? eventsReady : true) &&
+    (isHappyHour || isEventy);
 
   const submit = useCallback(async () => {
     if (!venue) return;
@@ -315,14 +366,22 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
 
       const res = await commitMenu({
         venueId: venue.id,
-        windowIds,
-        newWindows,
-        menu: { name: menuName.trim() || "Happy Hour", sections: cleanSections },
+        // The CONFIRMED type decides what gets written. A happy hour that the
+        // person reclassified as an event must not also create windows.
+        contentType: confirmedType ?? "unknown",
+        windowIds: isHappyHour ? windowIds : [],
+        newWindows: isHappyHour ? newWindows : [],
+        menu: isHappyHour
+          ? { name: menuName.trim() || "Happy Hour", sections: cleanSections }
+          : { name: menuName.trim() || "Happy Hour", sections: [] },
+        events: isEventy ? events : [],
       });
       setOutcome({
         published: Boolean(res.published),
         venueName: venue.name,
         reviewRoute: res.review_route ?? null,
+        unschedulable: res.unschedulable_events ?? [],
+        eventCount: (res.event_ids ?? []).length,
       });
       setStep("done");
     } catch (e) {
@@ -334,13 +393,16 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
     } finally {
       setSubmitting(false);
     }
-  }, [venue, windows, sections, menuName, existingWindows]);
+  }, [venue, windows, sections, menuName, existingWindows, confirmedType, events, isHappyHour, isEventy]);
 
   const startOver = () => {
     setStep(preselected ? "photo" : "venue");
     if (!preselected) setVenue(null);
     setPhotoUri(null);
     setWindows([]);
+    setEvents([]);
+    setProposedType("unknown");
+    setConfirmedType(null);
     setSections([]);
     setOutcome(null);
     setError("");
@@ -471,12 +533,41 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
       {/* STEP 3 — review */}
       {step === "review" ? (
         <>
+          {/* The human gate. The model proposes; a person decides. Getting
+              this wrong writes an event's hours onto a venue's listing as a
+              weekly happy hour, or buries a happy hour in the events tab. */}
+          <View style={styles.card}>
+            <Text style={styles.label}>What did you photograph?</Text>
+            {proposedType !== "unknown" ? (
+              <Text style={styles.muted}>
+                Looks like {TYPE_LABELS[proposedType].toLowerCase()}. Confirm or change it.
+              </Text>
+            ) : (
+              <Text style={styles.muted}>
+                We couldn&apos;t tell from the photo — pick the one that fits.
+              </Text>
+            )}
+            {CONFIRMABLE_TYPES.map((t) => (
+              <Pressable
+                key={t}
+                onPress={() => setConfirmedType(t)}
+                style={[styles.typeRow, confirmedType === t && styles.typeRowOn]}
+              >
+                <Text style={[styles.typeTitle, confirmedType === t && styles.typeTitleOn]}>
+                  {TYPE_LABELS[t]}
+                </Text>
+                <Text style={styles.typeHint}>{TYPE_HINTS[t]}</Text>
+              </Pressable>
+            ))}
+          </View>
+
           {notes ? (
             <View style={styles.noteBox}>
               <Text style={styles.noteText}>{notes}</Text>
             </View>
           ) : null}
 
+          {isHappyHour ? (
           <View style={styles.card}>
             <Text style={styles.label}>When it runs</Text>
             {windows.length === 0 ? (
@@ -524,7 +615,9 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
               <Text style={styles.linkText}>+ Add another time</Text>
             </Pressable>
           </View>
+          ) : null}
 
+          {isHappyHour ? (
           <View style={styles.card}>
             <Text style={styles.label}>What's on it</Text>
             {sections.map((s, si) => (
@@ -560,6 +653,45 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
               <Text style={styles.muted}>Nothing readable came back. Retake the photo closer in.</Text>
             ) : null}
           </View>
+          ) : null}
+
+          {isEventy ? (
+            <View style={styles.card}>
+              <Text style={styles.label}>{events.length === 1 ? "The event" : "The events"}</Text>
+              {events.length === 0 ? (
+                <Text style={styles.muted}>
+                  No events came back from the photo. Retake it, or pick a different type above.
+                </Text>
+              ) : null}
+              {events.map((ev, ei) => (
+                <View key={ei} style={styles.windowBlock}>
+                  <TextInput
+                    value={ev.title}
+                    onChangeText={(t) =>
+                      setEvents((es) => es.map((e, i) => (i === ei ? { ...e, title: t } : e)))
+                    }
+                    placeholder="Event name"
+                    placeholderTextColor={colors.textMutedLight}
+                    style={styles.input}
+                  />
+                  <Text style={styles.muted}>
+                    {ev.is_recurring
+                      ? `Every ${(ev.recurrence_dow ?? []).map((d) => DAY_NAMES[d]).join(", ") || "week"} at ${ev.start_time}`
+                      : `${ev.date ?? "date needed"} at ${ev.start_time}`}
+                    {ev.price_info ? ` · ${ev.price_info}` : ""}
+                  </Text>
+                  {!ev.is_recurring && !ev.date ? (
+                    <Text style={styles.errorText}>
+                      This one has no date. Remove it, or mark the board&apos;s date and rescan.
+                    </Text>
+                  ) : null}
+                  <Pressable onPress={() => setEvents((es) => es.filter((_, i) => i !== ei))}>
+                    <Text style={styles.removeText}>Remove</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
           {!contextLoaded ? (
             <Pressable style={styles.secondaryBtn} onPress={retryContext}>
@@ -568,9 +700,12 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
           ) : null}
 
           <Text style={styles.muted}>
-            {canPublish
-              ? "Submitting publishes this to your listing right away."
-              : "Submitting sends this to the venue's owner to approve. It stays hidden until they do."}
+            {(() => {
+              const what = isHappyHour && isEventy ? "happy hour and events" : isEventy ? "events" : "happy hour";
+              return canPublish
+                ? `Submitting publishes the ${what} to your listing right away.`
+                : `Submitting sends the ${what} to the venue's owner to approve. It stays hidden until they do.`;
+            })()}
           </Text>
 
           <Pressable
@@ -608,6 +743,17 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
                 ? `The team behind ${outcome.venueName} has been emailed. You'll hear back when they decide.`
                 : `${outcome.venueName} has no owner on HappiTime yet, so our team will review it. You'll hear back either way.`}
           </Text>
+          {outcome.unschedulable.length > 0 ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>
+                We couldn&apos;t work out when {outcome.unschedulable.join(", ")}{" "}
+                {outcome.unschedulable.length === 1 ? "happens" : "happen"}, so{" "}
+                {outcome.unschedulable.length === 1 ? "it wasn't" : "they weren't"} added. Add{" "}
+                {outcome.unschedulable.length === 1 ? "it" : "them"} by hand, or rescan with the
+                date showing.
+              </Text>
+            </View>
+          ) : null}
           <Pressable style={styles.primaryBtn} onPress={startOver}>
             <Text style={styles.primaryBtnText}>Scan another</Text>
           </Pressable>
@@ -654,6 +800,17 @@ const styles = StyleSheet.create({
   busyRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, paddingVertical: spacing.lg },
   windowBlock: { paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border },
   matchNote: { fontSize: 12, color: colors.textMuted, marginBottom: spacing.xs },
+  typeRow: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+  },
+  typeRowOn: { borderColor: colors.primary, backgroundColor: colors.brandSubtle },
+  typeTitle: { fontSize: 15, fontWeight: "600", color: colors.text },
+  typeTitleOn: { color: colors.brandDark },
+  typeHint: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
   dowRow: { flexDirection: "row", gap: spacing.xs, marginBottom: spacing.sm },
   dowChip: {
     width: 34,
