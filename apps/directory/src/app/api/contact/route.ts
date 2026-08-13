@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import nodemailer from "nodemailer";
 import { createClient } from "@supabase/supabase-js";
 
 const MAX_SUBJECT_LENGTH = 160;
@@ -52,25 +51,76 @@ async function isRateLimited(clientId: string): Promise<boolean> {
   return data === true;
 }
 
-function parseBoolean(value: string | undefined, fallback: boolean) {
-  if (!value) return fallback;
-  return value.toLowerCase() === "true";
-}
-
-function getSmtpConfig() {
-  const host = process.env.SMTP_HOST;
-  const port = Number(process.env.SMTP_PORT ?? "587");
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
-  const from = process.env.SMTP_FROM ?? user;
+/**
+ * Contact-form delivery goes through SMTP2GO's HTTP API rather than SMTP.
+ *
+ * The account's credential is an API key, and SMTP2GO's API keys are NOT SMTP
+ * credentials — authenticating to mail.smtp2go.com with the key as username
+ * and/or password returns "535 Incorrect authentication data". Using SMTP would
+ * mean creating and rotating a second, different secret for the same provider.
+ *
+ * The HTTP API also suits serverless better: no long-lived socket, no SMTP
+ * port to be blocked, and a synchronous per-message result we can log.
+ *
+ * Verified working 2026-08-12: a send from noreply@happitime.biz returned
+ * {"succeeded":1,"failed":0}. The domain's SMTP2GO DKIM/return-path CNAMEs
+ * have been in DNS since 2026-07-16.
+ */
+function getMailConfig() {
+  const apiKey = process.env.SMTP2GO_API_KEY;
+  const sender = process.env.SMTP2GO_SENDER ?? "HappiTime <noreply@happitime.biz>";
   const to = process.env.SUPPORT_RECIPIENT_EMAIL ?? "admin@happitime.biz";
-  const secure = parseBoolean(process.env.SMTP_SECURE, port === 465);
 
-  if (!host || !user || !pass || !from || !to || Number.isNaN(port)) {
+  // Throwing keeps the existing contract: this route fails loudly with a 500
+  // the visitor can see, rather than accepting the message and dropping it.
+  // Silence is how the Resend outage went unnoticed for days.
+  if (!apiKey || !sender || !to) {
     throw new Error("Email service is not configured.");
   }
 
-  return { host, port, user, pass, from, to, secure };
+  return { apiKey, sender, to };
+}
+
+type MailAttachment = { filename: string; fileblob: string; mimetype: string };
+
+/** Sends via SMTP2GO and throws unless the provider confirms it took the message. */
+async function sendSupportEmail(params: {
+  config: { apiKey: string; sender: string; to: string };
+  replyTo: string;
+  subject: string;
+  textBody: string;
+  attachments: MailAttachment[];
+}): Promise<void> {
+  const res = await fetch("https://api.smtp2go.com/v3/email/send", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Smtp2go-Api-Key": params.config.apiKey,
+    },
+    body: JSON.stringify({
+      sender: params.config.sender,
+      to: [params.config.to],
+      subject: params.subject,
+      text_body: params.textBody,
+      // Reply-To carries the visitor's address so a reply reaches them, while
+      // the envelope stays on a domain SMTP2GO is authorised to send for.
+      custom_headers: [{ header: "Reply-To", value: params.replyTo }],
+      ...(params.attachments.length > 0 ? { attachments: params.attachments } : {}),
+    }),
+  });
+
+  const body = await res.json().catch(() => null);
+  const succeeded = body?.data?.succeeded ?? 0;
+
+  // A 200 is not delivery: SMTP2GO reports per-recipient outcomes in the body,
+  // so "accepted zero messages" must fail rather than read as success.
+  if (!res.ok || succeeded < 1) {
+    const reason =
+      body?.data?.error ??
+      body?.data?.failures?.[0] ??
+      `HTTP ${res.status}, succeeded=${succeeded}`;
+    throw new Error(`SMTP2GO did not accept the message: ${JSON.stringify(reason)}`);
+  }
 }
 
 function isValidEmail(value: string) {
@@ -111,7 +161,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `You can attach up to ${MAX_FILE_COUNT} files.` }, { status: 400 });
     }
 
-    const attachments: { filename: string; content: Buffer; contentType: string }[] = [];
+    const attachments: MailAttachment[] = [];
     for (const file of files) {
       if (!ACCEPTED_FILE_TYPES.has(file.type)) {
         return NextResponse.json(
@@ -129,29 +179,22 @@ export async function POST(request: NextRequest) {
       const buffer = Buffer.from(await file.arrayBuffer());
       attachments.push({
         filename: file.name,
-        content: buffer,
-        contentType: file.type,
+        fileblob: buffer.toString("base64"),
+        mimetype: file.type,
       });
     }
 
-    const smtp = getSmtpConfig();
-    const transport = nodemailer.createTransport({
-      host: smtp.host,
-      port: smtp.port,
-      secure: smtp.secure,
-      auth: { user: smtp.user, pass: smtp.pass },
-    });
+    const config = getMailConfig();
 
     const now = new Date().toISOString();
     const userAgent = request.headers.get("user-agent") ?? "unknown";
     const referer = request.headers.get("referer") ?? "unknown";
 
-    await transport.sendMail({
-      from: smtp.from,
-      to: smtp.to,
+    await sendSupportEmail({
+      config,
       replyTo: email,
       subject: `[HappiTime Support] ${subject}`,
-      text: [
+      textBody: [
         `From: ${email}`,
         `Subject: ${subject}`,
         `Timestamp: ${now}`,
