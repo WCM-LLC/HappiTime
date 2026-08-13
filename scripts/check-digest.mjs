@@ -131,11 +131,21 @@ async function fetchLogs() {
  * catch.
  */
 export function extractRows(body) {
+  // The endpoint answers HTTP 200 with {result: null, error: "..."} when the
+  // SQL itself is rejected. Surfacing that beats reporting an empty window:
+  // a query this check cannot run is a broken check, not a quiet day.
+  if (body && typeof body === 'object' && body.error) {
+    throw new Error(
+      `logs query rejected: ${typeof body.error === 'string' ? body.error : JSON.stringify(body.error)}`,
+    );
+  }
   for (const candidate of [body?.result, body?.data, body?.rows, body]) {
     if (Array.isArray(candidate)) return candidate;
   }
   throw new Error(
-    `unrecognised logs response shape (keys: ${JSON.stringify(Object.keys(body ?? {}))})`,
+    `unrecognised logs response shape (keys: ${JSON.stringify(Object.keys(body ?? {}))}, ` +
+      `result type: ${Object.prototype.toString.call(body?.result)}, ` +
+      `result preview: ${JSON.stringify(body?.result)?.slice(0, 300)})`,
   );
 }
 
