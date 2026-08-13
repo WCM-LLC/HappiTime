@@ -19,6 +19,7 @@ export const EVENT_TYPES = ['event', 'special', 'live_music', 'trivia', 'sports'
 export type EventType = (typeof EVENT_TYPES)[number];
 
 export const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+export const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** RRULE weekday codes, indexed 0=Sunday .. 6=Saturday to match `dow`. */
 const RRULE_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
@@ -80,7 +81,7 @@ export function resolveEventStart(
   timeZone = 'America/Chicago',
 ): { date: string; time: string } | null {
   const time = event.start_time;
-  if (typeof time !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return null;
+  if (typeof time !== 'string' || !TIME_RE.test(time)) return null;
 
   if (event.date && DATE_RE.test(event.date)) return { date: event.date, time };
   if (!event.is_recurring) return null;
@@ -110,6 +111,38 @@ export function resolveEventStart(
   const mm = String(first.getMonth() + 1).padStart(2, '0');
   const dd = String(first.getDate()).padStart(2, '0');
   return { date: `${yyyy}-${mm}-${dd}`, time };
+}
+
+/**
+ * Resolves the concrete `ends_at` for an event that has already been placed on
+ * a calendar by resolveEventStart.
+ *
+ * An end time at or before the start time means the event runs past midnight —
+ * "Trivia 9PM til 1AM" is one evening, not a negative-length one — so it ends
+ * on the FOLLOWING day. Writing it on the start date instead puts ends_at
+ * twenty hours *before* starts_at, and the events feed selects on
+ * `ends_at is null or ends_at > now()` (20260423130000). A late-night event
+ * would commit successfully and then be invisible, which is the worst shape a
+ * bug can take here: the reviewer approves it, the owner is told it published,
+ * and nobody sees it.
+ *
+ * Returns null for a malformed time rather than guessing, matching how
+ * resolveEventStart treats a start it cannot parse.
+ */
+export function resolveEventEnd(
+  startDate: string,
+  startTime: string,
+  endTime: string,
+): string | null {
+  if (typeof endTime !== 'string' || !TIME_RE.test(endTime)) return null;
+  if (endTime > startTime) return `${startDate}T${endTime}`;
+
+  // Roll to the next calendar day. Built in UTC purely as safe date arithmetic
+  // — the value stays a naive local-wall-clock string, and the venue's zone
+  // travels in venue_events.timezone alongside it.
+  const [y, m, d] = startDate.split('-').map(Number);
+  const next = new Date(Date.UTC(y, m - 1, d + 1));
+  return `${next.toISOString().slice(0, 10)}T${endTime}`;
 }
 
 /**
@@ -156,7 +189,7 @@ export function buildEventRows(
       description: e.description?.trim() || null,
       event_type: e.event_type ?? 'event',
       starts_at: `${start.date}T${start.time}`,
-      ends_at: e.end_time ? `${start.date}T${e.end_time}` : null,
+      ends_at: e.end_time ? resolveEventEnd(start.date, start.time, e.end_time) : null,
       is_recurring: isRecurring,
       recurrence_rule: isRecurring ? buildRecurrenceRule(e.recurrence_dow ?? []) : null,
       timezone: opts.timezone,

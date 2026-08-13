@@ -325,3 +325,53 @@ test("events the server couldn't schedule reach the person who scanned them", ()
   assert.match(screen, /unschedulable: res\.unschedulable_events \?\? \[\]/);
   assert.match(screen, /outcome\.unschedulable\.length > 0 \?/, "the done step must show them");
 });
+
+// An event that runs past midnight ("Trivia 9PM til 1AM") ends on the NEXT
+// day. Writing the end on the start date makes ends_at precede starts_at, and
+// the events feed selects on `ends_at is null or ends_at > now()`
+// (20260423130000) — so the event commits, reports success, and is invisible.
+// Mirrors resolveEventEnd in apps/web/src/utils/intake-content.ts.
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+const resolveEventEnd = (startDate, startTime, endTime) => {
+  if (typeof endTime !== "string" || !TIME_RE.test(endTime)) return null;
+  if (endTime > startTime) return `${startDate}T${endTime}`;
+  const [y, m, d] = startDate.split("-").map(Number);
+  const next = new Date(Date.UTC(y, m - 1, d + 1));
+  return `${next.toISOString().slice(0, 10)}T${endTime}`;
+};
+
+test("an event running past midnight ends on the following day", () => {
+  // The bug this pins: 21:00–01:00 must not resolve to the same date.
+  assert.equal(resolveEventEnd("2026-08-13", "21:00", "01:00"), "2026-08-14T01:00");
+  assert.equal(resolveEventEnd("2026-08-13", "22:00", "02:00"), "2026-08-14T02:00");
+  // Equal times are a full day, not a zero-length event.
+  assert.equal(resolveEventEnd("2026-08-13", "20:00", "20:00"), "2026-08-14T20:00");
+  // An ordinary evening stays on its own date.
+  assert.equal(resolveEventEnd("2026-08-13", "20:00", "23:00"), "2026-08-13T23:00");
+});
+
+test("rolling past midnight crosses month and year boundaries", () => {
+  assert.equal(resolveEventEnd("2026-08-31", "23:00", "01:00"), "2026-09-01T01:00");
+  assert.equal(resolveEventEnd("2026-12-31", "22:00", "02:00"), "2027-01-01T02:00");
+  // February in a leap year — 2028-02-28 rolls to the 29th, not to March.
+  assert.equal(resolveEventEnd("2028-02-28", "23:30", "00:30"), "2028-02-29T00:30");
+});
+
+test("a malformed end time yields null rather than a guess", () => {
+  // resolveEventStart returns null for an unparseable start; the end matches.
+  for (const bad of ["25:99", "1:00", "", "midnight", null, undefined]) {
+    assert.equal(resolveEventEnd("2026-08-13", "20:00", bad), null, `rejects ${String(bad)}`);
+  }
+});
+
+test("ends_at is never written before starts_at", () => {
+  const src = read("apps/web/src/utils/intake-content.ts");
+  // The naive interpolation is the bug; it must not come back.
+  assert.doesNotMatch(
+    src,
+    /ends_at: e\.end_time \? `\$\{start\.date\}T\$\{e\.end_time\}`/,
+    "ends_at must go through resolveEventEnd, not raw interpolation",
+  );
+  assert.match(src, /ends_at: e\.end_time \? resolveEventEnd\(start\.date, start\.time, e\.end_time\)/);
+  assert.match(src, /export function resolveEventEnd/);
+});
