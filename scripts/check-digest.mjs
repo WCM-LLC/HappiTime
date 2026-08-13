@@ -80,16 +80,39 @@ order by timestamp desc
 limit 200
 `.trim();
 
+/**
+ * The window MUST be sent explicitly.
+ *
+ * The logs endpoint applies its own much shorter default when no timestamps
+ * are given, and the first version of this script relied on that default while
+ * its message claimed "the last 24h". The result was a check that ran green
+ * over a window containing a known failure — the 2026-08-12 11:00:11 UTC
+ * digest alert sat ~16 hours back and was simply never queried.
+ *
+ * A daily check whose window is shorter than a day cannot see the daily job it
+ * exists to watch. Passing both bounds removes the dependency on any default.
+ */
+export function windowBounds(now = new Date()) {
+  const end = new Date(now);
+  const start = new Date(now.getTime() - WINDOW_HOURS * 60 * 60 * 1000);
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
 async function fetchLogs() {
+  const { start, end } = windowBounds();
   const url =
     `https://api.supabase.com/v1/projects/${ref}/analytics/endpoints/logs.all` +
-    `?sql=${encodeURIComponent(LOGS_SQL)}`;
+    `?sql=${encodeURIComponent(LOGS_SQL)}` +
+    `&iso_timestamp_start=${encodeURIComponent(start)}` +
+    `&iso_timestamp_end=${encodeURIComponent(end)}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) {
     throw new Error(`logs query failed: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
   }
   const body = await res.json();
-  return body?.result ?? [];
+  const rows = body?.result ?? [];
+  console.log(`Queried ${start} → ${end}: ${rows.length} digest log line(s).`);
+  return rows;
 }
 
 if (isCli) {
