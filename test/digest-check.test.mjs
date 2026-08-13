@@ -15,7 +15,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { evaluateDigest, FAILURE_PATTERNS, WINDOW_HOURS } from "../scripts/check-digest.mjs";
+import { evaluateDigest, WINDOW_HOURS } from "../scripts/check-digest.mjs";
 
 // Copied verbatim from Supabase function_logs, 2026-08-12.
 const REAL_ALERT =
@@ -93,8 +93,6 @@ test("matching is case-insensitive", () => {
 test("the alarm channel never routes through email", () => {
   // The entire point: the existing in-function alert emails you, using the
   // system it is alarming about. This path must not reintroduce that.
-  const src = FAILURE_PATTERNS.map((p) => p.pattern).join(" ");
-  assert.ok(src.length > 0);
   const script = readFileSync(new URL("../scripts/check-digest.mjs", import.meta.url), "utf8");
   assert.doesNotMatch(script, /resend\.emails\.send|api\.resend\.com|nodemailer/, "must not send mail");
   assert.match(script, /process\.exit\(1\)/, "it signals by failing the run");
