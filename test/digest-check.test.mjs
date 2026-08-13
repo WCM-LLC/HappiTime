@@ -15,7 +15,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { evaluateDigest, WINDOW_HOURS } from "../scripts/check-digest.mjs";
+import { evaluateDigest, WINDOW_HOURS, windowBounds } from "../scripts/check-digest.mjs";
 
 // Copied verbatim from Supabase function_logs, 2026-08-12.
 const REAL_ALERT =
@@ -96,4 +96,34 @@ test("the alarm channel never routes through email", () => {
   const script = readFileSync(new URL("../scripts/check-digest.mjs", import.meta.url), "utf8");
   assert.doesNotMatch(script, /resend\.emails\.send|api\.resend\.com|nodemailer/, "must not send mail");
   assert.match(script, /process\.exit\(1\)/, "it signals by failing the run");
+});
+
+test("the query window actually spans WINDOW_HOURS", () => {
+  // The first version of this check passed over a window containing a known
+  // failure: it sent no timestamps, the API applied its own much shorter
+  // default, and the 2026-08-12 11:00:11 UTC alert (~16h back) was never
+  // queried. WINDOW_HOURS appeared only in the message text — the check
+  // described a window it did not use.
+  const now = new Date("2026-08-13T02:51:00.000Z");
+  const { start, end } = windowBounds(now);
+  assert.equal(end, "2026-08-13T02:51:00.000Z");
+  assert.equal(start, "2026-08-12T02:51:00.000Z");
+
+  const spanHours = (Date.parse(end) - Date.parse(start)) / 3_600_000;
+  assert.equal(spanHours, WINDOW_HOURS);
+
+  // The concrete regression: the real alert must fall inside the window.
+  const theAlert = Date.parse("2026-08-12T11:00:11.445Z");
+  assert.ok(
+    theAlert >= Date.parse(start) && theAlert <= Date.parse(end),
+    "the 2026-08-12 digest alert must be inside the queried window",
+  );
+});
+
+test("both window bounds are sent to the logs API", () => {
+  // A daily check whose window is shorter than a day cannot see the daily job
+  // it watches. Relying on the endpoint's default is what caused that.
+  const src = readFileSync(new URL("../scripts/check-digest.mjs", import.meta.url), "utf8");
+  assert.match(src, /iso_timestamp_start=/);
+  assert.match(src, /iso_timestamp_end=/);
 });
