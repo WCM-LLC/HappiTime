@@ -15,7 +15,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { evaluateDigest, WINDOW_HOURS, windowBounds } from "../scripts/check-digest.mjs";
+import { evaluateDigest, WINDOW_HOURS, windowBounds, extractRows } from "../scripts/check-digest.mjs";
 
 // Copied verbatim from Supabase function_logs, 2026-08-12.
 const REAL_ALERT =
@@ -126,4 +126,21 @@ test("both window bounds are sent to the logs API", () => {
   const src = readFileSync(new URL("../scripts/check-digest.mjs", import.meta.url), "utf8");
   assert.match(src, /iso_timestamp_start=/);
   assert.match(src, /iso_timestamp_end=/);
+});
+
+test("an unreadable response throws instead of reporting healthy", () => {
+  // The original `body?.result ?? []` meant any shape change turned this check
+  // permanently green. "I could not read the answer" is not "nothing is wrong".
+  assert.throws(() => extractRows({ unexpected: "shape" }), /unrecognised logs response shape/);
+  assert.throws(() => extractRows(null), /unrecognised logs response shape/);
+  assert.throws(() => extractRows({ result: "not-an-array" }), /unrecognised logs response shape/);
+});
+
+test("the known response shapes are all read correctly", () => {
+  const row = { timestamp: "t", msg: "m" };
+  assert.deepEqual(extractRows({ result: [row] }), [row]);
+  assert.deepEqual(extractRows({ data: [row] }), [row]);
+  assert.deepEqual(extractRows({ rows: [row] }), [row]);
+  assert.deepEqual(extractRows([row]), [row], "a bare array is valid too");
+  assert.deepEqual(extractRows({ result: [] }), [], "genuinely empty is still empty");
 });
