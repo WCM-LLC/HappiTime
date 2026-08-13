@@ -202,12 +202,25 @@ export async function orgReviewerEmails(orgId: string): Promise<string[]> {
   return [...emails];
 }
 
-/** Base URL for links we email out, mirroring the commit route's resolution. */
+/**
+ * Base URL for links we email out, mirroring the commit route's resolution.
+ *
+ * The last-resort default must be a host that actually serves the console.
+ * `console.happitime.biz` resolves to Vercel but is attached to no project, so
+ * it answers DEPLOYMENT_NOT_FOUND — a reviewer who got that link would be told
+ * a scan needs approval and then handed a 404. Every other console link in the
+ * repo (email.ts, auth-redirects.ts, the directory's auth callback, both
+ * .env.example files) falls back to the vercel.app host, so this matches them
+ * rather than inventing a fourth answer.
+ *
+ * Set NEXT_PUBLIC_CONSOLE_URL to override; if console.happitime.biz is ever
+ * pointed at the console project, that env var is the place to say so.
+ */
 function consoleOrigin(): string {
   const origin =
     process.env.NEXT_PUBLIC_CONSOLE_URL ??
     process.env.NEXT_PUBLIC_SITE_URL ??
-    'https://console.happitime.biz';
+    'https://happitime-console.vercel.app';
   return origin.replace(/\/$/, '');
 }
 

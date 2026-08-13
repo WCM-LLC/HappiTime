@@ -257,3 +257,23 @@ test("the scan flow adds no native module the shipped binary lacks", () => {
     assert.ok(pkg.dependencies[mod], `${mod} must be a dependency`);
   }
 });
+
+test("emailed review links never default to a host that serves nothing", () => {
+  // console.happitime.biz resolves to Vercel but is attached to no project, so
+  // it answers DEPLOYMENT_NOT_FOUND. A reviewer told a scan needs approval and
+  // then handed a 404 is worse than not being told at all — and this default
+  // is the ONLY thing standing behind the link when NEXT_PUBLIC_CONSOLE_URL is
+  // unset, which is how production is currently configured.
+  const access = read("apps/web/src/utils/intake-access.ts");
+  assert.doesNotMatch(
+    access,
+    /['"`]https:\/\/console\.happitime\.biz['"`]/,
+    "console.happitime.biz is not attached to a Vercel project",
+  );
+  assert.match(access, /'https:\/\/happitime-console\.vercel\.app'/);
+
+  // And it must agree with every other console default in the repo, so a link
+  // in one email cannot point somewhere different from a link in another.
+  const email = read("apps/web/src/utils/email.ts");
+  assert.match(email, /'https:\/\/happitime-console\.vercel\.app'/);
+});
