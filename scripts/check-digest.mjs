@@ -110,9 +110,33 @@ async function fetchLogs() {
     throw new Error(`logs query failed: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
   }
   const body = await res.json();
-  const rows = body?.result ?? [];
+  const rows = extractRows(body);
   console.log(`Queried ${start} → ${end}: ${rows.length} digest log line(s).`);
+  if (rows.length === 0) {
+    // Empty is a legitimate answer (the digest self-skips outside 6am CT), but
+    // it is also what a misread response looks like. Print the shape so the
+    // difference is visible in the run log rather than guessed at.
+    console.log(`Response keys: ${JSON.stringify(Object.keys(body ?? {}))}`);
+  }
   return rows;
+}
+
+/**
+ * Pulls the row array out of the logs response.
+ *
+ * An unrecognised shape THROWS rather than returning [], because "I could not
+ * read the answer" must never be reported as "nothing is wrong". The first
+ * version returned `body?.result ?? []`, so any shape change would have made
+ * this check permanently, silently green — the precise failure it exists to
+ * catch.
+ */
+export function extractRows(body) {
+  for (const candidate of [body?.result, body?.data, body?.rows, body]) {
+    if (Array.isArray(candidate)) return candidate;
+  }
+  throw new Error(
+    `unrecognised logs response shape (keys: ${JSON.stringify(Object.keys(body ?? {}))})`,
+  );
 }
 
 if (isCli) {
