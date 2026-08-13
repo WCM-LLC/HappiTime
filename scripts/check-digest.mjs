@@ -71,14 +71,51 @@ export function evaluateDigest(rows) {
   return { healthy: true, message: `No digest failures in the last ${WINDOW_HOURS}h.` };
 }
 
-const LOGS_SQL = `
-select timestamp, log_attributes['level'] as level, event_message as msg
+/**
+ * Candidate query shapes, tried in order until one is accepted.
+ *
+ * The Analytics endpoint does not expose the unified `logs` table with a
+ * `source` column — that view is an abstraction of the MCP tooling. Querying
+ * it here returns HTTP 200 with `error: "Backend error! Retry your query."`,
+ * which the first version read as an empty window and reported green.
+ *
+ * The endpoint's own schema is per-source (`function_logs`) and its dialect
+ * has varied between BigQuery and ClickHouse across Supabase versions, so
+ * `ilike` is not dependable. Rather than spend one deploy per guess against an
+ * undocumented surface, the check tries each shape and reports what happened
+ * to all of them — so a single run identifies the working one.
+ *
+ * Once the log shows a winner, this list should collapse to just that entry.
+ */
+export const LOGS_SQL_CANDIDATES = [
+  {
+    label: 'function_logs + lower/like',
+    sql: `select timestamp, event_message as msg
+from function_logs
+where lower(event_message) like '%send-venue-digest%'
+   or lower(event_message) like '%zero_emails_sent%'
+order by timestamp desc
+limit 200`,
+  },
+  {
+    label: 'function_logs + ilike',
+    sql: `select timestamp, event_message as msg
+from function_logs
+where event_message ilike '%send-venue-digest%'
+   or event_message ilike '%zero_emails_sent%'
+order by timestamp desc
+limit 200`,
+  },
+  {
+    label: 'unified logs + source filter',
+    sql: `select timestamp, event_message as msg
 from logs
 where source = 'function_logs'
   and (event_message ilike '%send-venue-digest%' or event_message ilike '%zero_emails_sent%')
 order by timestamp desc
-limit 200
-`.trim();
+limit 200`,
+  },
+];
 
 /**
  * The window MUST be sent explicitly.
@@ -98,27 +135,38 @@ export function windowBounds(now = new Date()) {
   return { start: start.toISOString(), end: end.toISOString() };
 }
 
-async function fetchLogs() {
-  const { start, end } = windowBounds();
+async function runQuery(sql, start, end) {
   const url =
     `https://api.supabase.com/v1/projects/${ref}/analytics/endpoints/logs.all` +
-    `?sql=${encodeURIComponent(LOGS_SQL)}` +
+    `?sql=${encodeURIComponent(sql)}` +
     `&iso_timestamp_start=${encodeURIComponent(start)}` +
     `&iso_timestamp_end=${encodeURIComponent(end)}`;
   const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!res.ok) {
-    throw new Error(`logs query failed: HTTP ${res.status} ${(await res.text()).slice(0, 200)}`);
+    throw new Error(`HTTP ${res.status} ${(await res.text()).slice(0, 160)}`);
   }
-  const body = await res.json();
-  const rows = extractRows(body);
-  console.log(`Queried ${start} → ${end}: ${rows.length} digest log line(s).`);
-  if (rows.length === 0) {
-    // Empty is a legitimate answer (the digest self-skips outside 6am CT), but
-    // it is also what a misread response looks like. Print the shape so the
-    // difference is visible in the run log rather than guessed at.
-    console.log(`Response keys: ${JSON.stringify(Object.keys(body ?? {}))}`);
+  return extractRows(await res.json());
+}
+
+async function fetchLogs() {
+  const { start, end } = windowBounds();
+  console.log(`Window ${start} → ${end}`);
+
+  const problems = [];
+  for (const { label, sql } of LOGS_SQL_CANDIDATES) {
+    try {
+      const rows = await runQuery(sql, start, end);
+      console.log(`  [ok]   ${label}: ${rows.length} row(s)`);
+      return rows;
+    } catch (err) {
+      console.log(`  [fail] ${label}: ${err.message}`);
+      problems.push(`${label}: ${err.message}`);
+    }
   }
-  return rows;
+
+  // Every shape failed. That is a broken check, and it must exit non-zero
+  // rather than let an unqueryable log stream read as a healthy digest.
+  throw new Error(`no logs query shape was accepted:\n  ${problems.join('\n  ')}`);
 }
 
 /**
