@@ -1,4 +1,5 @@
 import { SubmitButton } from '@/components/ui/SubmitButton';
+import { FormPendingProvider, FormPendingReporter } from '@/components/ui/FormPending';
 import MenuSectionItemAdder from '@/components/MenuSectionItemAdder';
 
 /**
@@ -111,6 +112,7 @@ export default function VenueMenusManager({
   const rt = redirectTo ?? '';
 
   return (
+    <FormPendingProvider>
     <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
       <div className="flex items-start justify-between mb-5">
         <div>
@@ -215,15 +217,19 @@ export default function VenueMenusManager({
             return (
               <div key={m.id} className="rounded-lg border border-border bg-background">
                 {canEditMenuItems ? (
-                  <form id={menuFormId} action={actions.saveMenu} />
+                  <form id={menuFormId} action={actions.saveMenu}>
+                    <FormPendingReporter id={menuFormId} />
+                  </form>
                 ) : null}
                 {canManageVenue ? (
                   <>
                     <form id={publishMenuFormId}>
+                      <FormPendingReporter id={publishMenuFormId} />
                       <input type="hidden" name="menu_id" value={m.id} />
                       <input type="hidden" name="redirect_to" value={rt} />
                     </form>
                     <form id={deleteMenuFormId}>
+                      <FormPendingReporter id={deleteMenuFormId} />
                       <input type="hidden" name="menu_id" value={m.id} />
                       <input type="hidden" name="redirect_to" value={rt} />
                     </form>
@@ -330,9 +336,13 @@ export default function VenueMenusManager({
                         <label className="text-caption font-medium text-muted block mb-1">New menu section</label>
                         <input name="section_name" placeholder="e.g., Cocktails" required className={inputCls} />
                       </div>
-                      <button className={btnSecondary + ' shrink-0'} formAction={actions.createSection}>
+                      <SubmitButton
+                        className={btnSecondary + ' shrink-0'}
+                        formAction={actions.createSection}
+                        pendingLabel="Adding…"
+                      >
                         Add menu section
-                      </button>
+                      </SubmitButton>
                     </form>
                   ) : null}
 
@@ -345,6 +355,7 @@ export default function VenueMenusManager({
                           <div key={s.id} className="rounded-md border border-border bg-surface p-4">
                             {canManageVenue ? (
                               <form id={deleteSectionFormId}>
+                                <FormPendingReporter id={deleteSectionFormId} />
                                 <input type="hidden" name="section_id" value={s.id} />
                                 <input type="hidden" name="redirect_to" value={rt} />
                               </form>
@@ -361,14 +372,15 @@ export default function VenueMenusManager({
                                   required
                                   className={inputCls + ' flex-1'}
                                 />
-                                <button
+                                <SubmitButton
                                   className={btnDanger}
                                   form={deleteSectionFormId}
                                   formAction={actions.deleteSection}
                                   formNoValidate
+                                  pendingLabel="Deleting…"
                                 >
                                   Delete menu section
-                                </button>
+                                </SubmitButton>
                               </div>
                             ) : (
                               <h4 className="text-body-sm font-semibold text-foreground mb-4">{s.name}</h4>
@@ -388,6 +400,7 @@ export default function VenueMenusManager({
                                     <div key={it.id} className="rounded-md border border-border bg-background p-4">
                                       {canEditMenuItems ? (
                                         <form id={deleteItemFormId}>
+                                          <FormPendingReporter id={deleteItemFormId} />
                                           <input type="hidden" name="item_id" value={it.id} />
                                           <input type="hidden" name="redirect_to" value={rt} />
                                         </form>
@@ -433,14 +446,15 @@ export default function VenueMenusManager({
                                               Happy hour item
                                             </label>
                                             <div className="flex items-center gap-2">
-                                              <button
+                                              <SubmitButton
                                                 className={btnDanger}
                                                 form={deleteItemFormId}
                                                 formAction={actions.deleteItem}
                                                 formNoValidate
+                                                pendingLabel="Deleting…"
                                               >
                                                 Delete section item
-                                              </button>
+                                              </SubmitButton>
                                             </div>
                                           </div>
                                         </div>
@@ -493,5 +507,6 @@ export default function VenueMenusManager({
         </div>
       )}
     </div>
+    </FormPendingProvider>
   );
 }
