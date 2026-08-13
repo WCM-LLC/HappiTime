@@ -38,6 +38,7 @@ Made with Juan on 2026-08-13.
 | Business contributors | Org owners / managers / editors excluded from the board | Juan's call: the leaderboard is a community program, not a vendor scoreboard. |
 | Who competes | Super users now; regular users later | Regular users have no contribution path today (`getIntakeTier` returns `null`). Filter by tier as **data**, not a hardcoded `super_user`, so opening it later is config, not a rewrite. |
 | Scraped content | Never attributed | Consistent with HT-SOP-003: scraped data is not presented as human-confirmed. |
+| Submitter vs approver | Credit the **submitter** | A super user scans and an owner approves. The contribution is the super user's; approving is review, not authorship. Confirmed by Juan 2026-08-13. |
 
 ### Correcting two premises
 
@@ -87,20 +88,35 @@ create index if not exists menus_created_by_idx
 
 ### Write paths
 
-The column is worthless unless every path fills it. Paths to cover:
+The column is worthless unless every path fills it. Enumerated 2026-08-13 — **eight
+insert sites, all inside `apps/web/src`**:
 
-- `api/intake/commit/route.ts` — the `menus` insert (line ~329) and the
-  `happy_hour_windows` insert (line ~305). Both currently unattributed. `venue_events`
-  already passes `createdBy` and needs only the tier added.
-- Console manual entry — the menu / window / event actions in `apps/web/src/actions/`.
-  These must be enumerated during implementation; the count is not yet known and is the
-  main sizing risk in this piece.
-- `scripts/intake-venue.mjs` and any service-role writer — deliberately leave **NULL**.
-  Scraped rows must never earn leaderboard credit.
+| # | Site | Table | Today |
+|---|---|---|---|
+| 1 | `actions/venue-actions.ts:649` | `menus` | unattributed |
+| 2 | `actions/organization-actions.ts:229` | `menus` | unattributed |
+| 3 | `actions/menu-tree.ts:175` | `menus` | unattributed |
+| 4 | `api/intake/commit/route.ts:328` | `menus` | unattributed |
+| 5 | `actions/venue-actions.ts:430` | `happy_hour_windows` | unattributed |
+| 6 | `api/intake/commit/route.ts:304` | `happy_hour_windows` | unattributed |
+| 7 | `actions/event-actions.ts:138` | `venue_events` | unattributed |
+| 8 | `api/intake/commit/route.ts:454` | `venue_events` | sets `created_by` (line 449) |
 
-The tier is already computed in the intake flow (`getIntakeTier`) and is passed to the
-commit route today, so the intake paths need plumbing, not new logic. Console actions
-will need a tier resolution at write time.
+Five console-action sites and three intake sites. Only site 8 attributes anything
+today, which is why `venue_events` shows 7 of 152 rows attributed and the other two
+tables show none.
+
+The tier is already computed in the intake flow (`getIntakeTier`) and reaches the
+commit route, so sites 4, 6 and 8 need plumbing rather than new logic. The five console
+actions need a tier resolution at write time; since every console writer is an admin or
+an org member, `getIntakeTier` already returns the right answer for them.
+
+**No writer outside `apps/web/src` inserts into these three tables.** The Supabase edge
+functions (`notify-upcoming-*`, `autotag-venues`) and the mobile hooks only read, and
+`scripts/intake-venue.mjs` emits JSON to `scripts/intake-output/` for human review
+rather than writing rows. So there is no service-role insert path to exempt today. The
+rule still stands for anything added later: a scraped or machine-generated row leaves
+`created_by` NULL and earns no credit.
 
 ### Considered and rejected: a `contributions` ledger table
 
@@ -147,12 +163,17 @@ source-pinning style already used in `test/intake-content-classification.test.mj
 
 ## Open questions
 
-1. **How many console action write paths are there?** Not yet enumerated. This is the
-   main unknown for sizing; implementation starts by listing them.
-2. **Should an *approved* submission credit the submitter, the approver, or both?** A
-   super user's scan is drafted and an owner approves it. The contribution is the super
-   user's; the approval is the owner's. This design attributes to the submitter, which
-   is right for a contributor board, but piece 2 should confirm before scoring.
-3. **`menus.created_by` is exposed to anon** for published rows via existing read
-   policies. A bare UUID is not identifying and the eventual board publishes handles
-   deliberately, but if this is unwanted, a column-level revoke is the fix.
+Both sizing questions closed on 2026-08-13: the write paths are enumerated above
+(eight sites), and crediting the submitter is confirmed. One item remains.
+
+1. **`menus.created_by` becomes readable by anon** for published rows under existing
+   read policies. A bare UUID is not identifying on its own, and the eventual board
+   publishes handles deliberately — but it is a new column on a public table, and if
+   that is unwanted the fix is a column-level revoke in the same migration. Flagged,
+   not fixed.
+
+## Sequencing note
+
+Piece 2 (scoring) should not begin until attribution has been live long enough to
+produce data worth ranking. At current volume the board is empty on day one either
+way; shipping piece 1 early is what starts the clock.
