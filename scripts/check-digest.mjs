@@ -44,6 +44,42 @@ export const FAILURE_PATTERNS = [
 ];
 
 /**
+ * Renders a log timestamp as ISO UTC.
+ *
+ * This endpoint returns MICROSECONDS since the epoch, not an ISO string, so
+ * findings printed the raw number:
+ *
+ *   1786532411445000 — Resend rejected a send: ...
+ *
+ * Someone reading an alert at 6am should not have to do epoch arithmetic to
+ * find out when it happened. Epoch seconds and milliseconds are handled too,
+ * since this endpoint's shape has already moved once.
+ */
+export function formatLogTimestamp(value) {
+  if (value === null || value === undefined || value === '') return 'unknown time';
+
+  if (typeof value === 'number' || /^\d+$/.test(String(value))) {
+    const n = Number(value);
+    // Discriminate by magnitude: µs ≈ 1e15, ms ≈ 1e12, s ≈ 1e9 for current dates.
+    const ms = n > 1e14 ? n / 1000 : n > 1e11 ? n : n * 1000;
+    const d = new Date(ms);
+    return Number.isNaN(d.getTime()) ? String(value) : d.toISOString();
+  }
+
+  // The endpoint also returns naive timestamps — "2026-08-12T11:00:11.445000",
+  // with no zone designator. Those are UTC, but `new Date` reads an unzoned
+  // string as LOCAL time, which would silently shift every alert by the
+  // runner's offset (5 hours from Central). Mark it UTC before parsing.
+  const raw = String(value);
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(raw);
+  const d = new Date(hasZone ? raw : `${raw}Z`);
+
+  // Already-zoned strings pass through normalised; anything unparseable is
+  // shown verbatim rather than replaced with a wrong-but-tidy date.
+  return Number.isNaN(d.getTime()) ? raw : d.toISOString();
+}
+
+/**
  * Pure verdict, so the logic is testable without network or credentials.
  * `rows` is whatever the logs query returned: [{ timestamp, level, msg }].
  */
@@ -54,7 +90,7 @@ export function evaluateDigest(rows) {
     const haystack = msg.toLowerCase();
     for (const { pattern, label } of FAILURE_PATTERNS) {
       if (haystack.includes(pattern)) {
-        failures.push(`${row.timestamp ?? 'unknown time'} — ${label}: ${msg.trim().slice(0, 200)}`);
+        failures.push(`${formatLogTimestamp(row.timestamp)} — ${label}: ${msg.trim().slice(0, 200)}`);
         break; // one finding per line; the first matching pattern is the most specific
       }
     }

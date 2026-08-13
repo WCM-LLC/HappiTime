@@ -15,7 +15,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { evaluateDigest, WINDOW_HOURS, windowBounds, extractRows, LOGS_SQL_CANDIDATES } from "../scripts/check-digest.mjs";
+import { evaluateDigest, WINDOW_HOURS, windowBounds, extractRows, LOGS_SQL_CANDIDATES, formatLogTimestamp } from "../scripts/check-digest.mjs";
 
 // Copied verbatim from Supabase function_logs, 2026-08-12.
 const REAL_ALERT =
@@ -189,4 +189,44 @@ test("the shape verified against the live endpoint is tried first", () => {
   assert.equal(LOGS_SQL_CANDIDATES[0].label, "function_logs + lower/like");
   assert.match(LOGS_SQL_CANDIDATES[0].sql, /from function_logs/);
   assert.match(LOGS_SQL_CANDIDATES[0].sql, /lower\(event_message\) like/);
+});
+
+test("microsecond epochs render as readable UTC", () => {
+  // The real value from the logs endpoint for the 2026-08-12 digest alert.
+  // It printed raw: "1786532411445000 — Resend rejected a send: ...".
+  assert.equal(formatLogTimestamp(1786532411445000), "2026-08-12T11:00:11.445Z");
+  assert.equal(formatLogTimestamp("1786532411445000"), "2026-08-12T11:00:11.445Z");
+});
+
+test("millisecond and second epochs are handled too", () => {
+  // This endpoint's response shape has already moved once; do not assume µs.
+  assert.equal(formatLogTimestamp(1786532411445), "2026-08-12T11:00:11.445Z");
+  assert.equal(formatLogTimestamp(1786532411), "2026-08-12T11:00:11.000Z");
+});
+
+test("ISO strings pass through and junk is shown verbatim", () => {
+  assert.equal(formatLogTimestamp("2026-08-12T11:00:11.445Z"), "2026-08-12T11:00:11.445Z");
+  // Better to show an unparseable value than to replace it with a tidy lie.
+  assert.equal(formatLogTimestamp("not-a-date"), "not-a-date");
+  assert.equal(formatLogTimestamp(null), "unknown time");
+  assert.equal(formatLogTimestamp(undefined), "unknown time");
+  assert.equal(formatLogTimestamp(""), "unknown time");
+});
+
+test("findings carry a readable time, not an epoch", () => {
+  const v = evaluateDigest([{ timestamp: 1786532411445000, level: "error", msg: REAL_ALERT }]);
+  assert.equal(v.healthy, false);
+  assert.match(v.message, /2026-08-12T11:00:11\.445Z/);
+  assert.doesNotMatch(v.message, /1786532411445000/, "the raw epoch must not survive into the alert");
+});
+
+test("a naive timestamp is read as UTC, not as the runner's local time", () => {
+  // The endpoint returns "2026-08-12T11:00:11.445000" with NO zone. `new Date`
+  // treats an unzoned string as local, which would shift every alert by the
+  // runner's offset — 5 hours from Central, so a 6am digest would read 11am.
+  assert.equal(formatLogTimestamp("2026-08-12T11:00:11.445000"), "2026-08-12T11:00:11.445Z");
+  assert.equal(formatLogTimestamp("2026-08-12T11:00:11"), "2026-08-12T11:00:11.000Z");
+  // An explicit offset must be respected, not overridden.
+  assert.equal(formatLogTimestamp("2026-08-12T06:00:11-05:00"), "2026-08-12T11:00:11.000Z");
+  assert.equal(formatLogTimestamp("2026-08-12T11:00:11Z"), "2026-08-12T11:00:11.000Z");
 });
