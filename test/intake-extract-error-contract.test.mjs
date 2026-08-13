@@ -41,9 +41,16 @@ test("a missing provider key is its own error code, not extract_failed", () => {
   );
   // 503, matching the `service_role_missing` precedent in commit/route.ts:
   // the request was fine, the server is not ready to serve it.
+  //
+  // Scoped to the response block rather than a fixed character budget — a
+  // char-window regex here fails on an added comment, which is a property of
+  // the prose, not of the behaviour under test.
+  const start = route.indexOf("error: 'vision_not_configured'");
+  assert.notEqual(start, -1, "vision_not_configured response block not found");
+  const responseBlock = route.slice(start, route.indexOf(");", start));
   assert.match(
-    route,
-    /error:\s*'vision_not_configured'[\s\S]{0,200}?status:\s*503/,
+    responseBlock,
+    /status:\s*503/,
     "vision_not_configured must return 503, like the service_role_missing precedent",
   );
 });

@@ -527,7 +527,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: 'vision_not_configured',
-          detail: `Menu scanning isn't configured on the server (${err.message}). Photos are fine — this needs an operator to set the key.`,
+          // Names the provider, not the env var. The exact variable is already
+          // in the console.error above, where an operator looks; a venue owner
+          // reading this in the app does not need our internal key names.
+          detail: `Menu scanning isn't configured on the server (no ${PROVIDER} vision key). Your photo is fine — this needs an operator, not a better shot.`,
           provider: PROVIDER,
         },
         { status: 503 },
