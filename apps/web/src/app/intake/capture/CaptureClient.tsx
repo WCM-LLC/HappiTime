@@ -198,7 +198,9 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
       const res = await fetch('/api/intake/extract', { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok) {
-        setExtractError(json?.error ?? 'extract_failed');
+        // Prefer the server's `detail`. Showing the bare code ("extract_failed")
+        // hid a plain-English cause the route had already worked out.
+        setExtractError(json?.detail ?? json?.error ?? 'extract_failed');
         return;
       }
 
