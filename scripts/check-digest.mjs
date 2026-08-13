@@ -85,7 +85,14 @@ export function evaluateDigest(rows) {
  * undocumented surface, the check tries each shape and reports what happened
  * to all of them — so a single run identifies the working one.
  *
- * Once the log shows a winner, this list should collapse to just that entry.
+ * RESOLVED 2026-08-13: `function_logs + lower/like` is the shape this endpoint
+ * accepts. It is first, and a dispatched run confirmed it end-to-end — 6 rows
+ * over a 24h window, correctly failing on the live Resend outage.
+ *
+ * The other two are kept as fallbacks rather than deleted. They cost nothing
+ * in the normal path (the loop returns on the first success) and only run when
+ * the winner has stopped being accepted, which is exactly when having another
+ * shape to try is worth having.
  */
 export const LOGS_SQL_CANDIDATES = [
   {
