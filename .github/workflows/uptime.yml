@@ -1,0 +1,45 @@
+name: Uptime
+
+# Runs from GitHub's infrastructure rather than a laptop, which is the whole
+# point: during the 2026-08-12 outage the only thing watching was a local
+# script, and a local script stops silently when the machine sleeps.
+#
+# Checks that PostgREST and GoTrue actually ANSWER, and answer quickly. Both
+# hung for ~30 minutes that day while the project still reported
+# ACTIVE_HEALTHY and happitime.biz still served 200s from Vercel's cache.
+#
+# A failed run notifies repo watchers through GitHub. See
+# scripts/check-uptime.mjs for the thresholds and why they are what they are.
+on:
+  schedule:
+    # Every 10 minutes. GitHub does not honour schedules precisely and drops
+    # runs under load, so treat this as "roughly every 10-15 minutes" — enough
+    # to catch a sustained outage, not a latency SLO.
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+# A backed-up queue helps nobody: only the newest check matters.
+concurrency:
+  group: uptime
+  cancel-in-progress: true
+
+jobs:
+  uptime:
+    runs-on: ubuntu-latest
+    env:
+      # via env (never interpolate secrets into run:)
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate required secrets
+        run: |
+          if [ -z "$SUPABASE_PROJECT_REF" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::SUPABASE_PROJECT_REF / SUPABASE_ANON_KEY repository secrets are not configured (see DEPLOYMENT.md)."
+            exit 1
+          fi
+      - name: Check that Supabase is serving users
+        run: node scripts/check-uptime.mjs

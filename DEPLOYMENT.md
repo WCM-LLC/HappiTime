@@ -9,6 +9,27 @@ GitHub Actions (DB deploy workflow) expects:
 - `SUPABASE_PROJECT_REF`
 - `SUPABASE_DB_PASSWORD`
 
+## Monitoring
+
+Two scheduled tripwires watch production. Both fail the workflow run, which
+notifies repo watchers through GitHub.
+
+- **Uptime** (`.github/workflows/uptime.yml`, every ~10 min) — checks that
+  PostgREST and GoTrue answer, and answer within 5s. Added after the
+  2026-08-12 outage, when both hung for ~30 minutes while the Supabase
+  dashboard still reported the project `ACTIVE_HEALTHY` and happitime.biz
+  still served 200s from Vercel's cache. Nothing alerted; we found out when
+  someone tried to log in.
+  Needs `SUPABASE_PROJECT_REF` and **`SUPABASE_ANON_KEY`** (repository
+  secrets). The anon key is already public — it ships in the mobile bundle and
+  the web client — so it is a secret here only for tidiness, not secrecy.
+- **Auth Health** (`.github/workflows/auth-health.yml`, daily) — checks for
+  5xx on the email-auth endpoints, and that requested magic links convert.
+
+When uptime trips, check <https://status.supabase.com> first. If the platform
+is fine, the issue is project-specific and a restart from the project's
+General settings is the usual fix.
+
 ## Web (Next.js)
 - Set env vars from `ENV.md` in your hosting provider.
 - Configure Supabase Auth redirect URLs:
