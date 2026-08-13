@@ -19,6 +19,7 @@ const repoRoot = join(__dirname, "..");
 const read = (rel) => readFileSync(join(repoRoot, rel), "utf8");
 
 const ROUTE = "apps/web/src/app/api/health/route.ts";
+const HELPER = "apps/web/src/utils/health-check.ts";
 
 // The route is TypeScript, so mirror its verdict here and pin the source
 // against it — the same approach the intake and uptime tests use.
@@ -73,12 +74,27 @@ test("a hang and an error status are reported differently", () => {
 
 test("both monitors agree on what 'up' means", () => {
   // Two uptime checks disagreeing about the threshold is worse than one check.
-  const route = read(ROUTE);
+  const helper = read(HELPER);
   const script = read("scripts/check-uptime.mjs");
-  const routeSlow = /export const SLOW_MS = (\d+);/.exec(route)?.[1];
+  const helperSlow = /export const SLOW_MS = (\d+);/.exec(helper)?.[1];
   const scriptSlow = /export const SLOW_MS = (\d+);/.exec(script)?.[1];
-  assert.ok(routeSlow && scriptSlow, "both must declare SLOW_MS");
-  assert.equal(routeSlow, scriptSlow, "SLOW_MS must match scripts/check-uptime.mjs");
+  assert.ok(helperSlow && scriptSlow, "both must declare SLOW_MS");
+  assert.equal(helperSlow, scriptSlow, "SLOW_MS must match scripts/check-uptime.mjs");
+});
+
+test("the route exports nothing Next.js will reject at build time", () => {
+  // `next build` fails with "X is not a valid Route export field" on any export
+  // that is not a handler or route config — it is NOT caught by `tsc --noEmit`,
+  // because the constraint lives in Next's generated route types. This shipped
+  // a red CI once already; the verdict helpers now live in utils/health-check.
+  const route = read(ROUTE);
+  const allowed = new Set(["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS",
+    "dynamic", "revalidate", "runtime", "preferredRegion", "maxDuration", "fetchCache", "dynamicParams"]);
+  const exported = [...route.matchAll(/^export (?:async )?(?:function|const) (\w+)/gm)].map((m) => m[1]);
+  assert.ok(exported.length > 0, "route must export something");
+  for (const name of exported) {
+    assert.ok(allowed.has(name), `"${name}" is not a valid Next.js route export — move it to utils/`);
+  }
 });
 
 test("the endpoint can never be served from cache", () => {
@@ -89,7 +105,9 @@ test("the endpoint can never be served from cache", () => {
   assert.match(route, /export const dynamic = 'force-dynamic'/);
   assert.match(route, /export const revalidate = 0/);
   assert.match(route, /'cache-control': 'no-store'/);
-  assert.match(route, /cache: 'no-store'/);
+  // The outbound probes must bypass Next's fetch cache too, or a healthy
+  // reading could be replayed from a response captured before the outage.
+  assert.match(read(HELPER), /cache: 'no-store'/);
 });
 
 test("misconfiguration reports unhealthy rather than healthy", () => {

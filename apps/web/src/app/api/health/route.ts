@@ -4,10 +4,10 @@
  * Why this exists alongside scripts/check-uptime.mjs (#158): that check runs on
  * GitHub Actions, and GitHub throttles every-10-minutes schedules hard —
  * observed run gaps on 2026-08-12 were 46, 53, 48 and 51 minutes, not the ten
- * the cron implies. A ~50-minute blind window is too wide for the failure it was built
- * for, where the site answered 200s from Vercel's cache while PostgREST and
- * GoTrue hung completely. An external pinger on a true 1-5 minute cadence
- * closes that gap, and it needs one URL to hit.
+ * the cron implies. A ~50-minute blind window is too wide for the failure it
+ * was built for, where the site answered 200s from Vercel's cache while
+ * PostgREST and GoTrue hung completely. An external pinger on a true 1-5
+ * minute cadence closes that gap, and it needs one URL to hit.
  *
  * This probes MORE than the Actions check does, on purpose. Reaching this
  * route at all proves Vercel is serving; the probes inside prove Supabase is
@@ -17,66 +17,19 @@
  *
  * Deliberately unauthenticated: a monitor cannot hold a session, and this
  * leaks nothing an anonymous client could not already learn. It stays cheap —
- * a HEAD-shaped count against venues and GoTrue's public settings — so it
- * cannot become a load amplifier.
+ * one limit=1 read and GoTrue's public settings — so it cannot become a load
+ * amplifier.
+ *
+ * Thresholds and the verdict live in utils/health-check.ts, because Next.js
+ * fails the build on any route export that is not a handler or route config.
  */
 
 import { NextResponse } from 'next/server';
+import { probe, evaluateProbes } from '@/utils/health-check';
 
 /** Never cache: a cached 200 is precisely the lie this endpoint exists to catch. */
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
-/**
- * A response slower than this is a fault, not just latency.
- * Kept identical to SLOW_MS in scripts/check-uptime.mjs — two monitors
- * disagreeing about what "up" means is worse than having one. Pinned by test.
- */
-export const SLOW_MS = 5000;
-/** Per-request abort, comfortably above SLOW_MS so slow and dead stay distinguishable. */
-export const TIMEOUT_MS = 15000;
-
-type Probe = {
-  name: string;
-  ok: boolean;
-  status: number | null;
-  ms: number;
-  error?: string;
-};
-
-async function probe(name: string, url: string, headers: Record<string, string>): Promise<Probe> {
-  const started = Date.now();
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  try {
-    const res = await fetch(url, { headers, signal: controller.signal, cache: 'no-store' });
-    return { name, ok: res.ok, status: res.status, ms: Date.now() - started };
-  } catch (err) {
-    // A hang and a refusal both land here; the elapsed time tells them apart.
-    return {
-      name,
-      ok: false,
-      status: null,
-      ms: Date.now() - started,
-      error: err instanceof Error ? err.message : 'unknown error',
-    };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-/** Pure verdict, so thresholds are testable without touching the network. */
-export function evaluateProbes(probes: Probe[]): { healthy: boolean; failures: string[] } {
-  const failures: string[] = [];
-  for (const p of probes) {
-    if (!p.ok) {
-      failures.push(p.error ? `${p.name}: no response (${p.error})` : `${p.name}: HTTP ${p.status}`);
-    } else if (p.ms > SLOW_MS) {
-      failures.push(`${p.name}: responded in ${p.ms}ms (over ${SLOW_MS}ms)`);
-    }
-  }
-  return { healthy: failures.length === 0, failures };
-}
 
 export async function GET() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -93,7 +46,7 @@ export async function GET() {
 
   const base = url.replace(/\/$/, '');
   const probes = await Promise.all([
-    // One row from the table every surface reads. `head` keeps the body empty.
+    // One row from the table every surface reads.
     probe('postgrest', `${base}/rest/v1/venues?select=id&limit=1`, {
       apikey: key,
       Authorization: `Bearer ${key}`,
