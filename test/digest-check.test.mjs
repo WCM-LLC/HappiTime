@@ -181,3 +181,12 @@ test("the candidate list still contains the shape the endpoint rejected", () => 
   assert.equal(labels[labels.length - 1], "unified logs + source filter");
   assert.notEqual(labels[0], "unified logs + source filter");
 });
+
+test("the shape verified against the live endpoint is tried first", () => {
+  // A dispatched run on 2026-08-13 confirmed this shape returns rows from
+  // function_logs. Reordering it behind an unverified candidate would spend a
+  // failed request on every run.
+  assert.equal(LOGS_SQL_CANDIDATES[0].label, "function_logs + lower/like");
+  assert.match(LOGS_SQL_CANDIDATES[0].sql, /from function_logs/);
+  assert.match(LOGS_SQL_CANDIDATES[0].sql, /lower\(event_message\) like/);
+});
