@@ -144,3 +144,19 @@ test("the known response shapes are all read correctly", () => {
   assert.deepEqual(extractRows([row]), [row], "a bare array is valid too");
   assert.deepEqual(extractRows({ result: [] }), [], "genuinely empty is still empty");
 });
+
+test("a rejected query is reported as a broken check, not a quiet day", () => {
+  // The endpoint answers HTTP 200 with {result:null, error:"..."} when the SQL
+  // is rejected. Treating that as an empty window is how this check reported
+  // green across a window containing five known failures.
+  assert.throws(
+    () => extractRows({ result: null, error: "table 'logs' not found" }),
+    /logs query rejected: table 'logs' not found/,
+  );
+  assert.throws(
+    () => extractRows({ result: null, error: { message: "bad sql" } }),
+    /logs query rejected/,
+  );
+  // A null error alongside real rows is the success case and must not throw.
+  assert.deepEqual(extractRows({ result: [{ msg: "m" }], error: null }), [{ msg: "m" }]);
+});
