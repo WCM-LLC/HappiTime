@@ -15,7 +15,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { evaluateDigest, WINDOW_HOURS, windowBounds, extractRows } from "../scripts/check-digest.mjs";
+import { evaluateDigest, WINDOW_HOURS, windowBounds, extractRows, LOGS_SQL_CANDIDATES } from "../scripts/check-digest.mjs";
 
 // Copied verbatim from Supabase function_logs, 2026-08-12.
 const REAL_ALERT =
@@ -159,4 +159,25 @@ test("a rejected query is reported as a broken check, not a quiet day", () => {
   );
   // A null error alongside real rows is the success case and must not throw.
   assert.deepEqual(extractRows({ result: [{ msg: "m" }], error: null }), [{ msg: "m" }]);
+});
+
+test("every candidate query targets the digest and is bounded", () => {
+  // A candidate that forgets the LIMIT or the subject filter would either
+  // time out or match the whole log stream.
+  assert.ok(LOGS_SQL_CANDIDATES.length >= 1);
+  for (const { label, sql } of LOGS_SQL_CANDIDATES) {
+    assert.ok(label && label.length > 0, "each candidate needs a label for the run log");
+    assert.match(sql, /send-venue-digest/, `${label} must filter to the digest`);
+    assert.match(sql, /limit 200/, `${label} must be bounded`);
+    assert.match(sql, /event_message as msg/, `${label} must alias to the shape evaluateDigest reads`);
+    assert.match(sql, /timestamp/, `${label} must select the timestamp`);
+  }
+});
+
+test("the candidate list still contains the shape the endpoint rejected", () => {
+  // Kept deliberately, and last: it is the shape the MCP tooling accepts, so
+  // it may start working if the endpoints converge. It must never be first.
+  const labels = LOGS_SQL_CANDIDATES.map((c) => c.label);
+  assert.equal(labels[labels.length - 1], "unified logs + source filter");
+  assert.notEqual(labels[0], "unified logs + source filter");
 });
