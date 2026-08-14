@@ -203,7 +203,11 @@ async function publishMenusByIds(
 
   const { data: updated, error } = await supabase
     .from('menus')
-    .update({ status: HH_STATUS_PUBLISHED, is_active: true })
+    .update({
+      status: HH_STATUS_PUBLISHED,
+      is_active: true,
+      published_at: new Date().toISOString(),
+    })
     .eq('venue_id', venueId)
     .in('id', uniqueMenuIds)
     .select('id');
@@ -508,7 +512,7 @@ export async function publishHappyHour(orgId: string, venueId: string, formData:
 
   const { data: updated, error } = await writeSupabase
     .from('happy_hour_windows')
-    .update({ status: HH_STATUS_PUBLISHED })
+    .update({ status: HH_STATUS_PUBLISHED, published_at: new Date().toISOString() })
     .eq('id', hh_id)
     .eq('venue_id', venueId)
     .select('id');
@@ -529,7 +533,7 @@ export async function unpublishHappyHour(orgId: string, venueId: string, formDat
 
   const { data: updated, error } = await writeSupabase
     .from('happy_hour_windows')
-    .update({ status: HH_STATUS_DRAFT })
+    .update({ status: HH_STATUS_DRAFT, published_at: null })
     .eq('id', hh_id)
     .eq('venue_id', venueId)
     .select('id');
@@ -892,7 +896,7 @@ export async function publishMenu(orgId: string, venueId: string, formData: Form
 
   const { data: updated, error } = await writeSupabase
     .from('menus')
-    .update({ status: HH_STATUS_PUBLISHED })
+    .update({ status: HH_STATUS_PUBLISHED, published_at: new Date().toISOString() })
     .eq('id', menu_id)
     .eq('venue_id', venueId)
     .select('id');
@@ -912,7 +916,7 @@ export async function unpublishMenu(orgId: string, venueId: string, formData: Fo
 
   const { data: updated, error } = await writeSupabase
     .from('menus')
-    .update({ status: HH_STATUS_DRAFT })
+    .update({ status: HH_STATUS_DRAFT, published_at: null })
     .eq('id', menu_id)
     .eq('venue_id', venueId)
     .select('id');
