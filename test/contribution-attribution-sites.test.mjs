@@ -88,3 +88,37 @@ test("event-actions createEvent carries the tier alongside its existing created_
   assert.match(payload, /created_by:/);
   assert.match(payload, /created_by_tier:/);
 });
+
+test("intake commit attributes menus and windows", () => {
+  const src = read("apps/web/src/app/api/intake/commit/route.ts");
+
+  // Windows are inserted from a prebuilt array, so assert on its construction
+  // rather than the .insert() payload.
+  assert.match(src, /newWindowRows[\s\S]{0,400}?created_by:/, "window rows need created_by");
+  assert.match(src, /newWindowRows[\s\S]{0,400}?created_by_tier:/, "window rows need the tier");
+
+  const menuPayload = insertPayload(src, "menus");
+  assert.match(menuPayload, /created_by:/);
+  assert.match(menuPayload, /created_by_tier:/);
+});
+
+test("intake events carry the tier through buildEventRows", () => {
+  // Events are not built inline. The route passes camelCase options into
+  // buildEventRows, which writes the snake_case column — so the two halves are
+  // asserted in the two different files that actually contain them.
+  const route = read("apps/web/src/app/api/intake/commit/route.ts");
+  assert.match(route, /createdByTier:\s*tier/, "route must pass the resolved tier");
+
+  const helper = read("apps/web/src/utils/intake-content.ts");
+  assert.match(helper, /createdByTier:\s*ContributorTier/, "opts must declare the tier");
+  assert.match(helper, /created_by_tier:\s*opts\.createdByTier/, "row must set the column");
+});
+
+test("intake passes the resolved tier, never a hardcoded string", () => {
+  // A hardcoded 'owner' here would file every super user's contribution under
+  // the wrong tier, and the leaderboard filters on exactly that column.
+  const route = read("apps/web/src/app/api/intake/commit/route.ts");
+  assert.doesNotMatch(route, /created_by_tier:\s*'(admin|owner|super_user|user)'/);
+  assert.doesNotMatch(route, /createdByTier:\s*'(admin|owner|super_user|user)'/);
+  assert.match(route, /created_by_tier:\s*tier/, "menu and window rows use the resolved tier");
+});

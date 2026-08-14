@@ -1,3 +1,5 @@
+import type { ContributorTier } from '@/utils/contribution-attribution';
+
 /**
  * What a scanned photo turned out to be, and how a proposed event becomes a
  * row in venue_events.
@@ -165,6 +167,8 @@ export function buildEventRows(
     timezone: string;
     status: 'draft' | 'published';
     createdBy: string | null;
+    /** Tier snapshot for the contributor, written next to created_by. */
+    createdByTier: ContributorTier | null;
     now?: Date;
   },
 ): { rows: Record<string, unknown>[]; unschedulable: string[] } {
@@ -196,6 +200,7 @@ export function buildEventRows(
       price_info: e.price_info?.trim() || null,
       status: opts.status,
       created_by: opts.createdBy,
+      created_by_tier: opts.createdByTier,
     });
   }
 
