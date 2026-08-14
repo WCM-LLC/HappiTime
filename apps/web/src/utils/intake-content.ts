@@ -169,6 +169,8 @@ export function buildEventRows(
     createdBy: string | null;
     /** Tier snapshot for the contributor, written next to created_by. */
     createdByTier: ContributorTier | null;
+    /** Set when the commit publishes immediately; null for drafts. */
+    publishedAt: string | null;
     now?: Date;
   },
 ): { rows: Record<string, unknown>[]; unschedulable: string[] } {
@@ -201,6 +203,7 @@ export function buildEventRows(
       status: opts.status,
       created_by: opts.createdBy,
       created_by_tier: opts.createdByTier,
+      published_at: opts.publishedAt,
     });
   }
 

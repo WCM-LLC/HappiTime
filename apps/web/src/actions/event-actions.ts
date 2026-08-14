@@ -257,7 +257,7 @@ export async function publishEvent(orgId: string, venueId: string, formData: For
 
   const { error } = await supabase
     .from('venue_events')
-    .update({ status: 'published' })
+    .update({ status: 'published', published_at: new Date().toISOString() })
     .eq('id', event_id)
     .eq('venue_id', venueId);
 
@@ -276,7 +276,7 @@ export async function unpublishEvent(orgId: string, venueId: string, formData: F
 
   const { error } = await supabase
     .from('venue_events')
-    .update({ status: 'draft' })
+    .update({ status: 'draft', published_at: null })
     .eq('id', event_id)
     .eq('venue_id', venueId);
 
