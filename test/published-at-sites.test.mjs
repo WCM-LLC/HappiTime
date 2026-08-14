@@ -7,7 +7,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -86,4 +86,43 @@ test("buildEventRows writes published_at from its options", () => {
   const helper = read("apps/web/src/utils/intake-content.ts");
   assert.match(helper, /publishedAt:\s*string \| null/, "opts must declare it");
   assert.match(helper, /published_at:\s*opts\.publishedAt/, "the row must set it");
+});
+
+function sourceFiles(dir, acc = []) {
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) sourceFiles(full, acc);
+    else if (/\.tsx?$/.test(entry)) acc.push(full);
+  }
+  return acc;
+}
+
+test("EVERY status change to published also sets published_at", () => {
+  // The invariant the per-site tests cannot hold: it fails for a site nobody
+  // has written yet.
+  //
+  // LIMIT, stated so nobody over-trusts this: it can only see a LITERAL
+  // status. The intake inserts use computed values (`status: menuStatus`,
+  // `status: opts.status`), which this will never match — those are covered by
+  // the explicit assertions in the intake test above. This guard is for the
+  // common shape: someone adding another `status: 'published'` update.
+  const offenders = [];
+  for (const file of sourceFiles(join(repoRoot, "apps/web/src"))) {
+    const src = readFileSync(file, "utf8");
+    const rel = file.replace(repoRoot + "/", "");
+    if (!/(menus|happy_hour_windows|venue_events)/.test(src)) continue;
+
+    for (const m of src.matchAll(/status:\s*(HH_STATUS_PUBLISHED|'published')/g)) {
+      const around = src.slice(Math.max(0, m.index - 400), m.index + 400);
+      if (!/(menus|happy_hour_windows|venue_events)/.test(around)) continue;
+      if (!/published_at/.test(around)) {
+        offenders.push(`${rel}:${src.slice(0, m.index).split("\n").length}`);
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `these publish sites do not set published_at:\n  ${offenders.join("\n  ")}`,
+  );
 });
