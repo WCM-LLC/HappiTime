@@ -16,7 +16,25 @@ export type IntakeTier = 'admin' | 'owner' | 'super_user';
  * publishes to a public listing, so an editor's scan queues for an owner or
  * admin instead. The same set decides who may action a queue.
  */
-export const INTAKE_SCAN_ROLES = ['owner', 'admin', 'editor'];
+/**
+ * Kept identical to VENUE_CONTENT_ROLES in venue-actions.ts — "anyone already
+ * trusted to edit menus", exactly as the comment above promises.
+ *
+ * This previously read ['owner', 'admin', 'editor'] and so omitted BOTH roles
+ * this product actually issues alongside owner: manager and host. 'admin' and
+ * 'editor' are legacy names the other role sets also carry; they appear in no
+ * invite UI and in no org_members row. The practical effect was that a manager
+ * could never scan a menu, and getIntakeTier returned null for them — which
+ * the mobile app rendered as the feature simply not existing.
+ */
+export const INTAKE_SCAN_ROLES = ['owner', 'manager', 'admin', 'editor', 'host'];
+
+/**
+ * Deliberately narrower, and deliberately NOT widened alongside the scan list:
+ * a manager or host may photograph a menu, but their commit queues for the
+ * owner. Widening scan access must never widen publish access, or staff could
+ * put unreviewed content on a public listing.
+ */
 export const INTAKE_APPROVE_ROLES = ['owner', 'admin'];
 
 /** Owner/super-tier daily extract cap (Gemini free tier is 1,500/day; 10/user keeps 50 active users well clear). */

@@ -44,7 +44,7 @@ export function IntakeReviewActions({
             disabled={isPending}
             className="h-7 px-3 rounded bg-brand text-white text-caption font-medium hover:bg-brand-dark disabled:opacity-50 transition-colors cursor-pointer"
           >
-            {isPending ? 'Publishing…' : 'Approve & publish'}
+            {isPending ? 'Approving…' : 'Approve as draft'}
           </button>
           <button
             type="button"
@@ -55,6 +55,11 @@ export function IntakeReviewActions({
             Reject
           </button>
         </div>
+        {/* Approving no longer publishes. Without saying so, an approved
+            submission looks finished while its menu is still a draft. */}
+        <p className="text-caption text-muted">
+          Saves it as a draft. Publish from the venue page to make it live.
+        </p>
         {err && <p className="text-caption text-error">{err}</p>}
       </div>
     );
