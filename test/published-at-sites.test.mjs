@@ -51,3 +51,15 @@ test("the shared menu helper stamps once, not at its call sites", () => {
     "the caller must not duplicate the stamp",
   );
 });
+
+test("organization menu publish and unpublish maintain published_at", () => {
+  const src = read("apps/web/src/actions/organization-actions.ts");
+  assert.match(fnBody(src, "publishOrganizationMenu"), /published_at:/);
+  assert.match(fnBody(src, "unpublishOrganizationMenu"), /published_at:\s*null/);
+});
+
+test("event publish and unpublish maintain published_at", () => {
+  const src = read("apps/web/src/actions/event-actions.ts");
+  assert.match(fnBody(src, "publishEvent"), /published_at:/);
+  assert.match(fnBody(src, "unpublishEvent"), /published_at:\s*null/);
+});
