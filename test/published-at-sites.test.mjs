@@ -63,3 +63,27 @@ test("event publish and unpublish maintain published_at", () => {
   assert.match(fnBody(src, "publishEvent"), /published_at:/);
   assert.match(fnBody(src, "unpublishEvent"), /published_at:\s*null/);
 });
+
+test("the claim route stamps published_at when it publishes", () => {
+  const src = read("apps/web/src/app/api/intake/claim/route.ts");
+  assert.match(src, /status: 'published'[\s\S]{0,120}?published_at:/);
+});
+
+test("intake commit stamps only when it actually publishes", () => {
+  // The same expression that chooses 'published' must choose the stamp. An
+  // unconditional stamp would date drafts as if they were live, and they would
+  // enter the 90-day window without ever being visible to anyone.
+  const src = read("apps/web/src/app/api/intake/commit/route.ts");
+  assert.match(src, /const publishedAt =/, "one derived value, used by all three inserts");
+  assert.match(src, /newWindowRows[\s\S]{0,500}?published_at:/, "window rows need it");
+  const menuInsert = src.slice(src.indexOf(".from('menus')"));
+  assert.match(menuInsert.slice(0, 700), /published_at:/, "menu insert needs it");
+  // Shorthand `publishedAt,` is idiomatic here, so accept either form.
+  assert.match(src, /publishedAt,|publishedAt:\s*publishedAt/, "events get it through buildEventRows");
+});
+
+test("buildEventRows writes published_at from its options", () => {
+  const helper = read("apps/web/src/utils/intake-content.ts");
+  assert.match(helper, /publishedAt:\s*string \| null/, "opts must declare it");
+  assert.match(helper, /published_at:\s*opts\.publishedAt/, "the row must set it");
+});
