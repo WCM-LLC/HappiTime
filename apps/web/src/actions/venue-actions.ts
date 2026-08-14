@@ -676,7 +676,7 @@ export async function createMenu(orgId: string, venueId: string, formData: FormD
 
 /** Imports an organization menu as a venue-owned copy, or refreshes an existing copy. */
 export async function importOrganizationMenu(orgId: string, venueId: string, formData: FormData) {
-  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  const { writeSupabase, actor } = await requireVenueManagementAccess(orgId, venueId);
   const redirectTo = orgDashboardReturnPath(orgId, formData);
   const organizationMenuId = requireField(
     formData,
@@ -724,6 +724,7 @@ export async function importOrganizationMenu(orgId: string, venueId: string, for
         orgId,
         venueId,
         status: HH_STATUS_DRAFT,
+        actor,
       });
     }
   } catch (error) {
@@ -737,7 +738,7 @@ export async function importOrganizationMenu(orgId: string, venueId: string, for
 
 /** Copies a published menu from another venue in the same organization as an independent draft. */
 export async function importPublishedVenueMenu(orgId: string, venueId: string, formData: FormData) {
-  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  const { writeSupabase, actor } = await requireVenueManagementAccess(orgId, venueId);
   const redirectTo = orgDashboardReturnPath(orgId, formData);
   const sourceMenuId = requireField(
     formData,
@@ -772,6 +773,7 @@ export async function importPublishedVenueMenu(orgId: string, venueId: string, f
       orgId,
       venueId,
       status: HH_STATUS_DRAFT,
+      actor,
     });
   } catch (error) {
     console.error('[importPublishedVenueMenu] clone failed', error);
