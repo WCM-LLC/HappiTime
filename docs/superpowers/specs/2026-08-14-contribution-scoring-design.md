@@ -33,7 +33,8 @@ Made with Juan on 2026-08-14.
 | Weights | **menu 10, event 3, window 1** | Menus dominate, matching "prioritizes adding Happy Hour menus". A menu is also the most work: sections, items, prices. |
 | Menu items | Not counted | Decided in piece 1 — counting them rewards splitting one item into ten. |
 | Copies | Excluded from scoring | `menus.source_menu_id is not null` marks a copy. Crediting copies would let one menu be farmed across venues. |
-| Population | Filter by tier, not hardcoded | Piece 1's decision. The view carries the tier; piece 3 chooses who is shown. |
+| Who earns points | **Super users and (later) regular users only** | The game population. See "Job function earns nothing". |
+| Org staff | **Attributed, never scored** | Owners, managers and hosts scanning their own venues are doing their job, and an owner approves every intake entry anyway. Recording who did it still has audit value; awarding points for it does not. |
 
 ### The published-only tradeoff, recorded honestly
 
@@ -46,6 +47,30 @@ either. An owner who approves but does not publish leaves the contribution
 worth zero, indefinitely, with nothing on screen explaining why.
 
 This is the accepted behaviour. The mitigation below exists because of it.
+
+### Job function earns nothing
+
+Owners, managers and hosts scan as part of running their venue. That work is
+already its own reward and an owner signs off on every intake entry, so points
+would be meaningless — and a scoreboard topped by the staff who run the
+listings would defeat the point of the game.
+
+The rule is airtight without a special case, because `canUseIntakeForVenue`
+restricts the `owner` tier to venues in the caller's **own** org: an org member
+cannot scan anyone else's venue. So "org staff scanning for their own
+organization" is the only thing org staff can do, and excluding the tier
+wholesale is exactly equivalent. `admin` (HappiTime staff) is excluded on the
+same reasoning.
+
+Scoring therefore covers `super_user` today and `user` when regular users gain
+a contribution path. Both are listed as data, so opening it up stays a one-line
+change rather than a rewrite.
+
+**A consequence worth stating.** Super users can never publish, and since #178
+approval does not publish either. Now that org staff are excluded, *every*
+scored contribution — 100% of the board, not a subset — reaches the scoreboard
+only after two owner actions. That is what makes §5 load-bearing rather than
+optional.
 
 ### The clock problem
 
@@ -120,8 +145,14 @@ skip the window incorrectly.
 - `city` comes from `venues.city`, so piece 3 can rank per city without
   re-deriving it
 
-The view carries `created_by_tier` rather than filtering on it. Piece 3 decides
-who appears; piece 2 only decides what things are worth.
+The view covers only the scoring tiers (`super_user`, and `user` once regular
+users can contribute). Org-staff contributions are attributed on the rows but
+never appear here — points are a game mechanic, and job function is not the
+game. The tier list is data in one place, so admitting `user` later is a
+one-line change.
+
+`created_by_tier` is still carried on each row so piece 3 can label or split by
+tier without re-deriving it.
 
 **Locked down like its neighbour.** `security_invoker = on`, and `revoke all
 from anon, authenticated`, mirroring `20260811173852_lockdown_security_definer_views.sql`'s
@@ -145,8 +176,11 @@ piece 1. The guard is the durable part of this work.
 An owner-facing count of approved-but-unpublished submissions, so the backlog
 that contributors' scores now depend on is visible rather than silent.
 
-Separable from the rest of piece 2. If it is cut, the scoring still works and
-contributors still lose points to owner delay with no signal.
+**In scope for piece 2**, confirmed 2026-08-14. It is not decoration: with org
+staff excluded, every single scored contribution now depends on an owner
+approving and then publishing. Without a visible backlog, the whole scoreboard
+can stall on a queue nobody is looking at, and contributors would see only that
+their work earned nothing.
 
 ## Non-goals
 
@@ -178,8 +212,8 @@ contributors still lose points to owner delay with no signal.
    leaderboard excludes all three, so this costs nothing today. It would matter
    if per-role contribution reporting is ever wanted, and the fix then is to
    record the org role alongside the tier.
-2. **Whether the mitigation in §5 belongs in this piece** or in piece 3 with
-   the rest of the surfacing work.
+2. ~~Whether the mitigation in §5 belongs in this piece~~ — resolved
+   2026-08-14: it belongs here.
 
 ## Related work, not in this piece
 
