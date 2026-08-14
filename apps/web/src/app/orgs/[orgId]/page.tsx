@@ -6,6 +6,7 @@ import MenuSectionItemAdder from '@/components/MenuSectionItemAdder';
 import ConfirmDeleteForm from '@/components/ConfirmDeleteForm';
 import { FlashMessage } from '@/components/FlashMessage';
 import { SubmitButton } from '@/components/ui/SubmitButton';
+import { FormPendingProvider, FormPendingReporter } from '@/components/ui/FormPending';
 import VenueDashboardShell, { type ShellTab, OrgMark, ShellCrumb } from '@/components/venue/VenueDashboardShell';
 import AccessManager, { type InviteRow, type MemberRow } from '@/components/venue/AccessManager';
 import AddVenueForm from '@/components/AddVenueForm';
@@ -646,14 +647,19 @@ export default async function OrgPage({
               <div key={menu.id} className="rounded-lg border border-border bg-background">
                 {canManageOrganizationMenus ? (
                   <>
-                    <form id={menuFormId} action={saveOrganizationMenu.bind(null, orgId)} />
+                    <form id={menuFormId} action={saveOrganizationMenu.bind(null, orgId)}>
+                      <FormPendingReporter id={menuFormId} />
+                    </form>
                     <form id={publishFormId}>
+                      <FormPendingReporter id={publishFormId} />
                       <input type="hidden" name="menu_id" value={menu.id} />
                     </form>
                     <form id={deleteFormId}>
+                      <FormPendingReporter id={deleteFormId} />
                       <input type="hidden" name="menu_id" value={menu.id} />
                     </form>
                     <form id={syncFormId}>
+                      <FormPendingReporter id={syncFormId} />
                       <input type="hidden" name="menu_id" value={menu.id} />
                     </form>
                     <input form={menuFormId} type="hidden" name="menu_id" value={menu.id} />
@@ -765,6 +771,7 @@ export default async function OrgPage({
                           <div key={section.id} className="rounded-md border border-border bg-surface p-4">
                             {canManageOrganizationMenus ? (
                               <form id={deleteSectionFormId}>
+                                <FormPendingReporter id={deleteSectionFormId} />
                                 <input type="hidden" name="section_id" value={section.id} />
                               </form>
                             ) : null}
@@ -802,6 +809,7 @@ export default async function OrgPage({
                                     <div key={item.id} className="rounded-md border border-border bg-background p-4">
                                       {canManageOrganizationMenus ? (
                                         <form id={deleteItemFormId}>
+                                          <FormPendingReporter id={deleteItemFormId} />
                                           <input type="hidden" name="item_id" value={item.id} />
                                         </form>
                                       ) : null}
@@ -1383,6 +1391,7 @@ export default async function OrgPage({
   );
 
   return (
+    <FormPendingProvider>
     <div className="bg-background">
       <UserBar />
       <Suspense>
@@ -1397,5 +1406,6 @@ export default async function OrgPage({
         addButton={{ label: 'Add Venue', tabId: 'venues' }}
       />
     </div>
+    </FormPendingProvider>
   );
 }
