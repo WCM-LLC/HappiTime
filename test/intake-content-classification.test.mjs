@@ -250,12 +250,21 @@ test("an event that can't be scheduled is reported, not dropped", () => {
   assert.match(content, /unschedulable\.push\(title\)/);
 });
 
-test("approving publishes the events, not just the menu", () => {
+test("approving accepts the submission without publishing its events", () => {
+  // This test previously asserted the OPPOSITE — that approving flipped the
+  // events to 'published'. Changed 2026-08-13: approval no longer publishes
+  // anything. The owner publishes from the venue page as a separate,
+  // deliberate act, so scanned content reaches a public listing only on an
+  // explicit human decision (HT-SOP-003).
   const review = read("apps/web/src/utils/intake-review.ts");
-  assert.match(review, /from\('intake_submission_events'\)/);
-  assert.match(review, /\.from\('venue_events'\)\s*\.update\(\{ status: 'published' \}\)/);
+  assert.match(review, /from\('intake_submission_events'\)/, "events are still resolved");
+  const approve = review.slice(
+    review.indexOf("export async function approveSubmission"),
+    review.indexOf("export async function rejectSubmission"),
+  );
+  assert.doesNotMatch(approve, /status:\s*'published'/, "approval must not publish");
   // An events-only submission has no menu; requiring one made it unapprovable.
-  assert.match(review, /if \(eventIds\.length === 0\) \{[\s\S]{0,120}nothing to publish/);
+  assert.match(approve, /if \(eventIds\.length === 0\) \{[\s\S]{0,120}nothing to approve/);
 });
 
 test("events written by a scan match the console's own column shape", () => {

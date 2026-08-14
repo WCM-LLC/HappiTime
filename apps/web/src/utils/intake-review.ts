@@ -83,9 +83,16 @@ async function notifySubmitter(
 }
 
 /**
- * Approve: publish the drafted menu AND any draft windows the same commit
- * created. The older /api/intake/claim path only flips the menu, which leaves
- * draft windows invisible — this flow flips both.
+ * Approve: accept the submission WITHOUT publishing anything.
+ *
+ * Approving used to flip the menu, its windows and any events straight to
+ * 'published'. It no longer does. Scanned content reaches a public listing
+ * only when the owner publishes it deliberately from the venue page — one
+ * human decision per public change, which is what HT-SOP-003 asks for and
+ * what the owner asked for on 2026-08-13.
+ *
+ * So this records the decision and tells the submitter. The menu, windows and
+ * events stay drafts, exactly as the commit left them.
  */
 export async function approveSubmission(
   sub: PendingSubmission,
@@ -100,47 +107,18 @@ export async function approveSubmission(
     .select('event_id')
     .eq('submission_id', sub.id);
   const eventIds = ((links ?? []) as Array<{ event_id: string }>).map((l) => l.event_id);
-  if (eventIds.length > 0) {
-    const { error: evErr } = await db
-      .from('venue_events')
-      .update({ status: 'published' })
-      .in('id', eventIds)
-      .eq('status', 'draft');
-    if (evErr) throw new Error(evErr.message);
-  }
 
   if (!sub.menu_id) {
     if (eventIds.length === 0) {
-      throw new Error('Submission has nothing to publish (it may have been deleted)');
+      throw new Error('Submission has nothing to approve (it may have been deleted)');
     }
     await markReviewed(db, sub, reviewerId, 'approved');
     await notifySubmitter(db, sub.submitted_by, sub.venue_id, true);
     return;
   }
 
-  const { error: menuErr } = await db
-    .from('menus')
-    .update({ status: 'published', is_active: true })
-    .eq('id', sub.menu_id)
-    .eq('venue_id', sub.venue_id);
-  if (menuErr) throw new Error(menuErr.message);
-
-  const { data: joins } = await db
-    .from('happy_hour_window_menus')
-    .select('happy_hour_window_id')
-    .eq('menu_id', sub.menu_id);
-  const windowIds = ((joins ?? []) as Array<{ happy_hour_window_id: string }>).map(
-    (j) => j.happy_hour_window_id,
-  );
-  if (windowIds.length > 0) {
-    const { error: winErr } = await db
-      .from('happy_hour_windows')
-      .update({ status: 'published', last_confirmed_at: new Date().toISOString() })
-      .in('id', windowIds)
-      .eq('status', 'draft');
-    if (winErr) throw new Error(winErr.message);
-  }
-
+  // The menu, its windows and its events all stay drafts. Publishing is the
+  // owner's separate action on the venue page.
   const { error: subErr } = await (db as any)
     .from('intake_submissions')
     .update({

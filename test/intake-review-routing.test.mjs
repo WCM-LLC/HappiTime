@@ -50,9 +50,13 @@ test("anyone who cannot publish this venue is forced into a draft", () => {
 });
 
 test("scanning and approving are different role sets", () => {
-  assert.match(access, /INTAKE_SCAN_ROLES = \['owner', 'admin', 'editor'\]/);
+  // The scan list previously read ['owner','admin','editor'] and so excluded
+  // manager and host — the two roles this product actually issues alongside
+  // owner. A manager could never scan, and the app rendered that as the
+  // feature not existing. Widened 2026-08-13 to mirror VENUE_CONTENT_ROLES.
+  assert.match(access, /INTAKE_SCAN_ROLES = \['owner', 'manager', 'admin', 'editor', 'host'\]/);
   assert.match(access, /INTAKE_APPROVE_ROLES = \['owner', 'admin'\]/,
-    "an org editor may scan but must not publish or approve");
+    "a manager or host may scan but must not publish or approve");
   // The publish check must consult the narrow set, or editors publish silently.
   assert.match(
     access,
