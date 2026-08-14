@@ -80,3 +80,11 @@ test("menu-tree copies are attributed for audit", () => {
   assert.match(payload, /created_by_tier:/);
   assert.match(payload, /source_menu_id/, "copies must keep source_menu_id set");
 });
+
+test("event-actions createEvent carries the tier alongside its existing created_by", () => {
+  // created_by was already set here — this is why venue_events showed 7 of 152
+  // rows attributed while menus and windows showed none.
+  const payload = insertPayload(read("apps/web/src/actions/event-actions.ts"), "venue_events");
+  assert.match(payload, /created_by:/);
+  assert.match(payload, /created_by_tier:/);
+});

@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { consoleContributorTier } from '@/utils/contribution-attribution';
 import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
 import { isAdminEmail } from '@/utils/admin-emails';
@@ -68,7 +69,11 @@ async function requireVenueManagementAccess(orgId: string, venueId: string) {
   if (!venue) redirectWithError(orgId, venueId, 'not_authorized');
 
   if (isPlatformAdmin) {
-    return { supabase: serviceSupabase ?? supabase, userId };
+    return {
+      supabase: serviceSupabase ?? supabase,
+      userId,
+      tier: consoleContributorTier(true),
+    };
   }
 
   const { data: membership } = await lookupSupabase
@@ -95,7 +100,7 @@ async function requireVenueManagementAccess(orgId: string, venueId: string) {
     if (!assignment) redirectWithError(orgId, venueId, 'not_authorized');
   }
 
-  return { supabase, userId };
+  return { supabase, userId, tier: consoleContributorTier(false) };
 }
 
 function revalidateVenue(orgId: string, venueId: string) {
@@ -107,7 +112,7 @@ function revalidateVenue(orgId: string, venueId: string) {
    ────────────────────────────────────────── */
 
 export async function createEvent(orgId: string, venueId: string, formData: FormData) {
-  const { supabase, userId } = await requireVenueManagementAccess(orgId, venueId);
+  const { supabase, userId, tier } = await requireVenueManagementAccess(orgId, venueId);
 
   const title = requireField(formData, 'event_title', orgId, venueId, 'missing_event_title');
   const description = toNullableStr(formData.get('event_description'));
@@ -152,6 +157,7 @@ export async function createEvent(orgId: string, venueId: string, formData: Form
     location_override,
     status: 'draft',
     created_by: userId,
+    created_by_tier: tier,
   });
 
   if (error) {
