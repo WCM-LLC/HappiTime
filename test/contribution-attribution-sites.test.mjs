@@ -7,7 +7,7 @@
 
 import assert from "node:assert/strict";
 import test from "node:test";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -121,4 +121,66 @@ test("intake passes the resolved tier, never a hardcoded string", () => {
   assert.doesNotMatch(route, /created_by_tier:\s*'(admin|owner|super_user|user)'/);
   assert.doesNotMatch(route, /createdByTier:\s*'(admin|owner|super_user|user)'/);
   assert.match(route, /created_by_tier:\s*tier/, "menu and window rows use the resolved tier");
+});
+
+/** Every .ts/.tsx file under apps/web/src. */
+function sourceFiles(dir, acc = []) {
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) sourceFiles(full, acc);
+    else if (/\.tsx?$/.test(entry)) acc.push(full);
+  }
+  return acc;
+}
+
+test("EVERY insert into an attributed table sets created_by and created_by_tier", () => {
+  // The guard the earlier per-site tests cannot provide: it fails for a site
+  // nobody has written yet. Attribution was missed for 136 menus because
+  // nothing checked, and nothing would have caught the next omission either.
+  const ATTRIBUTED = ["menus", "happy_hour_windows", "venue_events"];
+  const offenders = [];
+
+  for (const file of sourceFiles(join(repoRoot, "apps/web/src"))) {
+    const src = readFileSync(file, "utf8");
+    for (const table of ATTRIBUTED) {
+      const marker = `.from('${table}')`;
+      let idx = src.indexOf(marker);
+      while (idx !== -1) {
+        const after = src.slice(idx + marker.length);
+        // Only inserts are authorship. Selects, updates and deletes are not.
+        if (/^\s*\.insert\(/.test(after)) {
+          // Two shapes: an inline object literal, or a prebuilt array passed
+          // by name. For the latter the attribution lives where the rows are
+          // BUILT, which is above the insert — so follow the identifier
+          // instead of reading forward and reporting a false positive.
+          const argMatch = after.match(/^\s*\.insert\(\s*([A-Za-z_$][\w$]*)\s*\)/);
+          let region;
+          if (argMatch) {
+            const varName = argMatch[1];
+            const defIdx = src.search(
+              new RegExp(`(const|let|var)\\s+(\\{[^}]*\\b${varName}\\b[^}]*\\}|${varName})\\s*=`),
+            );
+            region = defIdx === -1 ? "" : src.slice(defIdx, defIdx + 1200);
+          } else {
+            region = after.slice(0, 1200);
+          }
+          // camelCase counts too: it means the rows are built by a helper
+          // (buildEventRows) whose own test asserts it writes the columns.
+          const hasUser = /created_by\b|createdBy\b/.test(region);
+          const hasTier = /created_by_tier\b|createdByTier\b/.test(region);
+          if (!hasUser || !hasTier) {
+            const line = src.slice(0, idx).split("\n").length;
+            offenders.push(`${file.replace(repoRoot + "/", "")}:${line} → ${table}`);
+          }
+        }
+        idx = src.indexOf(marker, idx + 1);
+      }
+    }
+  }
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `these inserts do not attribute their contributor:\n  ${offenders.join("\n  ")}`,
+  );
 });
