@@ -125,6 +125,14 @@ when an owner auto-publishes (`route.ts:291` and `route.ts:322` choose
 | `app/api/intake/commit/route.ts` → menu insert | `menus` |
 | `app/api/intake/commit/route.ts` → `buildEventRows` | `venue_events` |
 
+> **Corrected 2026-08-14 during planning:** this section first listed 8 sites.
+> The source has **13** — six publish updates, three publish inserts, and four
+> unpublish clears. The misses were `publishMenusByIds` (a shared menu-publish
+> helper reached from `publishMenusForWindow` and `updateHappyHourMenus`, where
+> the stamp belongs so all callers are covered at once) and the four unpublish
+> paths, which must clear the column or republished content keeps a stale date
+> and can skip or re-enter the 90-day window. The full inventory is in the plan.
+
 `actions/guide-review-actions.ts` already does exactly this for guides
 (`status: 'published', published_at: now`). That is the pattern to copy, not a
 new invention.
