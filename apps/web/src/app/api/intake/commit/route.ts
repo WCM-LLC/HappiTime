@@ -299,6 +299,8 @@ export async function POST(req: NextRequest) {
       label: w.label ?? null,
       status: targetWindowStatus,
       last_confirmed_at: save_as_draft || send_owner_confirmation ? null : new Date().toISOString(),
+      created_by: user.id,
+      created_by_tier: tier,
     }));
     const { data: insertedRows, error: newWinErr } = (await db
       .from('happy_hour_windows')
@@ -332,6 +334,8 @@ export async function POST(req: NextRequest) {
         name: menu.name || 'Happy Hour',
         status: menuStatus,
         is_active: true,
+        created_by: user.id,
+        created_by_tier: tier,
         // scope defaults to 'venue' in the schema; we don't override it here.
       })
       .select('id')
@@ -447,6 +451,7 @@ export async function POST(req: NextRequest) {
       // this venue gets live events.
       status: save_as_draft ? 'draft' : 'published',
       createdBy: user.id,
+      createdByTier: tier,
     });
 
     if (eventRows.length > 0) {

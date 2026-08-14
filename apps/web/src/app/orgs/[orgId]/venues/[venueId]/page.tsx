@@ -1637,12 +1637,13 @@ export default async function VenuePage({
                         <form>
                           <input type="hidden" name="user_id" value={member.user_id} />
                           <input type="hidden" name="return_path" value={`/orgs/${orgId}/venues/${venueId}?from=admin`} />
-                          <button
+                          <SubmitButton
                             formAction={adminRemoveStaffMember.bind(null, orgId)}
                             className={btnDanger}
+                            pendingLabel="Removing…"
                           >
                             Remove
-                          </button>
+                          </SubmitButton>
                         </form>
                       ) : null}
                     </div>
@@ -1708,12 +1709,13 @@ export default async function VenuePage({
                 </div>
 
                 <div>
-                  <button
+                  <SubmitButton
                     formAction={adminAddStaffMember.bind(null, orgId)}
                     className={btnPrimary}
+                    pendingLabel="Adding…"
                   >
                     Add staff member
-                  </button>
+                  </SubmitButton>
                 </div>
               </form>
             </div>
