@@ -99,17 +99,30 @@ insert sites, all inside `apps/web/src`**:
 | 4 | `api/intake/commit/route.ts:328` | `menus` | unattributed |
 | 5 | `actions/venue-actions.ts:430` | `happy_hour_windows` | unattributed |
 | 6 | `api/intake/commit/route.ts:304` | `happy_hour_windows` | unattributed |
-| 7 | `actions/event-actions.ts:138` | `venue_events` | unattributed |
+| 7 | `actions/event-actions.ts:138` | `venue_events` | sets `created_by` |
 | 8 | `api/intake/commit/route.ts:454` | `venue_events` | sets `created_by` (line 449) |
 
-Five console-action sites and three intake sites. Only site 8 attributes anything
-today, which is why `venue_events` shows 7 of 152 rows attributed and the other two
-tables show none.
+Five console-action sites and three intake sites. Sites 7 and 8 — both
+`venue_events` writers — already set `created_by`, which is why that table shows 7 of
+152 rows attributed while `menus` and `happy_hour_windows` show none. Both still need
+`created_by_tier`.
 
 The tier is already computed in the intake flow (`getIntakeTier`) and reaches the
 commit route, so sites 4, 6 and 8 need plumbing rather than new logic. The five console
 actions need a tier resolution at write time; since every console writer is an admin or
 an org member, `getIntakeTier` already returns the right answer for them.
+
+### Menu copies are attributed but not credited
+
+`actions/menu-tree.ts:175` is the shared insert behind `cloneOrganizationMenuToVenue`
+and `cloneVenueMenuToVenue` (it lives in the private `cloneMenuTreeToVenue`). These
+create `menus` rows by copying an existing menu, which is not authorship. Crediting
+them would let one menu be farmed across many venues — the same gaming vector that
+excluded menu items.
+
+Every copy carries a non-NULL `source_menu_id`, so piece 2 excludes copies at scoring
+time with `where source_menu_id is null`. This piece still records `created_by` on
+copies, because knowing who cloned a menu has audit value even when it earns nothing.
 
 **No writer outside `apps/web/src` inserts into these three tables.** The Supabase edge
 functions (`notify-upcoming-*`, `autotag-venues`) and the mobile hooks only read, and
