@@ -52,6 +52,46 @@ async function fetchToastmakerHandle(venueId: string): Promise<string | null> {
   }
 }
 
+/**
+ * True when the venue's org has at least one member — i.e. someone has claimed it.
+ *
+ * Ownership is not a column on the venue: every venue has a non-null org_id, and
+ * promoting a staged venue auto-creates an org from its name that stays memberless
+ * until claimed. So "claimed" means "the org has an org_members row" (J's 8/11 rule).
+ *
+ * Deliberately any role, NOT just owner/manager — do not narrow this to match
+ * send-venue-digest, which filters to owner/manager only because it needs someone
+ * to address an email to. Here, any member at all means the place is spoken for.
+ *
+ * Service-role because org_members is granted to authenticated only, never anon.
+ * Fails open (returns false → CTA still renders), matching behaviour before this check.
+ */
+async function venueHasOwner(venueId: string): Promise<boolean> {
+  try {
+    const db = getServiceClient();
+    if (!db) return false;
+
+    const { data: venueRow } = await db
+      .from("venues")
+      .select("org_id")
+      .eq("id", venueId)
+      .maybeSingle();
+
+    const orgId = (venueRow as { org_id?: string | null } | null)?.org_id;
+    if (!orgId) return false;
+
+    const { data: members } = await db
+      .from("org_members")
+      .select("user_id")
+      .eq("org_id", orgId)
+      .limit(1);
+
+    return (members?.length ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
 export const revalidate = 900;
 
 type Props = { params: Promise<{ neighborhood: string; slug: string }> };
@@ -119,8 +159,13 @@ export default async function VenueDetailPage({ params }: Props) {
 
   if (!venue) notFound();
 
-  // Fetch Toastmaker server-side (service-role — venue_toastmakers is not anon-readable)
-  const toastmakerHandle = await fetchToastmakerHandle(venue.id);
+  // Both are service-role lookups (venue_toastmakers and org_members are not
+  // anon-readable). Independent of each other, so run them concurrently — this is
+  // a dynamic route and they'd otherwise serialise on every uncached request.
+  const [toastmakerHandle, hasOwner] = await Promise.all([
+    fetchToastmakerHandle(venue.id),
+    venueHasOwner(venue.id),
+  ]);
 
   const jsonLd = venueJsonLd(venue);
   const neighborhoodLandingPage = neighborhood
@@ -550,23 +595,25 @@ export default async function VenueDetailPage({ params }: Props) {
         </div>
       </section>
 
-      {/* Claim CTA */}
-      <section className="rounded-2xl border border-border bg-surface p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <h2 className="font-bold text-foreground">
-            Is this your place?
-          </h2>
-          <p className="text-sm text-muted mt-1">
-            Claim your venue to manage your hours, menus, and deals.
-          </p>
-        </div>
-        <a
-          href="/pricing/"
-          className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors shrink-0"
-        >
-          Claim This Venue
-        </a>
-      </section>
+      {/* Claim CTA — unclaimed venues only (an owned venue has nothing to claim) */}
+      {!hasOwner && (
+        <section className="rounded-2xl border border-border bg-surface p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <h2 className="font-bold text-foreground">
+              Is this your place?
+            </h2>
+            <p className="text-sm text-muted mt-1">
+              Claim your venue to manage your hours, menus, and deals.
+            </p>
+          </div>
+          <a
+            href="/pricing/"
+            className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors shrink-0"
+          >
+            Claim This Venue
+          </a>
+        </section>
+      )}
 
       {/* App CTA */}
       <section className="rounded-2xl bg-brand-subtle p-8 text-center">
