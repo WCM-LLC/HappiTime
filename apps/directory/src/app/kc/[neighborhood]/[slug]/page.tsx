@@ -290,9 +290,9 @@ export default async function VenueDetailPage({ params }: Props) {
       {/* Redeemable reward banner — live offer only */}
       {venue.reward_active && venue.reward_preset && rewardLabel(venue.reward_preset) && (
         <div className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 mb-8">
-          <span className="text-xl" aria-hidden>🍺</span>
+          <span className="text-xl" aria-hidden>🎁</span>
           <span className="text-sm font-semibold text-amber-900">
-            The next round&rsquo;s on the house — check in 5 times, get {rewardLabel(venue.reward_preset)}.
+            It&rsquo;s on the house — check in 5 times, get {rewardLabel(venue.reward_preset)}.
           </span>
         </div>
       )}

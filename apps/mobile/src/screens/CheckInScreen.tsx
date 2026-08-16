@@ -5,7 +5,7 @@
 // Flow:
 //  1. User enters a 4-character code given by their server.
 //  2. Code is verified against verify-checkin edge function (geofenced + code-matched).
-//  3. On success: stamp progress card ("3 of 5 — house buys your next round")
+//  3. On success: stamp progress card ("3 of 5 — the house has something for you")
 //     with a live ticking clock (anti-screenshot measure).
 //  4. On bad_code: error inline, after 2 failures a GPS-fallback link appears.
 //  5. Other failures (out_of_range, network_cap, etc.) show specific messages.
@@ -154,12 +154,12 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.stampMessage}>
               {rewardText
                 ? `The house buys you ${rewardText.toLowerCase()}!`
-                : "The house buys your next round!"}
+                : "The house has something for you!"}
             </Text>
           ) : (
             <Text style={styles.stampMessage}>
               {stampsToNext} more {stampsToNext === 1 ? "visit" : "visits"} until{" "}
-              {rewardText ? rewardText.toLowerCase() : "your free round"}
+              {rewardText ? rewardText.toLowerCase() : "a token of appreciation"}
             </Text>
           )}
         </View>
@@ -182,9 +182,9 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
               })
             }
             accessibilityRole="button"
-            accessibilityLabel="Claim your free round"
+            accessibilityLabel="Claim your reward"
           >
-            <Text style={styles.redeemButtonText}>Claim your free round</Text>
+            <Text style={styles.redeemButtonText}>Claim your reward</Text>
           </Pressable>
         )}
 
