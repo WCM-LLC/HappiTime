@@ -5,7 +5,7 @@ import React from "react";
 import { View, Text, StyleSheet, ScrollView, Pressable, Linking } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import { useVenueEvents, type VenueEventItem } from "../hooks/useVenueEvents";
-import { EVENT_TYPE_LABELS, formatEventDate, formatRecurrenceRule } from "../lib/eventDisplay";
+import { EVENT_TYPE_LABELS, formatEventDate, formatEventTime, formatRecurrenceRule } from "../lib/eventDisplay";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
 import { colors } from "../theme/colors";
@@ -22,9 +22,9 @@ const EventRow: React.FC<{ ev: VenueEventItem }> = ({ ev }) => (
     </View>
     <Text style={styles.title}>{ev.title}</Text>
     <Text style={styles.date}>
-      {ev.is_recurring ? formatRecurrenceRule(ev.recurrence_rule, ev.starts_at) : formatEventDate(ev.starts_at)}
+      {ev.is_recurring ? formatRecurrenceRule(ev.recurrence_rule, ev.starts_at, ev.timezone ?? undefined) : formatEventDate(ev.starts_at, ev.timezone ?? undefined)}
       {ev.ends_at
-        ? ` – ${new Date(ev.ends_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+        ? ` – ${formatEventTime(ev.ends_at, ev.timezone ?? undefined)}`
         : ""}
     </Text>
     {ev.description ? <Text style={styles.desc}>{ev.description}</Text> : null}
