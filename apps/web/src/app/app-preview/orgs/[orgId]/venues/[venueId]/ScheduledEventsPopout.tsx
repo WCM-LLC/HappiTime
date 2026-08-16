@@ -30,6 +30,7 @@ export type ScheduledPreviewEvent = {
   event_type: string;
   starts_at: string;
   ends_at: string | null;
+  timezone: string | null;
   is_recurring: boolean | null;
   recurrence_rule: string | null;
   price_info: string | null;
@@ -41,14 +42,19 @@ function eventTypeLabel(type: string) {
   return EVENT_TYPE_LABELS[type] ?? type.replace(/[_-]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+// Event instants are formatted in the VENUE's zone, never the runtime's —
+// see test/event-time-timezone.test.mjs.
+const VENUE_FALLBACK_TZ = 'America/Chicago';
+
+function formatTime(iso: string, timeZone: string) {
+  return new Date(iso).toLocaleTimeString('en-US', { timeZone, hour: 'numeric', minute: '2-digit' });
 }
 
 function formatEventTiming(event: ScheduledPreviewEvent) {
+  const timeZone = event.timezone ?? VENUE_FALLBACK_TZ;
   const startsAt = new Date(event.starts_at);
-  const startTime = formatTime(event.starts_at);
-  const endTime = event.ends_at ? formatTime(event.ends_at) : null;
+  const startTime = formatTime(event.starts_at, timeZone);
+  const endTime = event.ends_at ? formatTime(event.ends_at, timeZone) : null;
   const range = endTime ? `${startTime} - ${endTime}` : startTime;
 
   if (event.is_recurring) {
@@ -63,6 +69,7 @@ function formatEventTiming(event: ScheduledPreviewEvent) {
   }
 
   const date = startsAt.toLocaleDateString('en-US', {
+    timeZone,
     weekday: 'short',
     month: 'short',
     day: 'numeric',

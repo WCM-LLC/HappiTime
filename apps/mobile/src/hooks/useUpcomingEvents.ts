@@ -11,6 +11,7 @@ export type UpcomingEvent = {
   event_type: string;
   starts_at: string;
   ends_at: string | null;
+  timezone: string | null;
   is_recurring: boolean;
   recurrence_rule: string | null;
   price_info: string | null;
@@ -44,7 +45,7 @@ export function useUpcomingEvents(limit = 40) {
       const { data, error } = await (supabase as any)
         .from("venue_events")
         .select(
-          "id, venue_id, title, description, event_type, starts_at, ends_at, is_recurring, recurrence_rule, price_info, external_url, ticket_url, venues(name, address, neighborhood, city, promotion_tier)"
+          "id, venue_id, title, description, event_type, starts_at, ends_at, timezone, is_recurring, recurrence_rule, price_info, external_url, ticket_url, venues(name, address, neighborhood, city, promotion_tier)"
         )
         .eq("status", "published")
         .or(`starts_at.gte.${new Date().toISOString()},is_recurring.eq.true`)

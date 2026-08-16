@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import { getNeighborhood } from "@/lib/neighborhoods";
 import { getHappyHourLandingPageByNeighborhoodSlug } from "@/lib/seoNeighborhoods";
 import { getVenueBySlug } from "@/lib/queries";
+import { KC_TZ, formatEventDate, formatEventTime } from "@/lib/kcTime";
 import { venueJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 import { PageTracker } from "@/components/PageTracker";
 import { ItineraryButton } from "@/components/ItineraryButton";
@@ -436,16 +437,13 @@ export default async function VenueDetailPage({ params }: Props) {
           </h2>
           <div className="space-y-4">
             {venue.venue_events.map((ev) => {
-              const eventDate = new Date(ev.starts_at);
-              const dateStr = eventDate.toLocaleDateString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              });
-              const timeStr = eventDate.toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-              });
+              // Format in the EVENT's zone, never the runtime's. This page is a
+              // server component: on Vercel the runtime zone is UTC, so a bare
+              // toLocale* call shifted every KC event five hours late and rolled
+              // evening events onto the next day. See lib/kcTime.
+              const tz = ev.timezone ?? KC_TZ;
+              const dateStr = formatEventDate(ev.starts_at, tz);
+              const timeStr = formatEventTime(ev.starts_at, tz);
               const eventTypeLabel =
                 ev.event_type === "live_music"
                   ? "Live Music"
@@ -467,7 +465,7 @@ export default async function VenueDetailPage({ params }: Props) {
                           const days = match ? match[1].split(',').map((d: string) => dayMap[d] ?? d).join(', ') : '';
                           return days ? `Every ${days}` : 'Recurring';
                         })() : dateStr} at {timeStr}
-                        {ev.ends_at && ` – ${new Date(ev.ends_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}
+                        {ev.ends_at && ` – ${formatEventTime(ev.ends_at, tz)}`}
                       </p>
                     </div>
                     <div className="shrink-0 flex items-center gap-2">
