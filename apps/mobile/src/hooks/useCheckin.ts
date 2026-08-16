@@ -74,7 +74,7 @@ const INITIAL: CheckinState = { status: "idle" };
  * Exposes:
  *  - `state`        — current UI state (idle / loading / success / error variants)
  *  - `stamps`       — current stamp count (populated after success)
- *  - `stampsToNext` — stamps remaining until next free round
+ *  - `stampsToNext` — stamps remaining until the next reward
  *  - `failCount`    — number of bad-code failures (reset on success)
  *  - `submit`       — attempt a normal check-in with `{ venue_id, code, lat, lng }`
  *  - `submitFallback` — attempt a GPS-fallback check-in (no code required)

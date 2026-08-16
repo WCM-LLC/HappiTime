@@ -258,7 +258,7 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
           component={RoundRedemptionScreen}
           options={{
             headerShown: true,
-            title: "Free Round",
+            title: "Your Reward",
             headerBackTitle: "Back",
             headerTintColor: colors.text,
             headerStyle: { backgroundColor: colors.background },
