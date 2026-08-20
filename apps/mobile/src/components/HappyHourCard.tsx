@@ -164,7 +164,10 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
       >
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.venueName, subtitleText && styles.venueNameTight]}>
+            <Text
+              style={[styles.venueName, subtitleText && styles.venueNameTight]}
+              numberOfLines={2}
+            >
               {titleText}
             </Text>
             {subtitleText && (
@@ -182,7 +185,9 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
           <View style={styles.rightHeader}>
             {showLabelPill && (
               <View style={styles.labelPill}>
-                <Text style={styles.labelText}>{label}</Text>
+                <Text style={styles.labelText} numberOfLines={2}>
+                  {label}
+                </Text>
               </View>
             )}
           </View>
@@ -412,7 +417,11 @@ const styles = StyleSheet.create({
   },
   rightHeader: {
     alignItems: "flex-end",
-    marginLeft: spacing.md
+    marginLeft: spacing.md,
+    // `label` is unbounded free text. Without a cap the pill claims its full
+    // intrinsic width (Yoga defaults flexShrink to 0), leaving the flex:1 title
+    // column at ~0pt and wrapping the venue name one character per line.
+    maxWidth: "40%"
   },
   labelPill: {
     paddingHorizontal: spacing.md,
