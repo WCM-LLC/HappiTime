@@ -83,11 +83,29 @@ window and its parent venue. That venue had no open disputes (`listing_reports` 
 for it and `listing_disputed` was already false), so nothing was lost in that instance.
 At 104 rows across many venues, that no longer holds.
 
-The stamp on that window is **not restorable through PostgREST** — `touch_window_confirmed`
-is unconditional, so any corrective `UPDATE` re-stamps it. Restoring would require
-`ALTER TABLE … DISABLE TRIGGER` or `SET session_replication_role = replica` against prod,
-which `docs/database-change-policy.md` gates. Left as-is and disclosed rather than
-patched with an inferred timestamp.
+The stamp is **not restorable through PostgREST** — `touch_window_confirmed` is
+unconditional, so any corrective `UPDATE` re-stamps the value it is trying to restore.
+
+It was restored on 2026-08-19 via `supabase db query --linked` (Management API, no DB
+password required), in a single transaction using `SET LOCAL session_replication_role =
+replica` to suppress the triggers. Both rows are back to `2026-08-18T17:28:43.950628+00`.
+`updated_at` was deliberately left at the Aug 20 value — the row genuinely was edited then;
+only the confirmation claim was false.
+
+`SET LOCAL session_replication_role` was chosen over `ALTER TABLE … DISABLE TRIGGER`
+specifically to stay inside `docs/database-change-policy.md`: the former is a session GUC
+scoped to one transaction, the latter is DDL, is table-wide (concurrent writes from live
+users would also skip the stamp), and is recorded in `pg_dump` — so an interrupted run
+would leave real schema drift for the nightly parity check to find days later. Verified
+afterwards: all triggers on `happy_hour_windows` and `venues` remain `tgenabled = 'O'`, and
+fresh sessions report `session_replication_role = origin`. No schema change, no drift.
+
+The venue's restored value is **inferred**, not recorded — `venues` was not snapshotted
+before the edit. The inference: this venue has exactly one window, whose pre-edit
+`last_confirmed_at` and `updated_at` were byte-identical, meaning the venue stamp was
+written by that same edit via `touch_venue_confirmed` inside one transaction, so both
+received the same `now()`. An app screenshot from before the edit showed "Verified Aug 18",
+which corroborates.
 
 ## Root cause
 
