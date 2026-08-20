@@ -147,4 +147,6 @@ asserts confirmation on its venue.
 ## Related
 
 - #191 — the rendering fix
-- `docs/database-change-policy.md` — why the trigger restore was not attempted
+- #193 — the restore of this one row's confirmation stamp
+- `CLAUDE.md` — the trigger-cascade gotcha, summarised for every future session
+- `docs/database-change-policy.md` — why the restore used a session GUC rather than DDL
