@@ -194,11 +194,15 @@ Deno.test("structural review marker — DB paths verified by code reading", () =
   // RULE 2 (org opt-out): organizations.notify_weekly_summary === false → skip.
   //   Reviewed: fetched via inner-join in venues query; checked before any DB work.
   //
-  // RULE 3 (user opt-out): user_preferences.notifications_venue_scans === false → skip.
-  //   Reviewed: missing prefs row treated as opted-in (matches track-visit).
+  // RULE 3 (user opt-out): user_preferences.notifications_venue_scans === false → skip THAT PERSON.
+  //   Reviewed: prefs fetched once for every involved user; missing row treated as
+  //   opted-in (matches track-visit); applies to hosts the same as owners/managers.
   //
-  // RULE 4 (recipient resolution): org_members.email ?? auth.admin.getUserById.email.
-  //   Reviewed: mirrors delete-account's use of auth.admin; owner preferred over manager.
+  // RULE 4 (recipient resolution): every org member with role in RECIPIENT_ROLES gets an
+  //   email — owner/manager the digest, host the code-only mail — one per person.
+  //   Email = org_members.email ?? auth.admin.getUserById.email, resolved once per user
+  //   before the loop. Pure selection lives in recipientsForVenue() (recipients.test.ts).
+  //   Reviewed: no "earliest owner" pick remains, so a later-added owner is never shadowed.
   //
   // RULE 5 (round_redemptions window): created_at BETWEEN yesterdayStart AND yesterdayEnd (UTC).
   //   Reviewed: uses yesterdayServiceWindow() range — DST-safe; avoids date::cast trap.
@@ -206,9 +210,10 @@ Deno.test("structural review marker — DB paths verified by code reading", () =
   // RULE 6 (zero-email alert): only fires AFTER 6am guard passes; console.error + 500 + Resend to admin.
   //   Reviewed: guard check is first; self-check is at end of loop.
   //
-  // RULE 7 (venue scoping): only venues whose org has an owner/manager are processed.
-  //   Reviewed: org_members(role in owner|manager) fetched once, then venuesToProcess()
-  //   filters the published-venue list BEFORE the loop. activeVenueCount = scoped count,
-  //   so the zero-sent self-check measures claimed venues, not the whole directory.
+  // RULE 7 (venue scoping): only venues whose org has a member in RECIPIENT_ROLES are processed.
+  //   Reviewed: org_members(role in RECIPIENT_ROLES) fetched once (with user_id/email/role),
+  //   then venuesToProcess() filters the published-venue list BEFORE the loop. The loop
+  //   itself makes no membership queries. activeVenueCount = scoped count, so the
+  //   zero-sent self-check measures venues with a team, not the whole directory.
   assertEquals(true, true);
 });
