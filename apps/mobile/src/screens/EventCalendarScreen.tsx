@@ -14,7 +14,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUpcomingEvents, type UpcomingEvent } from "../hooks/useUpcomingEvents";
 import { tierVariant } from "../lib/venueTier";
-import { EVENT_TYPE_LABELS, formatEventDate, formatRecurrenceRule } from "../lib/eventDisplay";
+import { EVENT_TYPE_LABELS, formatEventDate, formatEventTime, formatRecurrenceRule } from "../lib/eventDisplay";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useUserPreferences } from "../hooks/useUserPreferences";
@@ -172,10 +172,10 @@ const EventCard: React.FC<{ event: UpcomingEvent; onPress: () => void; onMoreInf
 
       <Text style={styles.eventDate}>
         {ev.is_recurring
-          ? formatRecurrenceRule(ev.recurrence_rule, ev.starts_at)
-          : formatEventDate(ev.starts_at)}
+          ? formatRecurrenceRule(ev.recurrence_rule, ev.starts_at, ev.timezone ?? undefined)
+          : formatEventDate(ev.starts_at, ev.timezone ?? undefined)}
         {ev.ends_at
-          ? ` – ${new Date(ev.ends_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+          ? ` – ${formatEventTime(ev.ends_at, ev.timezone ?? undefined)}`
           : ""}
       </Text>
 

@@ -32,7 +32,7 @@ import { ListingFreshness } from "../components/ListingFreshness";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { distanceMiles } from "../utils/location";
-import { EVENT_TYPE_LABELS, formatEventDate, formatRecurrenceRule } from "../lib/eventDisplay";
+import { EVENT_TYPE_LABELS, formatEventDate, formatEventTime, formatRecurrenceRule } from "../lib/eventDisplay";
 
 // Loyalty check-in geofence gate: matches server default (100 m ≈ 0.062 miles)
 // Client-side gate uses the venue's geofence_radius_m from the DB (converted to
@@ -335,12 +335,12 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.eventTitle}>{ev.title}</Text>
             <Text style={styles.eventDate}>
               {ev.is_recurring
-                ? formatRecurrenceRule(ev.recurrence_rule, ev.starts_at)
-                : formatEventDate(ev.starts_at)}
+                ? formatRecurrenceRule(ev.recurrence_rule, ev.starts_at, ev.timezone ?? undefined)
+                : formatEventDate(ev.starts_at, ev.timezone ?? undefined)}
               {ev.ends_at && !ev.is_recurring
-                ? ` – ${new Date(ev.ends_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+                ? ` – ${formatEventTime(ev.ends_at, ev.timezone ?? undefined)}`
                 : ev.ends_at && ev.is_recurring
-                ? ` – ${new Date(ev.ends_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+                ? ` – ${formatEventTime(ev.ends_at, ev.timezone ?? undefined)}`
                 : ""}
             </Text>
             {ev.is_recurring && (

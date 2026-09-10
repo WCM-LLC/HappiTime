@@ -1,31 +1,31 @@
 // test/mobile-android-dependency-parity.test.mjs
 //
-// apps/android is a build wrapper, not a codebase: its App.tsx is literally
-// `export { default } from "../mobile/App"`. Same JS, same 0.1.0 version — but
-// it declares its OWN dependency list, and that list froze on 2026-05-31
-// (PR #37) while apps/mobile kept adding packages.
+// apps/android is the Android build workspace — it owns the package id, the
+// Android permissions, the EAS build profiles and the Play Console notes — but
+// it is not a codebase: its App.tsx is `export { default } from "../mobile/App"`.
+// The screens all live in apps/mobile.
 //
-// Why nothing caught it: the two halves resolve from different places.
+// WHAT THIS TEST IS: hygiene. A workspace that builds an app should declare the
+// packages that app's code imports, and the two workspaces should agree on
+// versions since they load one hoisted node_modules tree.
 //
-//   JS      — Metro resolves node_modules by walking up from the IMPORTING
-//             file. ScanMenuScreen.tsx lives in apps/mobile/src, so it finds
-//             apps/mobile/node_modules and the import succeeds.
-//   Native  — Expo autolinking reads the BUILD APP's package.json, i.e.
-//             apps/android's. A package absent there is never linked into the
-//             binary.
+// WHAT THIS TEST IS NOT: a guard against a broken Android build. An earlier
+// version of this file claimed that a package missing from apps/android's
+// package.json would not be linked into the binary, and that the Happy Hour
+// scan had therefore "never worked on Android". That was wrong, and a beta
+// build disproved it on 2026-08-14 by completing a scan end to end.
 //
-// So the Android build succeeds, the bundle contains the code, and the feature
-// fails only when it reaches for the native module at runtime.
+// The reasoning error: Expo autolinking resolves native modules by scanning
+// node_modules search paths, NOT by reading the build workspace's declared
+// dependencies. On a clean install the package hoists to the monorepo root,
+// where autolinking finds it regardless of which workspace declared it. The
+// original claim was extrapolated from one laptop's node_modules layout, where
+// expo-image-picker happened to sit nested under apps/mobile.
 //
-// The damage on Android as of 2026-08-13:
-//   expo-image-picker      → Happy Hour scan (ScanMenuScreen), avatar upload
-//   expo-image-manipulator → same
-//   base64-arraybuffer     → avatar upload (added to mobile in PR #69)
-//
-// Platform-specific files are excluded. AppleSignInButton.ios.tsx imports
-// expo-apple-authentication and (via appleNonce) expo-crypto, but Metro only
-// resolves `.ios.tsx` on iOS and AppleSignInButton.tsx is a null-rendering
-// fallback — so Android correctly does not need those.
+// So: keep these assertions, because declared dependencies should match
+// imports and version drift between two apps sharing one tree is a real
+// hazard. Do not read a failure here as "Android is broken" — read it as
+// "apps/android's manifest has drifted from the code it ships".
 
 import assert from "node:assert/strict";
 import test from "node:test";
@@ -127,8 +127,9 @@ test("apps/android declares every dependency the shared code imports", () => {
   assert.deepEqual(
     missing.sort(),
     [],
-    "apps/android is missing dependencies its shared code imports — their native " +
-      `modules will not be linked into the Android build:\n  ${missing.join("\n  ")}`,
+    "apps/android declares fewer dependencies than the code it ships imports. " +
+      "This is a manifest/code mismatch to fix, not proof the build is broken — " +
+      `autolinking may still resolve them from the hoisted tree:\n  ${missing.join("\n  ")}`,
   );
 });
 
