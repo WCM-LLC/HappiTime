@@ -150,6 +150,7 @@ export default async function AppPreviewVenuePage({
       event_type: event.event_type ?? 'event',
       starts_at: event.starts_at,
       ends_at: event.ends_at ?? null,
+      timezone: event.timezone ?? null,
       is_recurring: event.is_recurring ?? false,
       recurrence_rule: event.recurrence_rule ?? null,
       price_info: event.price_info ?? null,

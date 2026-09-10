@@ -69,6 +69,17 @@ export default async function OrgIntakeReviewPage({
   ]);
   const rows: SubmissionRow[] = (raw ?? []) as SubmissionRow[];
 
+  // Approved but not yet live. Approving stopped publishing in #178, and the
+  // contributor leaderboard counts published content only — so anything
+  // sitting here is a contributor earning nothing while they wait on us.
+  const { data: awaitingRows } = await (db as any)
+    .from('intake_submissions')
+    .select('id, menus!inner(status)')
+    .eq('review_org_id', orgId)
+    .eq('status', 'approved')
+    .neq('menus.status', 'published');
+  const awaitingPublish = ((awaitingRows ?? []) as Array<{ id: string }>).length;
+
   // What each submission actually contains, so nobody approves blind.
   const eventCountBySubmission = new Map<string, number>();
   if (rows.length > 0) {
@@ -118,7 +129,7 @@ export default async function OrgIntakeReviewPage({
             </div>
             <h1 className="text-display-md font-bold text-foreground tracking-tight">Menu approvals</h1>
             <p className="text-body-sm text-muted mt-1">
-              Someone scanned a menu or an event for one of your venues. Nothing here is public until you approve it.
+              Someone scanned a menu or an event for one of your venues. Approving saves a draft — nothing is public until you publish it from the venue page.
             </p>
           </div>
           <Link href={`/orgs/${orgId}`}>
@@ -127,6 +138,19 @@ export default async function OrgIntakeReviewPage({
             </span>
           </Link>
         </div>
+
+        {awaitingPublish > 0 ? (
+          <div className="rounded-md border border-warning bg-warning-light px-4 py-3 mb-6">
+            <p className="text-body-sm font-medium text-foreground">
+              {awaitingPublish} approved{' '}
+              {awaitingPublish === 1 ? 'submission is' : 'submissions are'} still unpublished
+            </p>
+            <p className="text-body-sm text-muted mt-0.5">
+              Approving saves a draft. Publish from the venue page to make it live — until
+              then it is not visible to guests, and the contributor earns nothing for it.
+            </p>
+          </div>
+        ) : null}
 
         {error && (
           <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-6">

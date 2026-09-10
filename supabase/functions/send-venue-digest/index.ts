@@ -1,7 +1,9 @@
 // supabase/functions/send-venue-digest/index.ts
 //
-// Daily venue digest email: sends each ACTIVE (status='published') venue's
-// owner the day's check-in code + yesterday's stats.
+// Daily venue email: every team member of each ACTIVE (status='published')
+// venue gets the day's check-in code.
+//   owner / manager → full digest (code + yesterday's stats)
+//   host            → code-only email
 //
 // Designed to be invoked hourly by a pg_cron job via pg_net.
 // Auth: verified with a shared job token (x-digest-token header),
@@ -11,13 +13,13 @@
 // this function restricts actual sends to the one run that falls in the
 // 6:00–6:59 AM CT window.
 //
-// Recipient / opt-out resolution:
-//   Recipient email = earliest org "owner" (fallback: earliest "manager")
-//   resolved via auth.admin.getUserById, using org_members.email as a first
-//   preference before falling back to the auth-layer email.
-//   Opt-out flags honored (both must be true to send):
-//     1. organizations.notify_weekly_summary  (org-level daily-summary opt-in)
-//     2. user_preferences.notifications_venue_scans (per-user venue-team notification opt-in)
+// Recipient / opt-out resolution (see recipientsForVenue in logic.ts):
+//   Recipients = every org_members row with role in RECIPIENT_ROLES, one
+//   email per person (highest seat wins). Email = org_members.email, falling
+//   back to the auth-layer email via auth.admin.getUserById.
+//   Opt-out flags honored:
+//     1. organizations.notify_weekly_summary  (org-level: skips the whole venue)
+//     2. user_preferences.notifications_venue_scans (per-user: skips that person)
 //   A missing user_preferences row is treated as opted-in (matching track-visit).
 //
 // Set these Supabase secrets before deploying:
@@ -28,12 +30,17 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { generateCheckinCode } from "../_shared/checkin-code.ts";
 import { currentQuarter } from "../_shared/quarter.ts";
 import {
-  serviceDate,
+  buildCodeOnlyHtml,
   formatDigestSubject,
+  formatHostSubject,
   isSixAmCentral,
+  RECIPIENT_ROLES,
+  recipientsForVenue,
+  serviceDate,
   shouldAlertZeroSent,
   venuesToProcess,
   yesterdayServiceWindow,
+  type MemberRow,
 } from "./logic.ts";
 
 const ADMIN_ALERT_EMAIL = "admin@happitime.biz";
@@ -96,22 +103,35 @@ Deno.serve(async (req: Request) => {
     return json({ error: venuesErr.message }, 500);
   }
 
-  // ── 4b. Scope to venues whose org has an owner/manager ───────────────────
-  // Only claimed venues can receive a digest (the recipient is the owner/manager).
-  // Without this, the loop iterated EVERY published venue (~174) — one serial
-  // org_members lookup each — and exceeded the edge wall-clock (504 at 6am).
-  const { data: ownerManagerMembers, error: membersErr } = await supabase
+  // ── 4b. Scope to venues whose org has at least one team member ───────────
+  // Only venues with someone to email are processed. Without this, the loop
+  // iterated EVERY published venue (~174) and exceeded the edge wall-clock
+  // (504 at 6am). Members are fetched ONCE for all orgs and grouped here, so
+  // the per-venue loop makes no membership queries.
+  const { data: memberRows, error: membersErr } = await supabase
     .from("org_members")
-    .select("org_id")
-    .in("role", ["owner", "manager"]);
+    .select("org_id, user_id, email, role, created_at")
+    .in("role", [...RECIPIENT_ROLES])
+    .order("created_at", { ascending: true });
   if (membersErr) {
     console.error("[send-venue-digest] org_members fetch failed:", membersErr.message);
     return json({ error: membersErr.message }, 500);
   }
 
+  type OrgMemberRow = MemberRow & { org_id: string | null };
+  const allMembers = (memberRows ?? []) as OrgMemberRow[];
+
+  const membersByOrg = new Map<string, OrgMemberRow[]>();
+  for (const m of allMembers) {
+    if (!m.org_id) continue;
+    const list = membersByOrg.get(m.org_id) ?? [];
+    list.push(m);
+    membersByOrg.set(m.org_id, list);
+  }
+
   const targetVenues = venuesToProcess(
     (venues ?? []) as { org_id: string | null }[],
-    ownerManagerMembers ?? [],
+    allMembers,
   ) as any[];
 
   const activeVenueCount = targetVenues.length;
@@ -120,9 +140,38 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, sent: 0, active: 0 });
   }
 
+  // ── 4c. Resolve emails and opt-outs once for everyone involved ───────────
+  const targetOrgIds = new Set<string>(targetVenues.map((v: any) => v.org_id));
+  const involved = allMembers.filter((m) => m.org_id != null && targetOrgIds.has(m.org_id));
+
+  // org_members.email is sparse; fall back to the auth-layer email, once per user.
+  const emailByUser = new Map<string, string | null>();
+  for (const m of involved) {
+    if (m.email) emailByUser.set(m.user_id, m.email);
+  }
+  for (const m of involved) {
+    if (emailByUser.has(m.user_id)) continue;
+    const { data: authUser } = await supabase.auth.admin.getUserById(m.user_id);
+    emailByUser.set(m.user_id, authUser?.user?.email ?? null);
+  }
+
+  // Per-user opt-out: notifications_venue_scans === false. Missing row = opted in.
+  const optedOut = new Set<string>();
+  const userIds = [...new Set(involved.map((m) => m.user_id))];
+  if (userIds.length > 0) {
+    const { data: prefRows } = await supabase
+      .from("user_preferences")
+      .select("user_id, notifications_venue_scans")
+      .in("user_id", userIds);
+    for (const p of prefRows ?? []) {
+      if (p.notifications_venue_scans === false) optedOut.add(p.user_id);
+    }
+  }
+
   // ── 5. Process each venue ────────────────────────────────────────────────
   let emailsSent = 0;
-  const skippedOptOut: string[] = [];
+  const skippedOptOut: string[] = []; // venues skipped by the org-level flag
+  let recipientsOptedOut = 0; // people skipped by the per-user flag
   const errors: string[] = [];
 
   for (const venue of targetVenues) {
@@ -135,46 +184,19 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
-      // ── Find the org owner (fallback: manager) ──────────────────────────
-      const { data: members } = await supabase
-        .from("org_members")
-        .select("user_id, email, role, created_at")
-        .eq("org_id", venue.org_id)
-        .in("role", ["owner", "manager"])
-        .order("created_at", { ascending: true });
+      // ── Who gets an email for this venue ────────────────────────────────
+      const orgMembers: MemberRow[] = (membersByOrg.get(venue.org_id) ?? []).map((m) => ({
+        user_id: m.user_id,
+        role: m.role,
+        email: emailByUser.get(m.user_id) ?? null,
+      }));
+      recipientsOptedOut += new Set(
+        orgMembers.filter((m) => optedOut.has(m.user_id)).map((m) => m.user_id),
+      ).size;
+      const recipients = recipientsForVenue(orgMembers, optedOut);
 
-      if (!members || members.length === 0) {
-        console.warn(`[send-venue-digest] venue ${venue.id}: no owner/manager in org ${venue.org_id} — skipping`);
-        continue;
-      }
-
-      // Prefer owner; fall back to manager
-      const owner = members.find((m: any) => m.role === "owner") ?? members[0];
-      const userId: string = owner.user_id;
-
-      // ── Resolve recipient email ─────────────────────────────────────────
-      // org_members.email is sparse; fall back to auth user email
-      let recipientEmail: string | null = owner.email ?? null;
-      if (!recipientEmail) {
-        const { data: authUser } = await supabase.auth.admin.getUserById(userId);
-        recipientEmail = authUser?.user?.email ?? null;
-      }
-
-      if (!recipientEmail) {
-        console.warn(`[send-venue-digest] venue ${venue.id}: could not resolve email for user ${userId} — skipping`);
-        continue;
-      }
-
-      // ── Per-user opt-out: notifications_venue_scans ─────────────────────
-      const { data: prefs } = await supabase
-        .from("user_preferences")
-        .select("notifications_venue_scans")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      // Missing row = opted in (matches track-visit convention)
-      if (prefs?.notifications_venue_scans === false) {
-        skippedOptOut.push(venue.id);
+      if (recipients.length === 0) {
+        console.warn(`[send-venue-digest] venue ${venue.id}: no reachable team member in org ${venue.org_id} — skipping`);
         continue;
       }
 
@@ -247,14 +269,15 @@ Deno.serve(async (req: Request) => {
         // Non-critical — proceed without toastmaker line
       }
 
-      // ── Send email via Resend ───────────────────────────────────────────
+      // ── Send one email per team member via Resend ───────────────────────
       if (!resendKey) {
         console.warn("[send-venue-digest] RESEND_API_KEY not set — email skipped for venue", venue.id);
         continue;
       }
 
-      const subject = formatDigestSubject(code, totalCheckins);
-      const htmlBody = buildDigestHtml({
+      // Built once per venue; every recipient of a kind gets the same body.
+      const digestSubject = formatDigestSubject(code, totalCheckins);
+      const digestHtml = buildDigestHtml({
         venueName: venue.name,
         code,
         checkinCount: totalCheckins,
@@ -264,27 +287,32 @@ Deno.serve(async (req: Request) => {
         serviceDate: yesterdayServiceDate(yesterdayStart),
         toastmakerHandle,
       });
+      const hostSubject = formatHostSubject(code, venue.name);
+      const hostHtml = buildCodeOnlyHtml({ venueName: venue.name, code });
 
-      const emailRes = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${resendKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: fromAddress,
-          to: recipientEmail,
-          subject,
-          html: htmlBody,
-        }),
-      });
+      for (const r of recipients) {
+        const isDigest = r.kind === "digest";
+        const emailRes = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${resendKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: fromAddress,
+            to: r.email,
+            subject: isDigest ? digestSubject : hostSubject,
+            html: isDigest ? digestHtml : hostHtml,
+          }),
+        });
 
-      if (!emailRes.ok) {
-        const errText = await emailRes.text();
-        console.error(`[send-venue-digest] Resend error for venue ${venue.id}:`, errText);
-        errors.push(`venue:${venue.id}:resend_error`);
-      } else {
-        emailsSent++;
+        if (!emailRes.ok) {
+          const errText = await emailRes.text();
+          console.error(`[send-venue-digest] Resend error for venue ${venue.id} user ${r.userId}:`, errText);
+          errors.push(`venue:${venue.id}:user:${r.userId}:resend_error`);
+        } else {
+          emailsSent++;
+        }
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -323,6 +351,7 @@ Deno.serve(async (req: Request) => {
     sent: emailsSent,
     active: activeVenueCount,
     skipped_opt_out: skippedOptOut.length,
+    recipients_opt_out: recipientsOptedOut,
     errors: errors.length > 0 ? errors : undefined,
   });
 });

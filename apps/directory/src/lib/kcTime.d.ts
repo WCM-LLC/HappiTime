@@ -11,3 +11,21 @@ export declare function kcNowParts(reference?: Date): { dow: number; minutes: nu
 
 /** "5:47 PM" from minutes past midnight. */
 export declare function formatClock(minutes: number): string;
+
+/**
+ * Format a `timestamptz` from venue_events in the event's own zone.
+ *
+ * Never format event timestamps with a bare `toLocale*` call — the runtime
+ * zone on Vercel is UTC, which shifts every KC time by five hours.
+ */
+export declare function formatEventDate(iso: string, timeZone?: string): string;
+
+/** "3:00 PM" in the event's zone. */
+export declare function formatEventTime(iso: string, timeZone?: string): string;
+
+/** "3:00 PM – 9:00 PM", or just the start when there is no end. */
+export declare function formatEventTimeRange(
+  startIso: string,
+  endIso: string | null | undefined,
+  timeZone?: string,
+): string;

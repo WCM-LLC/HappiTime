@@ -129,7 +129,7 @@ export function attemptsRemaining(limit: number, usedCount: number): number {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * True when the user has accumulated enough stamps to redeem a free round.
+ * True when the user has accumulated enough stamps to redeem a reward.
  * The caller must pass the *current* stamp count (i.e. post-checkin, pre-redeem).
  */
 export function canRedeem(stamps: number): boolean {
