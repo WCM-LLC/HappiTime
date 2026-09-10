@@ -13,7 +13,7 @@ import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const sql = readFileSync(
-  join(__dirname, "..", "supabase/migrations/20260814120000_published_at.sql"),
+  join(__dirname, "..", "supabase/migrations/20260910120000_published_at.sql"),
   "utf8",
 );
 
