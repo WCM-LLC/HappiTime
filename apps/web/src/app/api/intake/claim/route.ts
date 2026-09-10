@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   // against a maliciously crafted token doesn't hurt).
   const { error: mErr } = await db
     .from('menus')
-    .update({ status: 'published', is_active: true })
+    .update({ status: 'published', is_active: true, published_at: new Date().toISOString() })
     .eq('id', v.payload.menu_id)
     .eq('venue_id', v.payload.venue_id);
   if (mErr) {

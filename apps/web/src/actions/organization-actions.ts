@@ -365,7 +365,7 @@ export async function publishOrganizationMenu(orgId: string, formData: FormData)
 
   const { error } = await writeSupabase
     .from('menus')
-    .update({ status: HH_STATUS_PUBLISHED })
+    .update({ status: HH_STATUS_PUBLISHED, published_at: new Date().toISOString() })
     .eq('id', menuId)
     .eq('org_id', orgId)
     .eq('scope', 'organization');
@@ -385,7 +385,7 @@ export async function unpublishOrganizationMenu(orgId: string, formData: FormDat
 
   const { error } = await writeSupabase
     .from('menus')
-    .update({ status: HH_STATUS_DRAFT })
+    .update({ status: HH_STATUS_DRAFT, published_at: null })
     .eq('id', menuId)
     .eq('org_id', orgId)
     .eq('scope', 'organization');
