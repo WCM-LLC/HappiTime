@@ -242,7 +242,7 @@ export default async function AddressReviewPage() {
                     <td className="px-4 py-3 whitespace-nowrap">{scoreBadge(r.match_score)}</td>
                     <td className="px-4 py-3 text-muted whitespace-nowrap">{formatDate(r.checked_at)}</td>
                     <td className="px-4 py-3">
-                      <AddressReviewActions venueId={r.venue_id} googleAddress={r.google_address} />
+                      <AddressReviewActions venueId={r.venue_id} googleAddress={r.google_address} placesId={r.places_id} />
                     </td>
                   </tr>
                 ))}
