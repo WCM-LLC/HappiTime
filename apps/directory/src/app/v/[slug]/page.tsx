@@ -1,18 +1,60 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import { getVenueBySlug } from "@/lib/queries";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/storeLinks";
+import { isNoRedirect, serverScanSessionId, storeRedirectFor } from "@/lib/storeRedirect";
 import { VenueLandingClient } from "./VenueLandingClient";
 
 // QR / deep-link landing: https://happitime.biz/v/{slug}?src=qr
-// A phone scanning a table-tent QR lands here. The client component fires the
-// `track-visit` attribution event and attempts to open the native app, with
-// store + "continue in browser" fallbacks. Kept lightweight (no full venue
-// chrome) — its job is attribution + routing, not to replace the venue page.
+//
+// One QR, three outcomes:
+//   • App installed  → iOS Universal Link / Android App Link opens the app before
+//     this page ever loads (AASA + assetlinks cover /v/*); useVenueDeepLink routes
+//     to the venue and on into check-in.
+//   • Phone, no app  → this page renders, so we count the scan server-side and
+//     302 straight to the App Store / Play Store (zero taps — spec §4 D1).
+//   • Desktop / bot / ?nr=1 → the lightweight landing below, where the client
+//     component fires `track-visit` and offers app + store + browser links.
 
 export const dynamic = "force-dynamic"; // attribution must run on every hit, not be cached
 
-const APP_STORE_URL = "https://apps.apple.com/us/app/happitime/id6757933269";
-const PLAY_STORE_URL = "https://play.google.com/store/apps/happitime";
+// Server-side scan count must never hold up the store hand-off for long.
+const TRACK_VISIT_TIMEOUT_MS = 1500;
+
+const VALID_SOURCES = new Set(["qr", "app_checkin", "push_click", "organic"]);
+
+/** Record the scan before redirecting away (the client component never runs). */
+async function recordServerScan(input: {
+  venueId: string;
+  slug: string;
+  source: string;
+  sessionId: string;
+}): Promise<void> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !anonKey) return;
+  try {
+    await fetch(`${url.replace(/\/+$/, "")}/functions/v1/track-visit`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+      },
+      body: JSON.stringify({
+        venue_id: input.venueId,
+        venue_slug: input.slug,
+        source: VALID_SOURCES.has(input.source) ? input.source : "qr",
+        session_id: input.sessionId,
+      }),
+      cache: "no-store",
+      signal: AbortSignal.timeout(TRACK_VISIT_TIMEOUT_MS),
+    });
+  } catch {
+    // Timeout or network error — still send them to the store.
+  }
+}
 
 // Mirror of the neighborhood→slug mapping used by VenueCard for canonical links.
 const NEIGHBORHOOD_SLUGS: Record<string, string> = {
@@ -38,7 +80,7 @@ function neighborhoodToSlug(n: string | null): string {
 
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ src?: string }>;
+  searchParams: Promise<{ src?: string; nr?: string | string[] }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -54,11 +96,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function VenueQrLandingPage({ params, searchParams }: Props) {
   const { slug } = await params;
-  const { src } = await searchParams;
+  const { src, nr } = await searchParams;
   const venue = await getVenueBySlug(slug);
   if (!venue) notFound();
 
   const source = typeof src === "string" && src.length > 0 ? src : "qr";
+
+  // Phone without the app → count the scan, then straight to the right store.
+  const h = await headers();
+  const userAgent = h.get("user-agent");
+  const store = storeRedirectFor({
+    userAgent,
+    slug: venue.slug,
+    noRedirect: isNoRedirect(nr),
+    appStoreUrl: APP_STORE_URL,
+    playStoreUrl: PLAY_STORE_URL,
+  });
+  if (store) {
+    const ip = (h.get("x-forwarded-for") ?? "").split(",")[0]?.trim() || h.get("x-real-ip");
+    await recordServerScan({
+      venueId: venue.id,
+      slug: venue.slug,
+      source,
+      sessionId: serverScanSessionId(ip, userAgent),
+    });
+    redirect(store.url); // throws NEXT_REDIRECT — keep outside any try/catch
+  }
   const webVenueUrl = `/kc/${neighborhoodToSlug(venue.neighborhood)}/${venue.slug}`;
   const appDeepLink = `happitime://venue/${venue.slug}`;
 
