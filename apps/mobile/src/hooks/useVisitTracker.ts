@@ -431,17 +431,17 @@ export function useVisitTracker(venues: VenuePoint[]) {
     return () => sub.remove();
   }, []);
 
-  const startTracking = useCallback(async () => {
+  const startTracking = useCallback(async (): Promise<"granted" | "denied"> => {
     const { status: fgStatus } = await Location.requestForegroundPermissionsAsync();
     if (fgStatus !== "granted") {
       console.warn("[visit-tracker] foreground location permission denied");
-      return;
+      return "denied";
     }
 
     const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
     if (bgStatus !== "granted") {
       console.warn("[visit-tracker] background location permission denied");
-      return;
+      return "denied";
     }
 
     const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_LOCATION_TASK);
@@ -462,6 +462,7 @@ export function useVisitTracker(venues: VenuePoint[]) {
 
     setIsTracking(true);
     void captureCurrentLocation();
+    return "granted";
   }, []);
 
   const stopTracking = useCallback(async () => {

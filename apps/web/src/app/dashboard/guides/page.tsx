@@ -4,6 +4,8 @@ import UserBar from '@/components/layout/UserBar';
 import { createClient } from '@/utils/supabase/server';
 import { deleteDraft, submitGuide } from '@/actions/guide-actions';
 import { GUIDE_AUTHORING_PATH, loginPathFor } from '@/utils/auth-paths';
+import { SubmitButton } from '@/components/ui/SubmitButton';
+import { GUIDE_ERRORS as ERRORS, GUIDE_NOTICE as NOTICE } from './guide-messages';
 
 const STATUS_LABEL: Record<string, string> = {
   draft: 'Draft',
@@ -17,27 +19,6 @@ const STATUS_STYLE: Record<string, string> = {
   pending_review: 'bg-warning-light border border-warning text-warning',
   published: 'bg-success-light border border-success text-success',
   archived: 'bg-surface border border-border text-muted-light',
-};
-
-const NOTICE: Record<string, string> = {
-  draft_saved: 'Draft saved.',
-  draft_deleted: 'Draft deleted.',
-  guide_submitted: 'Guide submitted for review.',
-  guide_published: 'Guide published.',
-};
-
-const ERRORS: Record<string, string> = {
-  title_required: 'A title is required.',
-  save_failed: 'Save failed — try again.',
-  submit_failed: 'Submit failed — try again.',
-  delete_failed: 'Delete failed — try again.',
-  guide_not_found: 'Guide not found.',
-  already_published: 'This guide is already published.',
-  missing_guide_id: 'No guide selected.',
-  not_authorized: 'You need Super User access to author guides.',
-  cover_file_too_large: 'Cover image must be 5 MB or smaller.',
-  cover_file_type: 'Cover image must be AVIF, WebP, JPG, or PNG.',
-  cover_upload_failed: 'Cover image upload failed — try again.',
 };
 
 export default async function GuidesListPage({
@@ -85,11 +66,18 @@ export default async function GuidesListPage({
               {rows.length} guide{rows.length !== 1 ? 's' : ''}
             </p>
           </div>
-          <Link href="/dashboard/guides/new">
-            <span className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer">
-              + New guide
-            </span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/dashboard/referrals">
+              <span className="inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer">
+                My QR
+              </span>
+            </Link>
+            <Link href="/dashboard/guides/new">
+              <span className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer">
+                + New guide
+              </span>
+            </Link>
+          </div>
         </div>
 
         {noticeText ? (
@@ -158,23 +146,25 @@ export default async function GuidesListPage({
                           {canSubmit ? (
                             <form>
                               <input type="hidden" name="id" value={g.id} />
-                              <button
+                              <SubmitButton
                                 formAction={submitGuide}
-                                className="text-caption font-medium text-foreground hover:underline cursor-pointer"
+                                pendingLabel="Submitting…"
+                                className="text-caption font-medium text-foreground hover:underline cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                               >
                                 Submit
-                              </button>
+                              </SubmitButton>
                             </form>
                           ) : null}
                           {canDelete ? (
                             <form>
                               <input type="hidden" name="id" value={g.id} />
-                              <button
+                              <SubmitButton
                                 formAction={deleteDraft}
-                                className="text-caption font-medium text-error hover:underline cursor-pointer"
+                                pendingLabel="Deleting…"
+                                className="text-caption font-medium text-error hover:underline cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                               >
                                 Delete
-                              </button>
+                              </SubmitButton>
                             </form>
                           ) : null}
                         </div>

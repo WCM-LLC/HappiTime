@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 
 const BASE = "https://happitime.biz";
@@ -95,9 +96,9 @@ export default function BestHappyHourFood() {
       />
 
       <nav className="text-sm text-muted mb-6 flex items-center gap-1.5">
-        <a href="/" className="hover:text-foreground transition-colors">HappiTime</a>
+        <Link href="/" className="hover:text-foreground transition-colors">HappiTime</Link>
         <span className="text-muted-light">/</span>
-        <a href="/guides/" className="hover:text-foreground transition-colors">Guides</a>
+        <Link href="/guides/" className="hover:text-foreground transition-colors">Guides</Link>
         <span className="text-muted-light">/</span>
         <span className="text-foreground font-medium">Best Happy Hour Food</span>
       </nav>
@@ -142,7 +143,7 @@ export default function BestHappyHourFood() {
           Westport — Casual &amp; Cheap
         </h3>
         <p className="text-muted leading-relaxed mb-3">
-          <a href="/happy-hour/westport-kansas-city/" className="text-brand font-medium hover:underline">Westport</a>{" "}
+          <Link href="/happy-hour/westport-kansas-city/" className="text-brand font-medium hover:underline">Westport</Link>{" "}
           bars lean into shareable, no-fuss food: loaded nachos, wings,
           sliders, and tacos in the $3-$6 range during happy hour. The
           neighborhood&apos;s bar density means you can graze across multiple
@@ -154,7 +155,7 @@ export default function BestHappyHourFood() {
         </h3>
         <p className="text-muted leading-relaxed mb-3">
           The{" "}
-          <a href="/happy-hour/crossroads-kansas-city/" className="text-brand font-medium hover:underline">Crossroads</a>{" "}
+          <Link href="/happy-hour/crossroads-kansas-city/" className="text-brand font-medium hover:underline">Crossroads</Link>{" "}
           is where KC&apos;s creative food scene meets happy hour pricing.
           Expect seasonal small plates, house-made charcuterie, and
           inventive snacks you won&apos;t find on standard bar menus — often at
@@ -165,7 +166,7 @@ export default function BestHappyHourFood() {
           Power &amp; Light — Upscale Bites
         </h3>
         <p className="text-muted leading-relaxed mb-3">
-          <a href="/happy-hour/power-light-kansas-city/" className="text-brand font-medium hover:underline">Power &amp; Light</a>{" "}
+          <Link href="/happy-hour/power-light-kansas-city/" className="text-brand font-medium hover:underline">Power &amp; Light</Link>{" "}
           restaurants offer polished happy hour food — think flatbreads,
           bruschetta flights, and sushi rolls at $6-$9. The savings are
           significant when regular appetizer prices run $14-$18.
@@ -176,7 +177,7 @@ export default function BestHappyHourFood() {
         </h3>
         <p className="text-muted leading-relaxed mb-3">
           The{" "}
-          <a href="/happy-hour/plaza-kansas-city/" className="text-brand font-medium hover:underline">Plaza</a>{" "}
+          <Link href="/happy-hour/plaza-kansas-city/" className="text-brand font-medium hover:underline">Plaza</Link>{" "}
           caters to a more upscale crowd with discounted wine pairings,
           cheese boards, and oyster deals. It is the go-to for a
           date-night happy hour where food is the main event.
@@ -186,7 +187,7 @@ export default function BestHappyHourFood() {
           18th &amp; Vine — Soul Food Specials
         </h3>
         <p className="text-muted leading-relaxed">
-          <a href="/happy-hour/18th-and-vine-kansas-city/" className="text-brand font-medium hover:underline">18th &amp; Vine</a>{" "}
+          <Link href="/happy-hour/18th-and-vine-kansas-city/" className="text-brand font-medium hover:underline">18th &amp; Vine</Link>{" "}
           offers some of the most authentic food in the city during happy
           hour — think discounted fried catfish, collard greens, and
           cornbread alongside affordable pours.
@@ -203,7 +204,7 @@ export default function BestHappyHourFood() {
           <li>Start with a drink and one appetizer at your first stop. Do not over-commit.</li>
           <li>Move to a second venue for another round and a different plate — variety is the point.</li>
           <li>Budget $18-$25 per person for drinks and food across two to three stops.</li>
-          <li>Use <a href="/kc/" className="text-brand hover:underline">HappiTime</a> to check which venues have food specials today before you leave.</li>
+          <li>Use <Link href="/kc/" className="text-brand hover:underline">HappiTime</Link> to check which venues have food specials today before you leave.</li>
         </ol>
       </section>
 
@@ -237,12 +238,12 @@ export default function BestHappyHourFood() {
           See which KC restaurants are running food specials right now.
         </p>
         <div className="flex items-center justify-center gap-3">
-          <a
+          <Link
             href="/kc/"
             className="inline-block rounded-full border border-brand px-6 py-2.5 text-brand font-semibold text-sm hover:bg-brand hover:text-white transition-colors"
           >
             Browse KC Happy Hours
-          </a>
+          </Link>
           <a
             href="/app/"
             className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors"

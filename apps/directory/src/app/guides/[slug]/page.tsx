@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 import { supabase } from "@/lib/supabase";
 import { guideCoverImageSrc, normalizeGuideCoverImageUrl } from "@/lib/guideCoverUrl";
 import ImageLightbox from "@/components/ImageLightbox";
+import AuthorByline from "@/components/AuthorByline";
 
 const BASE = "https://happitime.biz";
 
@@ -14,9 +16,19 @@ export const dynamic = "force-dynamic";
 async function getGuide(slug: string) {
   const { data } = await supabase
     .from("guides")
-    .select("id, title, subtitle, body_md, city, tags, cover_image_url, published_at, updated_at")
+    .select("id, title, subtitle, body_md, city, tags, cover_image_url, published_at, updated_at, author_id")
     .eq("slug", slug)
     .eq("status", "published")
+    .maybeSingle();
+  return data ?? null;
+}
+
+async function getAuthor(authorId: string | null) {
+  if (!authorId) return null;
+  const { data } = await supabase
+    .from("public_guide_authors")
+    .select("display_name, avatar_url, instagram_url, tiktok_url, website_url, youtube_url")
+    .eq("author_id", authorId)
     .maybeSingle();
   return data ?? null;
 }
@@ -66,6 +78,8 @@ export default async function GuidePage({
   const guide = await getGuide(slug);
   if (!guide) notFound();
 
+  const author = await getAuthor(guide.author_id);
+
   const canonical = `${BASE}/guides/${slug}/`;
   const coverImageUrl = normalizeGuideCoverImageUrl(guide.cover_image_url);
   const coverImageSrc = guideCoverImageSrc(coverImageUrl);
@@ -98,13 +112,13 @@ export default async function GuidePage({
 
       {/* Breadcrumb nav */}
       <nav className="text-sm text-muted mb-6 flex items-center gap-1.5">
-        <a href="/" className="hover:text-foreground transition-colors">
+        <Link href="/" className="hover:text-foreground transition-colors">
           HappiTime
-        </a>
+        </Link>
         <span className="text-muted-light">/</span>
-        <a href="/guides/" className="hover:text-foreground transition-colors">
+        <Link href="/guides/" className="hover:text-foreground transition-colors">
           Guides
-        </a>
+        </Link>
         <span className="text-muted-light">/</span>
         <span className="text-foreground font-medium truncate max-w-[18rem]">
           {guide.title}
@@ -153,6 +167,8 @@ export default async function GuidePage({
           ) : null}
         </header>
 
+        {author ? <AuthorByline author={author} /> : null}
+
         {/* Body */}
         <article className="prose prose-gray max-w-none">
           <ReactMarkdown>{guide.body_md ?? ""}</ReactMarkdown>
@@ -169,12 +185,12 @@ export default async function GuidePage({
           for reminders.
         </p>
         <div className="flex items-center justify-center gap-3">
-          <a
+          <Link
             href="/kc/"
             className="inline-block rounded-full border border-brand px-6 py-2.5 text-brand font-semibold text-sm hover:bg-brand hover:text-white transition-colors"
           >
             Browse KC Happy Hours
-          </a>
+          </Link>
           <a
             href="/app/"
             className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors"

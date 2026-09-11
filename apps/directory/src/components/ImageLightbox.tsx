@@ -72,6 +72,9 @@ export default function ImageLightbox({ children, className }: LightboxProps) {
           onClick={close}
           className={`fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 transition-opacity duration-200 ${shown ? 'opacity-100' : 'opacity-0'}`}
         >
+          {/* Fullscreen overlay with no fixed layout box; src is already a
+              pre-sized CDN variant, so next/image adds cost without benefit. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={src}
             alt={alt}

@@ -8,7 +8,9 @@
 // Uses starts_at timestamptz (absolute instant) — no TZ-string issue.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendExpoPush, type ExpoPushMessage } from "../_shared/expo-push.ts";
+import { sendUserNotifications } from "../_shared/notify.ts";
+import { categoryGatedRecipients } from "../_shared/notify-recipients.mjs";
+import { eventStartingCopy } from "../_shared/notification-copy.mjs";
 
 Deno.serve(async (req) => {
   // POST-only; cron invocations and manual triggers both POST
@@ -80,68 +82,58 @@ Deno.serve(async (req) => {
 
   const eligibleIds = [...new Set(eligibleEvents.map((e: any) => e.venue_id))];
 
-  // Resolve recipients: users who follow these venues with push + venue_updates prefs
-  const { data: tokenRows, error: tokenErr } = await supabase
+  // Followers of the eligible venues, user-first (no token join).
+  const { data: followerRows, error: followerErr } = await supabase
     .from("user_followed_venues")
-    .select(`
-      user_id,
-      venue_id,
-      token:user_push_tokens!inner(expo_push_token),
-      prefs:user_preferences!inner(notifications_push, notifications_venue_updates)
-    `)
+    .select("user_id, venue_id")
     .in("venue_id", eligibleIds);
 
-  if (tokenErr) {
-    console.error("[notify-events] token fetch failed:", tokenErr.message);
-    return new Response(JSON.stringify({ error: tokenErr.message }), { status: 500 });
+  if (followerErr) {
+    console.error("[notify-events] follower fetch failed:", followerErr.message);
+    return new Response(JSON.stringify({ error: followerErr.message }), { status: 500 });
   }
 
-  if (!tokenRows || tokenRows.length === 0) {
-    return new Response(JSON.stringify({ sent: 0, reason: "no tokens for followed venues" }));
+  if (!followerRows || followerRows.length === 0) {
+    return new Response(JSON.stringify({ sent: 0, reason: "no followers for eligible venues" }));
   }
 
-  // Build venue → events[] multimap (multiple events per venue in window is valid)
-  const venueEventsMap = new Map<string, any[]>();
-  for (const ev of eligibleEvents) {
-    const list = venueEventsMap.get(ev.venue_id) ?? [];
-    list.push(ev);
-    venueEventsMap.set(ev.venue_id, list);
+  const allFollowerIds = [...new Set((followerRows as any[]).map((r) => r.user_id))];
+  const { data: prefRows } = await supabase
+    .from("user_preferences")
+    .select("user_id, notifications_venue_updates")
+    .in("user_id", allFollowerIds);
+
+  const followersByVenue = new Map<string, string[]>();
+  for (const r of followerRows as any[]) {
+    const list = followersByVenue.get(r.venue_id) ?? [];
+    list.push(r.user_id);
+    followersByVenue.set(r.venue_id, list);
   }
 
-  // Build one message per (recipient, event)
-  const messages: ExpoPushMessage[] = [];
+  let inserted = 0;
+  let pushed = 0;
+  for (const ev of eligibleEvents as any[]) {
+    const recipients = categoryGatedRecipients(
+      followersByVenue.get(ev.venue_id) ?? [],
+      prefRows ?? [],
+      "notifications_venue_updates",
+    );
+    if (recipients.length === 0) continue;
 
-  for (const row of tokenRows as any[]) {
-    const token = row.token?.expo_push_token;
-    if (!token || !token.startsWith("ExponentPushToken")) continue;
+    const venueName = (ev.venue as any)?.name ?? null;
+    const { title, body } = eventStartingCopy(ev.title, venueName, ev.starts_at);
 
-    // Skip if user disabled push or venue-update notifications
-    if (row.prefs?.notifications_push === false) continue;
-    if (row.prefs?.notifications_venue_updates === false) continue;
-
-    const venueEventList = venueEventsMap.get(row.venue_id);
-    if (!venueEventList) continue;
-
-    for (const ev of venueEventList) {
-      const venueName = (ev.venue as any)?.name ?? "a saved venue";
-
-      messages.push({
-        to: token,
-        title: `Starting soon at ${venueName}`,
-        body: `${ev.title} starts soon`,
-        sound: "default",
-        data: { type: "event", venueId: row.venue_id, eventId: ev.id },
-      });
-    }
+    const result = await sendUserNotifications(supabase, recipients, {
+      type: "event",
+      title,
+      body,
+      data: { type: "event", venueId: ev.venue_id, eventId: ev.id },
+    });
+    inserted += result.inserted;
+    pushed += result.pushed;
   }
 
-  if (messages.length === 0) {
-    return new Response(JSON.stringify({ sent: 0, reason: "no valid tokens" }));
-  }
-
-  const totalSent = await sendExpoPush(messages);
-
-  return new Response(JSON.stringify({ sent: totalSent }), {
+  return new Response(JSON.stringify({ inserted, sent: pushed }), {
     headers: { "Content-Type": "application/json" },
   });
 });

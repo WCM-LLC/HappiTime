@@ -4,7 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
 import { isAdminEmail } from '@/utils/admin-emails';
+import { consoleContributorTier } from '@/utils/contribution-attribution';
 import { toStr, toNullableStr, toNumberOrNull, redirectWithError, redirectWithSuccess, requireField } from '@/utils/form';
+import { REWARD_PRESET_KEYS } from '@happitime/shared-types';
 import {
   cloneOrganizationMenuToVenue,
   cloneVenueMenuToVenue,
@@ -74,7 +76,11 @@ async function requireVenueScopedWriteAccess(
   if (!venue) redirectWithError(orgId, venueId, 'not_authorized');
 
   if (isPlatformAdmin) {
-    return { supabase, writeSupabase: serviceSupabase ?? supabase };
+    return {
+      supabase,
+      writeSupabase: serviceSupabase ?? supabase,
+      actor: { id: user.id, tier: consoleContributorTier(true) },
+    };
   }
 
   const { data: membership } = await lookupSupabase
@@ -90,18 +96,27 @@ async function requireVenueScopedWriteAccess(
   }
 
   if (role !== 'owner') {
-    const { data: assignment } = await lookupSupabase
+    // Mirrors public.has_venue_assignment(): explicit venue_members rows
+    // restrict a member to those venues; ZERO rows in the org means every
+    // venue, including future ones (owner decision 2026-07-29 — the invite UI
+    // can create managers with no venue selection).
+    const { data: assignments } = await lookupSupabase
       .from('venue_members')
       .select('venue_id')
       .eq('org_id', orgId)
-      .eq('venue_id', venueId)
-      .eq('user_id', user.id)
-      .maybeSingle();
+      .eq('user_id', user.id);
 
-    if (!assignment) redirectWithError(orgId, venueId, 'not_authorized');
+    const assignmentRows = (assignments ?? []) as { venue_id: string }[];
+    if (assignmentRows.length > 0 && !assignmentRows.some((a) => a.venue_id === venueId)) {
+      redirectWithError(orgId, venueId, 'not_authorized');
+    }
   }
 
-  return { supabase, writeSupabase: supabase };
+  return {
+    supabase,
+    writeSupabase: supabase,
+    actor: { id: user.id, tier: consoleContributorTier(false) },
+  };
 }
 
 async function requireVenueManagementAccess(orgId: string, venueId: string) {
@@ -188,7 +203,11 @@ async function publishMenusByIds(
 
   const { data: updated, error } = await supabase
     .from('menus')
-    .update({ status: HH_STATUS_PUBLISHED, is_active: true })
+    .update({
+      status: HH_STATUS_PUBLISHED,
+      is_active: true,
+      published_at: new Date().toISOString(),
+    })
     .eq('venue_id', venueId)
     .in('id', uniqueMenuIds)
     .select('id');
@@ -316,6 +335,41 @@ export async function updateVenue(orgId: string, venueId: string, formData: Form
   redirectWithSuccess(orgId, venueId, 'venue_saved');
 }
 
+/**
+ * Save a venue's redeemable-reward config (preset + advertise toggle).
+ * Presets only — a value outside the canonical key list is stored as null.
+ * Mirrors updateVenue: role-gated via requireVenueManagementAccess, and the
+ * zero-rows check catches an RLS-filtered write that would otherwise report a
+ * false success (grant ≠ RLS — a filtered UPDATE returns 0 rows, no error).
+ */
+export async function saveVenueReward(orgId: string, venueId: string, formData: FormData) {
+  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+
+  const rawPreset = toStr(formData.get('reward_preset'));
+  const reward_preset = REWARD_PRESET_KEYS.includes(rawPreset) ? rawPreset : null;
+  const reward_active = formData.get('reward_active') === 'on';
+
+  const { data: updated, error } = await writeSupabase
+    .from('venues')
+    .update({ reward_preset, reward_active } as never)
+    .eq('id', venueId)
+    .eq('org_id', orgId)
+    .select('id');
+
+  if (error) {
+    console.error('[saveVenueReward] update failed', error);
+    redirectWithError(orgId, venueId, 'venue_update_failed');
+  }
+
+  if (!updated || updated.length === 0) {
+    console.warn('[saveVenueReward] zero rows updated', { orgId, venueId });
+    redirectWithError(orgId, venueId, 'not_authorized');
+  }
+
+  revalidateVenue(orgId, venueId);
+  redirectWithSuccess(orgId, venueId, 'reward_saved');
+}
+
 export async function publishVenue(orgId: string, venueId: string, _formData?: FormData) {
   const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
   await setVenueStatus(writeSupabase, orgId, venueId, HH_STATUS_PUBLISHED, 'venue_publish_failed');
@@ -362,7 +416,7 @@ export async function updateVenueRatingSettings(orgId: string, venueId: string, 
 }
 /** Creates a new happy hour window in 'draft' status for the given venue. */
 export async function addHappyHour(orgId: string, venueId: string, formData: FormData) {
-  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  const { writeSupabase, actor } = await requireVenueManagementAccess(orgId, venueId);
   const redirectTo = orgDashboardReturnPath(orgId, formData);
 
   const { data: venue, error: vErr } = await writeSupabase
@@ -394,6 +448,8 @@ export async function addHappyHour(orgId: string, venueId: string, formData: For
     timezone,
     status: HH_STATUS_DRAFT,
     label,
+    created_by: actor.id,
+    created_by_tier: actor.tier,
   }).select('id');
 
   assertMutationRows('addHappyHour', inserted, error, orgId, venueId, 'happyhour_create_failed', redirectTo);
@@ -456,7 +512,7 @@ export async function publishHappyHour(orgId: string, venueId: string, formData:
 
   const { data: updated, error } = await writeSupabase
     .from('happy_hour_windows')
-    .update({ status: HH_STATUS_PUBLISHED })
+    .update({ status: HH_STATUS_PUBLISHED, published_at: new Date().toISOString() })
     .eq('id', hh_id)
     .eq('venue_id', venueId)
     .select('id');
@@ -477,7 +533,7 @@ export async function unpublishHappyHour(orgId: string, venueId: string, formDat
 
   const { data: updated, error } = await writeSupabase
     .from('happy_hour_windows')
-    .update({ status: HH_STATUS_DRAFT })
+    .update({ status: HH_STATUS_DRAFT, published_at: null })
     .eq('id', hh_id)
     .eq('venue_id', venueId)
     .select('id');
@@ -601,7 +657,7 @@ export async function updateHappyHourMenus(orgId: string, venueId: string, formD
 
 /** Creates a new menu in 'draft' status for a venue. */
 export async function createMenu(orgId: string, venueId: string, formData: FormData) {
-  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  const { writeSupabase, actor } = await requireVenueManagementAccess(orgId, venueId);
   const redirectTo = orgDashboardReturnPath(orgId, formData);
   const name = requireField(formData, 'menu_name', orgId, venueId, 'missing_menu_name', redirectTo);
 
@@ -612,6 +668,8 @@ export async function createMenu(orgId: string, venueId: string, formData: FormD
     name,
     status: HH_STATUS_DRAFT,
     is_active: true,
+    created_by: actor.id,
+    created_by_tier: actor.tier,
   }).select('id');
 
   assertMutationRows('createMenu', inserted, error, orgId, venueId, 'menu_create_failed', redirectTo);
@@ -622,7 +680,7 @@ export async function createMenu(orgId: string, venueId: string, formData: FormD
 
 /** Imports an organization menu as a venue-owned copy, or refreshes an existing copy. */
 export async function importOrganizationMenu(orgId: string, venueId: string, formData: FormData) {
-  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  const { writeSupabase, actor } = await requireVenueManagementAccess(orgId, venueId);
   const redirectTo = orgDashboardReturnPath(orgId, formData);
   const organizationMenuId = requireField(
     formData,
@@ -670,6 +728,7 @@ export async function importOrganizationMenu(orgId: string, venueId: string, for
         orgId,
         venueId,
         status: HH_STATUS_DRAFT,
+        actor,
       });
     }
   } catch (error) {
@@ -683,7 +742,7 @@ export async function importOrganizationMenu(orgId: string, venueId: string, for
 
 /** Copies a published menu from another venue in the same organization as an independent draft. */
 export async function importPublishedVenueMenu(orgId: string, venueId: string, formData: FormData) {
-  const { writeSupabase } = await requireVenueManagementAccess(orgId, venueId);
+  const { writeSupabase, actor } = await requireVenueManagementAccess(orgId, venueId);
   const redirectTo = orgDashboardReturnPath(orgId, formData);
   const sourceMenuId = requireField(
     formData,
@@ -718,6 +777,7 @@ export async function importPublishedVenueMenu(orgId: string, venueId: string, f
       orgId,
       venueId,
       status: HH_STATUS_DRAFT,
+      actor,
     });
   } catch (error) {
     console.error('[importPublishedVenueMenu] clone failed', error);
@@ -836,7 +896,7 @@ export async function publishMenu(orgId: string, venueId: string, formData: Form
 
   const { data: updated, error } = await writeSupabase
     .from('menus')
-    .update({ status: HH_STATUS_PUBLISHED })
+    .update({ status: HH_STATUS_PUBLISHED, published_at: new Date().toISOString() })
     .eq('id', menu_id)
     .eq('venue_id', venueId)
     .select('id');
@@ -856,7 +916,7 @@ export async function unpublishMenu(orgId: string, venueId: string, formData: Fo
 
   const { data: updated, error } = await writeSupabase
     .from('menus')
-    .update({ status: HH_STATUS_DRAFT })
+    .update({ status: HH_STATUS_DRAFT, published_at: null })
     .eq('id', menu_id)
     .eq('venue_id', venueId)
     .select('id');

@@ -55,7 +55,10 @@ Deno.serve(async (req) => {
     return json({ error: "Unauthorized" }, 401);
   }
 
-  const userClient = createClient(supabaseUrl, jwt, {
+  // apikey must be a real API key — user JWTs stopped validating as apikeys
+  // once the project moved to the new signing/publishable key system
+  // (2026-08-06 stamp outage; track-visit's pattern is the reference).
+  const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") ?? "", {
     auth: { persistSession: false },
     global: { headers: { Authorization: authHeader } },
   });

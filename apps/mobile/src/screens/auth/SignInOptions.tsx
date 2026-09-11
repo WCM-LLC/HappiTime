@@ -51,7 +51,9 @@ export const SignInOptions: React.FC<SignInOptionsProps> = ({
 
       if (error) {
         console.error("❌ Supabase OTP error:", error);
-        setStatusMessage(`Auth error: ${error.message}`);
+        setStatusMessage(
+          "We couldn't send your sign-in email — please try again, or use Google/Apple sign-in."
+        );
         return;
       }
 
@@ -62,7 +64,9 @@ export const SignInOptions: React.FC<SignInOptionsProps> = ({
       setStatusMessage("Magic link sent. Check your email 👍");
     } catch (err: any) {
       console.error("🔥 Unexpected auth exception:", err);
-      setStatusMessage(err?.message ?? "Unexpected error");
+      setStatusMessage(
+        "We couldn't send your sign-in email — please try again, or use Google/Apple sign-in."
+      );
     } finally {
       setLoading(false);
     }

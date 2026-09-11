@@ -1,5 +1,5 @@
 // src/screens/ActivityScreen.tsx
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,9 @@ import {
   ActivityIndicator,
   TextInput,
 } from "react-native";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
+import type { MainTabParamList } from "../navigation/types";
 import { SuperUserBadge } from "../components/SuperUserBadge";
 import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity";
 import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendSuggestions";
@@ -21,6 +22,9 @@ import { useUserFollowers } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
 import { useUserSearch, type UserSearchResult } from "../hooks/useUserSearch";
 import { useCurrentUser } from "../hooks/useCurrentUser";
+import { useUserNotifications, type UserNotification } from "../hooks/useUserNotifications";
+import { requestVisitRating } from "../lib/ratingRequest";
+import { resolveNotificationTarget } from "../lib/notificationTarget";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -141,6 +145,36 @@ const ActivityCard: React.FC<{ item: ActivityItem }> = ({ item }) => (
       ) : null}
     </View>
   </View>
+);
+
+/* ── Notification Card ── */
+
+const NotificationCard: React.FC<{
+  item: UserNotification;
+  onPress: (n: UserNotification) => void;
+}> = ({ item, onPress }) => (
+  <Pressable
+    onPress={() => onPress(item)}
+    style={({ pressed }) => [styles.notifRow, pressed && styles.buttonPressed]}
+  >
+    <View style={styles.notifDotWrap}>
+      {!item.readAt ? <View style={styles.notifDot} /> : null}
+    </View>
+    <View style={styles.notifTextWrap}>
+      <View style={styles.notifTitleRow}>
+        <Text
+          style={[styles.notifTitle, !item.readAt && styles.notifTitleUnread]}
+          numberOfLines={1}
+        >
+          {item.title}
+        </Text>
+        <Text style={styles.notifTime}>{timeAgo(item.createdAt)}</Text>
+      </View>
+      <Text style={styles.notifBody} numberOfLines={2}>
+        {item.body}
+      </Text>
+    </View>
+  </Pressable>
 );
 
 /* ── Suggestion Card ── */
@@ -358,7 +392,7 @@ const CheckInCard: React.FC<{
 
 /* ── Main Screen ── */
 
-type Tab = "friends" | "discover" | "checkins" | "people";
+type Tab = "notifications" | "friends" | "discover" | "checkins" | "people";
 type DiscoverListItem =
   | { kind: "feed"; id: string; item: DiscoverFeedItem }
   | { kind: "suggestion"; id: string; item: FriendSuggestion };
@@ -366,8 +400,20 @@ type DiscoverListItem =
 export const ActivityScreen: React.FC = () => {
   const { user } = useCurrentUser();
   const navigation = useNavigation<any>();
+  const route = useRoute();
   const isGuest = !user;
-  const [tab, setTab] = useState<Tab>("friends");
+  const [tab, setTab] = useState<Tab>("notifications");
+
+  // Navigation can request a specific segment (e.g. follower notifications
+  // land on Friends, where accept/decline lives). Consume the param so a
+  // later tap with the same segment still triggers the switch.
+  const requestedSegment = (route.params as MainTabParamList["Activity"])?.segment;
+  useEffect(() => {
+    if (requestedSegment) {
+      setTab(requestedSegment);
+      navigation.setParams({ segment: undefined });
+    }
+  }, [requestedSegment, navigation]);
   const {
     pendingRequests,
     loading: followersLoading,
@@ -393,6 +439,36 @@ export const ActivityScreen: React.FC = () => {
     refresh: refreshCheckins,
     togglePrivacy,
   } = useUserCheckins();
+  const {
+    notifications,
+    unreadCount,
+    loading: notificationsLoading,
+    refresh: refreshNotifications,
+    markRead,
+    markAllRead,
+  } = useUserNotifications();
+
+  const handleNotificationPress = (n: UserNotification) => {
+    void markRead(n.id);
+    const data = n.data ?? {};
+    if (data.type === "visit_rating") {
+      requestVisitRating({
+        venueId: String(data.venueId ?? ""),
+        venueName: String(data.venueName ?? ""),
+        visitId: typeof data.visitId === "string" ? data.visitId : undefined,
+        aspects: Array.isArray(data.aspects) ? (data.aspects as string[]) : [],
+      });
+      return;
+    }
+    const target = resolveNotificationTarget(data);
+    if (target) navigation.navigate(target.screen as any, target.params as any);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshNotifications();
+    }, [refreshNotifications])
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -445,7 +521,8 @@ export const ActivityScreen: React.FC = () => {
   };
 
   const isLoading =
-    tab === "friends" ? followersLoading || activityLoading
+    tab === "notifications" ? notificationsLoading
+    : tab === "friends" ? followersLoading || activityLoading
     : tab === "discover" ? (useDiscoverFeedSource ? discoverLoading : suggestionsLoading)
     : tab === "people" ? false
     : checkinsLoading;
@@ -490,6 +567,7 @@ export const ActivityScreen: React.FC = () => {
       <Text style={styles.title}>Activity</Text>
       <SegmentedTabs
         tabs={[
+          { key: "notifications", label: "Notifications" },
           { key: "friends", label: "Friends" },
           { key: "discover", label: "Discover" },
           { key: "people", label: "People" },
@@ -503,6 +581,38 @@ export const ActivityScreen: React.FC = () => {
         <View style={styles.loadingWrap}>
           <ActivityIndicator color={colors.primary} size="small" />
         </View>
+      ) : tab === "notifications" ? (
+        <FlatList
+          data={notifications}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={styles.notifSeparator} />}
+          onRefresh={() => void refreshNotifications()}
+          refreshing={notificationsLoading}
+          ListHeaderComponent={
+            unreadCount > 0 ? (
+              <View style={styles.notifHeaderRow}>
+                <Pressable
+                  onPress={() => void markAllRead()}
+                  style={({ pressed }) => [pressed && styles.buttonPressed]}
+                >
+                  <Text style={styles.notifMarkAll}>Mark all read</Text>
+                </Pressable>
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>You're all caught up</Text>
+              <Text style={styles.emptyText}>
+                New followers, happy hours, and shared lists land here.
+              </Text>
+            </View>
+          }
+          renderItem={({ item }) => (
+            <NotificationCard item={item} onPress={handleNotificationPress} />
+          )}
+        />
       ) : tab === "friends" ? (
         <FlatList
           data={filteredActivities}
@@ -896,6 +1006,68 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.border,
     marginLeft: 56,
+  },
+
+  /* ── Notification card ── */
+  notifSeparator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.border,
+    // Aligns with the title text: the 56px avatar inset of `separator`
+    // reads wrong next to the notification rows' 16px dot gutter.
+    marginLeft: 16,
+  },
+  notifRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingVertical: spacing.md,
+  },
+  notifDotWrap: {
+    width: 16,
+    paddingTop: 6,
+    alignItems: "flex-start",
+  },
+  notifDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.primary,
+  },
+  notifTextWrap: {
+    flex: 1,
+  },
+  notifTitleRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: spacing.sm,
+  },
+  notifTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    color: colors.text,
+  },
+  notifTitleUnread: {
+    fontWeight: "700",
+  },
+  notifTime: {
+    fontSize: 12,
+    color: colors.textMutedLight,
+  },
+  notifBody: {
+    marginTop: 2,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textMuted,
+  },
+  notifHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingBottom: spacing.sm,
+  },
+  notifMarkAll: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.primary,
   },
   friendSearchWrap: {
     flexDirection: "row",

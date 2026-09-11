@@ -43,6 +43,12 @@ export function getSafeAppOrigin(originHeader: string | null): string {
 export function isAllowedOrigin(originHeader: string | null): boolean {
   const normalized = originHeader ? normalizeOrigin(originHeader) : null;
   if (!normalized) return false;
+  // Local dev serves from localhost on whatever port is free; those origins
+  // are never in the prod allowlist, which made billing untestable locally.
+  if (process.env.NODE_ENV === 'development') {
+    const { hostname } = new URL(normalized);
+    if (hostname === 'localhost' || hostname === '127.0.0.1') return true;
+  }
   return getAllowedOrigins().has(normalized);
 }
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { breadcrumbJsonLd } from "@/lib/structuredData";
 import { supabase } from "@/lib/supabase";
 
@@ -100,9 +101,9 @@ export default async function GuidesHub() {
 
       {/* Breadcrumb nav */}
       <nav className="text-sm text-muted mb-6 flex items-center gap-1.5">
-        <a href="/" className="hover:text-foreground transition-colors">
+        <Link href="/" className="hover:text-foreground transition-colors">
           HappiTime
-        </a>
+        </Link>
         <span className="text-muted-light">/</span>
         <span className="text-foreground font-medium">Guides</span>
       </nav>
@@ -200,12 +201,12 @@ export default async function GuidesHub() {
           for reminders.
         </p>
         <div className="flex items-center justify-center gap-3">
-          <a
+          <Link
             href="/kc/"
             className="inline-block rounded-full border border-brand px-6 py-2.5 text-brand font-semibold text-sm hover:bg-brand hover:text-white transition-colors"
           >
             Browse KC Happy Hours
-          </a>
+          </Link>
           <a
             href="/app/"
             className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors"

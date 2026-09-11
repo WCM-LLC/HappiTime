@@ -12,7 +12,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 import { SuperUserBadge } from "../components/SuperUserBadge";
 import { useInviteFriend, type ResolvedUser } from "../hooks/useInviteFriend";
 import { useUserFollowers } from "../hooks/useUserFollowers";
@@ -20,7 +19,6 @@ import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
 export const InviteScreen: React.FC = () => {
-  const navigation = useNavigation();
   const { resolveHandle, sendInvite, loading, error, success, reset } = useInviteFriend();
   const { sendFollowRequest } = useUserFollowers();
 

@@ -30,6 +30,8 @@ import {
   HappiTimeIOSPermissionPanel,
   isHappiTimeIOSUIAvailable,
 } from "../native/HappiTimeIOSUI";
+import { CheckInPrimeScreen } from "./onboarding/CheckInPrimeScreen";
+import { setPendingCheckinPrime } from "../lib/pendingCheckinPrime";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -84,6 +86,13 @@ const stepContent: Record<
     icon: "at",
     title: "Who brought you?",
     body: "If a HappiTime Insider invited you, enter their @handle so they get credit. Skip if no one did.",
+  },
+  // Rendered by a dedicated full-screen controller (CheckInPrimeScreen), so this
+  // copy is never shown — present only to satisfy the Record<OnboardingStep, …> type.
+  checkin_prime: {
+    icon: "checkmark.seal.fill",
+    title: "Check in",
+    body: "",
   },
   complete: {
     icon: "checkmark.seal.fill",
@@ -625,6 +634,25 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
       </>
     );
   };
+
+  // Coaster onboarding: the check-in prime is a full-screen geofence controller,
+  // not part of the standard step chrome. It either advances to the normal
+  // "complete" summary (no venue match / skip) or stashes the matched venue and
+  // completes onboarding via finish() — preserving the full assembled profile so
+  // handle/interests aren't dropped — letting AppNavigator's handoff hook open
+  // CheckInScreen once the navigator mounts.
+  if (step === "checkin_prime") {
+    return (
+      <CheckInPrimeScreen
+        userId={session.user.id}
+        onResolveToComplete={() => void goToStep("complete")}
+        onCheckIn={(target) => {
+          setPendingCheckinPrime(target);
+          void finish();
+        }}
+      />
+    );
+  }
 
   return (
     <KeyboardAvoidingView

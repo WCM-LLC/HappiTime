@@ -22,6 +22,8 @@ export type VenueWithWindows = {
   tiktok_url: string | null;
   promotion_tier: string | null;
   promotion_priority: number;
+  reward_preset: string | null;
+  reward_active: boolean;
   happy_hour_windows: HappyHourWindow[];
   venue_events: VenueEvent[];
   venue_media: VenueMediaItem[];
@@ -34,6 +36,12 @@ export type VenueEvent = {
   event_type: string;
   starts_at: string;
   ends_at: string | null;
+  /**
+   * IANA zone the start/end instants should be *displayed* in. Always select
+   * this alongside starts_at/ends_at and hand it to the kcTime formatters —
+   * formatting without it falls back to the runtime zone (UTC on Vercel).
+   */
+  timezone: string | null;
   is_recurring: boolean;
   recurrence_rule: string | null;
   price_info: string | null;
@@ -85,7 +93,8 @@ const VENUE_FIELDS = `
   id, name, slug, address, city, state, neighborhood,
   lat, lng, price_tier, rating, tags, cuisine_type, phone, website,
   facebook_url, instagram_url, tiktok_url,
-  promotion_tier, promotion_priority
+  promotion_tier, promotion_priority,
+  reward_preset, reward_active
 `;
 
 const WINDOW_FIELDS = `id, label, dow, start_time, end_time, status`;
@@ -110,6 +119,7 @@ function shapeVenue(raw: any): VenueWithWindows {
     event_type: e.event_type,
     starts_at: e.starts_at,
     ends_at: e.ends_at ?? null,
+    timezone: e.timezone ?? null,
     is_recurring: e.is_recurring ?? false,
     recurrence_rule: e.recurrence_rule ?? null,
     price_info: e.price_info ?? null,
@@ -164,6 +174,8 @@ function shapeVenue(raw: any): VenueWithWindows {
     tiktok_url: raw.tiktok_url ?? null,
     promotion_tier: raw.promotion_tier ?? null,
     promotion_priority: raw.promotion_priority ?? 0,
+    reward_preset: raw.reward_preset ?? null,
+    reward_active: raw.reward_active ?? false,
     happy_hour_windows: windows,
     venue_events: events,
     venue_media: media,
@@ -270,7 +282,7 @@ export async function getVenuesByNeighborhood(
 
   const { data, error } = await supabase
     .from("venues")
-    .select(`${VENUE_FIELDS}, happy_hour_windows(${WINDOW_FIELDS}), venue_events(id, title, description, event_type, starts_at, ends_at, is_recurring, recurrence_rule, price_info), venue_media(id, type, title, storage_bucket, storage_path, sort_order, source)`)
+    .select(`${VENUE_FIELDS}, happy_hour_windows(${WINDOW_FIELDS}), venue_events(id, title, description, event_type, starts_at, ends_at, timezone, is_recurring, recurrence_rule, price_info), venue_media(id, type, title, storage_bucket, storage_path, sort_order, source)`)
     .gte("lat", neighborhood.lat - latDelta)
     .lte("lat", neighborhood.lat + latDelta)
     .gte("lng", neighborhood.lng - lngDelta)
@@ -299,7 +311,7 @@ export async function getVenueBySlug(
     .select(`
       ${VENUE_FIELDS},
       happy_hour_windows(${WINDOW_FIELDS}),
-      venue_events(id, title, description, event_type, starts_at, ends_at, is_recurring, recurrence_rule, price_info, external_url, ticket_url, cover_image_path),
+      venue_events(id, title, description, event_type, starts_at, ends_at, timezone, is_recurring, recurrence_rule, price_info, external_url, ticket_url, cover_image_path),
       venue_media(id, type, title, storage_bucket, storage_path, sort_order, source)
     `)
     .eq("slug", slug)
@@ -340,23 +352,21 @@ export type PublicProfile = {
 };
 
 /**
- * Fetch a single public user profile by handle (case-insensitive).
- * Returns null if the handle is not found or the profile is not public.
- * Uses the anon client; permitted by the user_profiles_select_owner_or_public
- * RLS policy (is_public = true branch is open to anon).
+ * Resolve the inviter profile for a referral landing (/r/{handle}) by handle.
+ * Returns (handle, display_name, avatar_url), or null if the handle is unknown.
+ *
+ * Goes through the get_referral_profile SECURITY DEFINER RPC rather than a direct
+ * table read: a referral link is deliberately shared by its owner, so it must
+ * resolve even when that Insider's directory profile is private (is_public=false).
+ * The direct anon read is gated by is_public at BOTH the app layer and the
+ * user_profiles RLS policy, which 404'd private Insiders. The RPC resolves any
+ * is_public=true row (unchanged) OR any super_user, without exposing the wider table.
  */
-export async function getPublicProfileByHandle(
+export async function getReferralProfileByHandle(
   handle: string
 ): Promise<PublicProfile | null> {
-  // Normalize: strip leading @, lowercase. Handles are stored lowercase
-  // (useUserProfile normalizeHandle does the same). Exact match avoids the
-  // ILIKE wildcard pitfall where _ matches any single character.
-  const clean = handle.replace(/^@/, "").toLowerCase();
   const { data, error } = await supabase
-    .from("user_profiles")
-    .select("handle, display_name, avatar_url")
-    .eq("handle", clean)
-    .eq("is_public", true)
+    .rpc("get_referral_profile", { p_handle: handle })
     .maybeSingle();
 
   if (error || !data) return null;
@@ -374,7 +384,7 @@ export async function getPublicProfileByHandle(
 export async function getAllKCVenues(): Promise<VenueWithWindows[]> {
   const { data, error } = await supabase
     .from("venues")
-    .select(`${VENUE_FIELDS}, happy_hour_windows(${WINDOW_FIELDS}), venue_events(id, title, description, event_type, starts_at, ends_at, is_recurring, recurrence_rule, price_info), venue_media(id, type, title, storage_bucket, storage_path, sort_order, source)`)
+    .select(`${VENUE_FIELDS}, happy_hour_windows(${WINDOW_FIELDS}), venue_events(id, title, description, event_type, starts_at, ends_at, timezone, is_recurring, recurrence_rule, price_info), venue_media(id, type, title, storage_bucket, storage_path, sort_order, source)`)
     .ilike("city", "%kansas city%")
     .eq("happy_hour_windows.status", "published")
     .eq("venue_events.status", "published")

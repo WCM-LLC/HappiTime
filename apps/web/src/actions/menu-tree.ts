@@ -1,3 +1,5 @@
+import type { Contributor } from '@/utils/contribution-attribution';
+
 type SupabaseLike = {
   from: (table: string) => any;
 };
@@ -138,6 +140,9 @@ export async function cloneOrganizationMenuToVenue(
     orgId: string;
     venueId: string;
     status?: 'draft' | 'published';
+    /** Who performed the copy. Recorded for audit; piece 2 excludes copies
+     *  from scoring via source_menu_id, so this earns no leaderboard credit. */
+    actor: Contributor;
   },
 ) {
   return cloneMenuTreeToVenue(supabase, sourceMenu, {
@@ -153,6 +158,9 @@ export async function cloneVenueMenuToVenue(
     orgId: string;
     venueId: string;
     status?: 'draft' | 'published';
+    /** Who performed the copy. Recorded for audit; piece 2 excludes copies
+     *  from scoring via source_menu_id, so this earns no leaderboard credit. */
+    actor: Contributor;
   },
 ) {
   return cloneMenuTreeToVenue(supabase, sourceMenu, {
@@ -169,6 +177,7 @@ async function cloneMenuTreeToVenue(
     venueId: string;
     status?: 'draft' | 'published';
     sourceMenuId: string | null;
+    actor: Contributor;
   },
 ) {
   const { data: insertedMenu, error: menuInsertError } = await supabase
@@ -181,6 +190,8 @@ async function cloneMenuTreeToVenue(
       name: sourceMenu.name,
       status: opts.status ?? 'draft',
       is_active: sourceMenu.is_active,
+      created_by: opts.actor.id,
+      created_by_tier: opts.actor.tier,
     })
     .select('id')
     .single();

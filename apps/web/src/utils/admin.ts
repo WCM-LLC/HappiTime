@@ -1,8 +1,9 @@
 // Service-role surface — admin helpers.
-// getAdminClient() callers: actions/admin-actions.ts, actions/admin-plans-actions.ts
+// getAdminClient() callers: actions/admin-actions.ts, actions/admin-plans-actions.ts, actions/admin-crm-actions.ts
 // isAdmin() / assertAdmin() callers: app/admin/layout.tsx, all admin server actions
 // Direct createServiceClient() callers outside this file:
 //   app/admin/page.tsx, app/admin/plans/page.tsx, app/admin/suggestions/page.tsx
+//   app/admin/crm/* pages + app/admin/crm/leads/export/route.ts (behind admin layout / isAdmin)
 //   app/orgs/[orgId]/page.tsx, app/orgs/[orgId]/venues/[venueId]/page.tsx (admin bypass)
 //   app/invite/page.tsx, actions/access-actions.ts (invite / org membership)
 //   app/api/events/ingest/route.ts (raw env var, not via createServiceClient)

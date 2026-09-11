@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { PromoteForm, RejectForm, type OrgOption } from './_components/StagingActions';
+import { STICKY_ACTION_HEAD, STICKY_ACTION_CELL } from '@/utils/stickyActionColumn';
 
 // ── Types ───────────────────────────────────────────────────────────────────────
 
@@ -267,7 +268,7 @@ function StagingRow({
         </td>
 
         {/* Actions */}
-        <td className={`${tdCls} whitespace-nowrap`}>
+        <td className={`${tdCls} whitespace-nowrap ${STICKY_ACTION_CELL}`}>
           {action === null ? (
             <div className="flex items-center gap-2">
               <Link
@@ -430,7 +431,7 @@ export default function StagingTable({
                     <th className={thCls}>Socials</th>
                     <th className={thCls}>Status</th>
                     <th className={thCls}>Added</th>
-                    <th className={thCls}>Actions</th>
+                    <th className={`${thCls} ${STICKY_ACTION_HEAD}`}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>

@@ -21,7 +21,8 @@ import MapView, { Marker } from "react-native-maps";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { useHappyHours, type HappyHourWindow } from "../hooks/useHappyHours";
-import { tierVariant } from "../lib/venueTier";
+import { useVenueSearch } from "../hooks/useVenueSearch";
+import { tierRank, tierVariant } from "../lib/venueTier";
 import { useUserLocation } from "../hooks/useUserLocation";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
@@ -50,17 +51,6 @@ const formatTagLabel = (tag: string) =>
     .split(/\s+/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
-
-const getPlaceTagSlugs = (window: HappyHourWindow): string[] => {
-  const joined = (window.venue as any)?.venue_tags;
-  if (!Array.isArray(joined)) return [];
-  const slugs: string[] = [];
-  for (const row of joined) {
-    const tag = row?.approved_tags;
-    if (tag?.slug) slugs.push(tag.slug);
-  }
-  return slugs;
-};
 
 const getPlaceTagsByCategory = (
   window: HappyHourWindow
@@ -145,6 +135,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const { width } = useWindowDimensions();
 
   const [query, setQuery] = useState("");
+  // Search covers all published venues, not just those in the happy-hour feed,
+  // so event-only venues (e.g. T-Mobile Center) are discoverable by name.
+  const { venues: venueSearchResults } = useVenueSearch(query);
   const [selectedTagSlugs, setSelectedTagSlugs] = useState<Set<string>>(
     () => new Set()
   );
@@ -248,7 +241,14 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         };
       })
       .sort((a, b) => {
-        // Promoted venues sort first, by priority descending
+        // Tier first: featured -> verified -> listed. promotion_priority alone
+        // used to drive this, but it is 0 for every venue in production, so
+        // the "promoted first" sort silently fell through to distance and a
+        // Featured venue got no advantage anywhere in the app.
+        const aRank = tierRank((a.venue as any)?.promotion_tier);
+        const bRank = tierRank((b.venue as any)?.promotion_tier);
+        if (aRank !== bRank) return aRank - bRank;
+        // Then hand-set priority within a tier
         const aPrio = getPromoPriority(a);
         const bPrio = getPromoPriority(b);
         if (aPrio !== bPrio) return bPrio - aPrio;
@@ -259,6 +259,45 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         return a.distance - b.distance;
       });
   }, [dedupedByVenue, effectiveCoords]);
+
+  // Venue ids already represented in the happy-hour feed, so we don't duplicate
+  // them with a venue-only search card.
+  const feedVenueIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const window of dedupedByVenue) {
+      const id = getVenueId(window);
+      if (id) ids.add(id);
+    }
+    return ids;
+  }, [dedupedByVenue]);
+
+  // Published venues matching the search that have no happy-hour window. Shaped
+  // like a feed item so VenueCard renders them; tapping routes to VenuePreview.
+  const venueOnlyResults = useMemo<HappyHourWindow[]>(() => {
+    if (!query.trim()) return [];
+    return venueSearchResults
+      .filter((venue) => venue?.id && !feedVenueIds.has(venue.id))
+      .map((venue) => {
+        const coordinate = getWindowCoordinate({ venue } as HappyHourWindow);
+        const distance =
+          coordinate && effectiveCoords
+            ? distanceMiles(
+                effectiveCoords.lat,
+                effectiveCoords.lng,
+                coordinate.latitude,
+                coordinate.longitude
+              )
+            : null;
+        return {
+          id: `venue:${venue.id}`,
+          venue_id: venue.id,
+          venue,
+          offers: [],
+          distance,
+          __venueOnly: true,
+        } as unknown as HappyHourWindow;
+      });
+  }, [query, venueSearchResults, feedVenueIds, effectiveCoords]);
 
   const priceOptions = useMemo(() => {
     const tiers = new Set<number>();
@@ -333,8 +372,31 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
       );
     }
 
+    // Merge in venue-only matches (published venues with no happy-hour window)
+    // and re-rank by tier. These used to be appended unconditionally, which
+    // pinned them below every feed item no matter what they paid for: Vine
+    // Street Brewing is a founding pilot whose only window is unpublished, so
+    // it could never rank above a free listing. Ranking only applies while a
+    // search is active; browsing keeps the feed's distance-led order, and
+    // venueOnlyResults is empty then anyway.
+    if (venueOnlyResults.length > 0) {
+      list = [...list, ...venueOnlyResults].sort((a, b) => {
+        const aRank = tierRank((a.venue as any)?.promotion_tier);
+        const bRank = tierRank((b.venue as any)?.promotion_tier);
+        if (aRank !== bRank) return aRank - bRank;
+        return getPromoPriority(b) - getPromoPriority(a);
+      });
+    }
+
     return list;
-  }, [withDistance, query, selectedTagSlugs, selectedByCategory, selectedPrice]);
+  }, [
+    withDistance,
+    query,
+    selectedTagSlugs,
+    selectedByCategory,
+    selectedPrice,
+    venueOnlyResults,
+  ]);
 
   const filteredVenueIds = useMemo(
     () => filtered.map(getVenueId).filter((id): id is string => !!id),
@@ -663,7 +725,9 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   onImageSwipeStart={() => setVenueCarouselScrollEnabled(false)}
                   onImageSwipeEnd={() => setVenueCarouselScrollEnabled(true)}
                   onSelect={() =>
-                    navigation.navigate("HappyHourDetail", { windowId: item.id })
+                    (item as { __venueOnly?: boolean }).__venueOnly && venueId
+                      ? navigation.navigate("VenuePreview", { venueId })
+                      : navigation.navigate("HappyHourDetail", { windowId: item.id })
                   }
                 />
               );

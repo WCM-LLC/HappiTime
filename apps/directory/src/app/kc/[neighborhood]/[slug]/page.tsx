@@ -1,14 +1,19 @@
 import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { getNeighborhood } from "@/lib/neighborhoods";
 import { getHappyHourLandingPageByNeighborhoodSlug } from "@/lib/seoNeighborhoods";
 import { getVenueBySlug } from "@/lib/queries";
+import { KC_TZ, formatEventDate, formatEventTime } from "@/lib/kcTime";
 import { venueJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 import { PageTracker } from "@/components/PageTracker";
 import { ItineraryButton } from "@/components/ItineraryButton";
 import { venueImageUrl } from "@/lib/mediaUrl";
 import ImageLightbox from "@/components/ImageLightbox";
+import { StoreDownloadCTA } from "@/components/StoreDownloadCTA";
+import { rewardLabel } from "@/lib/rewards";
 
 // ── service-role client (server-only, never exposed to client) ─────────────────
 function getServiceClient() {
@@ -45,6 +50,46 @@ async function fetchToastmakerHandle(venueId: string): Promise<string | null> {
     return (profile as { handle?: string | null } | null)?.handle ?? null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * True when the venue's org has at least one member — i.e. someone has claimed it.
+ *
+ * Ownership is not a column on the venue: every venue has a non-null org_id, and
+ * promoting a staged venue auto-creates an org from its name that stays memberless
+ * until claimed. So "claimed" means "the org has an org_members row" (J's 8/11 rule).
+ *
+ * Deliberately any role, NOT just owner/manager — do not narrow this to match
+ * send-venue-digest, which filters to owner/manager only because it needs someone
+ * to address an email to. Here, any member at all means the place is spoken for.
+ *
+ * Service-role because org_members is granted to authenticated only, never anon.
+ * Fails open (returns false → CTA still renders), matching behaviour before this check.
+ */
+async function venueHasOwner(venueId: string): Promise<boolean> {
+  try {
+    const db = getServiceClient();
+    if (!db) return false;
+
+    const { data: venueRow } = await db
+      .from("venues")
+      .select("org_id")
+      .eq("id", venueId)
+      .maybeSingle();
+
+    const orgId = (venueRow as { org_id?: string | null } | null)?.org_id;
+    if (!orgId) return false;
+
+    const { data: members } = await db
+      .from("org_members")
+      .select("user_id")
+      .eq("org_id", orgId)
+      .limit(1);
+
+    return (members?.length ?? 0) > 0;
+  } catch {
+    return false;
   }
 }
 
@@ -115,8 +160,13 @@ export default async function VenueDetailPage({ params }: Props) {
 
   if (!venue) notFound();
 
-  // Fetch Toastmaker server-side (service-role — venue_toastmakers is not anon-readable)
-  const toastmakerHandle = await fetchToastmakerHandle(venue.id);
+  // Both are service-role lookups (venue_toastmakers and org_members are not
+  // anon-readable). Independent of each other, so run them concurrently — this is
+  // a dynamic route and they'd otherwise serialise on every uncached request.
+  const [toastmakerHandle, hasOwner] = await Promise.all([
+    fetchToastmakerHandle(venue.id),
+    venueHasOwner(venue.id),
+  ]);
 
   const jsonLd = venueJsonLd(venue);
   const neighborhoodLandingPage = neighborhood
@@ -158,13 +208,13 @@ export default async function VenueDetailPage({ params }: Props) {
 
       {/* Breadcrumb */}
       <nav className="text-sm text-muted mb-6 flex items-center gap-1.5 flex-wrap">
-        <a href="/" className="hover:text-foreground transition-colors">
+        <Link href="/" className="hover:text-foreground transition-colors">
           HappiTime
-        </a>
+        </Link>
         <span className="text-muted-light">/</span>
-        <a href="/kc/" className="hover:text-foreground transition-colors">
+        <Link href="/kc/" className="hover:text-foreground transition-colors">
           Kansas City
-        </a>
+        </Link>
         {neighborhood && (
           <>
             <span className="text-muted-light">/</span>
@@ -236,6 +286,16 @@ export default async function VenueDetailPage({ params }: Props) {
           )}
         </div>
       </div>
+
+      {/* Redeemable reward banner — live offer only */}
+      {venue.reward_active && venue.reward_preset && rewardLabel(venue.reward_preset) && (
+        <div className="flex items-center gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 mb-8">
+          <span className="text-xl" aria-hidden>🎁</span>
+          <span className="text-sm font-semibold text-amber-900">
+            It&rsquo;s on the house — check in 5 times, get {rewardLabel(venue.reward_preset)}.
+          </span>
+        </div>
+      )}
 
       {/* Contact info + social links */}
       {(venue.phone || venue.website || venue.facebook_url || venue.instagram_url || venue.tiktok_url) && (
@@ -377,16 +437,13 @@ export default async function VenueDetailPage({ params }: Props) {
           </h2>
           <div className="space-y-4">
             {venue.venue_events.map((ev) => {
-              const eventDate = new Date(ev.starts_at);
-              const dateStr = eventDate.toLocaleDateString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              });
-              const timeStr = eventDate.toLocaleTimeString("en-US", {
-                hour: "numeric",
-                minute: "2-digit",
-              });
+              // Format in the EVENT's zone, never the runtime's. This page is a
+              // server component: on Vercel the runtime zone is UTC, so a bare
+              // toLocale* call shifted every KC event five hours late and rolled
+              // evening events onto the next day. See lib/kcTime.
+              const tz = ev.timezone ?? KC_TZ;
+              const dateStr = formatEventDate(ev.starts_at, tz);
+              const timeStr = formatEventTime(ev.starts_at, tz);
               const eventTypeLabel =
                 ev.event_type === "live_music"
                   ? "Live Music"
@@ -408,7 +465,7 @@ export default async function VenueDetailPage({ params }: Props) {
                           const days = match ? match[1].split(',').map((d: string) => dayMap[d] ?? d).join(', ') : '';
                           return days ? `Every ${days}` : 'Recurring';
                         })() : dateStr} at {timeStr}
-                        {ev.ends_at && ` – ${new Date(ev.ends_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`}
+                        {ev.ends_at && ` – ${formatEventTime(ev.ends_at, tz)}`}
                       </p>
                     </div>
                     <div className="shrink-0 flex items-center gap-2">
@@ -468,14 +525,15 @@ export default async function VenueDetailPage({ params }: Props) {
                 .map((m) => (
                   <div
                     key={m.id}
-                    className="aspect-[4/3] rounded-xl overflow-hidden border border-border"
+                    className="relative aspect-[4/3] rounded-xl overflow-hidden border border-border"
                   >
-                    <img
+                    <Image
                       src={venueImageUrl(m, { w: 800 })}
                       data-lightbox-src={venueImageUrl(m, { w: 1600 })}
                       alt={m.title ?? `${venue.name} photo`}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
+                      fill
+                      sizes="(max-width: 640px) 50vw, 33vw"
+                      className="object-cover"
                     />
                   </div>
                 ))}
@@ -535,40 +593,38 @@ export default async function VenueDetailPage({ params }: Props) {
         </div>
       </section>
 
-      {/* Claim CTA */}
-      <section className="rounded-2xl border border-border bg-surface p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div>
-          <h2 className="font-bold text-foreground">
-            Is this your place?
-          </h2>
-          <p className="text-sm text-muted mt-1">
-            Claim your venue to manage hours, menus, and deals &mdash; 50% off
-            for your first 3 months.
-          </p>
-        </div>
-        <a
-          href="/claim/"
-          className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors shrink-0"
-        >
-          Claim This Venue
-        </a>
-      </section>
+      {/* Claim CTA — unclaimed venues only (an owned venue has nothing to claim) */}
+      {!hasOwner && (
+        <section className="rounded-2xl border border-border bg-surface p-6 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div>
+            <h2 className="font-bold text-foreground">
+              Is this your place?
+            </h2>
+            <p className="text-sm text-muted mt-1">
+              Claim your venue to manage your hours, menus, and deals.
+            </p>
+          </div>
+          <a
+            href="/pricing/"
+            className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors shrink-0"
+          >
+            Claim This Venue
+          </a>
+        </section>
+      )}
 
       {/* App CTA */}
       <section className="rounded-2xl bg-brand-subtle p-8 text-center">
         <h2 className="text-lg font-bold text-foreground mb-2">
           Save {venue.name} to your favorites
         </h2>
-        <p className="text-sm text-muted mb-4">
+        <p className="text-sm text-muted mb-6">
           Get notified when happy hour starts and see what friends are checking
           out nearby.
         </p>
-        <a
-          href="/app/"
-          className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors"
-        >
-          Open in App
-        </a>
+        <div className="flex justify-center">
+          <StoreDownloadCTA />
+        </div>
       </section>
     </div>
   );

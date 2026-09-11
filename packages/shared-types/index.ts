@@ -1,5 +1,6 @@
 // packages/shared-types/src/index.ts
 export * from "./reserved-handles.js";
+export * from "./rewards.js";
 
 // Import the generated Supabase Database type
 import type { Database as SupabaseDatabase } from "../../supabase/types/generated.js";

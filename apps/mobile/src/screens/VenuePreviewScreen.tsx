@@ -32,6 +32,8 @@ import { ListingFreshness } from "../components/ListingFreshness";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { distanceMiles } from "../utils/location";
+import { scanCheckInStep } from "../lib/scanCheckIn";
+import { EVENT_TYPE_LABELS, formatEventDate, formatEventTime, formatRecurrenceRule } from "../lib/eventDisplay";
 
 // Loyalty check-in geofence gate: matches server default (100 m ≈ 0.062 miles)
 // Client-side gate uses the venue's geofence_radius_m from the DB (converted to
@@ -40,34 +42,6 @@ const DEFAULT_GEOFENCE_RADIUS_M = 100;
 const METERS_PER_MILE = 1609.34;
 
 type Props = NativeStackScreenProps<RootStackParamList, "VenuePreview">;
-
-function formatEventDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  const dayName = d.toLocaleDateString("en-US", { weekday: "short" });
-  const month = d.toLocaleDateString("en-US", { month: "short" });
-  const day = d.getDate();
-  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  return `${dayName}, ${month} ${day} at ${time}`;
-}
-
-function formatRecurrenceRule(rule: string | null, startTime: string): string {
-  const DOW_MAP: Record<string, string> = { SU: "Sun", MO: "Mon", TU: "Tue", WE: "Wed", TH: "Thu", FR: "Fri", SA: "Sat" };
-  const time = new Date(startTime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
-  if (!rule) return `Recurring at ${time}`;
-  const match = rule.match(/BYDAY=([A-Z,]+)/);
-  if (!match) return `Recurring at ${time}`;
-  const days = match[1].split(",").map((d) => DOW_MAP[d] ?? d).join(", ");
-  return `Every ${days} at ${time}`;
-}
-
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  event: "Event",
-  special: "Special",
-  live_music: "Live Music",
-  trivia: "Trivia",
-  sports: "Sports",
-  other: "Other",
-};
 
 // Persisted anonymous device id, used to dedupe attribution events server-side.
 const SESSION_KEY = "happitime_session_id";
@@ -210,9 +184,10 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
     };
   }, [venueId]);
 
-  // One-shot "Checked in!" confirmation when arriving from a QR scan
+  // One-shot "Scan recorded" confirmation when arriving from a QR scan
   // (route param fromScan). Display-only — the web bridge already recorded the
   // visit; we just confirm it. Cleared after showing so back-nav won't replay it.
+  // (Deliberately not a check-in claim: a stamp only lands after the code screen.)
   const bannerOpacity = useRef(new Animated.Value(0)).current;
   const [showScanBanner, setShowScanBanner] = useState(false);
 
@@ -284,6 +259,33 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
     const radiusMiles = venueGeo.geofence_radius_m / METERS_PER_MILE;
     return distMiles <= radiusMiles;
   }, [venueGeo, userLocation]);
+  // QR scan → check-in hand-off. Captured on first render, before the banner
+  // effect clears the fromScan param. Once location + venue coords resolve and
+  // the scanner is inside the geofence, open the stamp-code screen on top of
+  // this one (back returns here). One shot per arrival.
+  const scanCheckInPending = useRef(route.params?.fromScan === true);
+  useEffect(() => {
+    const step = scanCheckInStep({
+      pending: scanCheckInPending.current,
+      locationChecked,
+      hasUserLocation: userLocation != null,
+      hasVenueGeo: venueGeo != null,
+      hasVenueName: venueName !== "This venue",
+      insideGeofence,
+    });
+    if (step === "stay") {
+      scanCheckInPending.current = false;
+    } else if (step === "open" && venueId && userLocation) {
+      scanCheckInPending.current = false;
+      navigation.navigate("CheckIn", {
+        venueId,
+        venueName,
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+      });
+    }
+  }, [locationChecked, userLocation, venueGeo, venueName, insideGeofence, venueId, navigation]);
+
   const images = useMemo(
     () => [...media].sort((a, b) => a.sort_order - b.sort_order),
     [media]
@@ -347,7 +349,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
     sections.push(
       <View key="events" style={styles.section}>
         <Text style={styles.sectionTitle}>Upcoming Events</Text>
-        {events.map((ev) => (
+        {events.slice(0, 3).map((ev) => (
           <View key={ev.id} style={styles.eventCard}>
             <View style={styles.eventHeader}>
               <View style={styles.eventTypeBadge}>
@@ -362,12 +364,12 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
             <Text style={styles.eventTitle}>{ev.title}</Text>
             <Text style={styles.eventDate}>
               {ev.is_recurring
-                ? formatRecurrenceRule(ev.recurrence_rule, ev.starts_at)
-                : formatEventDate(ev.starts_at)}
+                ? formatRecurrenceRule(ev.recurrence_rule, ev.starts_at, ev.timezone ?? undefined)
+                : formatEventDate(ev.starts_at, ev.timezone ?? undefined)}
               {ev.ends_at && !ev.is_recurring
-                ? ` – ${new Date(ev.ends_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+                ? ` – ${formatEventTime(ev.ends_at, ev.timezone ?? undefined)}`
                 : ev.ends_at && ev.is_recurring
-                ? ` – ${new Date(ev.ends_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+                ? ` – ${formatEventTime(ev.ends_at, ev.timezone ?? undefined)}`
                 : ""}
             </Text>
             {ev.is_recurring && (
@@ -380,22 +382,21 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
                 {ev.description}
               </Text>
             ) : null}
-            {ev.external_url || ev.ticket_url ? (
+            {ev.ticket_url ? (
               <View style={styles.eventLinks}>
-                {ev.external_url ? (
-                  <Pressable onPress={() => Linking.openURL(ev.external_url!)}>
-                    <Text style={styles.eventLink}>More info</Text>
-                  </Pressable>
-                ) : null}
-                {ev.ticket_url ? (
-                  <Pressable onPress={() => Linking.openURL(ev.ticket_url!)}>
-                    <Text style={styles.eventLink}>Get tickets</Text>
-                  </Pressable>
-                ) : null}
+                <Pressable onPress={() => Linking.openURL(ev.ticket_url!)}>
+                  <Text style={styles.eventLink}>Get tickets</Text>
+                </Pressable>
               </View>
             ) : null}
           </View>
         ))}
+        <Pressable
+          onPress={() => navigation.navigate("VenueEvents", { venueId: venueId!, venueName: fetchedVenueName ?? windowsForVenue[0]?.venue?.name ?? undefined })}
+          style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+        >
+          <Text style={styles.eventLink}>See all events & specials →</Text>
+        </Pressable>
       </View>
     );
   }
@@ -408,7 +409,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           style={[styles.scanBannerWrap, { opacity: bannerOpacity, top: insets.top + spacing.sm }]}
         >
           <View style={styles.scanBanner}>
-            <Text style={styles.scanBannerText}>📍 Checked in!</Text>
+            <Text style={styles.scanBannerText}>📍 Scan recorded</Text>
           </View>
         </Animated.View>
       ) : null}
@@ -427,8 +428,6 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
         </Text>
       ) : (
         <>
-          <Text style={styles.subtitle}>Tap below to see Menus</Text>
-
           <Pressable
             onPress={handleCheckIn}
             disabled={checkingIn || checkedIn}
@@ -480,12 +479,22 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           </Pressable>
 
           <FlatList
+            // keep this prop above the windows-list `data` prop below: the
+            // menus-hint guard in test/venue-events-page.test.mjs asserts
+            // source order, not just presence.
+            ListHeaderComponent={
+              <>
+                {sections}
+                {windowsForVenue.length > 0 ? (
+                  <Text style={styles.subtitle}>Tap here to see menus</Text>
+                ) : null}
+              </>
+            }
             data={windowsForVenue}
             keyExtractor={(item) => item.id}
             contentContainerStyle={[styles.listContent, { paddingBottom: spacing.xl + insets.bottom }]}
             refreshing={refreshing}
             onRefresh={refresh}
-            ListHeaderComponent={<>{sections}</>}
             renderItem={({ item }) => (
               <HappyHourCard
                 window={item}

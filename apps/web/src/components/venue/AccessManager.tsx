@@ -1,4 +1,5 @@
 import ConfirmDeleteForm from '@/components/ConfirmDeleteForm';
+import { SubmitButton } from '@/components/ui/SubmitButton';
 import {
   cancelOrgInvite,
   createOrgInvite,
@@ -125,16 +126,19 @@ export default function AccessManager({
                   </label>
                 ))}
               </div>
-              <p className="text-caption text-muted mt-2">You can update assignments later.</p>
+              <p className="text-caption text-muted mt-2">
+                Leave all venues unchecked to grant access to every venue in the organization
+                (including ones added later). You can update assignments any time.
+              </p>
             </div>
           ) : (
             <p className="text-caption text-muted">No venues yet. Add venues first, then assign them here.</p>
           )}
 
           <div>
-            <button formAction={createOrgInvite.bind(null, orgId)} className={btnPrimary}>
+            <SubmitButton formAction={createOrgInvite.bind(null, orgId)} className={btnPrimary} pendingLabel="Sending invite…">
               Send invite
-            </button>
+            </SubmitButton>
           </div>
         </form>
       </div>
@@ -180,9 +184,9 @@ export default function AccessManager({
                     action={cancelOrgInvite.bind(null, orgId, invite.id)}
                     message="Cancel this invite?"
                   >
-                    <button className={btnDanger} type="submit">
+                    <SubmitButton className={btnDanger} type="submit" pendingLabel="Cancelling…">
                       Cancel
-                    </button>
+                    </SubmitButton>
                   </ConfirmDeleteForm>
                 </div>
               );
@@ -244,9 +248,9 @@ export default function AccessManager({
                         action={removeMember.bind(null, orgId, member.user_id)}
                         message="Remove this member and revoke access?"
                       >
-                        <button className={btnDanger} type="submit">
+                        <SubmitButton className={btnDanger} type="submit" pendingLabel="Removing…">
                           Remove
-                        </button>
+                        </SubmitButton>
                       </ConfirmDeleteForm>
                     )}
                   </div>
@@ -272,6 +276,12 @@ export default function AccessManager({
                         {venueRows.length ? (
                           <div>
                             <p className="text-body-sm font-medium text-foreground mb-2">Assigned venues</p>
+                            {assignedVenueIds.length === 0 ? (
+                              <p className="text-caption text-muted mb-2">
+                                No specific venues selected — this member can manage all venues in this
+                                organization, including ones added later.
+                              </p>
+                            ) : null}
                             <div className="flex flex-wrap gap-x-5 gap-y-2">
                               {venueRows.map((venue) => (
                                 <label key={venue.id} className="flex items-center gap-2 text-body-sm text-foreground cursor-pointer">
@@ -292,12 +302,13 @@ export default function AccessManager({
                         )}
 
                         <div>
-                          <button
+                          <SubmitButton
                             className={btnSecondary}
                             formAction={updateMemberAccess.bind(null, orgId, member.user_id)}
+                            pendingLabel="Saving…"
                           >
                             Save access
-                          </button>
+                          </SubmitButton>
                         </div>
                       </form>
                     </div>

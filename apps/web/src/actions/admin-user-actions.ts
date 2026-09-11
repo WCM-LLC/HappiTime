@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { assertAdmin, getAdminClient } from '@/utils/admin';
+import { createClient } from '@/utils/supabase/server';
 import { buildPasswordRecoveryRedirectTo, resolveConsoleOrigin } from '@/utils/auth-redirects';
 
 function toStr(value: FormDataEntryValue | null | undefined) {
@@ -133,6 +134,109 @@ export async function adminUpdateUserInfo(formData: FormData) {
 
   revalidatePath(returnPath);
   redirect(`${returnPath}?notice=user_updated`);
+}
+
+// ── Dashboard access removal ──────────────────────────────────────────────────
+//
+// Both actions revoke dashboard access ONLY: they delete venue_members
+// assignments and org_members rows, never the auth account or any consumer
+// app data. A removed user can be re-invited from the org's Access page.
+// Unlike the org-side removeMember, admins CAN remove owners — the admin
+// console is the escape hatch for offboarding an owner who left the business
+// (an ownerless org is a tolerated state; staged-venue promotion creates them).
+
+/** Guard against an admin revoking their own session's staff access mid-flight. */
+async function assertNotSelf(userId: string, returnPath: string) {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (auth.user?.id === userId) {
+    redirect(`${returnPath}?error=cannot_remove_self`);
+  }
+}
+
+/**
+ * Admin-only: remove a user's membership (and venue assignments) in ONE org.
+ */
+export async function adminRemoveMembership(formData: FormData) {
+  await assertAdmin();
+  const admin = getAdminClient();
+
+  const userId = toStr(formData.get('user_id'));
+  const orgId = toStr(formData.get('org_id'));
+  const returnPath = toStr(formData.get('return_path')) || '/admin';
+
+  if (!userId) redirect(`${returnPath}?error=missing_user_id`);
+  if (!orgId) redirect(`${returnPath}?error=missing_org_id`);
+  await assertNotSelf(userId, returnPath);
+
+  // Venue assignments first, then the membership (mirrors access-actions removeMember)
+  const { error: assignErr } = await admin
+    .from('venue_members')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('user_id', userId);
+  if (assignErr) {
+    console.error('[admin] adminRemoveMembership venue_members delete failed', assignErr);
+    redirect(`${returnPath}?error=member_assignments_delete_failed`);
+  }
+
+  const { data: deleted, error: deleteErr } = await admin
+    .from('org_members')
+    .delete()
+    .eq('org_id', orgId)
+    .eq('user_id', userId)
+    .select('user_id');
+  if (deleteErr) {
+    console.error('[admin] adminRemoveMembership org_members delete failed', deleteErr);
+    redirect(`${returnPath}?error=member_delete_failed`);
+  }
+  if (!deleted || deleted.length === 0) {
+    // Zero rows deleted with no error = the membership wasn't there (or a
+    // silent RLS/grant gap) — surface it rather than reporting success.
+    redirect(`${returnPath}?error=member_not_found`);
+  }
+
+  revalidatePath(returnPath);
+  redirect(`${returnPath}?notice=member_removed`);
+}
+
+/**
+ * Admin-only: remove ALL of a user's org memberships and venue assignments.
+ */
+export async function adminRemoveAllMemberships(formData: FormData) {
+  await assertAdmin();
+  const admin = getAdminClient();
+
+  const userId = toStr(formData.get('user_id'));
+  const returnPath = toStr(formData.get('return_path')) || '/admin';
+
+  if (!userId) redirect(`${returnPath}?error=missing_user_id`);
+  await assertNotSelf(userId, returnPath);
+
+  const { error: assignErr } = await admin
+    .from('venue_members')
+    .delete()
+    .eq('user_id', userId);
+  if (assignErr) {
+    console.error('[admin] adminRemoveAllMemberships venue_members delete failed', assignErr);
+    redirect(`${returnPath}?error=member_assignments_delete_failed`);
+  }
+
+  const { data: deleted, error: deleteErr } = await admin
+    .from('org_members')
+    .delete()
+    .eq('user_id', userId)
+    .select('user_id');
+  if (deleteErr) {
+    console.error('[admin] adminRemoveAllMemberships org_members delete failed', deleteErr);
+    redirect(`${returnPath}?error=member_delete_failed`);
+  }
+  if (!deleted || deleted.length === 0) {
+    redirect(`${returnPath}?error=member_not_found`);
+  }
+
+  revalidatePath(returnPath);
+  redirect(`${returnPath}?notice=member_access_revoked`);
 }
 
 // ── Super User role management ────────────────────────────────────────────────

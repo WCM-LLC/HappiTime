@@ -28,12 +28,19 @@ test("onboarding persists completion remotely with local fallback state", () => 
 test("permission prompts are gated by onboarding or profile preferences", () => {
   const locationHook = read("apps/mobile/src/hooks/useUserLocation.ts");
   const pushHook = read("apps/mobile/src/hooks/useConfigPushNotifications.ts");
+  const mapScreen = read("apps/mobile/src/screens/MapScreen.tsx");
   const app = read("apps/mobile/App.tsx");
 
+  // Location is opt-in: useUserLocation never auto-requests unless a screen opts in.
   assert.match(locationHook, /requestOnMount \?\? false/);
+  // Screens gate the foreground location prompt on the saved location_enabled
+  // preference (this gating moved out of App.tsx into the screens that use it).
+  assert.match(mapScreen, /requestOnMount:\s*preferences\.location_enabled/);
+  // Push registration is gated behind the notifications_push preference.
   assert.match(pushHook, /shouldRegisterForPushNotifications/);
   assert.match(pushHook, /notifications_push/);
-  assert.match(app, /preferences\.location_enabled/);
+  // Background visit tracking only runs after explicit visit-reminder consent.
+  assert.match(app, /shouldTrack\(/);
 });
 
 test("Supabase migration adds backend onboarding state and preserves existing users", () => {

@@ -50,27 +50,113 @@ export function isSixAmCentral(now: Date): boolean {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Returns only the venues whose org has at least one owner/manager member —
- * the sole venues that can ever receive a digest (the recipient is the org
- * owner/manager). Scoping here, before the per-venue loop, keeps the function
- * from iterating the entire published-venue directory (~174 venues, each costing
- * a serial org_members lookup), which exhausted the edge-function wall-clock and
- * returned a 504. Output-preserving: an org with no owner/manager was already
- * skipped inside the loop.
+ * Returns only the venues whose org has at least one team member who can
+ * receive an email (see RECIPIENT_ROLES). Scoping here, before the per-venue
+ * loop, keeps the function from iterating the entire published-venue directory
+ * (~174 venues, each costing serial lookups), which exhausted the edge-function
+ * wall-clock and returned a 504. Output-preserving: an org with no recipients
+ * was already skipped inside the loop.
  *
- * @param venues               published venues (each with an `org_id`)
- * @param ownerManagerMembers  org_members rows pre-filtered to role owner|manager
+ * @param venues   published venues (each with an `org_id`)
+ * @param members  org_members rows pre-filtered to RECIPIENT_ROLES
  */
 export function venuesToProcess<T extends { org_id: string | null }>(
   venues: T[],
-  ownerManagerMembers: { org_id: string | null }[],
+  members: { org_id: string | null }[],
 ): T[] {
   const claimedOrgIds = new Set(
-    ownerManagerMembers
+    members
       .map((m) => m.org_id)
       .filter((id): id is string => typeof id === "string" && id.length > 0),
   );
   return venues.filter((v) => v.org_id != null && claimedOrgIds.has(v.org_id));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Recipient resolution
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Roles that receive the full digest (code + yesterday's stats). */
+export const DIGEST_ROLES = ["owner", "manager"] as const;
+/** Roles that receive the code-only email. */
+export const CODE_ONLY_ROLES = ["host"] as const;
+/** Every role that gets an email. Legacy roles (admin/editor/viewer) do not. */
+export const RECIPIENT_ROLES: readonly string[] = [...DIGEST_ROLES, ...CODE_ONLY_ROLES];
+
+/** Higher wins when one person holds two seats in the same org. */
+const ROLE_RANK: Record<string, number> = { owner: 3, manager: 2, host: 1 };
+
+export type MemberRow = { user_id: string; email: string | null; role: string };
+
+export type Recipient = {
+  userId: string;
+  email: string;
+  role: string;
+  kind: "digest" | "code";
+};
+
+/**
+ * Turns an org's member rows into the list of people to email for one venue.
+ *
+ *   - owner / manager → kind "digest"; host → kind "code"
+ *   - one email per person: the highest-ranked seat wins
+ *   - members with no email are dropped (the caller resolves the auth-layer
+ *     fallback before calling this)
+ *   - `optedOutUserIds` = users whose notifications_venue_scans is false;
+ *     a missing preference row means opted in, so it is simply absent here
+ *
+ * Output order follows first appearance in `members`, so callers that order
+ * by created_at get owners-first for free without depending on it.
+ */
+export function recipientsForVenue(
+  members: MemberRow[],
+  optedOutUserIds: Set<string>,
+): Recipient[] {
+  const byUser = new Map<string, Recipient>();
+  for (const m of members) {
+    if (!RECIPIENT_ROLES.includes(m.role)) continue;
+    if (!m.email) continue;
+    if (optedOutUserIds.has(m.user_id)) continue;
+    const existing = byUser.get(m.user_id);
+    if (existing && ROLE_RANK[existing.role] >= ROLE_RANK[m.role]) continue;
+    byUser.set(m.user_id, {
+      userId: m.user_id,
+      email: m.email,
+      role: m.role,
+      kind: (DIGEST_ROLES as readonly string[]).includes(m.role) ? "digest" : "code",
+    });
+  }
+  return [...byUser.values()];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Host (code-only) email
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Subject for the host email. Names the venue so a host at two bars can tell them apart. */
+export function formatHostSubject(code: string, venueName: string): string {
+  return `Today's HappiTime code for ${venueName}: ${code}`;
+}
+
+/** Body for the host email: venue, code, validity note. No stats, no console CTA. */
+export function buildCodeOnlyHtml(args: { venueName: string; code: string }): string {
+  const { venueName, code } = args;
+  return `
+<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+  <h2 style="color:#C0773A;margin-bottom:4px">HappiTime Daily Code</h2>
+  <p style="color:#555;margin-top:0">${venueName}</p>
+
+  <div style="background:#f9f5ef;border-radius:12px;padding:20px 24px;margin:20px 0;text-align:center">
+    <p style="margin:0 0 4px;color:#888;font-size:13px;text-transform:uppercase;letter-spacing:1px">Today's Check-In Code</p>
+    <p style="margin:0;font-size:40px;font-weight:700;letter-spacing:6px;color:#1a1a1a;font-family:monospace">${code}</p>
+    <p style="margin:8px 0 0;color:#aaa;font-size:12px">Post this at your bar — valid until 6 AM tomorrow (CT)</p>
+  </div>
+
+  <p style="color:#aaa;font-size:11px;margin-top:24px;border-top:1px solid #eee;padding-top:12px">
+    You're receiving this because you're on the team at ${venueName} on HappiTime.
+  </p>
+</div>
+  `.trim();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

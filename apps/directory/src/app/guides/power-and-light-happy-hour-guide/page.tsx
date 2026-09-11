@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 
 const BASE = "https://happitime.biz";
@@ -103,9 +104,9 @@ export default function PowerAndLightGuide() {
       />
 
       <nav className="text-sm text-muted mb-6 flex items-center gap-1.5">
-        <a href="/" className="hover:text-foreground transition-colors">HappiTime</a>
+        <Link href="/" className="hover:text-foreground transition-colors">HappiTime</Link>
         <span className="text-muted-light">/</span>
-        <a href="/guides/" className="hover:text-foreground transition-colors">Guides</a>
+        <Link href="/guides/" className="hover:text-foreground transition-colors">Guides</Link>
         <span className="text-muted-light">/</span>
         <span className="text-foreground font-medium">Power &amp; Light</span>
       </nav>
@@ -116,9 +117,9 @@ export default function PowerAndLightGuide() {
       </h1>
       <p className="text-muted text-lg mb-10 max-w-2xl">
         The{" "}
-        <a href="/happy-hour/power-light-kansas-city/" className="text-brand font-medium hover:underline">
+        <Link href="/happy-hour/power-light-kansas-city/" className="text-brand font-medium hover:underline">
           Power &amp; Light District
-        </a>{" "}
+        </Link>{" "}
         is downtown Kansas City&apos;s premier entertainment block — two
         pedestrian streets lined with restaurants, bars, and rooftop patios
         that come alive during happy hour.
@@ -186,9 +187,9 @@ export default function PowerAndLightGuide() {
           After happy hour, consider walking to:
         </p>
         <ul className="list-disc list-inside text-muted space-y-1 text-sm">
-          <li><a href="/happy-hour/crossroads-kansas-city/" className="text-brand hover:underline">Crossroads Arts District</a> — 10 min walk south for creative cocktails</li>
-          <li><a href="/happy-hour/river-market-kansas-city/" className="text-brand hover:underline">River Market</a> — 10 min walk north for brewery taprooms</li>
-          <li><a href="/happy-hour/downtown-kansas-city/" className="text-brand hover:underline">Downtown KC</a> — surrounding blocks with steakhouses and lounges</li>
+          <li><Link href="/happy-hour/crossroads-kansas-city/" className="text-brand hover:underline">Crossroads Arts District</Link> — 10 min walk south for creative cocktails</li>
+          <li><Link href="/happy-hour/river-market-kansas-city/" className="text-brand hover:underline">River Market</Link> — 10 min walk north for brewery taprooms</li>
+          <li><Link href="/happy-hour/downtown-kansas-city/" className="text-brand hover:underline">Downtown KC</Link> — surrounding blocks with steakhouses and lounges</li>
         </ul>
       </section>
 
@@ -212,7 +213,7 @@ export default function PowerAndLightGuide() {
           </div>
           <div>
             <h3 className="font-semibold text-foreground">How does P&amp;L compare to Westport?</h3>
-            <p className="text-muted text-sm leading-relaxed mt-1">P&amp;L is more upscale with bigger discounts on premium drinks. <a href="/happy-hour/westport-kansas-city/" className="text-brand hover:underline">Westport</a> has more variety and lower baseline prices — better for casual crawls.</p>
+            <p className="text-muted text-sm leading-relaxed mt-1">P&amp;L is more upscale with bigger discounts on premium drinks. <Link href="/happy-hour/westport-kansas-city/" className="text-brand hover:underline">Westport</Link> has more variety and lower baseline prices — better for casual crawls.</p>
           </div>
         </div>
       </section>
@@ -226,12 +227,12 @@ export default function PowerAndLightGuide() {
           Browse live happy hour menus and times for every P&amp;L venue.
         </p>
         <div className="flex items-center justify-center gap-3">
-          <a
+          <Link
             href="/happy-hour/power-light-kansas-city/"
             className="inline-block rounded-full border border-brand px-6 py-2.5 text-brand font-semibold text-sm hover:bg-brand hover:text-white transition-colors"
           >
             Power &amp; Light Happy Hours
-          </a>
+          </Link>
           <a
             href="/app/"
             className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors"

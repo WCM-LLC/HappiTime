@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { approveGuide, rejectGuide, unpublishGuide } from '@/actions/guide-review-actions';
+import { STICKY_ACTION_HEAD, STICKY_ACTION_CELL } from '@/utils/stickyActionColumn';
 
 type GuideAction = (formData: FormData) => void | Promise<void>;
 
@@ -151,7 +152,7 @@ export function GuidesReviewTable({
               <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden lg:table-cell">Location</th>
               <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Submitted</th>
               <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden xl:table-cell">Reviewed</th>
-              <th className="px-4 py-2.5" />
+              <th className={`px-4 py-2.5 ${STICKY_ACTION_HEAD}`} />
             </tr>
           </thead>
           <tbody>
@@ -190,7 +191,7 @@ export function GuidesReviewTable({
                   {relativeDate(g.reviewed_at)}
                   {g.reviewer_email ? <span className="block text-caption text-muted-light">{g.reviewer_email}</span> : null}
                 </td>
-                <td className="px-4 py-3">
+                <td className={`px-4 py-3 ${STICKY_ACTION_CELL}`}>
                   <div className="flex items-center gap-3 justify-end">
                     <Link href={`/admin/guides/${g.id}/preview`} className="text-caption font-medium text-brand hover:underline">
                       Preview
@@ -265,7 +266,7 @@ export function GuideAuditTable({ rows }: { rows: GuideAuditRow[] }) {
               <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Decision</th>
               <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Submitted</th>
               <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden lg:table-cell">Reviewed</th>
-              <th className="px-4 py-2.5" />
+              <th className={`px-4 py-2.5 ${STICKY_ACTION_HEAD}`} />
             </tr>
           </thead>
           <tbody>
@@ -292,7 +293,7 @@ export function GuideAuditTable({ rows }: { rows: GuideAuditRow[] }) {
                   {relativeDate(row.reviewed_at)}
                   {row.reviewer_email ? <span className="block text-caption text-muted-light">{row.reviewer_email}</span> : null}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className={`px-4 py-3 text-right ${STICKY_ACTION_CELL}`}>
                   <Link href={`/admin/guides/${row.guide_id}/edit`} className="text-caption font-medium text-brand hover:underline mr-3">
                     Edit
                   </Link>

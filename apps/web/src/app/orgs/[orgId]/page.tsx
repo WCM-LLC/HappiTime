@@ -6,8 +6,12 @@ import MenuSectionItemAdder from '@/components/MenuSectionItemAdder';
 import ConfirmDeleteForm from '@/components/ConfirmDeleteForm';
 import { FlashMessage } from '@/components/FlashMessage';
 import { SubmitButton } from '@/components/ui/SubmitButton';
+import { FormPendingProvider, FormPendingReporter } from '@/components/ui/FormPending';
 import VenueDashboardShell, { type ShellTab, OrgMark, ShellCrumb } from '@/components/venue/VenueDashboardShell';
 import AccessManager, { type InviteRow, type MemberRow } from '@/components/venue/AccessManager';
+import AddVenueForm from '@/components/AddVenueForm';
+import TrackOnMount from '@/components/TrackOnMount';
+import { isSelfServeIntakeEnabled } from '@/utils/intake-access';
 import Disclosure from '@/components/venue/Disclosure';
 import ConfirmDeleteToast from '@/components/venue/ConfirmDeleteToast';
 import VenueMenusManager, {
@@ -259,6 +263,23 @@ export default async function OrgPage({
       .order('created_at', { ascending: false }),
   ]);
 
+  // Who may action the intake queue — must match the redirect guard on
+  // /orgs/[orgId]/intake-review (isOrgIntakeReviewer → INTAKE_APPROVE_ROLES).
+  // Editors and managers can scan but not approve, and showing them a button
+  // that bounces straight back here is worse than showing nothing.
+  const canReviewIntake = role === 'owner' || role === 'admin' || (fromAdmin && userIsAdmin);
+
+  // Scans waiting on this org: an editor's own scan, or a super user's scan of
+  // one of its venues. Owner/admin scans publish on commit and never queue.
+  const { count: pendingIntakeCount } = isSelfServeIntakeEnabled() && canReviewIntake
+    ? await (supabase as any)
+        .from('intake_submissions')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending')
+        .eq('review_route', 'owner')
+        .eq('review_org_id', orgId)
+    : { count: 0 };
+
   const venueCount = (venues ?? []).length;
   const orgBundle = orgBundleRow && orgBundleRow.status !== 'canceled'
     ? {
@@ -465,6 +486,34 @@ export default async function OrgPage({
         </div>
       )}
 
+      {/* Self-serve intake (feature-flagged). Scanning lives in the HappiTime
+          app — the console's job is approving scans someone else submitted for
+          these venues. Owner scans publish on the spot and never queue. */}
+      {isSelfServeIntakeEnabled() && canManageOrganizationMenus ? (
+        <div className="rounded-lg border border-brand/40 bg-brand-subtle/40 p-5 shadow-sm mb-6 flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <h3 className="text-heading-sm font-semibold text-foreground">
+              {pendingIntakeCount
+                ? `${pendingIntakeCount} menu${pendingIntakeCount === 1 ? '' : 's'} waiting on your approval`
+                : 'Scan your happy hour menu'}
+            </h3>
+            <p className="text-body-sm text-muted mt-0.5">
+              {pendingIntakeCount
+                ? 'Someone scanned a menu for one of your venues. It stays hidden until you approve it.'
+                : 'Open the HappiTime app and photograph your chalkboard — we read it and your listing updates on the spot.'}
+            </p>
+          </div>
+          {pendingIntakeCount ? (
+            <Link
+              href={`/orgs/${orgId}/intake-review`}
+              className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-brand text-white text-body-sm font-semibold hover:bg-brand-dark transition-colors shrink-0"
+            >
+              Review now
+            </Link>
+          ) : null}
+        </div>
+      ) : null}
+
       {/* Add Venue Form */}
       {isOwner ? (
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
@@ -472,53 +521,7 @@ export default async function OrgPage({
             <h3 className="text-heading-sm font-semibold text-foreground">Add a venue</h3>
             <p className="text-body-sm text-muted mt-0.5">Add a new location to this organization.</p>
           </div>
-          <form className="flex flex-col gap-4">
-            <div>
-              <label htmlFor="venue-name" className="text-body-sm font-medium text-foreground block mb-1.5">
-                Venue name
-              </label>
-              <input id="venue-name" name="name" placeholder="e.g., Smith's Taproom" required className={inputCls} />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label htmlFor="address" className="text-body-sm font-medium text-foreground block mb-1.5">
-                  Street address
-                </label>
-                <input id="address" name="address" placeholder="123 Main St" required className={inputCls} />
-              </div>
-              <div>
-                <label htmlFor="city" className="text-body-sm font-medium text-foreground block mb-1.5">
-                  City
-                </label>
-                <input id="city" name="city" placeholder="Austin" required className={inputCls} />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label htmlFor="state" className="text-body-sm font-medium text-foreground block mb-1.5">
-                  State
-                </label>
-                <input id="state" name="state" placeholder="TX" required className={inputCls} />
-              </div>
-              <div>
-                <label htmlFor="zip" className="text-body-sm font-medium text-foreground block mb-1.5">
-                  ZIP code
-                </label>
-                <input id="zip" name="zip" placeholder="78701" required className={inputCls} />
-              </div>
-              <div>
-                <label htmlFor="timezone" className="text-body-sm font-medium text-foreground block mb-1.5">
-                  Timezone
-                </label>
-                <input id="timezone" name="timezone" defaultValue="America/Chicago" className={inputCls} />
-              </div>
-            </div>
-            <div>
-              <button formAction={createVenue.bind(null, orgId)} className={btnPrimary}>
-                Create venue
-              </button>
-            </div>
-          </form>
+          <AddVenueForm action={createVenue.bind(null, orgId)} />
         </div>
       ) : null}
 
@@ -644,14 +647,19 @@ export default async function OrgPage({
               <div key={menu.id} className="rounded-lg border border-border bg-background">
                 {canManageOrganizationMenus ? (
                   <>
-                    <form id={menuFormId} action={saveOrganizationMenu.bind(null, orgId)} />
+                    <form id={menuFormId} action={saveOrganizationMenu.bind(null, orgId)}>
+                      <FormPendingReporter id={menuFormId} />
+                    </form>
                     <form id={publishFormId}>
+                      <FormPendingReporter id={publishFormId} />
                       <input type="hidden" name="menu_id" value={menu.id} />
                     </form>
                     <form id={deleteFormId}>
+                      <FormPendingReporter id={deleteFormId} />
                       <input type="hidden" name="menu_id" value={menu.id} />
                     </form>
                     <form id={syncFormId}>
+                      <FormPendingReporter id={syncFormId} />
                       <input type="hidden" name="menu_id" value={menu.id} />
                     </form>
                     <input form={menuFormId} type="hidden" name="menu_id" value={menu.id} />
@@ -763,6 +771,7 @@ export default async function OrgPage({
                           <div key={section.id} className="rounded-md border border-border bg-surface p-4">
                             {canManageOrganizationMenus ? (
                               <form id={deleteSectionFormId}>
+                                <FormPendingReporter id={deleteSectionFormId} />
                                 <input type="hidden" name="section_id" value={section.id} />
                               </form>
                             ) : null}
@@ -800,6 +809,7 @@ export default async function OrgPage({
                                     <div key={item.id} className="rounded-md border border-border bg-background p-4">
                                       {canManageOrganizationMenus ? (
                                         <form id={deleteItemFormId}>
+                                          <FormPendingReporter id={deleteItemFormId} />
                                           <input type="hidden" name="item_id" value={item.id} />
                                         </form>
                                       ) : null}
@@ -1381,11 +1391,13 @@ export default async function OrgPage({
   );
 
   return (
+    <FormPendingProvider>
     <div className="bg-background">
       <UserBar />
       <Suspense>
         <FlashMessage />
       </Suspense>
+      <TrackOnMount event="org_dashboard_viewed" props={{ org_id: orgId, venue_count: venueCount }} />
       <VenueDashboardShell
         storeKey={`hh-venue:${orgId}`}
         tabs={tabs}
@@ -1394,5 +1406,6 @@ export default async function OrgPage({
         addButton={{ label: 'Add Venue', tabId: 'venues' }}
       />
     </div>
+    </FormPendingProvider>
   );
 }

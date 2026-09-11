@@ -1,4 +1,6 @@
 import { Logo } from '@/components/ui/Logo';
+import { SubmitButton } from '@/components/ui/SubmitButton';
+import { PendingFieldset } from '@/components/ui/PendingFieldset';
 import { GUIDE_EDITOR_PATH, loginPathFor, safeNextPath } from '@/utils/auth-paths';
 import { login } from '../../actions/login-actions';
 
@@ -74,6 +76,7 @@ export default async function LoginPage({
 
           {/* Email + Password form */}
           <form className="flex flex-col gap-4">
+            <PendingFieldset className="flex flex-col gap-4">
             {next ? <input type="hidden" name="next" value={next} /> : null}
 
             <div className="flex flex-col gap-1.5">
@@ -109,13 +112,15 @@ export default async function LoginPage({
             </div>
 
             <div className="flex flex-col gap-3 mt-1">
-              <button
+              <SubmitButton
                 formAction={login}
-                className="inline-flex items-center justify-center h-11 px-4 w-full rounded-md bg-brand text-white text-body-sm font-semibold hover:bg-brand-dark transition-colors cursor-pointer"
+                pendingLabel="Signing in…"
+                className="inline-flex items-center justify-center h-11 px-4 w-full rounded-md bg-brand text-white text-body-sm font-semibold hover:bg-brand-dark transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-wait"
               >
                 Sign in
-              </button>
+              </SubmitButton>
             </div>
+            </PendingFieldset>
           </form>
 
           {/* Footer links */}

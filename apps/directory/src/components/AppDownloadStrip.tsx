@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/storeLinks";
 
 export function AppDownloadStrip() {
   const [dismissed, setDismissed] = useState(false);
@@ -20,7 +21,7 @@ export function AppDownloadStrip() {
         </div>
         <div className="flex items-center gap-2.5 flex-shrink-0">
           <a
-            href="https://apps.apple.com/us/app/happitime/id6757933269"
+            href={APP_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-white text-xs font-bold hover:bg-brand-dark transition-colors"
@@ -31,13 +32,18 @@ export function AppDownloadStrip() {
             App Store
           </a>
           <a
-            href="/app/"
-            className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-colors"
+            href={PLAY_STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-colors hover:bg-brand-subtle"
             style={{
               border: "1.5px solid #C8965A",
               color: "#C8965A",
             }}
           >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3.6 2.4a1 1 0 0 0-.5.87v17.46a1 1 0 0 0 1.5.86l15.3-8.73a1 1 0 0 0 0-1.74L4.6 2.4a1 1 0 0 0-1 0z" />
+            </svg>
             Google Play
           </a>
         </div>

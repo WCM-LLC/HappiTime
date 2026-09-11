@@ -140,6 +140,7 @@ function StartBundle({ venueCount, pending, onStart }: { orgId: string; venueCou
       >
         Start bundle
       </button>
+      <p className="mt-3 text-caption text-muted">Have a promo code? You can enter it at checkout.</p>
     </div>
   );
 }

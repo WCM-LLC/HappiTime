@@ -9,6 +9,7 @@ import {
 } from '@/actions/admin-plans-actions';
 import { adminGrantPilotBundle, adminCancelOrgBundle } from '@/actions/admin-bundle-actions';
 import { AdminBundleLinkButton } from '@/components/AdminBundleLinkButton';
+import { STICKY_HEAD_POS, STICKY_ACTION_POS } from '@/utils/stickyActionColumn';
 
 type VenueSubscriptionRow = {
   id: string;
@@ -226,7 +227,7 @@ export default async function PlansPage() {
                     <th className={thCls}>Plan</th>
                     <th className={thCls}>Status</th>
                     <th className={thCls}>Since</th>
-                    <th className={thCls}>Actions</th>
+                    <th className={`${thCls} bg-background ${STICKY_HEAD_POS}`}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -243,7 +244,7 @@ export default async function PlansPage() {
                         <Badge label={row.status} cls={STATUS_BADGE[row.status] ?? STATUS_BADGE.inactive} />
                       </td>
                       <td className={`${tdCls} text-muted whitespace-nowrap`}>{formatDate(row.created_at)}</td>
-                      <td className={tdCls}>
+                      <td className={`${tdCls} bg-surface ${STICKY_ACTION_POS}`}>
                         <form action={adminDeleteVenueSubscription}>
                           <input type="hidden" name="venue_id" value={row.venue_id} />
                           <button
@@ -358,7 +359,7 @@ export default async function PlansPage() {
                     <th className={thCls}>Plan</th>
                     <th className={thCls}>Status</th>
                     <th className={thCls}>Since</th>
-                    <th className={thCls}>Actions</th>
+                    <th className={`${thCls} bg-background ${STICKY_HEAD_POS}`}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -379,7 +380,7 @@ export default async function PlansPage() {
                         <Badge label={row.status} cls={STATUS_BADGE[row.status] ?? STATUS_BADGE.inactive} />
                       </td>
                       <td className={`${tdCls} text-muted whitespace-nowrap`}>{formatDate(row.created_at)}</td>
-                      <td className={tdCls}>
+                      <td className={`${tdCls} bg-surface ${STICKY_ACTION_POS}`}>
                         <form action={adminDeleteUserPlan}>
                           <input type="hidden" name="user_id" value={row.user_id} />
                           <button
@@ -468,7 +469,7 @@ export default async function PlansPage() {
               <thead className="bg-surface">
                 <tr>
                   <th className={thCls}>Org</th><th className={thCls}>Tier</th><th className={thCls}>Status</th>
-                  <th className={thCls}>Venues</th><th className={thCls}>$/mo</th><th className={thCls}>Actions</th>
+                  <th className={thCls}>Venues</th><th className={thCls}>$/mo</th><th className={`${thCls} bg-surface ${STICKY_HEAD_POS}`}>Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-background">
@@ -479,7 +480,7 @@ export default async function PlansPage() {
                     <td className={tdCls}>{b.status}</td>
                     <td className={tdCls}>{b.venue_count}</td>
                     <td className={tdCls}>${b.monthly_total.toFixed(2)}</td>
-                    <td className={tdCls}>
+                    <td className={`${tdCls} bg-background ${STICKY_ACTION_POS}`}>
                       <div className="flex gap-3 items-center">
                         <AdminBundleLinkButton orgId={b.org_id} />
                         <form action={adminCancelOrgBundle} className="inline">

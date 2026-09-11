@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { supabase } from "../api/supabaseClient";
+import { fetchIntakeSession } from "../api/intake";
+import { BackgroundLocationDisclosure } from "../components/BackgroundLocationDisclosure";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { SuperUserBadge } from "../components/SuperUserBadge";
 import { VenueSuggestionForm } from "./AddScreen";
@@ -12,6 +14,7 @@ import { useUserFollowCounts } from "../hooks/useUserFollowCounts";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useUserPreferences } from "../hooks/useUserPreferences";
 import { useUserProfile } from "../hooks/useUserProfile";
+import { useVisitReminderConsent } from "../hooks/useVisitReminderConsent";
 import {
   HappiTimeIOSPermissionPanel,
   isHappiTimeIOSUIAvailable,
@@ -66,6 +69,14 @@ export const ProfileScreen: React.FC = () => {
     savePreferences,
   } = useUserPreferences();
 
+  // Menu scanning only appears for accounts the console says may use it —
+  // venue owners and super users, and only while the feature flag is on.
+  const [canScanMenus, setCanScanMenus] = useState(false);
+  // Distinct from canScanMenus=false. A denial and a failed check both hid
+  // the entry point identically, so an owner who could scan was told nothing
+  // at all when the request failed.
+  const [scanCheckFailed, setScanCheckFailed] = useState(false);
+
   const [displayName, setDisplayName] = useState("");
   const [homeCity, setHomeCity] = useState("");
   const [homeState, setHomeState] = useState("");
@@ -81,6 +92,13 @@ export const ProfileScreen: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusIsError, setStatusIsError] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  // Android confirmation modal — iOS uses the native Alert.prompt instead.
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [deleteDraft, setDeleteDraft] = useState("");
+  // Visit reminders (background location) — separate, disclosure-gated opt-in.
+  const { enabled: visitReminders, setEnabled: setVisitReminders } =
+    useVisitReminderConsent();
+  const [disclosureVisible, setDisclosureVisible] = useState(false);
   const { state: avatarState, pickAndUpload } = useAvatarUpload();
   const useNativePermissionPanel =
     Platform.OS === "ios" && isHappiTimeIOSUIAvailable;
@@ -102,6 +120,47 @@ export const ProfileScreen: React.FC = () => {
     ]);
   };
 
+  // Shared deletion routine called by both the iOS Alert.prompt and the
+  // Android confirmation modal, so the delete logic lives in exactly one place.
+  const performAccountDeletion = async (value?: string) => {
+    if ((value ?? "").trim() !== "DELETE") {
+      Alert.alert("Deletion canceled", "You must type DELETE exactly.");
+      return;
+    }
+
+    setDeletingAccount(true);
+    setStatusMessage(null);
+
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+
+    if (sessionError || !accessToken) {
+      setDeletingAccount(false);
+      Alert.alert(
+        "Unable to delete account",
+        "Your session expired. Please sign in again and retry."
+      );
+      return;
+    }
+
+    const { error } = await supabase.functions.invoke("delete-account", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (error) {
+      setDeletingAccount(false);
+      Alert.alert(
+        "Unable to delete account",
+        await getFunctionErrorMessage(error)
+      );
+      return;
+    }
+
+    await supabase.auth.signOut({ scope: "local" });
+    Alert.alert("Account has been removed");
+  };
+
   const handleDeleteAccount = () => {
     if (!user || deletingAccount) return;
     Alert.alert("Delete account", "Do you want to permanently delete your account?", [
@@ -110,60 +169,55 @@ export const ProfileScreen: React.FC = () => {
         text: "Delete account",
         style: "destructive",
         onPress: () => {
-          Alert.prompt(
-            "Final confirmation",
-            "Type DELETE to confirm account deletion.",
-            [
-              { text: "Cancel", style: "cancel" },
-              {
-                text: "Delete",
-                style: "destructive",
-                onPress: async (value?: string) => {
-                  if ((value ?? "").trim() !== "DELETE") {
-                    Alert.alert("Deletion canceled", "You must type DELETE exactly.");
-                    return;
-                  }
-
-                  setDeletingAccount(true);
-                  setStatusMessage(null);
-
-                  const { data: sessionData, error: sessionError } =
-                    await supabase.auth.getSession();
-                  const accessToken = sessionData.session?.access_token;
-
-                  if (sessionError || !accessToken) {
-                    setDeletingAccount(false);
-                    Alert.alert(
-                      "Unable to delete account",
-                      "Your session expired. Please sign in again and retry."
-                    );
-                    return;
-                  }
-
-                  const { error } = await supabase.functions.invoke("delete-account", {
-                    headers: { Authorization: `Bearer ${accessToken}` },
-                  });
-
-                  if (error) {
-                    setDeletingAccount(false);
-                    Alert.alert(
-                      "Unable to delete account",
-                      await getFunctionErrorMessage(error)
-                    );
-                    return;
-                  }
-
-                  await supabase.auth.signOut({ scope: "local" });
-                  Alert.alert("Account has been removed");
+          // Alert.prompt is iOS-only; Android falls back to an in-app modal.
+          if (Platform.OS === "ios") {
+            Alert.prompt(
+              "Final confirmation",
+              "Type DELETE to confirm account deletion.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: (value?: string) => void performAccountDeletion(value),
                 },
-              },
-            ],
-            "plain-text"
-          );
+              ],
+              "plain-text"
+            );
+          } else {
+            setDeleteDraft("");
+            setDeleteModalVisible(true);
+          }
         },
       },
     ]);
   };
+
+  // Ask the console once per signed-in session whether this account may scan
+  // menus. A denial hides the entry; a FAILED check says so instead of
+  // pretending the feature does not exist.
+  useEffect(() => {
+    if (!user?.id) {
+      setCanScanMenus(false);
+      setScanCheckFailed(false);
+      return;
+    }
+    let alive = true;
+    fetchIntakeSession()
+      .then((s) => {
+        if (!alive) return;
+        setCanScanMenus(Boolean(s.tier));
+        setScanCheckFailed(false);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setCanScanMenus(false);
+        setScanCheckFailed(true);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (!profile) return;
@@ -428,6 +482,24 @@ export const ProfileScreen: React.FC = () => {
         ) : null}
 
         <View style={styles.switchRow}>
+          <Text style={styles.label}>Visit reminders</Text>
+          <Switch
+            value={visitReminders}
+            onValueChange={(next) => {
+              if (next) {
+                // Show the prominent disclosure BEFORE enabling / requesting
+                // background permission. Consent is set only on accept.
+                setDisclosureVisible(true);
+              } else {
+                void setVisitReminders(false);
+              }
+            }}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={colors.background}
+          />
+        </View>
+
+        <View style={styles.switchRow}>
           <Text style={styles.label}>Push notifications</Text>
           <Switch
             value={notifPush}
@@ -533,6 +605,24 @@ export const ProfileScreen: React.FC = () => {
           </Pressable>
         ) : null}
 
+        {canScanMenus ? (
+          <Pressable
+            style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
+            onPress={() => navigation.navigate("ScanMenu")}
+          >
+            <Text style={styles.secondaryButtonText}>Scan a Happy Hour Menu</Text>
+          </Pressable>
+        ) : scanCheckFailed ? (
+          // Say the check failed rather than silently omitting the feature.
+          // An owner reporting "I can't see the scan button" gave us no way to
+          // tell a permissions problem from a network one.
+          <View style={styles.scanCheckFailedBox}>
+            <Text style={styles.scanCheckFailedText}>
+              Couldn&apos;t check your menu-scanning access. Reopen this screen to retry.
+            </Text>
+          </View>
+        ) : null}
+
         <Pressable
         style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
         onPress={() => setShowSuggestVenue(true)}
@@ -587,6 +677,63 @@ export const ProfileScreen: React.FC = () => {
           </View>
         </View>
       </ScrollView>
+
+      {/* Android delete-account confirmation — iOS uses Alert.prompt above */}
+      <Modal
+        visible={deleteModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.modalBackdrop}
+        >
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Final confirmation</Text>
+            <Text style={styles.modalHint}>
+              Type DELETE to confirm account deletion.
+            </Text>
+            <TextInput
+              value={deleteDraft}
+              onChangeText={setDeleteDraft}
+              placeholder="DELETE"
+              placeholderTextColor={colors.textMuted}
+              style={styles.modalInput}
+              autoFocus
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+            <View style={styles.modalActions}>
+              <Pressable
+                onPress={() => setDeleteModalVisible(false)}
+                style={styles.modalButtonSecondary}
+              >
+                <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  const value = deleteDraft;
+                  setDeleteModalVisible(false);
+                  void performAccountDeletion(value);
+                }}
+                style={styles.modalButtonPrimary}
+              >
+                <Text style={styles.modalButtonPrimaryText}>Delete</Text>
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <BackgroundLocationDisclosure
+        visible={disclosureVisible}
+        onAccept={() => {
+          setDisclosureVisible(false);
+          void setVisitReminders(true);
+        }}
+        onDecline={() => setDisclosureVisible(false)}
+      />
     </KeyboardAvoidingView>
   );
 };
@@ -856,5 +1003,79 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 12,
     marginTop: spacing.xs
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: spacing.lg
+  },
+  modalCard: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: spacing.lg,
+    width: "100%"
+  },
+  modalTitle: {
+    color: colors.text,
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: spacing.xs
+  },
+  scanCheckFailedBox: {
+    backgroundColor: colors.warningLight,
+    borderRadius: 8,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.sm
+  },
+  scanCheckFailedText: {
+    color: colors.warning,
+    fontSize: 13
+  },
+  modalHint: {
+    color: colors.textMuted,
+    fontSize: 13,
+    marginBottom: spacing.md
+  },
+  modalInput: {
+    color: colors.text,
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    marginBottom: spacing.md
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: spacing.sm
+  },
+  modalButtonSecondary: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  modalButtonSecondaryText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "500"
+  },
+  modalButtonPrimary: {
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: 999,
+    backgroundColor: colors.error
+  },
+  modalButtonPrimaryText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700"
   }
 });

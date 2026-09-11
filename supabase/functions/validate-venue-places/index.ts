@@ -25,7 +25,7 @@ const supabase = createClient(supabaseUrl, serviceKey, {
 
 const placesDetailsUrl = (placeId: string) =>
   `https://places.googleapis.com/v1/places/${placeId}`;
-const placesFieldMask = "formattedAddress";
+const placesFieldMask = "formattedAddress,businessStatus";
 const retryableStatus = new Set([408, 429, 500, 502, 503, 504]);
 
 const buildStoredAddress = (v: {
@@ -43,8 +43,13 @@ const getJobToken = async (): Promise<string | null> => {
   return data ?? null;
 };
 
+type BusinessStatus =
+  | "OPERATIONAL"
+  | "CLOSED_TEMPORARILY"
+  | "CLOSED_PERMANENTLY";
+
 type FetchResult =
-  | { kind: "ok"; address: string | null }
+  | { kind: "ok"; address: string | null; businessStatus: BusinessStatus | null }
   | { kind: "not_found" }
   | { kind: "transient" }
   | { kind: "fatal" };
@@ -60,7 +65,11 @@ const fetchGoogleAddress = async (placeId: string): Promise<FetchResult> => {
   });
   if (res.ok) {
     const body = await res.json().catch(() => null);
-    return { kind: "ok", address: body?.formattedAddress ?? null };
+    return {
+      kind: "ok",
+      address: body?.formattedAddress ?? null,
+      businessStatus: body?.businessStatus ?? null,
+    };
   }
   if (res.status === 404) return { kind: "not_found" };
   if (retryableStatus.has(res.status)) return { kind: "transient" };
@@ -82,7 +91,9 @@ serve(async (req) => {
 
   const { data: venues, error: selErr } = await supabase
     .from("venues")
-    .select("id,address,city,state,zip,places_id,address_review_resolved_at")
+    .select(
+      "id,address,city,state,zip,places_id,address_review_resolved_at,closure_review_resolved_at",
+    )
     .not("places_id", "is", null)
     .order("places_validated_at", { ascending: true, nullsFirst: true })
     .limit(batchLimit);
@@ -122,6 +133,7 @@ serve(async (req) => {
       google_address: googleAddress,
       match_score: score,
       mismatch,
+      business_status: fetched.kind === "ok" ? fetched.businessStatus : null,
     });
 
     // Resolved venues (a human accepted/dismissed): the cron must not re-flag.
@@ -129,11 +141,22 @@ serve(async (req) => {
     // match (fixes stale flags left by the old set-only behavior).
     const resolved = (v as { address_review_resolved_at?: string | null })
       .address_review_resolved_at != null;
+    // Closure follows the same guard, on its own resolved timestamp so the
+    // review queue can distinguish closures from address mismatches.
+    // CLOSED_TEMPORARILY is logged but never flagged (seasonal closures and
+    // renovations are common in hospitality).
+    const closureSuspected =
+      fetched.kind === "not_found" ||
+      (fetched.kind === "ok" && fetched.businessStatus === "CLOSED_PERMANENTLY");
+    const closureResolved = (v as { closure_review_resolved_at?: string | null })
+      .closure_review_resolved_at != null;
     await supabase
       .from("venues")
       .update({
         places_validated_at: now,
+        places_business_status: fetched.kind === "ok" ? fetched.businessStatus : null,
         ...(resolved ? {} : { needs_address_review: mismatch }),
+        ...(closureResolved ? {} : { closure_suspected: closureSuspected }),
       })
       .eq("id", v.id);
 

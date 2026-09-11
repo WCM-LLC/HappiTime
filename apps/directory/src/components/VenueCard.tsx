@@ -1,6 +1,8 @@
+import Image from "next/image";
 import type { VenueWithWindows } from "@/lib/queries";
 import { venueImageUrl } from "@/lib/mediaUrl";
 import { tierPresentation } from "@/lib/venueTier";
+import { rewardLabel } from "@/lib/rewards";
 
 function coverUrl(venue: VenueWithWindows): string | null {
   const img = venue.venue_media.find((m) => m.type === "image");
@@ -48,6 +50,8 @@ export function VenueCard({ venue, neighborhoodSlug, todayIndex }: VenueCardProp
 
   const cover = coverUrl(venue);
   const hasSocial = venue.facebook_url || venue.instagram_url || venue.tiktok_url;
+  // Redeemable Rounds: a live offer (preset set + advertised) surfaces as a chip.
+  const offer = venue.reward_active && venue.reward_preset ? rewardLabel(venue.reward_preset) : null;
 
   return (
     <div
@@ -56,11 +60,12 @@ export function VenueCard({ venue, neighborhoodSlug, todayIndex }: VenueCardProp
       {/* Hero image */}
       <div className="h-40 bg-brand-subtle overflow-hidden relative">
         {cover ? (
-          <img
+          <Image
             src={cover}
             alt={venue.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -111,6 +116,11 @@ export function VenueCard({ venue, neighborhoodSlug, todayIndex }: VenueCardProp
             <span className="inline-flex items-center gap-1 rounded-full bg-brand-subtle px-2.5 py-1 text-xs font-semibold text-brand-text">
               <span className="w-1.5 h-1.5 rounded-full bg-brand" />
               Happy hour today
+            </span>
+          )}
+          {offer && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
+              🍺 5 check-ins = {offer}
             </span>
           )}
           {venue.cuisine_type && (

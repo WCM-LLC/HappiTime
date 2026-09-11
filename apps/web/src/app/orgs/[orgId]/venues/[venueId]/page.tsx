@@ -7,6 +7,7 @@ import VenueDashboardShell, { type ShellTab, OrgMark, ShellCrumb } from '@/compo
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { FlashMessage } from '@/components/FlashMessage';
 import VenueMediaUploader from '@/components/VenueMediaUploader';
+import RewardConfig from './RewardConfig';
 import type { SubscriptionPlan } from '@/utils/stripe';
 import { PLAN_LABEL } from '@/utils/subscription-features';
 import { createClient, createServiceClient } from '@/utils/supabase/server';
@@ -289,12 +290,29 @@ export default async function VenuePage({
     .maybeSingle();
 
   const role = String(membership?.role ?? '');
+
+  // Mirrors public.has_venue_assignment(): explicit venue_members rows restrict
+  // a manager/host to those venues; zero rows in the org means every venue
+  // (owner decision 2026-07-29). Keeping this gate in sync with the write path
+  // avoids showing an editable form that a save would then reject.
+  let managesThisVenue = true;
+  if (role === 'manager' || role === 'host') {
+    const { data: myAssignments } = await (await createClient())
+      .from('venue_members')
+      .select('venue_id')
+      .eq('org_id', orgId)
+      .eq('user_id', user.id);
+    const assignmentRows = (myAssignments ?? []) as { venue_id: string }[];
+    managesThisVenue =
+      assignmentRows.length === 0 || assignmentRows.some((a) => a.venue_id === venueId);
+  }
+
   // Admin users always get full management access regardless of how they navigated
   // (used to require ?from=admin in the URL — that bug caused the misleading
   //  "editing requires manager access" message after a successful save).
   const isOwner = role === 'owner' || userIsAdmin;
-  const isManager = role === 'manager' || role === 'admin' || role === 'editor';
-  const isHost = role === 'host';
+  const isManager = role === 'admin' || role === 'editor' || (role === 'manager' && managesThisVenue);
+  const isHost = role === 'host' && managesThisVenue;
   const canManageVenue = isOwner || isManager || userIsAdmin;
   const canEditMenuItems = canManageVenue || isHost;
 
@@ -326,7 +344,7 @@ export default async function VenuePage({
     // fetchVenueById does not select `slug`; fetch it for the QR download caption.
     // last_confirmed_at / listing_disputed power the listing-freshness banner.
     // (supabase as any): listing_disputed lands in generated types on next typegen.
-    (supabase as any).from('venues').select('slug,last_confirmed_at,listing_disputed').eq('id', venueId).maybeSingle(),
+    (supabase as any).from('venues').select('slug,last_confirmed_at,listing_disputed,reward_preset,reward_active').eq('id', venueId).maybeSingle(),
     // Read checkin_secret via service-role (always) — it is never sent to the
     // browser; only the derived 4-char code is shown in the sub-bar.
     // Gated to canManageVenue so hosts/viewers don't trigger a service-role read.
@@ -1253,9 +1271,12 @@ export default async function VenuePage({
                 const statusColor = isPublished
                   ? 'bg-success-light text-success'
                   : 'bg-warning-light text-warning';
+                // Owners must see their own event times in the venue's zone —
+                // this renders server-side, where the runtime zone is UTC.
+                const evTz = ev.timezone || 'America/Chicago';
                 const eventDate = new Date(ev.starts_at);
-                const dateStr = eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                const timeStr = eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                const dateStr = eventDate.toLocaleDateString('en-US', { timeZone: evTz, weekday: 'short', month: 'short', day: 'numeric' });
+                const timeStr = eventDate.toLocaleTimeString('en-US', { timeZone: evTz, hour: 'numeric', minute: '2-digit' });
 
                 return (
                   <div key={ev.id} className="rounded-lg border border-border bg-background p-5">
@@ -1268,7 +1289,7 @@ export default async function VenuePage({
                           <h3 className="text-body-md font-semibold text-foreground">{ev.title}</h3>
                           <p className="text-body-sm text-muted mt-0.5">
                             {ev.is_recurring ? formatRecurrence(ev.recurrence_rule) : dateStr} at {timeStr}
-                            {ev.ends_at && ` – ${new Date(ev.ends_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
+                            {ev.ends_at && ` – ${new Date(ev.ends_at).toLocaleTimeString('en-US', { timeZone: evTz, hour: 'numeric', minute: '2-digit' })}`}
                             {ev.event_type !== 'event' && <span className="text-muted-light"> · {ev.event_type.replace('_', ' ')}</span>}
                           </p>
                           {ev.price_info && <p className="text-caption text-muted mt-0.5">{ev.price_info}</p>}
@@ -1619,12 +1640,13 @@ export default async function VenuePage({
                         <form>
                           <input type="hidden" name="user_id" value={member.user_id} />
                           <input type="hidden" name="return_path" value={`/orgs/${orgId}/venues/${venueId}?from=admin`} />
-                          <button
+                          <SubmitButton
                             formAction={adminRemoveStaffMember.bind(null, orgId)}
                             className={btnDanger}
+                            pendingLabel="Removing…"
                           >
                             Remove
-                          </button>
+                          </SubmitButton>
                         </form>
                       ) : null}
                     </div>
@@ -1690,12 +1712,13 @@ export default async function VenuePage({
                 </div>
 
                 <div>
-                  <button
+                  <SubmitButton
                     formAction={adminAddStaffMember.bind(null, orgId)}
                     className={btnPrimary}
+                    pendingLabel="Adding…"
                   >
                     Add staff member
-                  </button>
+                  </SubmitButton>
                 </div>
               </form>
             </div>
@@ -1820,6 +1843,15 @@ export default async function VenuePage({
     <ToastmakerCard venueId={venueId} />
   ) : null;
 
+  const rewardPanel = canManageVenue ? (
+    <RewardConfig
+      orgId={orgId}
+      venueId={venueId}
+      initialPreset={(qrVenue as { reward_preset?: string | null } | null)?.reward_preset ?? null}
+      initialActive={Boolean((qrVenue as { reward_active?: boolean | null } | null)?.reward_active)}
+    />
+  ) : null;
+
   const tabs: ShellTab[] = [
     { id: 'details', label: 'Details', content: <>{detailsPart1}{tagsPanel}</> },
     { id: 'happy-hours', label: 'Happy Hours', content: happyHoursPanel },
@@ -1827,6 +1859,7 @@ export default async function VenuePage({
     { id: 'events', label: 'Events', content: eventsPanel },
     { id: 'media', label: 'Media & QR', content: mediaQrPanel, show: canManageVenue },
     { id: 'checkins', label: 'Check-ins', content: checkinPanel, show: canManageVenue },
+    { id: 'rewards', label: 'Rewards', content: rewardPanel, show: canManageVenue },
     { id: 'toastmaker', label: 'Toastmaker', content: toastmakerPanel, show: canManageVenue },
     { id: 'staff', label: 'Staff', content: staffPanel, show: fromAdmin && userIsAdmin },
     { id: 'analytics', label: 'Analytics', content: analyticsPanel },

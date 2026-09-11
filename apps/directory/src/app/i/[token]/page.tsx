@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/storeLinks";
 
 // Public shared-itinerary viewer: https://happitime.biz/i/{share_token}
 // Anyone holding the unguessable token can view the itinerary (read-only). Data comes
@@ -9,9 +10,6 @@ import { supabase } from "@/lib/supabase";
 // installed app opens this URL directly; for now this page is the web fallback.
 
 export const dynamic = "force-dynamic";
-
-const APP_STORE_URL = "https://apps.apple.com/us/app/happitime/id6757933269";
-const PLAY_STORE_URL = "https://play.google.com/store/apps/happitime";
 
 type SharedItem = {
   venue_id: string;

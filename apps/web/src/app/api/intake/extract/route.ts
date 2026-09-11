@@ -5,7 +5,8 @@
  * Server runs a vision model on the image and returns a draft of
  * happy_hour_windows + happy_hour_offers ready for review.
  *
- * Auth: requires an authenticated user who is in the platform admin list.
+ * Auth: cookie session (console) or bearer token (HappiTime app). Admins are
+ * uncapped; owners and super users get INTAKE_DAILY_EXTRACT_CAP scans a day.
  *
  * Provider selection: INTAKE_VISION_PROVIDER = 'gemini' (default) | 'anthropic'
  *   - gemini    → Google Gemini Flash. Free tier: 15 RPM, 1,500/day.
@@ -17,8 +18,14 @@
  * Per-provider model default can be overridden with INTAKE_MODEL.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server';
-import { isAdminEmail } from '@/utils/admin-emails';
+import { createServiceClient } from '@/utils/supabase/server';
+import { authenticateIntakeRequest } from '@/utils/intake-auth';
+import { EVENT_TYPES, DATE_RE, normalizeContentType } from '@/utils/intake-content';
+import {
+  getIntakeTier,
+  extractsUsedToday,
+  INTAKE_DAILY_EXTRACT_CAP,
+} from '@/utils/intake-access';
 
 export const runtime = 'nodejs';
 // This route waits synchronously on a vision-LLM round-trip. The internal
@@ -44,13 +51,33 @@ const MAX_BYTES = 8 * 1024 * 1024; // 8 MB upload cap
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 
 const SYSTEM_PROMPT = `You are an extraction agent for HappiTime. You receive a
-photo of bar/restaurant happy-hour content — a menu, chalkboard, table tent,
-sandwich board, or printed sign — and you extract EVERYTHING relevant into a
-strict JSON shape that matches HappiTime's data model.
+photo of bar/restaurant content — a menu, chalkboard, table tent, sandwich
+board, event flyer, or printed sign — and you extract EVERYTHING relevant into
+a strict JSON shape that matches HappiTime's data model.
+
+FIRST decide what you are looking at, then extract accordingly. A recurring
+happy hour and a one-off event are different things in HappiTime and are
+stored differently, so this classification matters more than any single field.
+A human confirms your answer before anything is saved, so say what you actually
+see and use "unknown" when the photo does not tell you.
 
 Return STRICT JSON in this exact shape, no markdown, no commentary:
 
 {
+  "content_type": "happy_hour" | "event" | "event_series" | "mixed" | "unknown",
+  "events": [
+    {
+      "title": "Trivia Night",
+      "description": null,
+      "event_type": "trivia",
+      "date": "2026-08-21",
+      "start_time": "19:00",
+      "end_time": "21:00",
+      "is_recurring": false,
+      "recurrence_dow": [],
+      "price_info": "$5 cover"
+    }
+  ],
   "windows": [
     { "dow": [1,2,3,4,5], "start_time": "15:00", "end_time": "18:00", "label": "Weekday Happy Hour" }
   ],
@@ -74,6 +101,39 @@ Return STRICT JSON in this exact shape, no markdown, no commentary:
   "_confidence": "high" | "medium" | "low",
   "_notes": "short string for any ambiguity"
 }
+
+CLASSIFICATION RULES (decide this first):
+- "happy_hour": recurring discounted food/drink tied to times of day. Words
+  like "Happy Hour", "Daily Specials", "3-6pm", "$2 off drafts". This is the
+  default for a menu board with prices and a time range.
+- "event": ONE dated thing. A specific calendar date, or a named one-off
+  ("Aug 21", "this Saturday", "Oktoberfest Kickoff").
+- "event_series": something that repeats on a weekday without being a happy
+  hour — "Trivia every Thursday", "Live Music Fridays", "Sunday Funday".
+- "mixed": the image clearly shows BOTH a happy hour AND one or more events.
+  Fill in windows/menu AND events, and say so in "_notes".
+- "unknown": you cannot tell (a plain food menu with no times, a logo, a photo
+  of a room). Return empty arrays and explain in "_notes". Do NOT guess
+  "happy_hour" just because it is a bar.
+- Discounted drinks during a named event are still an event, not a happy hour,
+  when the drinks exist because of the event ("Game Day: $3 drafts").
+
+EVENTS RULES (extract IFF content_type is event, event_series, or mixed):
+- "title": the event's name as printed. Required.
+- "event_type": one of "event", "special", "live_music", "trivia", "sports",
+  "other". Pick the closest; use "event" when nothing fits.
+- "date": "YYYY-MM-DD" ONLY when a specific calendar date is visible. Use null
+  for anything recurring or undated. Never infer a date from a weekday name,
+  and never assume the current year unless the sign prints it.
+- "start_time" / "end_time": 24-hour HH:MM, same as windows. Use null for
+  end_time when only a start is shown.
+- "is_recurring": true for anything that repeats ("every Thursday", "Fridays").
+- "recurrence_dow": the weekdays it repeats on, 0=Sunday .. 6=Saturday. Empty
+  array when it does not recur. Do NOT write a recurrence rule string.
+- "price_info": free text exactly as printed ("$5 cover", "Free", "No cover").
+  Use null when no price is shown.
+- Return one entry per distinct event. A flyer listing a week of shows is one
+  entry per show, not one entry for the week.
 
 GENERAL RULES:
 - Extract EVERY field you can see in the image. The UI handles missing fields
@@ -104,12 +164,34 @@ MENU RULES (extract IFF menu items are visible):
 - "description": optional. Use for modifiers ("frozen or rocks") or
   discount-style items where the deal is "X off" instead of a fixed dollar
   ({ name: "All Drafts", price: null, description: "$2 off" }).
-- If no menu content visible, return menu.sections: [].`;
+- If no menu content visible, return menu.sections: [].
+
+WINDOWS vs EVENTS:
+- Never put an event's hours in "windows". Windows are happy-hour times only.
+- When content_type is "event" or "event_series", windows and menu.sections
+  are normally empty — put the timing on the event entry instead.`;
 
 function buildUserPrompt(venueName?: string): string {
-  return venueName
-    ? `Venue: ${venueName}. Extract the happy-hour windows AND menu visible in this image.`
-    : 'Extract the happy-hour windows AND menu visible in this image.';
+  const task =
+    'Classify what this image shows, then extract it: happy-hour windows and ' +
+    'menu, and/or events.';
+  return venueName ? `Venue: ${venueName}. ${task}` : task;
+}
+
+/**
+ * The provider key was never configured, so no model was ever called.
+ *
+ * This is NOT `extract_failed`. That code means "the model looked at the photo
+ * and could not do it", and both clients render it as advice to re-shoot the
+ * photo. A missing key rendered as bad-photo advice sends the operator out to
+ * photograph the same menu again, which can never work. Typed rather than
+ * string-matched so rewording the message can't silently reclassify it.
+ */
+class VisionNotConfiguredError extends Error {
+  constructor(envVar: string) {
+    super(`${envVar} not configured`);
+    this.name = 'VisionNotConfiguredError';
+  }
 }
 
 function stripFences(text: string): string {
@@ -124,7 +206,7 @@ function stripFences(text: string): string {
 
 async function callClaudeVision(base64Image: string, mediaType: string, venueName?: string) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+  if (!apiKey) throw new VisionNotConfiguredError('ANTHROPIC_API_KEY');
 
   // Bound the call the same way the Gemini path is bounded. Without this, a
   // stalled Claude response hangs until fetch's own default (~5 min), which
@@ -183,7 +265,7 @@ async function callClaudeVision(base64Image: string, mediaType: string, venueNam
 
 async function callGeminiVision(base64Image: string, mediaType: string, venueName?: string) {
   const apiKey = process.env.GOOGLE_AI_API_KEY ?? process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not configured');
+  if (!apiKey) throw new VisionNotConfiguredError('GOOGLE_AI_API_KEY');
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(MODEL)}:generateContent?key=${apiKey}`;
 
@@ -291,6 +373,30 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 function validate(draft: any): string[] {
   const errors: string[] = [];
 
+  // Events: optional, but a malformed entry must not reach the review step
+  // pretending to be a real date or a real recurrence.
+  const events = Array.isArray(draft?.events) ? draft.events : [];
+  events.forEach((e: any, i: number) => {
+    if (typeof e?.title !== 'string' || !e.title.trim()) errors.push(`events[${i}].title required`);
+    if (e?.event_type != null && !(EVENT_TYPES as readonly string[]).includes(e.event_type))
+      errors.push(`events[${i}].event_type must be one of ${EVENT_TYPES.join(', ')}`);
+    if (e?.date != null && (typeof e.date !== 'string' || !DATE_RE.test(e.date)))
+      errors.push(`events[${i}].date must be YYYY-MM-DD or null`);
+    if (typeof e?.start_time !== 'string' || !TIME_RE.test(e.start_time))
+      errors.push(`events[${i}].start_time invalid`);
+    if (e?.end_time != null && (typeof e.end_time !== 'string' || !TIME_RE.test(e.end_time)))
+      errors.push(`events[${i}].end_time must be HH:MM or null`);
+    const dow = Array.isArray(e?.recurrence_dow) ? e.recurrence_dow : [];
+    if (dow.some((d: any) => !Number.isInteger(d) || d < 0 || d > 6))
+      errors.push(`events[${i}].recurrence_dow must be 0-6`);
+    // A recurring event with no weekday is unschedulable, and a one-off with
+    // neither a date nor a weekday cannot be placed on a calendar at all.
+    if (e?.is_recurring && dow.length === 0)
+      errors.push(`events[${i}] is recurring but has no recurrence_dow`);
+    if (!e?.is_recurring && e?.date == null)
+      errors.push(`events[${i}] needs a date (or mark it recurring)`);
+  });
+
   // Windows: every entry that's present must be well-formed. Empty array OK.
   const windows = Array.isArray(draft?.windows) ? draft.windows : [];
   windows.forEach((w: any, i: number) => {
@@ -334,13 +440,25 @@ function validate(draft: any): string[] {
 // ─── Route handler ──────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
-  if (!(await isAdminEmail(user.email))) {
+  const caller = await authenticateIntakeRequest(req);
+  if (!caller) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
+  const { supabase, user } = caller;
+  const tier = await getIntakeTier(supabase, user);
+  if (!tier) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  }
+  // Owner/super tiers ride the Gemini free tier — cap extracts per service day.
+  if (tier !== 'admin') {
+    const used = await extractsUsedToday(user.id);
+    if (used >= INTAKE_DAILY_EXTRACT_CAP) {
+      return NextResponse.json(
+        {
+          error: 'daily_limit_reached',
+          detail: `You've used all ${INTAKE_DAILY_EXTRACT_CAP} menu scans for today — the counter resets at midnight. Your saved drafts are still there.`,
+        },
+        { status: 429 },
+      );
+    }
   }
 
   let form: FormData;
@@ -366,11 +484,25 @@ export async function POST(req: NextRequest) {
   const buf = Buffer.from(await image.arrayBuffer());
   const base64 = buf.toString('base64');
 
+  const extractStartedAt = Date.now();
   try {
     const { parsed, usage } = await runVisionExtract(base64, image.type, venueName);
     const errors = validate(parsed);
+    // Feed the daily cap + the provider/latency log (analytics feeds off this).
+    try {
+      await createServiceClient().from('intake_extract_log').insert({
+        user_id: user.id,
+        provider: PROVIDER,
+        latency_ms: Date.now() - extractStartedAt,
+      });
+    } catch (logErr) {
+      console.error('[intake/extract] extract_log_insert_failed:', logErr);
+    }
     return NextResponse.json({
       ok: errors.length === 0,
+      // The label the model proposed, normalized. The review step shows this
+      // for a human to confirm or change — nothing commits on it alone.
+      content_type: normalizeContentType((parsed as any)?.content_type),
       draft: parsed,
       validation: { errors },
       usage,
@@ -387,8 +519,34 @@ export async function POST(req: NextRequest) {
       hasGeminiKey: Boolean(process.env.GOOGLE_AI_API_KEY ?? process.env.GEMINI_API_KEY),
       hasAnthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
     });
+
+    // No key means we never called a model, so nothing about the photo is at
+    // fault. 503 + its own code, mirroring `service_role_missing`, keeps the
+    // operator from being told to re-shoot a photo that was always fine.
+    if (err instanceof VisionNotConfiguredError) {
+      return NextResponse.json(
+        {
+          error: 'vision_not_configured',
+          // Names the provider, not the env var. The exact variable is already
+          // in the console.error above, where an operator looks; a venue owner
+          // reading this in the app does not need our internal key names.
+          detail: `Menu scanning isn't configured on the server (no ${PROVIDER} vision key). Your photo is fine — this needs an operator, not a better shot.`,
+          provider: PROVIDER,
+        },
+        { status: 503 },
+      );
+    }
+
+    // `detail` — not `message` — is the field both clients read and every
+    // other intake route returns. Sending `message` here silently discarded
+    // the reason and left the user with a bare "extract_failed".
     return NextResponse.json(
-      { error: 'extract_failed', provider: PROVIDER, model: MODEL, message: err?.message ?? String(err) },
+      {
+        error: 'extract_failed',
+        provider: PROVIDER,
+        model: MODEL,
+        detail: err?.message ?? String(err),
+      },
       { status: 502 },
     );
   }

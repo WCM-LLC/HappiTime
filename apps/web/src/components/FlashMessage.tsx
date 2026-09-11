@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 const SUCCESS_LABELS: Record<string, string> = {
   venue_saved: 'Venue details saved',
+  reward_saved: 'Reward updated',
   venue_published: 'Venue published',
   venue_unpublished: 'Venue unpublished',
   settings_saved: 'Settings saved',

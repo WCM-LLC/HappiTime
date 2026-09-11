@@ -5,7 +5,7 @@
 // Flow:
 //  1. User enters a 4-character code given by their server.
 //  2. Code is verified against verify-checkin edge function (geofenced + code-matched).
-//  3. On success: stamp progress card ("3 of 5 — house buys your next round")
+//  3. On success: stamp progress card ("3 of 5 — the house has something for you")
 //     with a live ticking clock (anti-screenshot measure).
 //  4. On bad_code: error inline, after 2 failures a GPS-fallback link appears.
 //  5. Other failures (out_of_range, network_cap, etc.) show specific messages.
@@ -31,6 +31,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
 import { useCheckin } from "../hooks/useCheckin";
+import { rewardLabel } from "../lib/rewards.mjs";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 
@@ -49,8 +50,15 @@ function formatTime(d: Date): string {
 }
 
 export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { venueId, venueName, lat, lng } = route.params;
+  const { venueId, venueName, lat, lng, fromOnboarding } = route.params;
   const insets = useSafeAreaInsets();
+
+  // From the coaster onboarding prime there's no prior screen to pop back to
+  // (the navigator just mounted), so "do this later" lands on the tab root.
+  const exitToApp = useCallback(() => {
+    if (navigation.canGoBack()) navigation.goBack();
+    else navigation.navigate("AppTabs");
+  }, [navigation]);
 
   const { state, failCount, submit, submitFallback, reset } = useCheckin();
 
@@ -83,6 +91,7 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
         lat,
         lng,
         stamps: result.stamps,
+        rewardText: rewardLabel(result.rewardPreset),
       });
     }
     // Otherwise stay on screen: state shows stamp progress
@@ -101,6 +110,7 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
         lat,
         lng,
         stamps: result.stamps,
+        rewardText: rewardLabel(result.rewardPreset),
       });
     }
   }, [venueId, lat, lng, submitFallback, reset, navigation, venueName]);
@@ -113,8 +123,9 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
 
   // ── Success view ──────────────────────────────────────────────────────────
   if (state.status === "success") {
-    const { stamps, stampsToNext, isFirstVisit } = state;
+    const { stamps, stampsToNext, isFirstVisit, rewardPreset } = state;
     const roundComplete = stamps >= STAMPS_PER_ROUND;
+    const rewardText = rewardLabel(rewardPreset);
 
     return (
       <View style={[styles.container, { paddingTop: insets.top + spacing.xxl, paddingBottom: insets.bottom + spacing.xl }]}>
@@ -141,11 +152,14 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
           {roundComplete ? (
             <Text style={styles.stampMessage}>
-              The house buys your next round!
+              {rewardText
+                ? `The house buys you ${rewardText.toLowerCase()}!`
+                : "The house has something for you!"}
             </Text>
           ) : (
             <Text style={styles.stampMessage}>
-              {stampsToNext} more {stampsToNext === 1 ? "visit" : "visits"} until your free round
+              {stampsToNext} more {stampsToNext === 1 ? "visit" : "visits"} until{" "}
+              {rewardText ? rewardText.toLowerCase() : "a token of appreciation"}
             </Text>
           )}
         </View>
@@ -164,12 +178,13 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
                 lat,
                 lng,
                 stamps,
+                rewardText,
               })
             }
             accessibilityRole="button"
-            accessibilityLabel="Claim your free round"
+            accessibilityLabel="Claim your reward"
           >
-            <Text style={styles.redeemButtonText}>Claim your free round</Text>
+            <Text style={styles.redeemButtonText}>Claim your reward</Text>
           </Pressable>
         )}
 
@@ -336,6 +351,19 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityLabel="Try again"
         >
           <Text style={styles.cancelButtonText}>Try again</Text>
+        </Pressable>
+      )}
+
+      {/* Coaster onboarding: an always-available exit so the prime never traps a
+          brand-new user who isn't ready to check in. */}
+      {fromOnboarding && (
+        <Pressable
+          style={styles.cancelButton}
+          onPress={exitToApp}
+          accessibilityRole="button"
+          accessibilityLabel="I'll do this later"
+        >
+          <Text style={styles.cancelButtonText}>I&apos;ll do this later</Text>
         </Pressable>
       )}
     </View>

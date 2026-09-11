@@ -1,6 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { IconSymbol } from "./components/ui/icon-symbol";
 import LoadingView from "./src/components/LoadingView";
@@ -15,9 +15,10 @@ import { useReferralCapture } from "./src/hooks/useReferralCapture";
 import { useGatedActionResume } from "./src/hooks/useGatedActionResume";
 import { useGuestSelectionPersist } from "./src/hooks/useGuestSelectionPersist";
 import { useVenueLinkCapture } from "./src/hooks/useVenueLinkCapture";
-import { useUserPreferences } from "./src/hooks/useUserPreferences";
 import { useVisitRating } from "./src/hooks/useVisitRating";
+import { useVisitReminderConsent } from "./src/hooks/useVisitReminderConsent";
 import { useVisitTracker, type VenuePoint } from "./src/hooks/useVisitTracker";
+import { shouldTrack } from "./src/lib/visitTrackingGate";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { AuthScreen } from "./src/screens/AuthScreen";
 import { PreFeedOnboarding } from "./src/screens/onboarding/PreFeedOnboarding";
@@ -29,16 +30,22 @@ import { NotifPrimeSheet } from "./src/components/NotifPrimeSheet";
 import { setSignInRequestHandler, type GatedActionKind } from "./src/lib/gatedAction";
 import { setNotifPrimeHandler } from "./src/lib/notifPrime";
 import { setGuestSelections } from "./src/lib/guestSelections";
+import { registerVisitRatingHandler } from "./src/lib/ratingRequest";
 import { colors } from "./src/theme/colors";
 import { spacing } from "./src/theme/spacing";
 
 function AuthenticatedApp({ session }: { session: Session }) {
   useConfigPushNotifications(session);
-  const { preferences, loading: preferencesLoading } = useUserPreferences();
 
   const { data: happyHours } = useHappyHours();
   const { pendingVisit, submitRating, dismissRating, submitting, triggerRating } =
     useVisitRating();
+
+  useEffect(() => {
+    return registerVisitRatingHandler((req) =>
+      triggerRating(req.venueId, req.venueName, req.visitId, req.aspects ?? [], "server")
+    );
+  }, [triggerRating]);
 
   // Build venue points from happy hour data.
   // Each venue aggregates all its happy hour windows so the visit tracker can
@@ -74,6 +81,11 @@ function AuthenticatedApp({ session }: { session: Session }) {
   }, [happyHours]);
 
   const { startTracking, stopTracking, setOnVisitDetected } = useVisitTracker(venues);
+  const {
+    enabled: visitReminders,
+    loading: consentLoading,
+    setEnabled: setVisitReminders,
+  } = useVisitReminderConsent();
   const [showCheckinPrivacyPrompt, setShowCheckinPrivacyPrompt] = useState(false);
   const [checkinPrivacySaving, setCheckinPrivacySaving] = useState(false);
   const [checkinPrivacyError, setCheckinPrivacyError] = useState<string | null>(null);
@@ -120,20 +132,33 @@ function AuthenticatedApp({ session }: { session: Session }) {
     [session?.user?.id]
   );
 
-  // Start location tracking only after the user opts into location-powered features.
+  // Background visit tracking runs only after explicit "Visit reminders" consent
+  // (separate from the foreground "Use current location" preference). The
+  // disclosure modal gates the consent flag; here we react to it.
   useEffect(() => {
-    if (preferencesLoading) return;
-    if (preferences.location_enabled && venues.length > 0) {
-      void startTracking();
-    } else {
+    if (!shouldTrack({ consent: visitReminders, consentLoading, venueCount: venues.length })) {
       void stopTracking();
+      return;
     }
+    void (async () => {
+      const result = await startTracking();
+      if (result === "denied") {
+        // App-level consent given, but the OS permission isn't granted —
+        // reset the flag so it matches reality and point the user to Settings.
+        await setVisitReminders(false);
+        Alert.alert(
+          "Visit reminders need background location",
+          'Allow location access "All the time" in system Settings to get visit reminders.'
+        );
+      }
+    })();
   }, [
-    preferences.location_enabled,
-    preferencesLoading,
+    visitReminders,
+    consentLoading,
     venues.length,
     startTracking,
     stopTracking,
+    setVisitReminders,
   ]);
 
   // Wire visit detection to rating flow
@@ -289,7 +314,7 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       const existingHandle = data?.handle;
       setHandleGate(existingHandle && String(existingHandle).trim().length > 0 ? "satisfied" : "needed");
     })();
-  }, [session?.user?.id, onboarding.loading, onboarding.hasCompletedOnboarding]);
+  }, [session, onboarding.loading, onboarding.hasCompletedOnboarding]);
 
   if (booting) {
     console.log("booting:", booting, "session:", !!session);

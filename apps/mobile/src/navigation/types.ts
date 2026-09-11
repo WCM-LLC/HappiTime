@@ -30,6 +30,7 @@ export type RootStackParamList = {
   Auth: undefined;
   AppTabs: { screen?: keyof MainTabParamList; params?: Record<string, unknown> } | undefined;
   HappyHourDetail: { windowId: string };
+  VenueEvents: { venueId: string; venueName?: string };
   VenuePreview?: { venueId: string; fromScan?: boolean };
   ItineraryDetail: {
     listId: string;
@@ -45,6 +46,9 @@ export type RootStackParamList = {
   InviteScreen: undefined;
   EventCalendar: undefined;
   InsiderCode: undefined;
+  // Self-serve menu intake for venue owners and super users. Opened without
+  // params from Profile; deep links may preselect a venue and skip the picker.
+  ScanMenu: { venueId?: string; venueName?: string } | undefined;
   // Read-only viewer for an itinerary opened via a share link (Universal Link or
   // happitime://itinerary?token=). Fetches by token through get_shared_itinerary,
   // which bypasses RLS, so it works even for private lists the viewer can't read.
@@ -55,6 +59,10 @@ export type RootStackParamList = {
     venueName: string;
     lat: number;
     lng: number;
+    // True when reached from the coaster onboarding prime (CheckInPrimeScreen via
+    // the post-signup geofence handoff). Adds an "I'll do this later" exit; the
+    // check-in logic itself is unchanged.
+    fromOnboarding?: boolean;
   };
   // Pilot round redemption: shown when user has ≥5 stamps; confirms with code
   RoundRedemption: {
@@ -63,6 +71,9 @@ export type RootStackParamList = {
     lat: number;
     lng: number;
     stamps: number;
+    // The venue's configured reward, e.g. "A house draft" — flows through from
+    // the check-in response so the redemption screen names what's owed.
+    rewardText?: string | null;
   };
 };
 
@@ -78,6 +89,6 @@ export type MainTabParamList = {
     itineraryShareToken?: string;
   } | undefined;
   Favorites: { openListId?: string; tab?: "favorites" | "history" | "lists" } | undefined;
-  Activity: undefined;
+  Activity: { segment?: "notifications" | "friends" | "discover" | "checkins" | "people" } | undefined;
   Profile: undefined;
 };

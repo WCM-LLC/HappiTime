@@ -55,3 +55,8 @@ apps/mobile/.env*
 
 # Ignore Gradle build output directory
 build
+
+# Editor swap/backup files
+*.swp
+*.swo
+*~

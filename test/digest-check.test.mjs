@@ -1,0 +1,232 @@
+// test/digest-check.test.mjs
+//
+// Guards the venue-digest alarm channel.
+//
+// The digest already detects its own failure: it logs an ALERT and returns 500
+// when it sends zero emails while active venues exist. That check was working
+// on 2026-08-12 — it fired at 11:00:11 UTC. Nobody found out, because the only
+// thing it does with the alert is email it, through the same Resend account
+// that was answering "401 API key is invalid".
+//
+// So these tests are not about detecting the condition. They are about the
+// channel: given the log lines the incident actually produced, does the check
+// fail the workflow run?
+
+import assert from "node:assert/strict";
+import test from "node:test";
+import { readFileSync } from "node:fs";
+import { evaluateDigest, WINDOW_HOURS, windowBounds, extractRows, LOGS_SQL_CANDIDATES, formatLogTimestamp } from "../scripts/check-digest.mjs";
+
+// Copied verbatim from Supabase function_logs, 2026-08-12.
+const REAL_ALERT =
+  "[send-venue-digest] ALERT: 0 emails sent but 5 active venue(s) exist. " +
+  "Possible misconfiguration. Date=2026-08-12 skipped=0 errors=5\n";
+const REAL_RESEND_ERROR =
+  '[send-venue-digest] Resend error for venue ea4bb434-8077-4653-a55d-da6287f46e0d: ' +
+  '{"statusCode":401,"name":"validation_error","message":"API key is invalid"}\n';
+
+test("the real 2026-08-12 alert line trips the alarm", () => {
+  const v = evaluateDigest([{ timestamp: "2026-08-12T11:00:11.445000", level: "error", msg: REAL_ALERT }]);
+  assert.equal(v.healthy, false, "this exact line went unnoticed once already");
+  assert.match(v.message, /zero emails sent while active venues exist/);
+  assert.match(v.message, /2026-08-12T11:00:11/, "the finding must say when");
+});
+
+test("the real Resend 401 line trips the alarm", () => {
+  const v = evaluateDigest([{ timestamp: "2026-08-12T11:00:10", level: "error", msg: REAL_RESEND_ERROR }]);
+  assert.equal(v.healthy, false);
+  assert.match(v.message, /Resend rejected a send/);
+});
+
+test("a missing key is treated as seriously as a rejected one", () => {
+  // A digest that cannot send is not a lesser problem than one that fails to.
+  const v = evaluateDigest([
+    { timestamp: "2026-08-12T11:00:00", level: "warning", msg: "[send-venue-digest] RESEND_API_KEY not set — email skipped for venue abc" },
+  ]);
+  assert.equal(v.healthy, false);
+  assert.match(v.message, /RESEND_API_KEY missing/);
+});
+
+test("a quiet, healthy window passes", () => {
+  const v = evaluateDigest([
+    { timestamp: "2026-08-12T11:00:00", level: "info", msg: "[send-venue-digest] sent 5 of 5" },
+  ]);
+  assert.equal(v.healthy, true);
+  assert.match(v.message, new RegExp(`last ${WINDOW_HOURS}h`));
+});
+
+test("no log lines at all is not treated as a failure", () => {
+  // Deliberate: the digest self-skips outside 6am CT and logs nothing, so an
+  // empty window is normal. Absence-detection would cry wolf every run.
+  const v = evaluateDigest([]);
+  assert.equal(v.healthy, true);
+});
+
+test("every finding is reported, not just the first", () => {
+  const v = evaluateDigest([
+    { timestamp: "t1", level: "error", msg: REAL_ALERT },
+    { timestamp: "t2", level: "error", msg: REAL_RESEND_ERROR },
+  ]);
+  assert.equal(v.healthy, false);
+  assert.match(v.message, /2 finding\(s\)/);
+});
+
+test("one log line yields one finding even when patterns overlap", () => {
+  // REAL_ALERT contains both "0 emails sent" and, in other runs, could contain
+  // more. Double-counting would inflate the number a human reads under stress.
+  const v = evaluateDigest([{ timestamp: "t", level: "error", msg: REAL_ALERT }]);
+  assert.match(v.message, /1 finding\(s\)/);
+});
+
+test("unrelated digest chatter does not trip it", () => {
+  const v = evaluateDigest([
+    { timestamp: "t", level: "info", msg: "[send-venue-digest] not 6am CT, skipping" },
+  ]);
+  assert.equal(v.healthy, true);
+});
+
+test("matching is case-insensitive", () => {
+  const v = evaluateDigest([{ timestamp: "t", level: "error", msg: "[SEND-VENUE-DIGEST] RESEND ERROR for venue x" }]);
+  assert.equal(v.healthy, false);
+});
+
+test("the alarm channel never routes through email", () => {
+  // The entire point: the existing in-function alert emails you, using the
+  // system it is alarming about. This path must not reintroduce that.
+  const script = readFileSync(new URL("../scripts/check-digest.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(script, /resend\.emails\.send|api\.resend\.com|nodemailer/, "must not send mail");
+  assert.match(script, /process\.exit\(1\)/, "it signals by failing the run");
+});
+
+test("the query window actually spans WINDOW_HOURS", () => {
+  // The first version of this check passed over a window containing a known
+  // failure: it sent no timestamps, the API applied its own much shorter
+  // default, and the 2026-08-12 11:00:11 UTC alert (~16h back) was never
+  // queried. WINDOW_HOURS appeared only in the message text — the check
+  // described a window it did not use.
+  const now = new Date("2026-08-13T02:51:00.000Z");
+  const { start, end } = windowBounds(now);
+  assert.equal(end, "2026-08-13T02:51:00.000Z");
+  assert.equal(start, "2026-08-12T02:51:00.000Z");
+
+  const spanHours = (Date.parse(end) - Date.parse(start)) / 3_600_000;
+  assert.equal(spanHours, WINDOW_HOURS);
+
+  // The concrete regression: the real alert must fall inside the window.
+  const theAlert = Date.parse("2026-08-12T11:00:11.445Z");
+  assert.ok(
+    theAlert >= Date.parse(start) && theAlert <= Date.parse(end),
+    "the 2026-08-12 digest alert must be inside the queried window",
+  );
+});
+
+test("both window bounds are sent to the logs API", () => {
+  // A daily check whose window is shorter than a day cannot see the daily job
+  // it watches. Relying on the endpoint's default is what caused that.
+  const src = readFileSync(new URL("../scripts/check-digest.mjs", import.meta.url), "utf8");
+  assert.match(src, /iso_timestamp_start=/);
+  assert.match(src, /iso_timestamp_end=/);
+});
+
+test("an unreadable response throws instead of reporting healthy", () => {
+  // The original `body?.result ?? []` meant any shape change turned this check
+  // permanently green. "I could not read the answer" is not "nothing is wrong".
+  assert.throws(() => extractRows({ unexpected: "shape" }), /unrecognised logs response shape/);
+  assert.throws(() => extractRows(null), /unrecognised logs response shape/);
+  assert.throws(() => extractRows({ result: "not-an-array" }), /unrecognised logs response shape/);
+});
+
+test("the known response shapes are all read correctly", () => {
+  const row = { timestamp: "t", msg: "m" };
+  assert.deepEqual(extractRows({ result: [row] }), [row]);
+  assert.deepEqual(extractRows({ data: [row] }), [row]);
+  assert.deepEqual(extractRows({ rows: [row] }), [row]);
+  assert.deepEqual(extractRows([row]), [row], "a bare array is valid too");
+  assert.deepEqual(extractRows({ result: [] }), [], "genuinely empty is still empty");
+});
+
+test("a rejected query is reported as a broken check, not a quiet day", () => {
+  // The endpoint answers HTTP 200 with {result:null, error:"..."} when the SQL
+  // is rejected. Treating that as an empty window is how this check reported
+  // green across a window containing five known failures.
+  assert.throws(
+    () => extractRows({ result: null, error: "table 'logs' not found" }),
+    /logs query rejected: table 'logs' not found/,
+  );
+  assert.throws(
+    () => extractRows({ result: null, error: { message: "bad sql" } }),
+    /logs query rejected/,
+  );
+  // A null error alongside real rows is the success case and must not throw.
+  assert.deepEqual(extractRows({ result: [{ msg: "m" }], error: null }), [{ msg: "m" }]);
+});
+
+test("every candidate query targets the digest and is bounded", () => {
+  // A candidate that forgets the LIMIT or the subject filter would either
+  // time out or match the whole log stream.
+  assert.ok(LOGS_SQL_CANDIDATES.length >= 1);
+  for (const { label, sql } of LOGS_SQL_CANDIDATES) {
+    assert.ok(label && label.length > 0, "each candidate needs a label for the run log");
+    assert.match(sql, /send-venue-digest/, `${label} must filter to the digest`);
+    assert.match(sql, /limit 200/, `${label} must be bounded`);
+    assert.match(sql, /event_message as msg/, `${label} must alias to the shape evaluateDigest reads`);
+    assert.match(sql, /timestamp/, `${label} must select the timestamp`);
+  }
+});
+
+test("the candidate list still contains the shape the endpoint rejected", () => {
+  // Kept deliberately, and last: it is the shape the MCP tooling accepts, so
+  // it may start working if the endpoints converge. It must never be first.
+  const labels = LOGS_SQL_CANDIDATES.map((c) => c.label);
+  assert.equal(labels[labels.length - 1], "unified logs + source filter");
+  assert.notEqual(labels[0], "unified logs + source filter");
+});
+
+test("the shape verified against the live endpoint is tried first", () => {
+  // A dispatched run on 2026-08-13 confirmed this shape returns rows from
+  // function_logs. Reordering it behind an unverified candidate would spend a
+  // failed request on every run.
+  assert.equal(LOGS_SQL_CANDIDATES[0].label, "function_logs + lower/like");
+  assert.match(LOGS_SQL_CANDIDATES[0].sql, /from function_logs/);
+  assert.match(LOGS_SQL_CANDIDATES[0].sql, /lower\(event_message\) like/);
+});
+
+test("microsecond epochs render as readable UTC", () => {
+  // The real value from the logs endpoint for the 2026-08-12 digest alert.
+  // It printed raw: "1786532411445000 — Resend rejected a send: ...".
+  assert.equal(formatLogTimestamp(1786532411445000), "2026-08-12T11:00:11.445Z");
+  assert.equal(formatLogTimestamp("1786532411445000"), "2026-08-12T11:00:11.445Z");
+});
+
+test("millisecond and second epochs are handled too", () => {
+  // This endpoint's response shape has already moved once; do not assume µs.
+  assert.equal(formatLogTimestamp(1786532411445), "2026-08-12T11:00:11.445Z");
+  assert.equal(formatLogTimestamp(1786532411), "2026-08-12T11:00:11.000Z");
+});
+
+test("ISO strings pass through and junk is shown verbatim", () => {
+  assert.equal(formatLogTimestamp("2026-08-12T11:00:11.445Z"), "2026-08-12T11:00:11.445Z");
+  // Better to show an unparseable value than to replace it with a tidy lie.
+  assert.equal(formatLogTimestamp("not-a-date"), "not-a-date");
+  assert.equal(formatLogTimestamp(null), "unknown time");
+  assert.equal(formatLogTimestamp(undefined), "unknown time");
+  assert.equal(formatLogTimestamp(""), "unknown time");
+});
+
+test("findings carry a readable time, not an epoch", () => {
+  const v = evaluateDigest([{ timestamp: 1786532411445000, level: "error", msg: REAL_ALERT }]);
+  assert.equal(v.healthy, false);
+  assert.match(v.message, /2026-08-12T11:00:11\.445Z/);
+  assert.doesNotMatch(v.message, /1786532411445000/, "the raw epoch must not survive into the alert");
+});
+
+test("a naive timestamp is read as UTC, not as the runner's local time", () => {
+  // The endpoint returns "2026-08-12T11:00:11.445000" with NO zone. `new Date`
+  // treats an unzoned string as local, which would shift every alert by the
+  // runner's offset — 5 hours from Central, so a 6am digest would read 11am.
+  assert.equal(formatLogTimestamp("2026-08-12T11:00:11.445000"), "2026-08-12T11:00:11.445Z");
+  assert.equal(formatLogTimestamp("2026-08-12T11:00:11"), "2026-08-12T11:00:11.000Z");
+  // An explicit offset must be respected, not overridden.
+  assert.equal(formatLogTimestamp("2026-08-12T06:00:11-05:00"), "2026-08-12T11:00:11.000Z");
+  assert.equal(formatLogTimestamp("2026-08-12T11:00:11Z"), "2026-08-12T11:00:11.000Z");
+});

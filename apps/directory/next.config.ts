@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
   // so venue data stays fresh without rebuilding the whole site
   outputFileTracingRoot: path.join(__dirname, "../../"),
   trailingSlash: true,
+  // Cloudinary serves venue images with its own transforms; the custom loader
+  // maps next/image widths onto Cloudinary URLs so we get responsive srcsets
+  // without routing through (and paying for) Vercel image optimization.
+  images: {
+    loader: "custom",
+    loaderFile: "./src/lib/imageLoader.ts",
+  },
   // Canonicalize the legacy neighborhood URL (`/kc/[neighborhood]/`) to the
   // canonical happy-hour landing page (`/happy-hour/[slug]/`). The
   // neighborhood→canonical slug mapping is irregular (e.g. power-and-light →
@@ -29,13 +36,18 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
-    return HAPPY_HOUR_LANDING_PAGES.map((page) => ({
-      source: `/kc/${page.neighborhoodSlug}`,
-      destination: page.canonicalPath,
-      // Explicit 301 (not Next's `permanent: true`, which emits 308) to match
-      // the canonical-URL spec for this work. Both are SEO-permanent.
-      statusCode: 301,
-    }));
+    return [
+      // /claim was retired (its sales-call funnel duplicated /pricing); the
+      // URL was indexed, so keep a permanent redirect.
+      { source: "/claim", destination: "/pricing/", statusCode: 301 as const },
+      ...HAPPY_HOUR_LANDING_PAGES.map((page) => ({
+        source: `/kc/${page.neighborhoodSlug}`,
+        destination: page.canonicalPath,
+        // Explicit 301 (not Next's `permanent: true`, which emits 308) to match
+        // the canonical-URL spec for this work. Both are SEO-permanent.
+        statusCode: 301,
+      })),
+    ];
   },
 };
 

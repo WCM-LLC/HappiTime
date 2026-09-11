@@ -1,10 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState, useCallback } from "react";
 import type { VenueWithWindows, VenueEvent } from "@/lib/queries";
 import type { Neighborhood } from "@/lib/neighborhoods";
 import { eventOccursToday } from "@/lib/eventUtils";
+import { kcNow } from "@/lib/kcTime";
 import { venueImageUrl } from "@/lib/mediaUrl";
+import { compareByTier } from "@/lib/venueTier";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -452,10 +455,12 @@ function MapPopup({ venue, todayDow, venueHref, isMobile, onClose }: MapPopupPro
       {!isMobile && (
         <div style={{ height: 90, background: "#F5EDE3", position: "relative", overflow: "hidden" }}>
           {cover && (
-            <img
+            <Image
               src={cover}
               alt={venue.name}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              fill
+              sizes="400px"
+              style={{ objectFit: "cover" }}
             />
           )}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 60%)" }} />
@@ -892,7 +897,8 @@ function EventsCalendarModal({
   bestNeighborhoodSlugMap: Record<string, string>;
   onClose: () => void;
 }) {
-  const today = new Date();
+  // Same rule as the listing: the event calendar opens on Kansas City's today.
+  const today = kcNow();
   const [viewDate, setViewDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
   const [selectedDay, setSelectedDay] = useState<Date>(today);
 
@@ -1065,7 +1071,12 @@ type KCMapPageProps = {
 };
 
 export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KCMapPageProps) {
-  const now = new Date();
+  /* Kansas City's wall clock, not the visitor's. "Open now", "today's hours"
+     and "today's events" all key off this — using the browser's clock showed
+     the wrong day to anyone outside Central time, and to everyone in the hours
+     either side of midnight. It also keeps the server render and the client
+     hydration agreeing on which day it is. */
+  const now = kcNow();
   const todayDow = now.getDay();
 
   const [filters, setFilters] = useState<Filters>({
@@ -1159,7 +1170,13 @@ export function KCMapPage({ venues, neighborhoods, bestNeighborhoodSlugMap }: KC
     }
 
     return true;
-  });
+  })
+    // Tier-aware ordering: featured -> verified -> listed, then promotion
+    // priority, then rating. Without this the list renders in whatever order
+    // the query returned, so a Featured venue had no ranking advantage at all
+    // — searching "vine" buried Vine Street Brewing under the seven venues
+    // that merely sit in the 18th & Vine neighborhood.
+    .sort(compareByTier);
 
   const selectedVenue = filteredVenues.find((v) => v.id === selectedId) ?? null;
 

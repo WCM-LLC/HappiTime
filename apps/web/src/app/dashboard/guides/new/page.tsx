@@ -1,8 +1,19 @@
 import Link from 'next/link';
 import UserBar from '@/components/layout/UserBar';
 import { GuideEditor } from '../components/GuideEditor';
+import { GUIDE_ERRORS, GUIDE_NOTICE } from '../guide-messages';
 
-export default function NewGuidePage() {
+export default async function NewGuidePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ notice?: string; error?: string }>;
+}) {
+  // Validation failures in saveDraft redirect back here with an error code;
+  // rendering it (instead of bouncing to the list) keeps the author's form.
+  const sp = await searchParams;
+  const noticeText = sp.notice ? (GUIDE_NOTICE[sp.notice] ?? null) : null;
+  const errorText = sp.error ? (GUIDE_ERRORS[sp.error] ?? sp.error) : null;
+
   return (
     <div className="min-h-screen bg-background">
       <UserBar />
@@ -27,7 +38,7 @@ export default function NewGuidePage() {
         </div>
 
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm">
-          <GuideEditor />
+          <GuideEditor noticeText={noticeText} errorText={errorText} />
         </div>
       </main>
     </div>

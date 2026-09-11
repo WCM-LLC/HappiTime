@@ -8,6 +8,9 @@ import { IconSymbol } from "../../components/ui/icon-symbol";
 import { useNotificationNavigation } from "../hooks/useNotificationNavigation";
 import { useVenueDeepLink } from "../hooks/useVenueDeepLink";
 import { useItineraryDeepLink } from "../hooks/useItineraryDeepLink";
+import { useActivityDeepLink } from "../hooks/useActivityDeepLink";
+import { useCheckinPrimeHandoff } from "../hooks/useCheckinPrimeHandoff";
+import { useUnreadNotificationsBadge } from "../hooks/useUnreadNotificationsBadge";
 import { SharedItineraryScreen } from "../screens/SharedItineraryScreen";
 import { UpdateAvailableModal } from "../components/UpdateAvailableModal";
 import { useCurrentUser } from "../hooks/useCurrentUser";
@@ -15,11 +18,13 @@ import { ActivityScreen } from "../screens/ActivityScreen";
 import { AuthScreen } from "../screens/AuthScreen";
 import { FavoritesScreen } from "../screens/FavoritesScreen";
 import { HappyHourDetailScreen } from "../screens/HappyHourDetailScreen";
+import { VenueEventsScreen } from "../screens/VenueEventsScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { MapScreen } from "../screens/MapScreen";
 import { ProfileScreen } from "../screens/ProfileScreen";
 import { InviteScreen } from "../screens/InviteScreen";
 import { InsiderCodeScreen } from "../screens/InsiderCodeScreen";
+import { ScanMenuScreen } from "../screens/ScanMenuScreen";
 import { VenuePreviewScreen } from "../screens/VenuePreviewScreen";
 import { ItineraryDetailScreen } from "../screens/ItineraryDetailScreen";
 import { EventCalendarScreen } from "../screens/EventCalendarScreen";
@@ -48,6 +53,7 @@ function AppTabs({ initialRouteName }: { initialRouteName?: keyof MainTabParamLi
   const insets = useSafeAreaInsets();
   const isGuest = !user;
   const tabBarHeight = 56 + insets.bottom;
+  const unread = useUnreadNotificationsBadge();
   return (
     <Tab.Navigator
       initialRouteName={initialRouteName}
@@ -106,6 +112,10 @@ function AppTabs({ initialRouteName }: { initialRouteName?: keyof MainTabParamLi
       <Tab.Screen
         name="Activity"
         component={ActivityScreen}
+        options={{
+          tabBarBadge: unread > 0 ? (unread > 99 ? "99+" : unread) : undefined,
+          tabBarBadgeStyle: styles.tabBarBadge,
+        }}
       />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
@@ -117,6 +127,8 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
   useNotificationNavigation(navigationRef);
   useVenueDeepLink(navigationRef);
   useItineraryDeepLink(navigationRef);
+  useActivityDeepLink(navigationRef);
+  useCheckinPrimeHandoff(navigationRef);
 
   return (
     <>
@@ -146,6 +158,19 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
               fontSize: 17,
               fontWeight: "600",
             },
+          }}
+        />
+        <Stack.Screen
+          name="VenueEvents"
+          component={VenueEventsScreen}
+          options={{
+            headerShown: true,
+            title: "Events & Specials",
+            headerBackTitle: "Back",
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontSize: 17, fontWeight: "600" },
           }}
         />
         <Stack.Screen
@@ -235,7 +260,7 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
           component={RoundRedemptionScreen}
           options={{
             headerShown: true,
-            title: "Free Round",
+            title: "Your Reward",
             headerBackTitle: "Back",
             headerTintColor: colors.text,
             headerStyle: { backgroundColor: colors.background },
@@ -256,9 +281,38 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
             headerTitleStyle: { fontSize: 17, fontWeight: "600" },
           }}
         />
+        <Stack.Screen
+          name="ScanMenu"
+          component={ScanMenuScreen}
+          options={{
+            headerShown: true,
+            title: "Scan a Menu",
+            headerBackTitle: "Back",
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontSize: 17, fontWeight: "600" },
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
     <UpdateAvailableModal />
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  // Copied from the dead navigation/index.tsx badge so the look is identical
+  // if that file is ever revived.
+  tabBarBadge: {
+    backgroundColor: colors.error,
+    color: colors.surface,
+    fontSize: 11,
+    fontWeight: "600",
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    lineHeight: 18,
+    textAlign: "center"
+  },
+});

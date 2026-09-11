@@ -38,21 +38,35 @@ export function useVisitRating() {
 
   // Listen for notification taps with visit_rating data
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        const data = response.notification.request.content.data;
-        if (data?.type === "visit_rating") {
-          setPendingVisit({
-            visitId: data.visitId as string | undefined,
-            venueId: data.venueId as string,
-            venueName: data.venueName as string,
-            enteredAt: new Date().toISOString(),
-            aspects: Array.isArray(data.aspects) ? (data.aspects as string[]) : [],
-            source: "server",
-          });
-        }
+    // De-dupes between the warm listener and the cold-start fetch below.
+    let lastHandledId: string | null = null;
+
+    const handleResponse = (response: Notifications.NotificationResponse) => {
+      const id = response.notification.request.identifier;
+      if (lastHandledId === id) return;
+      const data = response.notification.request.content.data;
+      if (data?.type === "visit_rating") {
+        lastHandledId = id;
+        setPendingVisit({
+          visitId: data.visitId as string | undefined,
+          venueId: data.venueId as string,
+          venueName: data.venueName as string,
+          enteredAt: new Date().toISOString(),
+          aspects: Array.isArray(data.aspects) ? (data.aspects as string[]) : [],
+          source: "server",
+        });
       }
-    );
+    };
+
+    const subscription =
+      Notifications.addNotificationResponseReceivedListener(handleResponse);
+
+    // Cold start: the tap that launched the app fired long before this hook
+    // mounted (it lives inside AuthenticatedApp), so the listener alone never
+    // sees it. Fetch and replay it.
+    Notifications.getLastNotificationResponseAsync().then((response) => {
+      if (response) handleResponse(response);
+    });
 
     return () => subscription.remove();
   }, []);

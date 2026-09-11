@@ -47,6 +47,9 @@
   /* ── Typography ── */
   --font-sans: "Satoshi", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Boska", "Plus Jakarta Sans", ui-sans-serif, serif;
+  /* Geometric sans used for headings on conversion pages (e.g. /pricing),
+     where the Boska serif reads too editorial. */
+  --font-jakarta: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 
   /* ── Type Scale ── */
   --text-display-xl: 3rem;
@@ -107,4 +110,12 @@ h1, h2, h3 {
   font-family: var(--font-display);
   font-weight: 800;
   letter-spacing: -0.02em;
+}
+
+/* Opt a heading out of the Boska serif and into the geometric sans (used by
+   conversion pages like /pricing). Declared unlayered on purpose: the h1,h2,h3
+   rule above is unlayered too, and unlayered styles beat anything in a layer —
+   so a Tailwind `font-*` utility would silently lose to it. */
+.heading-sans {
+  font-family: var(--font-jakarta);
 }

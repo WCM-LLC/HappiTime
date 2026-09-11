@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   HAPPY_HOUR_LANDING_PAGES,
@@ -176,13 +177,13 @@ export default async function HappyHourNeighborhoodPage({ params }: Props) {
       )}
 
       <nav className="mb-6 flex items-center gap-1.5 text-sm text-muted">
-        <a href="/" className="transition-colors hover:text-foreground">
+        <Link href="/" className="transition-colors hover:text-foreground">
           HappiTime
-        </a>
+        </Link>
         <span className="text-muted-light">/</span>
-        <a href="/kc/" className="transition-colors hover:text-foreground">
+        <Link href="/kc/" className="transition-colors hover:text-foreground">
           Kansas City
-        </a>
+        </Link>
         <span className="text-muted-light">/</span>
         <span className="font-medium text-foreground">{neighborhood.name}</span>
       </nav>

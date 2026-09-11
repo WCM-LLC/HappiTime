@@ -6,6 +6,7 @@ import { OrgsTable, VenuesTable, WindowsTable, UsersTable } from './AdminTables'
 import type { OrgRow, VenueRow, WindowRow, UserRow } from './AdminTables';
 import { SUPER_ADMIN_EMAIL } from '@/utils/admin-emails';
 import { addAdminUser, removeAdminUser } from '@/actions/admin-manage-actions';
+import { STICKY_ACTION_HEAD, STICKY_ACTION_CELL } from '@/utils/stickyActionColumn';
 
 const ADMIN_ERROR_MESSAGES: Record<string, string> = {
   slug_taken: 'That organization slug is already in use. Choose a different slug.',
@@ -49,6 +50,8 @@ export default async function AdminPage({
     password_reset_sent: 'Password-reset email sent.',
     user_updated: 'User info updated.',
     org_updated: 'Organization updated. Venue display names propagated automatically.',
+    member_removed: 'Membership removed. The user keeps their app account and can be re-invited.',
+    member_access_revoked: 'All dashboard access removed. The user keeps their app account and can be re-invited.',
   };
   const noticeText = pageNotice ? (NOTICE_MESSAGES[pageNotice] ?? null) : null;
 
@@ -61,6 +64,10 @@ export default async function AdminPage({
     invalid_email: 'That email address is not valid.',
     user_update_failed: 'Updating the user failed. Check the logs.',
     member_update_failed: 'Updating the user worked, but their org membership rows failed to sync. Try again.',
+    cannot_remove_self: "You can't remove your own access.",
+    member_not_found: 'No membership rows were deleted — the membership may already be gone. Refresh and check.',
+    member_assignments_delete_failed: "Removing the user's venue assignments failed. Nothing was removed — check the logs.",
+    member_delete_failed: "Deleting the user's membership failed after their venue assignments were cleared. Check the logs.",
 
     // Org-action errors
     missing_org_id: 'No organization was selected.',
@@ -94,10 +101,14 @@ export default async function AdminPage({
     { count: checkinCount },
     { count: stagingCount },
     { count: addressReviewCount },
+    { count: crmOpenLeadCount },
+    { count: intakeReviewCount },
   ] = await Promise.all([
     supabase.from('organizations').select('id', { count: 'exact', head: true }),
     supabase.from('venues').select('id', { count: 'exact', head: true }),
-    supabase.from('org_members').select('id', { count: 'exact', head: true }),
+    // org_members has no `id` (composite PK org_id,user_id) — selecting one
+    // threw `column org_members.id does not exist` on every /admin render.
+    supabase.from('org_members').select('user_id', { count: 'exact', head: true }),
     supabase.from('happy_hour_windows').select('id', { count: 'exact', head: true }),
     supabase.from('venue_media').select('id', { count: 'exact', head: true }),
     supabase.from('user_events').select('id', { count: 'exact', head: true }).eq('event_type', 'venue_suggestion'),
@@ -106,6 +117,8 @@ export default async function AdminPage({
     supabase.from('venue_visits').select('id', { count: 'exact', head: true }),
     supabase.from('staging_venues').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('venues').select('id', { count: 'exact', head: true }).eq('needs_address_review', true),
+    supabase.from('crm_leads').select('id', { count: 'exact', head: true }).not('stage', 'in', '("won","lost")'),
+    supabase.from('intake_submissions').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
   ]);
 
   // ─── Organizations ────────────────────────────────────────────────────
@@ -347,6 +360,8 @@ export default async function AdminPage({
     { label: 'Check-ins', value: checkinCount ?? 0, icon: 'CI' },
     { label: 'Staging', value: stagingCount ?? 0, icon: 'ST', href: '/admin/staging' },
     { label: 'Address Review', value: addressReviewCount ?? 0, icon: 'AR', href: '/admin/address-review' },
+    { label: 'CRM Leads', value: crmOpenLeadCount ?? 0, icon: '💼', href: '/admin/crm' },
+    { label: 'Intake Review', value: intakeReviewCount ?? 0, icon: 'IR', href: '/admin/intake-review' },
   ];
 
   return (
@@ -434,10 +449,13 @@ export default async function AdminPage({
 
         {/* ── Venues ── */}
         <section className="mb-10">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4">
             <h2 className="text-heading-sm font-semibold text-foreground">
-              Venues <span className="text-muted font-normal">({venues.length})</span>
+              Venues <span className="text-muted font-normal">({(venueCount ?? 0).toLocaleString()})</span>
             </h2>
+            <p className="text-body-sm text-muted mt-0.5">
+              Listing the {venues.length} most recently created. Search covers every venue.
+            </p>
           </div>
           <VenuesTable venues={venues} />
         </section>
@@ -632,7 +650,7 @@ export default async function AdminPage({
                         <tr className="border-b border-border bg-background/50">
                           <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Email</th>
                           <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Added</th>
-                          <th className="px-4 py-2.5" />
+                          <th className={`px-4 py-2.5 ${STICKY_ACTION_HEAD}`} />
                         </tr>
                       </thead>
                       <tbody>
@@ -649,7 +667,7 @@ export default async function AdminPage({
                             <td className="px-4 py-3 text-muted">
                               {new Date(u.created_at).toLocaleDateString()}
                             </td>
-                            <td className="px-4 py-3 text-right">
+                            <td className={`px-4 py-3 text-right ${STICKY_ACTION_CELL}`}>
                               {u.email !== SUPER_ADMIN_EMAIL ? (
                                 <form>
                                   <input type="hidden" name="email" value={u.email} />

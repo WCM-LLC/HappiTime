@@ -154,6 +154,9 @@ test("cloneVenueMenuToVenue creates an independent draft copy with sorted sectio
       orgId: "org-1",
       venueId: "target-venue",
       status: "draft",
+      // A copy is attributed for the audit trail. It earns no leaderboard
+      // credit: source_menu_id marks it as a copy and scoring excludes those.
+      actor: { id: "user-1", tier: "owner" },
     },
   );
 
@@ -167,6 +170,8 @@ test("cloneVenueMenuToVenue creates an independent draft copy with sorted sectio
       name: "Happy Hour Drinks",
       status: "draft",
       is_active: true,
+      created_by: "user-1",
+      created_by_tier: "owner",
     },
   ]);
   assert.deepEqual(

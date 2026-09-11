@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { AppDownloadStrip } from "@/components/AppDownloadStrip";
@@ -91,7 +92,7 @@ const ORGANIZATION_JSONLD = {
   sameAs: [
     "https://www.instagram.com/happitime.biz/",
     "https://www.facebook.com/profile.php?id=61570674155925",
-    "https://www.tiktok.com/@happitime.biz",
+    "https://www.tiktok.com/@_happitime_",
     "https://apps.apple.com/us/app/happitime/id6757933269",
   ],
 };
@@ -201,9 +202,9 @@ function SiteHeader() {
   return (
     <header className="border-b border-border bg-surface sticky top-0 z-50 relative">
       <div className="mx-auto max-w-5xl flex items-center justify-between px-6 py-4">
-        <a href="/" className="flex items-center">
+        <Link href="/" className="flex items-center">
           <HappiTimeLogo className="h-8" />
-        </a>
+        </Link>
         <SiteNav />
       </div>
     </header>
@@ -255,7 +256,7 @@ function SiteFooter() {
             Facebook
           </a>
           <a
-            href="https://www.tiktok.com/@happitime.biz"
+            href="https://www.tiktok.com/@_happitime_"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-foreground transition-colors"

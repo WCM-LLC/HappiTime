@@ -41,6 +41,7 @@ export async function createOrgBundleCheckoutSession(opts: SessionOpts): Promise
     mode: 'subscription',
     customer: customerId,
     line_items: [{ price: priceId, quantity }],
+    allow_promotion_codes: true,
     subscription_data: { metadata: { org_id: orgId, bundle_tier: tier } },
     success_url: `${origin}/orgs/${orgId}?bundle=success`,
     cancel_url: `${origin}/orgs/${orgId}?bundle=cancelled`,

@@ -39,13 +39,14 @@ export type CheckinErrorCode =
   | "network_cap"
   | "fallback_limit"
   | "insufficient_stamps"
+  | "weekly_limit_reached"
   | "network_error"
   | "unknown";
 
 export type CheckinState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "success"; stamps: number; stampsToNext: number; isFirstVisit: boolean; redeemed: boolean }
+  | { status: "success"; stamps: number; stampsToNext: number; isFirstVisit: boolean; redeemed: boolean; rewardPreset: string | null }
   | { status: "bad_code"; attemptsRemaining: number; failCount: number }
   | { status: "out_of_range" }
   | { status: "rate_limited" }
@@ -53,11 +54,12 @@ export type CheckinState =
   | { status: "network_cap" }
   | { status: "fallback_limit" }
   | { status: "insufficient_stamps"; stamps: number }
+  | { status: "weekly_limit_reached"; nextEligibleAt: string | null }
   | { status: "network_error" }
   | { status: "error"; message: string };
 
 export type CheckinResult =
-  | { ok: true; stamps: number; stampsToNext: number; isFirstVisit: boolean; redeemed: boolean }
+  | { ok: true; stamps: number; stampsToNext: number; isFirstVisit: boolean; redeemed: boolean; rewardPreset: string | null }
   | { ok: false; errorCode: CheckinErrorCode };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -72,7 +74,7 @@ const INITIAL: CheckinState = { status: "idle" };
  * Exposes:
  *  - `state`        — current UI state (idle / loading / success / error variants)
  *  - `stamps`       — current stamp count (populated after success)
- *  - `stampsToNext` — stamps remaining until next free round
+ *  - `stampsToNext` — stamps remaining until the next reward
  *  - `failCount`    — number of bad-code failures (reset on success)
  *  - `submit`       — attempt a normal check-in with `{ venue_id, code, lat, lng }`
  *  - `submitFallback` — attempt a GPS-fallback check-in (no code required)
@@ -114,7 +116,6 @@ export function useCheckin() {
           // from error.context (the raw Response).
           let parsed: Record<string, unknown> = {};
           try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             parsed = await (error as any).context?.json?.() ?? {};
           } catch {
             // If JSON parse fails, fall through to generic mapping
@@ -160,6 +161,13 @@ export function useCheckin() {
               return { ok: false, errorCode: "insufficient_stamps" };
             }
 
+            case "weekly_limit_reached": {
+              const nextEligibleAt =
+                typeof parsed.next_eligible_at === "string" ? parsed.next_eligible_at : null;
+              setState({ status: "weekly_limit_reached", nextEligibleAt });
+              return { ok: false, errorCode: "weekly_limit_reached" };
+            }
+
             default:
               // Network / relay / unknown errors
               if (
@@ -182,6 +190,8 @@ export function useCheckin() {
             : Math.max(0, 5 - stamps);
         const isFirstVisit = data?.is_first_visit === true;
         const redeemed = data?.redeemed === true;
+        const rewardPreset =
+          typeof data?.reward_preset === "string" ? data.reward_preset : null;
 
         setFailCount(0);
         setState({
@@ -190,9 +200,10 @@ export function useCheckin() {
           stampsToNext,
           isFirstVisit,
           redeemed,
+          rewardPreset,
         });
 
-        return { ok: true, stamps, stampsToNext, isFirstVisit, redeemed };
+        return { ok: true, stamps, stampsToNext, isFirstVisit, redeemed, rewardPreset };
       } catch (e) {
         const msg = e instanceof Error ? e.message : "Unknown error";
         setState({ status: "network_error" });

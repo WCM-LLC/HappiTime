@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useTransition, useMemo } from 'react';
-import { adminToggleWindow, adminToggleVenueStatus, adminSetPromotionTier, type PromotionTier } from '@/actions/admin-actions';
-import { adminSendPasswordReset, adminUpdateUserInfo } from '@/actions/admin-user-actions';
+import { useEffect, useState, useTransition, useMemo } from 'react';
+import { adminToggleWindow, adminToggleVenueStatus, adminSetPromotionTier, adminSearchVenues, type PromotionTier } from '@/actions/admin-actions';
+import { adminSendPasswordReset, adminUpdateUserInfo, adminRemoveMembership, adminRemoveAllMemberships } from '@/actions/admin-user-actions';
 import { adminUpdateOrganization } from '@/actions/admin-org-actions';
+import { STICKY_ACTION_HEAD, STICKY_ACTION_CELL } from '@/utils/stickyActionColumn';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -358,7 +359,7 @@ function OrgRowItem({ org }: { org: OrgRow }) {
         <td className={`${tdCls} tabular-nums`}>{org.venue_count}</td>
         <td className={`${tdCls} tabular-nums`}>{org.member_count}</td>
         <td className={`${tdCls} text-muted`}>{relativeTime(org.created_at)}</td>
-        <td className={`${tdCls} text-right whitespace-nowrap`}>
+        <td className={`${tdCls} text-right whitespace-nowrap ${STICKY_ACTION_CELL}`}>
           <div className="inline-flex gap-2 items-center justify-end">
             <button
               type="button"
@@ -470,7 +471,7 @@ export function OrgsTable({ orgs }: { orgs: OrgRow[] }) {
                 <SortHeader label="Venues" col="venue_count" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="Members" col="member_count" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="Created" col="created_at" active={col} dir={dir} onClick={toggle} />
-                <th className={`${thCls} text-right`}>Actions</th>
+                <th className={`${thCls} text-right ${STICKY_ACTION_HEAD}`}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -501,8 +502,10 @@ export function OrgsTable({ orgs }: { orgs: OrgRow[] }) {
 /* ════════════════════════════════════════════════════════════════════════
    VENUES TABLE
    ════════════════════════════════════════════════════════════════════════ */
+const VENUE_SEARCH_MIN_CHARS = 2;
+const VENUE_SEARCH_DEBOUNCE_MS = 250;
+
 export function VenuesTable({ venues }: { venues: VenueRow[] }) {
-  const { sorted, col, dir, toggle } = useSort(venues, 'org_name');
   const [pending, startTransition] = useTransition();
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [promoUpdatingId, setPromoUpdatingId] = useState<string | null>(null);
@@ -515,6 +518,45 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  // Server-side search across ALL venues. The `venues` prop only holds the
+  // 100 most recently created, so typing a query swaps the table's row source
+  // to a database ilike search; clearing it swaps back. If the action fails
+  // (e.g. limited mode without the service-role key) serverRows stays null
+  // and the table degrades to client-side filtering of the loaded rows.
+  const [serverRows, setServerRows] = useState<VenueRow[] | null>(null);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    const trimmed = search.trim();
+    if (trimmed.length < VENUE_SEARCH_MIN_CHARS) {
+      setServerRows(null);
+      setSearching(false);
+      return;
+    }
+    let active = true;
+    setSearching(true);
+    const handle = setTimeout(async () => {
+      try {
+        const { rows, total } = await adminSearchVenues(trimmed);
+        if (!active) return;
+        setServerRows(rows);
+        setServerTotal(total);
+      } catch {
+        if (active) setServerRows(null);
+      } finally {
+        if (active) setSearching(false);
+      }
+    }, VENUE_SEARCH_DEBOUNCE_MS);
+    return () => {
+      active = false;
+      clearTimeout(handle);
+    };
+  }, [search]);
+
+  const baseRows = serverRows ?? venues;
+  const { sorted, col, dir, toggle } = useSort(baseRows, 'org_name');
+
   function resetFilters() {
     setSearch('');
     setStatusFilter([]);
@@ -526,7 +568,10 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
 
   const filtered = useMemo(() => {
     let r = sorted;
-    if (search) {
+    // With server results active the rows already match the query (on more
+    // fields than we have locally, e.g. address) — re-filtering here would
+    // wrongly drop them. Only text-filter when showing the local row set.
+    if (search && !serverRows) {
       const q = searchText(search);
       r = r.filter(
         (v) =>
@@ -549,7 +594,7 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
       r = r.filter((v) => (hasHH[0] === 'yes' ? v.hh_count > 0 : v.hh_count === 0));
     }
     return r;
-  }, [sorted, search, statusFilter, tierFilter, hasMedia, hasHH]);
+  }, [sorted, search, serverRows, statusFilter, tierFilter, hasMedia, hasHH]);
 
   const total = filtered.length;
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
@@ -584,7 +629,16 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-        <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search venues…" />
+        <SearchInput value={search} onChange={(v) => { setSearch(v); setPage(1); }} placeholder="Search all venues…" />
+        {searching ? (
+          <span className="text-caption text-muted-light whitespace-nowrap">Searching all venues…</span>
+        ) : serverRows ? (
+          <span className="text-caption text-muted whitespace-nowrap">
+            {serverTotal > serverRows.length
+              ? `Showing first ${serverRows.length} of ${serverTotal} matches — refine your search`
+              : `${serverTotal} match${serverTotal === 1 ? '' : 'es'} across all venues`}
+          </span>
+        ) : null}
         <FilterChips
           label="Status"
           options={[
@@ -632,7 +686,7 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
                 <SortHeader label="Priority" col="promotion_priority" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="HH Windows" col="hh_count" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="Created" col="created_at" active={col} dir={dir} onClick={toggle} />
-                <th className={thCls}></th>
+                <th className={`${thCls} ${STICKY_ACTION_HEAD}`}></th>
               </tr>
             </thead>
             <tbody>
@@ -681,7 +735,7 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
                       {v.hh_count > 0 ? <span className={badgeGreen}>{v.hh_count}</span> : <span className="text-muted">0</span>}
                     </td>
                     <td className={`${tdCls} text-muted`}>{relativeTime(v.created_at)}</td>
-                    <td className={tdCls}>
+                    <td className={`${tdCls} ${STICKY_ACTION_CELL}`}>
                       <Link href={`/orgs/${v.org_id}?from=admin`} className={linkCls}>Edit &rarr;</Link>
                     </td>
                   </tr>
@@ -790,7 +844,7 @@ export function WindowsTable({ windows, venues }: { windows: WindowRow[]; venues
                 <SortHeader label="Days" col="dow" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="Status" col="status" active={col} dir={dir} onClick={toggle} />
                 <SortHeader label="Created" col="created_at" active={col} dir={dir} onClick={toggle} />
-                <th className={thCls}></th>
+                <th className={`${thCls} ${STICKY_ACTION_HEAD}`}></th>
               </tr>
             </thead>
             <tbody>
@@ -819,7 +873,7 @@ export function WindowsTable({ windows, venues }: { windows: WindowRow[]; venues
                       </button>
                     </td>
                     <td className={`${tdCls} text-muted`}>{relativeTime(w.created_at)}</td>
-                    <td className={tdCls}>
+                    <td className={`${tdCls} ${STICKY_ACTION_CELL}`}>
                       <Link href={`/orgs/${orgId}/venues/${w.venue_id}?from=admin`} className={linkCls}>Edit &rarr;</Link>
                     </td>
                   </tr>
@@ -869,6 +923,16 @@ function roleSummary(memberships: UserRow['memberships']): string {
 function UserRowItem({ user }: { user: UserRow }) {
   const [editing, setEditing] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [confirmOrgId, setConfirmOrgId] = useState<string | null>(null);
+  const [confirmAll, setConfirmAll] = useState(false);
+
+  function toggleRemoving() {
+    setRemoving((v) => !v);
+    setConfirmOrgId(null);
+    setConfirmAll(false);
+    if (!removing) setEditing(false);
+  }
 
   return (
     <>
@@ -895,14 +959,22 @@ function UserRowItem({ user }: { user: UserRow }) {
           )}
         </td>
         <td className={`${tdCls} text-muted`}>{relativeTime(user.last_sign_in_at)}</td>
-        <td className={`${tdCls} text-right whitespace-nowrap`}>
+        <td className={`${tdCls} text-right whitespace-nowrap ${STICKY_ACTION_CELL}`}>
           <div className="inline-flex gap-2 items-center justify-end">
             <button
               type="button"
-              onClick={() => setEditing((v) => !v)}
+              onClick={() => { setEditing((v) => !v); if (!editing) setRemoving(false); }}
               className="text-caption font-medium text-brand hover:text-brand-dark cursor-pointer"
             >
               {editing ? 'Cancel' : 'Edit'}
+            </button>
+            <span className="text-muted-light">·</span>
+            <button
+              type="button"
+              onClick={toggleRemoving}
+              className="text-caption font-medium text-error hover:underline cursor-pointer"
+            >
+              {removing ? 'Cancel' : 'Remove…'}
             </button>
             <span className="text-muted-light">·</span>
             {confirmReset ? (
@@ -936,6 +1008,84 @@ function UserRowItem({ user }: { user: UserRow }) {
           </div>
         </td>
       </tr>
+      {removing ? (
+        <tr className="bg-background/40 border-b border-border">
+          <td colSpan={6} className="px-4 py-4">
+            <div className="flex flex-col gap-2">
+              <p className="text-caption text-muted">
+                Removes dashboard access only — the user keeps their app account and can be re-invited
+                from an organization&apos;s Access page.
+              </p>
+              {user.memberships.map((m, i) => (
+                <div key={`${m.org_id}-${i}`} className="flex items-center gap-3">
+                  <span className="text-body-sm text-foreground">
+                    {m.org_name} <span className={roleBadgeCls(m.role)}>{m.role}</span>
+                  </span>
+                  {confirmOrgId === m.org_id ? (
+                    <form className="inline-flex gap-2 items-center">
+                      <input type="hidden" name="user_id" value={user.id} />
+                      <input type="hidden" name="org_id" value={m.org_id} />
+                      <input type="hidden" name="return_path" value="/admin" />
+                      <button
+                        formAction={adminRemoveMembership}
+                        className="text-caption font-medium text-error hover:underline cursor-pointer"
+                      >
+                        Confirm remove from {m.org_name}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmOrgId(null)}
+                        className="text-caption font-medium text-muted hover:text-foreground cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setConfirmOrgId(m.org_id); setConfirmAll(false); }}
+                      className="text-caption font-medium text-error hover:underline cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              {user.memberships.length > 1 ? (
+                <div className="pt-1 border-t border-border mt-1">
+                  {confirmAll ? (
+                    <form className="inline-flex gap-2 items-center">
+                      <input type="hidden" name="user_id" value={user.id} />
+                      <input type="hidden" name="return_path" value="/admin" />
+                      <button
+                        formAction={adminRemoveAllMemberships}
+                        className="text-caption font-semibold text-error hover:underline cursor-pointer"
+                      >
+                        Confirm remove all {user.memberships.length} memberships
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmAll(false)}
+                        className="text-caption font-medium text-muted hover:text-foreground cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => { setConfirmAll(true); setConfirmOrgId(null); }}
+                      className="text-caption font-medium text-error hover:underline cursor-pointer"
+                    >
+                      Remove all access ({user.memberships.length})
+                    </button>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </td>
+        </tr>
+      ) : null}
       {editing ? (
         <tr className="bg-background/40 border-b border-border">
           <td colSpan={6} className="px-4 py-4">
@@ -1065,7 +1215,7 @@ export function UsersTable({ users }: { users: UserRow[] }) {
                 <th className={thCls}>Roles</th>
                 <th className={thCls}>Org(s)</th>
                 <SortHeader label="Last Sign In" col="last_sign_in_at" active={col} dir={dir} onClick={toggle} />
-                <th className={`${thCls} text-right`}>Actions</th>
+                <th className={`${thCls} text-right ${STICKY_ACTION_HEAD}`}>Actions</th>
               </tr>
             </thead>
             <tbody>

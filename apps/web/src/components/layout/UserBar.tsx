@@ -4,20 +4,26 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
+import { resetAnalytics } from '@/services/analytics';
 import { Logo } from '@/components/ui/Logo';
 
 export default function UserBar() {
   const [email, setEmail] = useState<string | null>(null);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
     const supabase = createClient();
     supabase.auth.getUser().then(({ data }) => setEmail(data.user?.email ?? null));
+    // Cosmetic only — /admin is enforced server-side by its layout. This just
+    // stops advertising a console the signed-in user cannot open.
+    supabase.rpc('is_happitime_admin').then(({ data }) => setIsPlatformAdmin(data === true));
   }, []);
 
   async function signOut() {
-    const supabase = await createClient();
+    const supabase = createClient();
     await supabase.auth.signOut();
+    resetAnalytics(); // unlink the device from the user before the next session
     window.location.href = '/login';
   }
 
@@ -43,9 +49,11 @@ export default function UserBar() {
           <Link href="/dashboard" className={isDashboard ? navActive : navInactive}>
             Dashboard
           </Link>
-          <Link href="/admin" className={isAdmin ? navActive : navInactive}>
-            Admin
-          </Link>
+          {isPlatformAdmin ? (
+            <Link href="/admin" className={isAdmin ? navActive : navInactive}>
+              Admin
+            </Link>
+          ) : null}
         </nav>
 
         {/* Right side */}
