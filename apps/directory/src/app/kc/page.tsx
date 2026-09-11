@@ -29,7 +29,7 @@ const HAPPITIME_BUSINESS_JSON_LD = [
     sameAs: [
       "https://www.instagram.com/findhappitime",
       "https://apps.apple.com/us/app/happitime/id6757933269",
-      "https://play.google.com/store/apps/happitime",
+      "https://play.google.com/store/apps/details?id=com.jwill7486.happitime.mobile",
     ],
     contactPoint: {
       "@type": "ContactPoint",

@@ -32,6 +32,7 @@ import { ListingFreshness } from "../components/ListingFreshness";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { distanceMiles } from "../utils/location";
+import { scanCheckInStep } from "../lib/scanCheckIn";
 import { EVENT_TYPE_LABELS, formatEventDate, formatEventTime, formatRecurrenceRule } from "../lib/eventDisplay";
 
 // Loyalty check-in geofence gate: matches server default (100 m ≈ 0.062 miles)
@@ -183,9 +184,10 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
     };
   }, [venueId]);
 
-  // One-shot "Checked in!" confirmation when arriving from a QR scan
+  // One-shot "Scan recorded" confirmation when arriving from a QR scan
   // (route param fromScan). Display-only — the web bridge already recorded the
   // visit; we just confirm it. Cleared after showing so back-nav won't replay it.
+  // (Deliberately not a check-in claim: a stamp only lands after the code screen.)
   const bannerOpacity = useRef(new Animated.Value(0)).current;
   const [showScanBanner, setShowScanBanner] = useState(false);
 
@@ -257,6 +259,33 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
     const radiusMiles = venueGeo.geofence_radius_m / METERS_PER_MILE;
     return distMiles <= radiusMiles;
   }, [venueGeo, userLocation]);
+  // QR scan → check-in hand-off. Captured on first render, before the banner
+  // effect clears the fromScan param. Once location + venue coords resolve and
+  // the scanner is inside the geofence, open the stamp-code screen on top of
+  // this one (back returns here). One shot per arrival.
+  const scanCheckInPending = useRef(route.params?.fromScan === true);
+  useEffect(() => {
+    const step = scanCheckInStep({
+      pending: scanCheckInPending.current,
+      locationChecked,
+      hasUserLocation: userLocation != null,
+      hasVenueGeo: venueGeo != null,
+      hasVenueName: venueName !== "This venue",
+      insideGeofence,
+    });
+    if (step === "stay") {
+      scanCheckInPending.current = false;
+    } else if (step === "open" && venueId && userLocation) {
+      scanCheckInPending.current = false;
+      navigation.navigate("CheckIn", {
+        venueId,
+        venueName,
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+      });
+    }
+  }, [locationChecked, userLocation, venueGeo, venueName, insideGeofence, venueId, navigation]);
+
   const images = useMemo(
     () => [...media].sort((a, b) => a.sort_order - b.sort_order),
     [media]
@@ -380,7 +409,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           style={[styles.scanBannerWrap, { opacity: bannerOpacity, top: insets.top + spacing.sm }]}
         >
           <View style={styles.scanBanner}>
-            <Text style={styles.scanBannerText}>📍 Checked in!</Text>
+            <Text style={styles.scanBannerText}>📍 Scan recorded</Text>
           </View>
         </Animated.View>
       ) : null}
