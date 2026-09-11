@@ -3,7 +3,9 @@
 // Routes venue QR deep links into the app. The web bridge (happitime.biz/v/{slug})
 // records the visit, then opens happitime://venue/{slug}?src=qr. This hook catches
 // that URL (cold start + foreground), resolves the slug to a venueId, and opens the
-// venue screen with a one-shot "Checked in!" banner.
+// venue screen with a one-shot "Scan recorded" banner. If the scanner is inside the
+// venue's geofence, VenuePreview then hands off to the stamp-code CheckIn screen
+// (see lib/scanCheckIn.mjs).
 //
 // Display-only: attribution was already recorded by the web bridge (source=qr), so
 // we deliberately do NOT re-fire track-visit here (the app uses a different session
