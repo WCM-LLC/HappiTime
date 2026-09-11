@@ -178,6 +178,22 @@ function buildUserPrompt(venueName?: string): string {
   return venueName ? `Venue: ${venueName}. ${task}` : task;
 }
 
+/**
+ * The provider key was never configured, so no model was ever called.
+ *
+ * This is NOT `extract_failed`. That code means "the model looked at the photo
+ * and could not do it", and both clients render it as advice to re-shoot the
+ * photo. A missing key rendered as bad-photo advice sends the operator out to
+ * photograph the same menu again, which can never work. Typed rather than
+ * string-matched so rewording the message can't silently reclassify it.
+ */
+class VisionNotConfiguredError extends Error {
+  constructor(envVar: string) {
+    super(`${envVar} not configured`);
+    this.name = 'VisionNotConfiguredError';
+  }
+}
+
 function stripFences(text: string): string {
   return text
     .trim()
@@ -190,7 +206,7 @@ function stripFences(text: string): string {
 
 async function callClaudeVision(base64Image: string, mediaType: string, venueName?: string) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+  if (!apiKey) throw new VisionNotConfiguredError('ANTHROPIC_API_KEY');
 
   // Bound the call the same way the Gemini path is bounded. Without this, a
   // stalled Claude response hangs until fetch's own default (~5 min), which
@@ -249,7 +265,7 @@ async function callClaudeVision(base64Image: string, mediaType: string, venueNam
 
 async function callGeminiVision(base64Image: string, mediaType: string, venueName?: string) {
   const apiKey = process.env.GOOGLE_AI_API_KEY ?? process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GOOGLE_AI_API_KEY not configured');
+  if (!apiKey) throw new VisionNotConfiguredError('GOOGLE_AI_API_KEY');
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(MODEL)}:generateContent?key=${apiKey}`;
 
@@ -503,8 +519,34 @@ export async function POST(req: NextRequest) {
       hasGeminiKey: Boolean(process.env.GOOGLE_AI_API_KEY ?? process.env.GEMINI_API_KEY),
       hasAnthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
     });
+
+    // No key means we never called a model, so nothing about the photo is at
+    // fault. 503 + its own code, mirroring `service_role_missing`, keeps the
+    // operator from being told to re-shoot a photo that was always fine.
+    if (err instanceof VisionNotConfiguredError) {
+      return NextResponse.json(
+        {
+          error: 'vision_not_configured',
+          // Names the provider, not the env var. The exact variable is already
+          // in the console.error above, where an operator looks; a venue owner
+          // reading this in the app does not need our internal key names.
+          detail: `Menu scanning isn't configured on the server (no ${PROVIDER} vision key). Your photo is fine — this needs an operator, not a better shot.`,
+          provider: PROVIDER,
+        },
+        { status: 503 },
+      );
+    }
+
+    // `detail` — not `message` — is the field both clients read and every
+    // other intake route returns. Sending `message` here silently discarded
+    // the reason and left the user with a bare "extract_failed".
     return NextResponse.json(
-      { error: 'extract_failed', provider: PROVIDER, model: MODEL, message: err?.message ?? String(err) },
+      {
+        error: 'extract_failed',
+        provider: PROVIDER,
+        model: MODEL,
+        detail: err?.message ?? String(err),
+      },
       { status: 502 },
     );
   }

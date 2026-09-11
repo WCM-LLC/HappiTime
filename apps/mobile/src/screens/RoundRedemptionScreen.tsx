@@ -38,7 +38,7 @@ function formatEligibleDay(iso: string | null): string | null {
 
 export const RoundRedemptionScreen: React.FC<Props> = ({ route, navigation }) => {
   const { venueId, venueName, lat, lng, rewardText } = route.params;
-  const reward = rewardText ?? "your free round";
+  const reward = rewardText ?? "A token of appreciation";
   const insets = useSafeAreaInsets();
 
   const { state, submitRedeem, reset } = useCheckin();
@@ -74,8 +74,8 @@ export const RoundRedemptionScreen: React.FC<Props> = ({ route, navigation }) =>
           },
         ]}
       >
-        <Text style={styles.celebrationEmoji}>🍻</Text>
-        <Text style={styles.celebrationTitle}>Round on the house!</Text>
+        <Text style={styles.celebrationEmoji}>🎁</Text>
+        <Text style={styles.celebrationTitle}>On the house!</Text>
         <Text style={styles.celebrationSubtitle}>
           The house owes you {reward.toLowerCase()}. Show this screen to your server —
           your stamp card resets now. Enjoy!
@@ -106,7 +106,7 @@ export const RoundRedemptionScreen: React.FC<Props> = ({ route, navigation }) =>
       ]}
     >
       <Text style={styles.celebrationEmoji}>🎉</Text>
-      <Text style={styles.title}>Round on the house!</Text>
+      <Text style={styles.title}>On the house!</Text>
       <Text style={styles.subtitle}>
         You've earned {reward.toLowerCase()}. Enter today's code one more time to confirm with your server.
       </Text>

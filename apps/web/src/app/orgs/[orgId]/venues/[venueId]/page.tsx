@@ -1271,9 +1271,12 @@ export default async function VenuePage({
                 const statusColor = isPublished
                   ? 'bg-success-light text-success'
                   : 'bg-warning-light text-warning';
+                // Owners must see their own event times in the venue's zone —
+                // this renders server-side, where the runtime zone is UTC.
+                const evTz = ev.timezone || 'America/Chicago';
                 const eventDate = new Date(ev.starts_at);
-                const dateStr = eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-                const timeStr = eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                const dateStr = eventDate.toLocaleDateString('en-US', { timeZone: evTz, weekday: 'short', month: 'short', day: 'numeric' });
+                const timeStr = eventDate.toLocaleTimeString('en-US', { timeZone: evTz, hour: 'numeric', minute: '2-digit' });
 
                 return (
                   <div key={ev.id} className="rounded-lg border border-border bg-background p-5">
@@ -1286,7 +1289,7 @@ export default async function VenuePage({
                           <h3 className="text-body-md font-semibold text-foreground">{ev.title}</h3>
                           <p className="text-body-sm text-muted mt-0.5">
                             {ev.is_recurring ? formatRecurrence(ev.recurrence_rule) : dateStr} at {timeStr}
-                            {ev.ends_at && ` – ${new Date(ev.ends_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`}
+                            {ev.ends_at && ` – ${new Date(ev.ends_at).toLocaleTimeString('en-US', { timeZone: evTz, hour: 'numeric', minute: '2-digit' })}`}
                             {ev.event_type !== 'event' && <span className="text-muted-light"> · {ev.event_type.replace('_', ' ')}</span>}
                           </p>
                           {ev.price_info && <p className="text-caption text-muted mt-0.5">{ev.price_info}</p>}
@@ -1637,12 +1640,13 @@ export default async function VenuePage({
                         <form>
                           <input type="hidden" name="user_id" value={member.user_id} />
                           <input type="hidden" name="return_path" value={`/orgs/${orgId}/venues/${venueId}?from=admin`} />
-                          <button
+                          <SubmitButton
                             formAction={adminRemoveStaffMember.bind(null, orgId)}
                             className={btnDanger}
+                            pendingLabel="Removing…"
                           >
                             Remove
-                          </button>
+                          </SubmitButton>
                         </form>
                       ) : null}
                     </div>
@@ -1708,12 +1712,13 @@ export default async function VenuePage({
                 </div>
 
                 <div>
-                  <button
+                  <SubmitButton
                     formAction={adminAddStaffMember.bind(null, orgId)}
                     className={btnPrimary}
+                    pendingLabel="Adding…"
                   >
                     Add staff member
-                  </button>
+                  </SubmitButton>
                 </div>
               </form>
             </div>

@@ -171,7 +171,7 @@ export const CheckInPrimeScreen: React.FC<CheckInPrimeScreenProps> = ({
         <Text style={styles.title}>You&apos;re at {target.venueName} 🍻</Text>
         <Text style={styles.body}>
           Ask your server for today&apos;s HappiTime code to check in and start earning
-          toward a free round.
+          toward your reward.
         </Text>
       </View>
 

@@ -50,3 +50,42 @@ export function formatClock(minutes) {
   const h = h24 % 12 || 12;
   return `${h}:${String(minutes % 60).padStart(2, "0")} ${h24 >= 12 ? "PM" : "AM"}`;
 }
+
+// ---------------------------------------------------------------------------
+// Event timestamp formatting
+//
+// `venue_events.starts_at` / `ends_at` are `timestamptz` — an instant, not a
+// wall clock. Formatting one with a bare `toLocaleTimeString()` uses the
+// *runtime's* zone, which on Vercel is UTC: a 12:00 PM CT event renders as
+// "5:00 PM", and anything after 7:00 PM CT rolls onto the next calendar day.
+// That shipped to production and put wrong times on every venue page.
+//
+// These helpers exist so no call site ever has to remember the `timeZone`
+// option. Always format event timestamps through them. Pass the event's own
+// `timezone` column when you have it; KC is only the fallback.
+// Guarded by test/event-time-timezone.test.mjs.
+
+/** "Sun, Aug 16" in the event's zone. */
+export function formatEventDate(iso, timeZone = KC_TZ) {
+  return new Date(iso).toLocaleDateString("en-US", {
+    timeZone,
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/** "3:00 PM" in the event's zone. */
+export function formatEventTime(iso, timeZone = KC_TZ) {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    timeZone,
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+/** "3:00 PM – 9:00 PM", or just the start when there is no end. */
+export function formatEventTimeRange(startIso, endIso, timeZone = KC_TZ) {
+  const start = formatEventTime(startIso, timeZone);
+  return endIso ? `${start} – ${formatEventTime(endIso, timeZone)}` : start;
+}

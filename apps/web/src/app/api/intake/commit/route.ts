@@ -299,6 +299,9 @@ export async function POST(req: NextRequest) {
       label: w.label ?? null,
       status: targetWindowStatus,
       last_confirmed_at: save_as_draft || send_owner_confirmation ? null : new Date().toISOString(),
+      created_by: user.id,
+      created_by_tier: tier,
+      published_at: publishedAt,
     }));
     const { data: insertedRows, error: newWinErr } = (await db
       .from('happy_hour_windows')
@@ -318,6 +321,10 @@ export async function POST(req: NextRequest) {
   const allWindowIds = [...window_ids, ...newlyInsertedWindowIds];
 
   const menuStatus = save_as_draft || send_owner_confirmation ? 'draft' : 'published';
+  // Same condition that picks 'published' above. A draft must not carry a
+  // publish date, or it would enter the 90-day scoring window while invisible.
+  const publishedAt =
+    save_as_draft || send_owner_confirmation ? null : new Date().toISOString();
 
   // 3. Insert the menu row — but only when this scan actually carries a menu.
   // An events-only scan would otherwise leave an empty "Happy Hour" menu on
@@ -332,6 +339,9 @@ export async function POST(req: NextRequest) {
         name: menu.name || 'Happy Hour',
         status: menuStatus,
         is_active: true,
+        created_by: user.id,
+        created_by_tier: tier,
+        published_at: publishedAt,
         // scope defaults to 'venue' in the schema; we don't override it here.
       })
       .select('id')
@@ -447,6 +457,8 @@ export async function POST(req: NextRequest) {
       // this venue gets live events.
       status: save_as_draft ? 'draft' : 'published',
       createdBy: user.id,
+      createdByTier: tier,
+      publishedAt,
     });
 
     if (eventRows.length > 0) {

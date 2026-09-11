@@ -117,6 +117,11 @@ const FRIENDLY: Record<string, string> = {
   image_too_large: "That photo is too big — try taking it again.",
   unsupported_image_type: "That image format isn't supported.",
   extract_failed: "We couldn't read that photo. Try a straighter, brighter shot.",
+  // Deliberately says nothing about the photo: this fires when the server has
+  // no vision provider key, so re-shooting can never help. The server sends a
+  // `detail` that supersedes this; the wording here is the safety net.
+  vision_not_configured:
+    "Menu scanning is temporarily unavailable on our end. Your photo is fine — please tell us about this.",
   invalid_payload: "Something in the menu didn't look right. Check the fields and retry.",
   service_role_missing: "Menu scanning is misconfigured. Please tell us about this.",
 };

@@ -1,4 +1,5 @@
 import ConfirmDeleteForm from '@/components/ConfirmDeleteForm';
+import { SubmitButton } from '@/components/ui/SubmitButton';
 import {
   cancelOrgInvite,
   createOrgInvite,
@@ -135,9 +136,9 @@ export default function AccessManager({
           )}
 
           <div>
-            <button formAction={createOrgInvite.bind(null, orgId)} className={btnPrimary}>
+            <SubmitButton formAction={createOrgInvite.bind(null, orgId)} className={btnPrimary} pendingLabel="Sending invite…">
               Send invite
-            </button>
+            </SubmitButton>
           </div>
         </form>
       </div>
@@ -183,9 +184,9 @@ export default function AccessManager({
                     action={cancelOrgInvite.bind(null, orgId, invite.id)}
                     message="Cancel this invite?"
                   >
-                    <button className={btnDanger} type="submit">
+                    <SubmitButton className={btnDanger} type="submit" pendingLabel="Cancelling…">
                       Cancel
-                    </button>
+                    </SubmitButton>
                   </ConfirmDeleteForm>
                 </div>
               );
@@ -247,9 +248,9 @@ export default function AccessManager({
                         action={removeMember.bind(null, orgId, member.user_id)}
                         message="Remove this member and revoke access?"
                       >
-                        <button className={btnDanger} type="submit">
+                        <SubmitButton className={btnDanger} type="submit" pendingLabel="Removing…">
                           Remove
-                        </button>
+                        </SubmitButton>
                       </ConfirmDeleteForm>
                     )}
                   </div>
@@ -301,12 +302,13 @@ export default function AccessManager({
                         )}
 
                         <div>
-                          <button
+                          <SubmitButton
                             className={btnSecondary}
                             formAction={updateMemberAccess.bind(null, orgId, member.user_id)}
+                            pendingLabel="Saving…"
                           >
                             Save access
-                          </button>
+                          </SubmitButton>
                         </div>
                       </form>
                     </div>

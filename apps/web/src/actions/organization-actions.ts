@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { consoleContributorTier } from '@/utils/contribution-attribution';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/utils/supabase/server';
 import { hasAdminEmailsConfigured, isAdmin, getAdminClient } from '@/utils/admin';
@@ -46,7 +47,7 @@ async function requireOrgMenuManagementAccess(orgId: string) {
   if (!org) redirectOrgWithError(orgId, 'org_not_found');
 
   if (userIsAdmin) {
-    return { writeSupabase: lookupClient };
+    return { writeSupabase: lookupClient, actor: { id: auth.user.id, tier: consoleContributorTier(true) } };
   }
 
   const { data: membership, error: membershipErr } = await supabase
@@ -61,9 +62,9 @@ async function requireOrgMenuManagementAccess(orgId: string) {
   }
 
   try {
-    return { writeSupabase: getAdminClient() };
+    return { writeSupabase: getAdminClient(), actor: { id: auth.user.id, tier: consoleContributorTier(true) } };
   } catch {
-    return { writeSupabase: supabase };
+    return { writeSupabase: supabase, actor: { id: auth.user.id, tier: consoleContributorTier(false) } };
   }
 }
 
@@ -222,7 +223,7 @@ export async function deleteVenue(orgId: string, formData: FormData) {
 }
 
 export async function createOrganizationMenu(orgId: string, formData: FormData) {
-  const { writeSupabase } = await requireOrgMenuManagementAccess(orgId);
+  const { writeSupabase, actor } = await requireOrgMenuManagementAccess(orgId);
   const name = requireOrgField(formData, 'menu_name', orgId, 'missing_menu_name');
 
   const { error } = await writeSupabase
@@ -235,6 +236,8 @@ export async function createOrganizationMenu(orgId: string, formData: FormData) 
       name,
       status: HH_STATUS_DRAFT,
       is_active: true,
+      created_by: actor.id,
+      created_by_tier: actor.tier,
     });
 
   if (error) {
@@ -362,7 +365,7 @@ export async function publishOrganizationMenu(orgId: string, formData: FormData)
 
   const { error } = await writeSupabase
     .from('menus')
-    .update({ status: HH_STATUS_PUBLISHED })
+    .update({ status: HH_STATUS_PUBLISHED, published_at: new Date().toISOString() })
     .eq('id', menuId)
     .eq('org_id', orgId)
     .eq('scope', 'organization');
@@ -382,7 +385,7 @@ export async function unpublishOrganizationMenu(orgId: string, formData: FormDat
 
   const { error } = await writeSupabase
     .from('menus')
-    .update({ status: HH_STATUS_DRAFT })
+    .update({ status: HH_STATUS_DRAFT, published_at: null })
     .eq('id', menuId)
     .eq('org_id', orgId)
     .eq('scope', 'organization');

@@ -11,6 +11,7 @@ export type VenueEventItem = {
   status: string;
   starts_at: string;
   ends_at: string | null;
+  timezone: string | null;
   is_recurring: boolean;
   recurrence_rule: string | null;
   price_info: string | null;
@@ -44,7 +45,7 @@ export function useVenueEvents(venueId: string | null) {
       const { data, error } = await (supabase as any)
         .from("venue_events")
         .select(
-          "id, venue_id, title, description, event_type, status, starts_at, ends_at, is_recurring, recurrence_rule, price_info, external_url, ticket_url, cover_image_path"
+          "id, venue_id, title, description, event_type, status, starts_at, ends_at, timezone, is_recurring, recurrence_rule, price_info, external_url, ticket_url, cover_image_path"
         )
         .eq("venue_id", venueId)
         .eq("status", "published")

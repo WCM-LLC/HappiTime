@@ -72,6 +72,10 @@ export const ProfileScreen: React.FC = () => {
   // Menu scanning only appears for accounts the console says may use it —
   // venue owners and super users, and only while the feature flag is on.
   const [canScanMenus, setCanScanMenus] = useState(false);
+  // Distinct from canScanMenus=false. A denial and a failed check both hid
+  // the entry point identically, so an owner who could scan was told nothing
+  // at all when the request failed.
+  const [scanCheckFailed, setScanCheckFailed] = useState(false);
 
   const [displayName, setDisplayName] = useState("");
   const [homeCity, setHomeCity] = useState("");
@@ -190,16 +194,26 @@ export const ProfileScreen: React.FC = () => {
   };
 
   // Ask the console once per signed-in session whether this account may scan
-  // menus. Any failure (guest, offline, flag off) simply hides the entry.
+  // menus. A denial hides the entry; a FAILED check says so instead of
+  // pretending the feature does not exist.
   useEffect(() => {
     if (!user?.id) {
       setCanScanMenus(false);
+      setScanCheckFailed(false);
       return;
     }
     let alive = true;
     fetchIntakeSession()
-      .then((s) => alive && setCanScanMenus(Boolean(s.tier)))
-      .catch(() => alive && setCanScanMenus(false));
+      .then((s) => {
+        if (!alive) return;
+        setCanScanMenus(Boolean(s.tier));
+        setScanCheckFailed(false);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setCanScanMenus(false);
+        setScanCheckFailed(true);
+      });
     return () => {
       alive = false;
     };
@@ -598,6 +612,15 @@ export const ProfileScreen: React.FC = () => {
           >
             <Text style={styles.secondaryButtonText}>Scan a Happy Hour Menu</Text>
           </Pressable>
+        ) : scanCheckFailed ? (
+          // Say the check failed rather than silently omitting the feature.
+          // An owner reporting "I can't see the scan button" gave us no way to
+          // tell a permissions problem from a network one.
+          <View style={styles.scanCheckFailedBox}>
+            <Text style={styles.scanCheckFailedText}>
+              Couldn&apos;t check your menu-scanning access. Reopen this screen to retry.
+            </Text>
+          </View>
         ) : null}
 
         <Pressable
@@ -999,6 +1022,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     marginBottom: spacing.xs
+  },
+  scanCheckFailedBox: {
+    backgroundColor: colors.warningLight,
+    borderRadius: 8,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.sm
+  },
+  scanCheckFailedText: {
+    color: colors.warning,
+    fontSize: 13
   },
   modalHint: {
     color: colors.textMuted,
