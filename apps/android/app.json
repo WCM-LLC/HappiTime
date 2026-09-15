@@ -15,12 +15,6 @@
     },
     "assetBundlePatterns": ["**/*"],
     "plugins": [
-      [
-        "react-native-maps",
-        {
-          "androidGoogleMapsApiKey": ""
-        }
-      ],
       "expo-notifications",
       [
         "expo-location",
