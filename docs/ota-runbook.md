@@ -46,13 +46,30 @@ live.
    (internal distribution), launch, confirm the update activates, the app
    boots, and login works. This is the guardrail both incidents lacked.
 
-3. **Verify the bundle env before promoting** — ask the update server what a
-   device would get and check the manifest/bundle:
+3. **Verify the exported bundle before promoting.** `eas update` leaves the
+   exported bundles in `apps/mobile/dist/`. Run the verifier — it fails if
+   the inlined `EXPO_PUBLIC_*` env is missing from either platform bundle
+   (the exact cause of both outages):
+
+   ```sh
+   node ../../scripts/verify-ota-bundle.mjs
+   # optionally prove your change is in / an old string is out:
+   node ../../scripts/verify-ota-bundle.mjs --expect "some new copy" --absent 'label:"All"' --strict
+   ```
+
+   **Do not `grep` the `.hbc` by hand.** Hermes stores any string containing
+   a non-ASCII character (em dash, curly quote, emoji) as UTF-16LE and only
+   pure-ASCII strings as UTF-8, so a plain grep for such copy returns 0 even
+   when it's there. The script searches both encodings and reports
+   `[utf8=N utf16=M]` per marker. (Bit us 2026-09-14.)
+
+   Then confirm what devices are actually served:
 
    ```sh
    curl -sS "https://u.expo.dev/11746dbf-de7c-408d-80c3-45859e657550" \
      -H "expo-channel-name: production" -H "expo-runtime-version: <appVersion>" \
-     -H "expo-platform: ios" -H "Accept: multipart/mixed" -H "expo-protocol-version: 1"
+     -H "expo-platform: ios" -H "Accept: multipart/mixed" -H "expo-protocol-version: 1" \
+     -D - -o /dev/null | grep -i expo-update-id
    ```
 
    The returned update `id` is ground truth for what devices are served.
