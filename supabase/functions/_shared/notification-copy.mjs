@@ -36,6 +36,15 @@ export function followCopy(actorName) {
   return { title: "👋 New follower", body: `${someone(actorName)} started following you.` };
 }
 
+// user_follows.status = 'pending' is a request, not a follow (2026-09-14).
+export function followRequestCopy(actorName) {
+  return { title: "👋 Follow request", body: `${someone(actorName)} wants to follow you.` };
+}
+
+export function followAcceptedCopy(actorName) {
+  return { title: "✅ Request accepted", body: `${someone(actorName)} accepted your follow request.` };
+}
+
 export function venueSaveCopy(actorName, venueName) {
   return {
     title: `🍸 ${someone(actorName)} saved ${aVenue(venueName)}`,
