@@ -6,11 +6,28 @@
 // Invoked hourly by pg_cron via invoke_notify_events() SECURITY DEFINER
 // wrapper, which sends x-notify-token.  verify_jwt = false in config.toml.
 // Uses starts_at timestamptz (absolute instant) — no TZ-string issue.
+//
+// 2026-09-14: recurring events. starts_at on an is_recurring row is the date
+// the series was ENTERED, so a plain starts_at window never matched any of
+// the ~109 published recurring series — they got zero pushes, ever. We now
+// fetch recurring rows regardless of starts_at and expand recurrence_rule
+// into the next occurrence (see _shared/recurrence.ts) before applying the
+// 60-minute window.
+//
+// Also 2026-09-14: the tier gate used .neq("status","inactive") — 'inactive'
+// is not a value venue_subscriptions.status can hold (active|past_due|
+// canceled|trialing|paused|pilot), so canceled subscriptions passed the gate.
+// Now an explicit allow-list.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendUserNotifications } from "../_shared/notify.ts";
 import { categoryGatedRecipients } from "../_shared/notify-recipients.mjs";
 import { eventStartingCopy } from "../_shared/notification-copy.mjs";
+import { nextOccurrence } from "../_shared/recurrence.ts";
+
+// Subscription statuses that count as "live" for push eligibility.
+// past_due and paused deliberately excluded; revisit if a grace period is wanted.
+const LIVE_SUB_STATUSES = ["active", "trialing", "pilot"];
 
 Deno.serve(async (req) => {
   // POST-only; cron invocations and manual triggers both POST
@@ -41,24 +58,49 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
   }
 
-  // Query events starting in the next 60 minutes (starts_at is timestamptz — TZ-safe)
-  const nowIso = new Date().toISOString();
-  const lookaheadIso = new Date(Date.now() + 60 * 60_000).toISOString();
+  // Window: events whose NEXT occurrence starts in the next 60 minutes.
+  // One-offs: starts_at inside the window. Recurring: fetched regardless of
+  // starts_at, then expanded and filtered below.
+  const now = new Date();
+  const lookahead = new Date(now.getTime() + 60 * 60_000);
+  const nowIso = now.toISOString();
+  const lookaheadIso = lookahead.toISOString();
 
-  const { data: events, error: evErr } = await supabase
+  const { data: rawEvents, error: evErr } = await supabase
     .from("venue_events")
-    .select("id, venue_id, title, starts_at, venue:venues(name)")
+    .select(
+      "id, venue_id, title, starts_at, is_recurring, recurrence_rule, timezone, venue:venues(name)",
+    )
     .eq("status", "published")
-    .gte("starts_at", nowIso)
-    .lte("starts_at", lookaheadIso);
+    .or(`and(starts_at.gte.${nowIso},starts_at.lte.${lookaheadIso}),is_recurring.eq.true`);
 
   if (evErr) {
     console.error("[notify-events] events fetch failed:", evErr.message);
     return new Response(JSON.stringify({ error: evErr.message }), { status: 500 });
   }
 
-  if (!events || events.length === 0) {
-    return new Response(JSON.stringify({ sent: 0, reason: "no upcoming events" }));
+  // Resolve each row to its next occurrence and keep only those in-window.
+  // starts_at is overwritten with the resolved instant so downstream copy
+  // ("Starts at 7:00 PM") reflects this week's occurrence, not the entry date.
+  const events = (rawEvents ?? []).flatMap((e: any) => {
+    const next = e.is_recurring
+      ? nextOccurrence(e.starts_at, e.recurrence_rule, now, e.timezone ?? undefined)
+      : new Date(e.starts_at);
+    if (!next || next < now || next > lookahead) return [];
+    return [{ ...e, starts_at: next.toISOString() }];
+  });
+
+  // One summary line per run so the hourly cron is observable in function logs.
+  console.log(
+    `[notify-events] scanned=${rawEvents?.length ?? 0} in_window=${events.length} ` +
+      `recurring_in_window=${events.filter((e: any) => e.is_recurring).length} ` +
+      `window=${nowIso}..${lookaheadIso}`,
+  );
+
+  if (events.length === 0) {
+    return new Response(
+      JSON.stringify({ sent: 0, reason: "no upcoming events", scanned: rawEvents?.length ?? 0 }),
+    );
   }
 
   const venueIds = [...new Set((events as any[]).map((e) => e.venue_id).filter(Boolean))];
@@ -68,13 +110,16 @@ Deno.serve(async (req) => {
     .from("venue_subscriptions")
     .select("venue_id, plan, status")
     .in("plan", ["featured", "founding_pilot"])
-    .neq("status", "inactive")
+    .in("status", LIVE_SUB_STATUSES)
     .in("venue_id", venueIds);
 
   const eligibleVenueIds = new Set((eligibleSubs ?? []).map((r: any) => r.venue_id));
   const eligibleEvents = (events as any[]).filter((e) => eligibleVenueIds.has(e.venue_id));
 
   if (eligibleEvents.length === 0) {
+    console.log(
+      `[notify-events] ${events.length} event(s) in window but 0 on a live featured/founding_pilot plan — nothing sent`,
+    );
     return new Response(
       JSON.stringify({ sent: 0, reason: "no push-eligible venues with upcoming events" }),
     );
