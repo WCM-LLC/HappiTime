@@ -97,3 +97,17 @@ test("useVisitRating handles cold-start taps", () => {
   );
   assert.match(source, /getLastNotificationResponseAsync/);
 });
+
+test("a push TAP lands on the Notifications inbox (friend keeps the Friends segment)", () => {
+  // 2026-09-14: the push body only exists in the OS banner and the inbox.
+  // Deep-linking straight to VenuePreview left the user on a venue with no
+  // context and the inbox row unread. Row taps still deep-link.
+  const source = readFileSync(
+    join(__dirname, "..", "hooks", "useNotificationNavigation.ts"),
+    "utf8"
+  );
+  assert.match(source, /function pushTapTarget/);
+  assert.match(source, /segment:\s*"notifications"/, "non-friend push taps must open the inbox segment");
+  assert.match(source, /data\?\.type === "friend"\) return resolved/, "friend keeps the 2026-08-04 owner routing");
+  assert.match(source, /nav\.navigate\(target\.screen/, "must navigate to the push-tap target, not the resolved deep link");
+});

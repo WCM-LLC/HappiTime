@@ -7,9 +7,12 @@ import { resolveNotificationTarget } from "../lib/notificationTarget";
 // isReady briefly so the tap isn't dropped. Same pattern as useVenueDeepLink /
 // useCheckinPrimeHandoff — on cold start the tap response arrives while App.tsx
 // is still walking its boot gates, well before NavigationContainer is ready.
+// 12s (was 5s): on a cold start the auth + boot gates can outlast 5s on older
+// devices, in which case the tap was silently dropped and the app just opened
+// to Home — reported 2026-09-14 as "sometimes it goes nowhere".
 async function waitForNav(
   navigationRef: React.RefObject<any>,
-  timeoutMs = 5000,
+  timeoutMs = 12000,
 ): Promise<any | null> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
@@ -21,8 +24,35 @@ async function waitForNav(
 }
 
 /**
+ * Where an OS push TAP lands. Different from where an inbox ROW tap lands.
+ *
+ * Decision 2026-09-14: a push tap opens the Notifications inbox, not the
+ * deep-link target. Rationale — the push body ("Someone just scanned your QR
+ * code at Tacos Valentina.") exists only in the OS banner and in the inbox;
+ * VenuePreview / VenueEvents render nothing about it. Landing on the target
+ * directly meant the user saw a venue with zero context and the inbox row
+ * stayed unread. The inbox row's own tap still deep-links (ActivityScreen ->
+ * resolveNotificationTarget), so the destination is one tap further, with
+ * the message in between.
+ *
+ * `friend` keeps the owner's 2026-08-04 routing (Friends segment, where
+ * accept/decline lives). visit_rating is not ours — useVisitRating owns it.
+ */
+function pushTapTarget(
+  data: Record<string, unknown> | undefined,
+  resolved: { screen: string; params?: unknown },
+): { screen: string; params?: unknown } {
+  if (data?.type === "friend") return resolved;
+  return {
+    screen: "AppTabs",
+    params: { screen: "Activity", params: { segment: "notifications" } },
+  };
+}
+
+/**
  * Handles notification deep linking. Payload routing lives in
- * lib/notificationTarget.mjs (data.type → screen/params).
+ * lib/notificationTarget.mjs (data.type → screen/params); that resolver is
+ * shared with the inbox and only used here to decide "is this ours".
  */
 export function useNotificationNavigation(
   navigationRef: React.RefObject<any>
@@ -43,8 +73,9 @@ export function useNotificationNavigation(
       const data = response.notification.request.content.data as
         | Record<string, unknown>
         | undefined;
-      const target = resolveNotificationTarget(data);
-      if (!target) return; // not ours (e.g. visit_rating) — leave for other hooks
+      const resolved = resolveNotificationTarget(data);
+      if (!resolved) return; // not ours (e.g. visit_rating) — leave for other hooks
+      const target = pushTapTarget(data, resolved);
 
       lastHandledId.current = id;
       const nav = await waitForNav(navigationRef);
