@@ -24,33 +24,13 @@ const VERIFY_SRC = readFileSync(
 // logic is mirrored here; the drift guards below read the real source and fail
 // if the deployed logic diverges from this copy. Same pattern as
 // test/track-visit.test.mjs.
-function shouldRecordPresenceVisit(source, userId) {
-  return source === "app_checkin" && userId !== null;
-}
-
+// (shouldRecordPresenceVisit was removed 2026-09-14 with its only caller, the
+// track-visit presence bridge. verify-checkin calls recordPresenceVisit directly
+// after authenticating, so there is no source/user gate left to mirror.)
 function presenceVisitIsPrivate(pref) {
   return !(pref === "public" || pref === "friends");
 }
 // ──────────────────────────────────────────────────────────────────────────────
-
-test("shouldRecordPresenceVisit: only an authenticated app_checkin creates a visit", () => {
-  assert.equal(shouldRecordPresenceVisit("app_checkin", "2620ef4e-user"), true);
-});
-
-test("shouldRecordPresenceVisit: anonymous app_checkin stays attribution-only", () => {
-  // Web QR landing invokes track-visit with the anon key -> userId null.
-  assert.equal(shouldRecordPresenceVisit("app_checkin", null), false);
-});
-
-test("shouldRecordPresenceVisit: non-checkin attribution sources never create visits", () => {
-  for (const s of ["qr", "push_click", "organic", "tiktok", "instagram", "facebook", "social"]) {
-    assert.equal(
-      shouldRecordPresenceVisit(s, "some-user"),
-      false,
-      `${s} must not create a venue_visits row`,
-    );
-  }
-});
 
 test("presenceVisitIsPrivate mirrors the mobile default (useVisitTracker)", () => {
   // Private unless the user explicitly opted into 'public' or 'friends'
@@ -65,13 +45,15 @@ test("presenceVisitIsPrivate mirrors the mobile default (useVisitTracker)", () =
 
 // ── Drift guards ──────────────────────────────────────────────────────────────
 // The Check Ins tab reads ONLY venue_visits (useUserCheckins.ts). These guards
-// pin the bridge that makes button/code check-ins visible there; removing it
+// pin the bridge that makes code check-ins visible there; removing it
 // regresses to the "@1extrababe checks in and sees nothing" bug.
 
-test("shared source keeps the gate the mirror asserts", () => {
+test("shared source no longer exports a source/user gate (bridge is verify-checkin-only)", () => {
+  // If this comes back, something is bridging presence from a path other than
+  // verify-checkin — which is how anonymous "check-ins" got written before.
   assert.ok(
-    SHARED_SRC.includes('source === "app_checkin" && userId !== null'),
-    "shouldRecordPresenceVisit gate drifted from the mirror",
+    !SHARED_SRC.includes("shouldRecordPresenceVisit"),
+    "shouldRecordPresenceVisit reintroduced into presence-visit.ts",
   );
 });
 
@@ -95,14 +77,17 @@ test("shared source inserts into venue_visits and detects the cooldown drop", ()
   );
 });
 
-test("track-visit bridges authenticated app_checkin into venue_visits", () => {
+test("track-visit does NOT bridge into venue_visits (public endpoint, anonymous only)", () => {
+  // Inverted 2026-09-14. track-visit used to bridge the "I'm here" tap into
+  // venue_visits; that tap fired before sign-in and wrote anonymous
+  // app_checkin attribution rows. The tap and the bridge are gone.
   assert.ok(
-    TRACK_SRC.includes("shouldRecordPresenceVisit("),
-    "track-visit no longer gates the presence bridge",
+    !TRACK_SRC.includes("recordPresenceVisit("),
+    "track-visit must not write venue_visits — only verify-checkin may",
   );
   assert.ok(
-    TRACK_SRC.includes("recordPresenceVisit("),
-    "track-visit no longer records presence visits",
+    !TRACK_SRC.includes("presence-visit.ts"),
+    "track-visit must not import the presence bridge",
   );
 });
 

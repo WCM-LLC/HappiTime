@@ -17,7 +17,11 @@ import { supabase } from "@/lib/supabase";
  * component's own bundle. track-visit is a public (verify_jwt=false) function.
  */
 
-const VALID_SOURCES = new Set(["qr", "app_checkin", "push_click", "organic"]);
+// Sources a public URL is allowed to claim via ?src=. Anything else falls back
+// to 'qr'. `app_checkin` is deliberately excluded: a check-in is an authenticated
+// event written only by verify-checkin, and letting an anonymous browser hit
+// mint one (`/v/{slug}?src=app_checkin`) inflated venue check-in counts.
+const VALID_SOURCES = new Set(["qr", "push_click", "organic"]);
 const SESSION_KEY = "happitime_session_id";
 
 function getSessionId(): string {
