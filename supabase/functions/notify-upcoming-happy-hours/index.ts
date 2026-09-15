@@ -11,6 +11,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendUserNotifications } from "../_shared/notify.ts";
 import { categoryGatedRecipients } from "../_shared/notify-recipients.mjs";
 import { happyHourStartingCopy } from "../_shared/notification-copy.mjs";
+import { eligibleVenueIds, pushGateMode } from "../_shared/push-gate.ts";
 
 const LOOKAHEAD_MINUTES = 60;
 
@@ -77,15 +78,15 @@ Deno.serve(async (req) => {
 
   const venueIds = [...new Set(windows.map((w: any) => w.venue_id).filter(Boolean))];
 
-  const { data: eligibleSubs } = await supabase
-    .from("venue_subscriptions")
-    .select("venue_id, plan, status")
-    .in("plan", ["featured", "founding_pilot"])
-    .neq("status", "inactive")
-    .in("venue_id", venueIds);
+  // Venue gate (published; plus a live paid plan when PUSH_GATE_MODE=paid).
+  // 2026-09-14: replaced an inline featured/founding_pilot check whose
+  // .neq("status","inactive") was a no-op — see _shared/push-gate.ts.
+  const eligible = await eligibleVenueIds(supabase, venueIds);
+  const eligibleWindows = (windows as any[]).filter((w) => eligible.has(w.venue_id));
 
-  const eligibleVenueIds = new Set((eligibleSubs ?? []).map((r: any) => r.venue_id));
-  const eligibleWindows = (windows as any[]).filter((w) => eligibleVenueIds.has(w.venue_id));
+  console.log(
+    `[notify-hh] windows_in_window=${windows.length} eligible=${eligibleWindows.length} mode=${pushGateMode()} ct=${currentTime}..${lookaheadStr} dow=${todayDow}`,
+  );
 
   if (eligibleWindows.length === 0) {
     return new Response(JSON.stringify({ sent: 0, reason: "no push-eligible venues in lookahead window" }));
