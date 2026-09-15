@@ -12,7 +12,21 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendUserNotifications } from "../_shared/notify.ts";
 import { categoryGatedRecipients } from "../_shared/notify-recipients.mjs";
-import { followCopy, venueSaveCopy, itineraryShareCopy } from "../_shared/notification-copy.mjs";
+import {
+  followCopy,
+  followRequestCopy,
+  followAcceptedCopy,
+  venueSaveCopy,
+  itineraryShareCopy,
+} from "../_shared/notification-copy.mjs";
+
+// 2026-09-14: wired to real triggers for the first time (see migration
+// 20260914_notification_webhook_triggers.sql) and fixed on the way:
+//   - auth: x-notify-token gate like the other notify-* functions
+//   - user_profiles is keyed by user_id, not id — actor name was always "Someone"
+//   - user_follows.status: a pending row is a REQUEST, not a follow. Three
+//     distinct messages now: request received / new follower / request accepted
+//   - venue_save fan-out only goes to ACCEPTED followers
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
@@ -29,6 +43,15 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
+  const provided = req.headers.get("x-notify-token") ?? "";
+  const { data: expected, error: tokErr } = await supabase.rpc("get_notify_job_token");
+  if (tokErr) {
+    return new Response(JSON.stringify({ error: `token lookup failed: ${tokErr.message}` }), { status: 500 });
+  }
+  if (!expected || provided !== expected) {
+    return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
+  }
+
   // Payload from database webhook: { type, table, record, old_record }
   let payload: any;
   try {
@@ -38,20 +61,44 @@ Deno.serve(async (req) => {
   }
 
   const record = payload.record ?? payload;
+  const oldRecord = payload.old_record ?? null;
+  const opType: string = payload.type ?? "INSERT";
   const table = payload.table ?? "";
 
   // ── Determine event kind and target user ──────────────────────────
 
-  let event: "follow" | "venue_save" | "itinerary_share" | null = null;
+  let event: "follow" | "follow_request" | "follow_accepted" | "venue_save" | "itinerary_share" | null = null;
   let actorId: string | null = null;   // person who did the action
   let targetId: string | null = null;  // person who receives the notification
   let meta: Record<string, unknown> = {};
 
   if (table === "user_follows") {
-    // Someone followed a user
-    event = "follow";
-    actorId = record.follower_id ?? null;
-    targetId = record.following_user_id ?? null;
+    const status: string = record.status ?? "accepted";
+    const oldStatus: string | null = oldRecord?.status ?? null;
+    if (opType === "INSERT" && status === "pending") {
+      // A follow REQUEST: tell the target someone wants to follow them.
+      event = "follow_request";
+      actorId = record.follower_id ?? null;
+      targetId = record.following_user_id ?? null;
+    } else if (opType === "INSERT" && status === "accepted") {
+      // Direct follow (no approval step): tell the target.
+      event = "follow";
+      actorId = record.follower_id ?? null;
+      targetId = record.following_user_id ?? null;
+    } else if (opType === "UPDATE" && oldStatus === "pending" && status === "accepted") {
+      // Request approved: tell the REQUESTER. Actor is the approver.
+      event = "follow_accepted";
+      actorId = record.following_user_id ?? null;
+      targetId = record.follower_id ?? null;
+    } else {
+      return new Response(JSON.stringify({ sent: 0, reason: `ignored user_follows ${opType} ${oldStatus}->${status}` }));
+    }
+  } else if (table === "user_followed_venues") {
+    // The app records "save a venue" here, not in user_events (verified
+    // 2026-09-14: user_events only ever holds check-ins and suggestions).
+    event = "venue_save";
+    actorId = record.user_id ?? null;
+    meta = { venueId: record.venue_id ?? null };
   } else if (table === "user_events") {
     const eventType: string = record.event_type ?? "";
 
@@ -90,7 +137,7 @@ Deno.serve(async (req) => {
   const { data: actorProfile } = await supabase
     .from("user_profiles")
     .select("display_name, handle")
-    .eq("id", actorId)
+    .eq("user_id", actorId)
     .maybeSingle();
 
   const actorName =
@@ -101,17 +148,17 @@ Deno.serve(async (req) => {
 
   let targetUserIds: string[] = [];
 
-  if (event === "follow" || event === "itinerary_share") {
+  if (event === "follow" || event === "follow_request" || event === "follow_accepted" || event === "itinerary_share") {
     // Single recipient
     if (targetId) targetUserIds = [targetId];
   } else if (event === "venue_save") {
-    // Notify all followers of the actor.
+    // Notify ACCEPTED followers of the actor (pending requesters are not followers).
     // Schema: follower_id follows following_user_id.
-    // We want rows where following_user_id = actorId (people who follow the actor).
     const { data: followerRows } = await supabase
       .from("user_follows")
       .select("follower_id")
-      .eq("following_user_id", actorId);
+      .eq("following_user_id", actorId)
+      .eq("status", "accepted");
 
     targetUserIds = (followerRows ?? []).map((r: any) => r.follower_id);
   }
@@ -147,10 +194,14 @@ Deno.serve(async (req) => {
   let type = "";
   let navData: Record<string, unknown> = {};
 
-  if (event === "follow") {
-    copy = followCopy(actorName);
+  if (event === "follow" || event === "follow_request" || event === "follow_accepted") {
+    copy = event === "follow_request"
+      ? followRequestCopy(actorName)
+      : event === "follow_accepted"
+        ? followAcceptedCopy(actorName)
+        : followCopy(actorName);
     type = "friend";
-    navData = { type: "friend", actorId };
+    navData = { type: "friend", actorId, event };
   } else if (event === "venue_save") {
     const venueId = meta.venueId as string | null;
     let venueName: string | null = null;
