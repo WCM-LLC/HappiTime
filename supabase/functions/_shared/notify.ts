@@ -66,8 +66,7 @@ export async function sendUserNotifications(
   for (let i = 0; i < rows.length; i += INSERT_BATCH) {
     const batch = rows.slice(i, i + INSERT_BATCH);
     const { data: insertedRows, error } = await supabase
-      .from("user_notifications")
-      .insert(batch)
+      .from("user_notifications").insert(batch)
       .select("id, user_id");
     if (error) {
       console.error("[notify] inbox insert failed:", error.message);
