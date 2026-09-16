@@ -78,3 +78,22 @@ test("the helper inserts before pushing and applies the push-only gate", () => {
   assert.match(src, /notifications_push/);
   assert.match(src, /ExponentPushToken/);
 });
+
+test("the helper applies the push policy (quiet hours + daily cap) after the insert, push-only", () => {
+  const src = readFileSync(
+    join(__dirname2, "..", "supabase/functions/_shared/notify.ts"),
+    "utf8"
+  );
+  assert.match(src, /from "\.\/push-policy\.ts"/, "policy lives in push-policy.ts");
+  const insertIdx = src.indexOf('from("user_notifications").insert');
+  const quietIdx = src.indexOf("isQuietHours(");
+  const capIdx = src.indexOf("allowedPushCount(");
+  const pushIdx = src.indexOf("sendExpoPush(");
+  assert.ok(insertIdx > 0 && quietIdx > insertIdx, "quiet-hours check must come after the inbox insert");
+  assert.ok(capIdx > insertIdx && pushIdx > capIdx, "cap check must sit between insert and push");
+  // pushed_at is stamped only after Expo accepted, and only on rows we pushed
+  const stampIdx = src.indexOf("pushed_at: now.toISOString()");
+  assert.ok(stampIdx > pushIdx, "pushed_at is written after sendExpoPush");
+  assert.match(src, /suppressedQuiet/);
+  assert.match(src, /suppressedCap/);
+});

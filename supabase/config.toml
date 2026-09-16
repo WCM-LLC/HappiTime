@@ -384,6 +384,14 @@ verify_jwt = false
 [functions.notify-upcoming-events]
 verify_jwt = false
 
+# Called by the happy_hour_windows_notify trigger via pg_net (x-notify-token auth).
+[functions.notify-venue-updates]
+verify_jwt = false
+
+# Called by the user_follows / user_events notify triggers via pg_net (x-notify-token auth).
+[functions.notify-friend-activity]
+verify_jwt = false
+
 # Invoked by cron / the import pipeline to validate venues against Places (custom auth token).
 [functions.validate-venue-places]
 verify_jwt = false

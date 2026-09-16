@@ -18,7 +18,7 @@ import { useFriendActivity, type ActivityItem } from "../hooks/useFriendActivity
 import { useFriendSuggestions, type FriendSuggestion } from "../hooks/useFriendSuggestions";
 import { useDiscoverFeed, type DiscoverFeedItem } from "../hooks/useDiscoverFeed";
 import { useInsiderItineraries, type InsiderItinerary } from "../hooks/useInsiderItineraries";
-import { useUserFollowers } from "../hooks/useUserFollowers";
+import { useUserFollowers, type Follower, type Following } from "../hooks/useUserFollowers";
 import { useUserCheckins, type CheckInItem } from "../hooks/useUserCheckins";
 import { useUserSearch, type UserSearchResult } from "../hooks/useUserSearch";
 import { useCurrentUser } from "../hooks/useCurrentUser";
@@ -106,6 +106,70 @@ const PendingRequestCard: React.FC<{
     </View>
   </View>
 );
+
+/* ── Person Row (followers / following lists) ── */
+// 2026-09-14: the Friends tab showed only incoming requests and the check-in
+// feed — never who follows you or who you follow. These two lists are that.
+
+type PersonProfile = {
+  handle: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  role: string | null;
+} | null;
+
+const personName = (p: PersonProfile, fallbackId: string) =>
+  p?.display_name ?? (p?.handle ? `@${p.handle}` : fallbackId.slice(0, 8));
+
+const PersonRow: React.FC<{
+  id: string;
+  profile: PersonProfile;
+  subtitle?: string;
+  actionLabel: string | null;
+  actionStyle?: "primary" | "secondary";
+  onAction?: (id: string) => void;
+}> = ({ id, profile, subtitle, actionLabel, actionStyle = "secondary", onAction }) => {
+  const name = personName(profile, id);
+  return (
+    <View style={styles.pendingCard}>
+      <View style={styles.avatarWrap}>
+        {profile?.avatar_url ? (
+          <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
+        ) : (
+          <View style={styles.avatarPlaceholder}>
+            <Text style={styles.avatarInitial}>{name.replace(/^@/, "").charAt(0).toUpperCase()}</Text>
+          </View>
+        )}
+      </View>
+      <View style={styles.pendingTextWrap}>
+        <View style={styles.nameRow}>
+          <Text style={styles.actor}>{name}</Text>
+          <SuperUserBadge role={profile?.role} />
+        </View>
+        {profile?.handle && profile.display_name ? (
+          <Text style={styles.message}>@{profile.handle}</Text>
+        ) : subtitle ? (
+          <Text style={styles.message}>{subtitle}</Text>
+        ) : null}
+      </View>
+      {actionLabel && onAction ? (
+        <Pressable
+          onPress={() => onAction(id)}
+          style={({ pressed }) => [
+            actionStyle === "primary" ? styles.acceptButton : styles.rejectButton,
+            pressed && styles.buttonPressed,
+          ]}
+        >
+          <Text style={actionStyle === "primary" ? styles.acceptText : styles.rejectText}>
+            {actionLabel}
+          </Text>
+        </Pressable>
+      ) : actionLabel ? (
+        <Text style={styles.message}>{actionLabel}</Text>
+      ) : null}
+    </View>
+  );
+};
 
 /* ── Activity Card ── */
 
@@ -416,12 +480,20 @@ export const ActivityScreen: React.FC = () => {
   }, [requestedSegment, navigation]);
   const {
     pendingRequests,
+    followers,
+    following,
+    sentRequests,
     loading: followersLoading,
     sendFollowRequest,
     approveFollowRequest,
     rejectFollowRequest,
+    unfollow,
     refresh: refreshFollowers,
   } = useUserFollowers();
+  const followingIds = useMemo(
+    () => new Set([...following, ...sentRequests].map((f) => f.following_user_id)),
+    [following, sentRequests],
+  );
   const { activities, loading: activityLoading, refresh: refreshActivity } = useFriendActivity();
   const { suggestions, loading: suggestionsLoading, refresh: refreshSuggestions } = useFriendSuggestions();
   const {
@@ -665,6 +737,69 @@ export const ActivityScreen: React.FC = () => {
                       />
                     );
                   })}
+                  <View style={styles.sectionDivider} />
+                </View>
+              ) : null}
+
+              {followers.length > 0 ? (
+                <View style={styles.pendingSection}>
+                  <Text style={styles.sectionTitle}>Followers · {followers.length}</Text>
+                  {followers.map((f: Follower) => {
+                    const alreadyFollowing = followingIds.has(f.follower_id);
+                    return (
+                      <PersonRow
+                        key={`follower-${f.follower_id}`}
+                        id={f.follower_id}
+                        profile={f.profile}
+                        actionLabel={alreadyFollowing ? "Following" : "Follow back"}
+                        actionStyle="primary"
+                        onAction={alreadyFollowing ? undefined : (id) => void sendFollowRequest(id)}
+                      />
+                    );
+                  })}
+                  <View style={styles.sectionDivider} />
+                </View>
+              ) : null}
+
+              {following.length > 0 ? (
+                <View style={styles.pendingSection}>
+                  <Text style={styles.sectionTitle}>Following · {following.length}</Text>
+                  {following.map((f: Following) => (
+                    <PersonRow
+                      key={`following-${f.following_user_id}`}
+                      id={f.following_user_id}
+                      profile={f.profile}
+                      actionLabel="Unfollow"
+                      onAction={(id) => void unfollow(id)}
+                    />
+                  ))}
+                  <View style={styles.sectionDivider} />
+                </View>
+              ) : null}
+
+              {sentRequests.length > 0 ? (
+                <View style={styles.pendingSection}>
+                  <Text style={styles.sectionTitle}>Requested · {sentRequests.length}</Text>
+                  {sentRequests.map((f: Following) => (
+                    <PersonRow
+                      key={`sent-${f.following_user_id}`}
+                      id={f.following_user_id}
+                      profile={f.profile}
+                      subtitle="waiting for approval"
+                      actionLabel="Cancel"
+                      onAction={(id) => void unfollow(id)}
+                    />
+                  ))}
+                  <View style={styles.sectionDivider} />
+                </View>
+              ) : null}
+
+              {followers.length + following.length + sentRequests.length + pendingRequests.length === 0 && !friendHandleSearch ? (
+                <View style={styles.pendingSection}>
+                  <Text style={styles.sectionTitle}>Friends</Text>
+                  <Text style={styles.message}>
+                    You aren't following anyone yet. Find people on the People tab.
+                  </Text>
                   <View style={styles.sectionDivider} />
                 </View>
               ) : null}

@@ -63,21 +63,12 @@ const loadEnv = (rootDir) => {
   return env;
 };
 
-const withAndroidMapsKey = (plugins, mapsApiKey) =>
-  (plugins ?? []).map((plugin) => {
-    if (!Array.isArray(plugin) || plugin[0] !== "react-native-maps") {
-      return plugin;
-    }
-
-    return [
-      "react-native-maps",
-      {
-        ...(plugin[1] ?? {}),
-        androidGoogleMapsApiKey: mapsApiKey ?? "",
-      },
-    ];
-  });
-
+// 2026-09-14: the `react-native-maps` config-plugin entry (and the helper that
+// injected androidGoogleMapsApiKey into it) were removed. Expo SDK 54 bundles
+// react-native-maps 1.20.1, which ships no config plugin, so `expo config`
+// only ever resolved the entry through a stray, unlocked 1.27.2 hoisted at the
+// repo root — a clean `npm ci` could not export a bundle. The Android key is
+// already set the Expo-native way below (android.config.googleMaps.apiKey).
 module.exports = ({ config }) => {
   const env = loadEnv(__dirname);
   const supabaseUrl = env.EXPO_PUBLIC_SUPABASE_URL;
@@ -90,7 +81,6 @@ module.exports = ({ config }) => {
 
   return {
     ...config,
-    plugins: withAndroidMapsKey(config.plugins, mapsApiKey),
     android: {
       ...config.android,
       config: {
