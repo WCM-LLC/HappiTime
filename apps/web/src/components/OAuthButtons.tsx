@@ -9,7 +9,6 @@ type Provider = 'google' | 'apple';
 type OAuthButtonsProps = {
   next?: string;
   providers?: Provider[];
-  redirectOrigin?: string;
 };
 
 const PROVIDER_LABEL: Record<Provider, string> = {
@@ -41,15 +40,19 @@ function ProviderIcon({ provider }: { provider: Provider }) {
   );
 }
 
-export default function OAuthButtons({ next, providers = ['google'], redirectOrigin }: OAuthButtonsProps) {
+export default function OAuthButtons({ next, providers = ['google'] }: OAuthButtonsProps) {
   const [busy, setBusy] = useState<Provider | null>(null);
 
   async function signIn(provider: Provider) {
     setBusy(provider);
     try {
       const supabase = await createClient();
-      const origin = (redirectOrigin ?? window.location.origin).replace(/\/+$/, '');
-      const callbackUrl = new URL('/auth/callback', origin);
+      // The callback MUST be on this page's own origin. PKCE stores the code
+      // verifier in a cookie here; the console answers on more than one host
+      // (console.happitime.biz, happitime-console.vercel.app), and a callback
+      // on any other host cannot read that cookie and fails with
+      // "PKCE code verifier not found in storage".
+      const callbackUrl = new URL('/auth/callback', window.location.origin);
       const safeNext = safeNextPath(next);
       if (safeNext) callbackUrl.searchParams.set('next', safeNext);
 
