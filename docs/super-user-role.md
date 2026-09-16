@@ -23,13 +23,15 @@ Super Admins are managed via the `admin_users` allowlist and are identified by e
 
 Super Users sign in at the **admin console** using the same email and password they use in the mobile app — there is no separate account.
 
-**Console URL:** `https://happitime-console.vercel.app`
+**Console URL:** `https://console.happitime.biz` (the older `https://happitime-console.vercel.app` still works)
 
-**Editor entry:** `https://happitime-console.vercel.app/dashboard/guides/new`
+**Editor entry:** `https://console.happitime.biz/dashboard/guides/new`
 
 1. Go to the console URL and click **Super User Access**
 2. Sign in with Apple, Google, or the email magic link associated with their HappiTime account
 3. After sign-in they land on `/dashboard/guides/new`
+
+Apple and Google sign-in finish on the same host they started on, so a login begun on one console host never hands off to the other. A magic link always opens on the host it was requested from; open it in the same browser it was requested in.
 
 > If a user tries to access `/dashboard/guides` without the Super User role, they are redirected to `/dashboard?error=not_authorized`.
 

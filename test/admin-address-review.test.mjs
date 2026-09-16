@@ -66,12 +66,23 @@ const actionsUi = readFileSync(
   "utf8"
 );
 
-test("actions component is a client component using the server actions + parser", () => {
+test("actions component is a client component using the server actions + prefill resolver", () => {
   assert.match(actionsUi, /^'use client'/m);
   assert.match(actionsUi, /acceptGoogleAddress/);
   assert.match(actionsUi, /dismissAddressReview/);
-  assert.match(actionsUi, /parseFormattedAddress/);
+  assert.match(actionsUi, /resolveReviewPrefill/);
   assert.match(actionsUi, /useTransition/);
+});
+
+test("accept path prefers Google's structured components over the flat string", () => {
+  // The descriptor-segment finding: re-parsing formattedAddress mangles leading
+  // segments, so the Accept form asks Places for addressComponents instead.
+  // docs/superpowers/specs/2026-09-11-address-parser-descriptor-segments.md
+  assert.match(actionsUi, /\/api\/places\/details/);
+  assert.match(actionsUi, /placeId: placesId/);
+  // The parser must NOT be reached directly any more — it is now only the
+  // fallback inside resolveReviewPrefill, for rows with no places_id.
+  assert.doesNotMatch(actionsUi, /parseFormattedAddress/);
 });
 
 const page = readFileSync(

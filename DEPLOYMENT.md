@@ -35,7 +35,15 @@ General settings is the usual fix.
 - Configure Supabase Auth redirect URLs:
   - `https://<your-domain>/auth/callback`
   - `https://<your-domain>/auth/recovery`
-  - For HappiTime console production, include:
+  - For HappiTime console production, include both console hosts. The
+    branded domain is the production URL; the vercel.app host still serves the
+    same deployment and is the fallback in older docs and emails. OAuth must
+    finish on whichever host it started on (the PKCE verifier is a cookie on
+    that host), so each host needs its own entries:
+    - `https://console.happitime.biz/auth/callback`
+    - `https://console.happitime.biz/auth/recovery`
+    - `https://console.happitime.biz/auth/callback**`
+    - `https://console.happitime.biz/auth/recovery**`
     - `https://happitime-console.vercel.app/auth/callback`
     - `https://happitime-console.vercel.app/auth/recovery`
     - `https://happitime-console.vercel.app/auth/callback**`
