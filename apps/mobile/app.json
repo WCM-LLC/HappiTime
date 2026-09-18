@@ -19,13 +19,6 @@
       [
         "expo-apple-authentication"
       ],
-      [
-        "react-native-maps",
-        {
-          "googleMapsApiKey": "",
-          "googleMapsEnabled": false
-        }
-      ],
       "expo-notifications",
       [
         "expo-location",

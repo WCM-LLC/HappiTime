@@ -48,12 +48,14 @@ function recurringOccursThisWeek(rule: string | null, startTime: string, todayDo
 
 /* ── Filter definitions ── */
 
-type EventFilter = "all" | "following" | "interests" | "today" | "this_week" | "happening_now" | "featured";
+// 2026-09-14: "All" removed — 60 days of events with no grouping was noise;
+// the page opens on Today. This Week is the widest view.
+type EventFilter = "following" | "interests" | "today" | "this_week" | "happening_now" | "featured";
+const DEFAULT_FILTER: EventFilter = "today";
 
 type FilterDef = { key: EventFilter; label: string; authOnly?: boolean };
 
 const ALL_FILTERS: FilterDef[] = [
-  { key: "all", label: "All" },
   { key: "today", label: "Today" },
   { key: "this_week", label: "This Week" },
   { key: "happening_now", label: "Happening Now" },
@@ -100,9 +102,6 @@ function applyFilter(
   const weekEnd = new Date(todayStart.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   switch (filter) {
-    case "all":
-      return events;
-
     case "following":
       return events.filter((ev) => followedVenueIds.includes(ev.venue_id));
 
@@ -272,7 +271,7 @@ export const EventCalendarScreen: React.FC = () => {
   const { venueIds: followedVenueIds } = useUserFollowedVenues();
   const { preferences } = useUserPreferences();
 
-  const [activeFilter, setActiveFilter] = useState<EventFilter>("all");
+  const [activeFilter, setActiveFilter] = useState<EventFilter>(DEFAULT_FILTER);
 
   const interestEventTypes = useMemo(
     () => deriveEventTypesFromInterests(preferences.interests),
@@ -292,10 +291,10 @@ export const EventCalendarScreen: React.FC = () => {
     [data, activeFilter, followedVenueIds, interestEventTypes]
   );
 
-  // Reset to "all" if the active filter is no longer visible (e.g. user signed out)
+  // Fall back to the default if the active filter is no longer visible (e.g. user signed out)
   const safeFilter = visibleFilters.some((f) => f.key === activeFilter)
     ? activeFilter
-    : "all";
+    : DEFAULT_FILTER;
 
   if (loading && data.length === 0) {
     return (
@@ -355,6 +354,8 @@ export const EventCalendarScreen: React.FC = () => {
                 ? "Nothing is happening right now. Check back soon."
                 : activeFilter === "featured"
                 ? "No featured events at the moment."
+                : activeFilter === "today"
+                ? "Nothing on today — try This Week."
                 : "Check back soon — events are added regularly."}
             </Text>
           </View>
