@@ -17,9 +17,13 @@ const EDGE_SRC = readFileSync(
 // the pure decision logic is mirrored here. The "mirror stays in sync" test below
 // reads the real source and fails if the mirrored invariants drift from it — so
 // this copy cannot silently diverge from what is deployed.
+// NOTE: `app_checkin` is intentionally NOT here. track-visit is a public
+// (anonymous) endpoint; a check-in is an authenticated event written only by
+// verify-checkin. Accepting it here produced anonymous "check-ins" from guest
+// taps and double-counted real ones (2026-09-14). The drift guard below fails
+// if it is ever re-added to the edge source.
 const VALID_SOURCES = new Set([
   "qr",
-  "app_checkin",
   "push_click",
   "organic",
   // Social campaign sources — mirror of track-visit/index.ts and the
@@ -48,8 +52,8 @@ function shouldRecord(rateLimitExceeded) {
 }
 // ──────────────────────────────────────────────────────────────────────────────
 
-test("isValidSource accepts every attribution source", () => {
-  for (const s of ["qr", "app_checkin", "push_click", "organic", "tiktok", "instagram", "facebook", "social"]) {
+test("isValidSource accepts every anonymous attribution source", () => {
+  for (const s of ["qr", "push_click", "organic", "tiktok", "instagram", "facebook", "social"]) {
     assert.equal(isValidSource(s), true, `${s} should be valid`);
   }
 });
@@ -58,6 +62,13 @@ test("isValidSource rejects unknown / non-string sources", () => {
   for (const s of ["premium", "", "QR", null, undefined, 42, {}]) {
     assert.equal(isValidSource(s), false);
   }
+});
+
+test("isValidSource rejects app_checkin — check-ins are verify-checkin's alone", () => {
+  // Regression guard for the anonymous-check-in bug: a public endpoint must not
+  // be able to mint a check-in. The DB CHECK still allows the value because
+  // verify-checkin (authenticated) writes it directly.
+  assert.equal(isValidSource("app_checkin"), false);
 });
 
 test("cleanStr trims to a non-empty value, else null", () => {
@@ -79,7 +90,7 @@ test("buildRateKey is stable per (venue, source, session)", () => {
 test("buildRateKey differs across venue, source, and session", () => {
   const base = buildRateKey("v1", "qr", "s1");
   assert.notEqual(base, buildRateKey("v2", "qr", "s1")); // venue
-  assert.notEqual(base, buildRateKey("v1", "app_checkin", "s1")); // source
+  assert.notEqual(base, buildRateKey("v1", "organic", "s1")); // source
   assert.notEqual(base, buildRateKey("v1", "qr", "s2")); // session
 });
 
@@ -120,6 +131,23 @@ test("edge source still defines the same sources as the mirror", () => {
   assert.ok(m, "VALID_SOURCES set literal not found in edge source");
   const sourcesInEdge = m[1].match(/"([^"]+)"/g).map((s) => s.replace(/"/g, ""));
   assert.deepEqual(new Set(sourcesInEdge), VALID_SOURCES);
+});
+
+test("edge source never accepts app_checkin and never writes venue_visits", () => {
+  // The whole anonymous-check-in bug lived in this one public function. Two
+  // invariants keep it closed: the public endpoint cannot mint a check-in, and
+  // it cannot write the user-facing Check Ins tab (venue_visits). Both belong
+  // to verify-checkin, which authenticates first.
+  const m = EDGE_SRC.match(/VALID_SOURCES\s*=\s*new Set\(\[([^\]]*)\]\)/);
+  assert.ok(m, "VALID_SOURCES set literal not found in edge source");
+  assert.ok(
+    !/"app_checkin"/.test(m[1]),
+    "app_checkin reintroduced into track-visit VALID_SOURCES",
+  );
+  assert.ok(
+    !EDGE_SRC.includes("recordPresenceVisit("),
+    "track-visit must not write venue_visits — that is verify-checkin's job",
+  );
 });
 
 test("edge source keeps the buildRateKey shape the mirror asserts", () => {

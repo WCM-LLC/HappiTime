@@ -1,23 +1,19 @@
 // supabase/functions/_shared/presence-visit.ts
 //
-// Bridge from the check-in write paths into public.venue_visits — the ONLY
+// Bridge from the check-in write path into public.venue_visits — the ONLY
 // table the mobile "Check Ins" tab reads (apps/mobile/src/hooks/useUserCheckins.ts).
-// Without this, the "I'm here" tap (track-visit -> venue_attribution_events)
-// and the code check-in (verify-checkin -> public.checkins) both succeed while
-// the user's Check Ins tab stays empty.
+// Without this, a code check-in (verify-checkin -> public.checkins) succeeds
+// while the user's Check Ins tab stays empty.
+//
+// Sole caller: verify-checkin, which has already authenticated the user. The
+// former second caller (track-visit, for the "I'm here" tap) was removed
+// 2026-09-14 along with the tap itself; track-visit is anonymous attribution
+// only and never writes venue_visits.
 //
 // Pure helpers are mirrored in test/presence-visit.test.mjs — keep in sync.
 
 // deno-lint-ignore-file no-explicit-any
 import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-/**
- * A venue_visits row is created only for an in-app check-in by a resolved user.
- * QR / push / organic / social attribution stays anonymous by design.
- */
-export function shouldRecordPresenceVisit(source: string, userId: string | null): boolean {
-  return source === "app_checkin" && userId !== null;
-}
 
 /**
  * Mirrors the mobile default (useVisitTracker._defaultCheckinPrivacy): a visit
