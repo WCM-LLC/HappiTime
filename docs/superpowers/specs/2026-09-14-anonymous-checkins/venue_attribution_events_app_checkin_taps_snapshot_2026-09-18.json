@@ -1,0 +1,18 @@
+{
+  "_what": "Snapshot of every venue_attribution_events row with source='app_checkin' AND session_id IS NOT NULL, taken 2026-09-18 before the second cleanup pass. Straggler \"I'm here\" tap(s) written after the 2026-09-14 cleanup, by a build without the #213 fix. NOT verified check-ins. Restore = INSERT these rows back verbatim.",
+  "_count": 1,
+  "_anonymous": 1,
+  "_authenticated": 0,
+  "rows": [
+    {
+      "created_at": "2026-09-16T22:35:49.275224+00:00",
+      "id": "9cbed694-4526-4e71-8a1c-54c8deeccf9a",
+      "lat": null,
+      "lng": null,
+      "session_id": "sess-1789598147888-bo90ci1afbh",
+      "source": "app_checkin",
+      "user_id": null,
+      "venue_id": "ea4bb434-8077-4653-a55d-da6287f46e0d"
+    }
+  ]
+}

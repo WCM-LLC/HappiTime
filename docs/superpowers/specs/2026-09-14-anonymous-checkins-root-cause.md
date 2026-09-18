@@ -90,6 +90,25 @@ for the dry run; swap to `commit` for the real pass. Guards were verified agains
 Restore source: `venue_attribution_events_app_checkin_taps_snapshot_2026-09-14.json` in the
 same folder. `public.checkins` and `public.venue_visits` are not touched.
 
+### Second pass (2026-09-18)
+
+By 2026-09-18 the 34 rows were gone, but one new tap row had landed on 2026-09-16 22:35 UTC
+(`9cbed694-4526-4e71-8a1c-54c8deeccf9a`, anonymous). The fix reached devices as OTA group
+`68cf485f` on 2026-09-15 02:59 UTC (production channel, runtime 1.0.8), but a device only
+applies an update on the cold start *after* downloading it, and **1.0.6/1.0.7 can never take an
+OTA** (`docs/ota-runbook.md`). The table carries no app version, so which case wrote the row is
+unknown.
+
+Deleted by id and the tap predicate, with the same sequence: snapshot → dry run ending in
+`rollback` → rollback confirmed in a fresh session → `commit` → verified in a fresh session.
+Result: `app_checkin` = 9 rows, all `session_id is null`, 0 taps. Re-checked first: still no
+triggers on the table and no foreign keys referencing it.
+
+Restore source: `venue_attribution_events_app_checkin_taps_snapshot_2026-09-18.json`.
+
+**Expect more stragglers** until 1.0.6/1.0.7 installs update from the store. The 09-14 script is
+pinned to its 34 ids, so a later pass needs a fresh snapshot and the same sequence.
+
 ## Deliberately out of scope
 
 - **Venue-team push on real check-ins.** `track-visit` pushed "Someone just checked in" on every
