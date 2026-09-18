@@ -43,10 +43,12 @@ test("menus hint says 'Tap here to see menus' and sits with the windows list", (
   const hintIdx = src.indexOf("Tap here to see menus");
   const windowsIdx = src.indexOf("data={windowsForVenue}");
   assert.ok(hintIdx > 0 && windowsIdx > 0, "hint and windows list must both exist");
-  // The hint renders in the windows-list region, not up by the check-in buttons:
-  // it must appear AFTER the check-in button block in source order.
-  const checkInIdx = src.indexOf("I'm here 🍻");
+  // The hint renders in the windows-list region, not up by the check-in button:
+  // it must appear AFTER the check-in button block in source order. The anchor
+  // is the loyalty Check In (the only check-in on this screen since the
+  // ungated "I'm here" tap was removed 2026-09-14).
+  const checkInIdx = src.indexOf("styles.loyaltyCheckInButton,");
   assert.ok(checkInIdx > 0, "check-in anchor must exist");
-  assert.ok(hintIdx > checkInIdx, "hint must come after the check-in buttons");
+  assert.ok(hintIdx > checkInIdx, "hint must come after the check-in button");
   assert.ok(hintIdx < windowsIdx, "hint must come before the windows list");
 });

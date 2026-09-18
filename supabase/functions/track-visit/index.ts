@@ -1,36 +1,38 @@
 // supabase/functions/track-visit/index.ts
 //
-// Records a venue attribution event (QR scan, push click, organic open, or
-// in-app "I'm here" check-in) into public.venue_attribution_events.
+// Records an ANONYMOUS venue attribution event (QR scan, push click, organic
+// open, social campaign open) into public.venue_attribution_events.
 //
 // Public endpoint: callable anonymously. All writes go through the service-role
 // client here (the table has no direct anon insert policy), gated by a per
 // (venue, session) rate limit so a single device cannot inflate a venue's counts.
 //
 // Request:  POST { venue_slug?: string, venue_id?: string,  // one is required
-//                  source: 'qr'|'app_checkin'|'push_click'|'organic',
+//                  source: 'qr'|'push_click'|'organic'|<social>,
 //                  session_id?: string, lat?: number, lng?: number }
 //   The web QR landing has the slug; the mobile app has the venue id. Either resolves.
-// Response: 200 { ok: true, visit_recorded } | 200 { ok: true, deduped: true } (rate-limited)
+// Response: 200 { ok: true } | 200 { ok: true, deduped: true } (rate-limited)
 //           400 invalid body | 404 unknown venue | 500 server error
 //
-// Authenticated app_checkin calls also insert a public.venue_visits row (via
-// _shared/presence-visit.ts) so the check-in shows on the user's Check Ins tab;
-// visit_recorded=false means the 3h cooldown (or an error) swallowed that row.
+// `app_checkin` is NOT accepted here (removed 2026-09-14). A check-in is a
+// verified, authenticated event and is written ONLY by verify-checkin, which
+// also owns the public.checkins row and the venue_visits presence bridge.
+// Accepting it on a public endpoint produced anonymous "check-ins" (guest taps
+// before sign-in) and double-counted real ones. Root cause + data cleanup:
+// docs/superpowers/specs/2026-09-14-anonymous-checkins-root-cause.md.
 
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendUserNotifications } from "../_shared/notify.ts";
 import { categoryGatedRecipients } from "../_shared/notify-recipients.mjs";
 import { buildVenueScanMessage } from "../_shared/scan-message.mjs";
-import { recordPresenceVisit, shouldRecordPresenceVisit } from "../_shared/presence-visit.ts";
 
 // Provided by the Supabase Edge runtime; keeps background work alive after the
 // response is sent. Declared for the type-checker.
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
+// Anonymous-only sources. `app_checkin` is deliberately absent — see header.
 const VALID_SOURCES = new Set([
   "qr",
-  "app_checkin",
   "push_click",
   "organic",
   // Social campaign sources — set by the directory's trackEvent when a venue
@@ -187,11 +189,11 @@ Deno.serve(async (req) => {
 
   const venueId = venue.id;
 
-  // Resolve the authenticated caller, if any. The mobile app invokes this with its
-  // user session (Authorization: Bearer <user JWT>), so check-ins carry a user_id and
-  // surface a handle on the venue dashboard. The web QR landing invokes with the anon
-  // key (no user), so QR / push / organic stay anonymous. verify_jwt=false means the
-  // platform doesn't resolve the user for us — we do it here, best-effort.
+  // Resolve the authenticated caller, if any, so a signed-in app user's push /
+  // organic open carries a user_id (best-effort; the web QR landing invokes with
+  // the anon key and stays anonymous). verify_jwt=false means the platform
+  // doesn't resolve the user for us — we do it here. This is attribution only:
+  // nothing recorded here is a check-in, and no venue_visits row is written.
   let userId: string | null = null;
   const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -230,18 +232,6 @@ Deno.serve(async (req) => {
 
   if (insertErr) return json({ ok: false, error: "Insert failed" }, 500);
 
-  // Presence bridge: an authenticated "I'm here" must also land in
-  // venue_visits, the table the mobile Check Ins tab reads — attribution alone
-  // is invisible to the user. Non-critical: "skipped" (3h cooldown) and
-  // "error" still return ok, the attribution event above is already recorded.
-  let visitStatus: "recorded" | "skipped" | "error" | "not_applicable" = "not_applicable";
-  if (shouldRecordPresenceVisit(source, userId)) {
-    visitStatus = await recordPresenceVisit(supabase, {
-      userId: userId as string,
-      venueId,
-    });
-  }
-
   // Notify the venue's owners/managers in the background — never blocks the response.
   EdgeRuntime.waitUntil(
     notifyVenueTeam(supabase, {
@@ -252,5 +242,5 @@ Deno.serve(async (req) => {
     }),
   );
 
-  return json({ ok: true, visit_recorded: visitStatus === "recorded" });
+  return json({ ok: true });
 });
