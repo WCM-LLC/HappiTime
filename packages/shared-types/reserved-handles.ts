@@ -131,6 +131,7 @@ export const RESERVED_HANDLES: Set<string> = new Set([
   "user",
   "users",
   "test",
+  "testtest",
   "testing",
   "demo",
   "beta",
