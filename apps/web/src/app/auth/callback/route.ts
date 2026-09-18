@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
-import { resolveConsoleOrigin } from '@/utils/auth-redirects';
-import { isGuideAuthoringPath } from '@/utils/auth-paths';
+
+// Everything this route does stays on the request's own origin.
+//
+// The OAuth (PKCE) code verifier and, after a successful exchange, the session
+// cookies both live on the origin that received this request. The console is
+// reachable on more than one host, and an earlier version redirected
+// guide-authoring logins to a fixed "console origin" — which dropped the
+// just-created session whenever the login had started on the other host.
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -23,17 +29,15 @@ export async function GET(request: Request) {
   if (type === 'recovery') {
     next = '/reset-password';
   }
-  const isRecoveryFlow = next === '/reset-password';
-  const shouldUseConsoleOrigin = isRecoveryFlow || isGuideAuthoringPath(next);
 
   const supabase = await createClient();
 
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return redirectToNext(request, origin, next, shouldUseConsoleOrigin);
+      return redirectToNext(request, origin, next);
     }
-    return redirectToAuthError(origin, error.message);
+    return redirectToAuthError(origin, error.message, next);
   }
 
   if (tokenHash && type) {
@@ -42,25 +46,21 @@ export async function GET(request: Request) {
       token_hash: tokenHash,
     });
     if (!error) {
-      return redirectToNext(request, origin, next, shouldUseConsoleOrigin);
+      return redirectToNext(request, origin, next);
     }
-    return redirectToAuthError(origin, error.message);
+    return redirectToAuthError(origin, error.message, next);
   }
 
   if (errorCode || errorDescription || errorMessage) {
     const detail = [errorCode, errorDescription, errorMessage].filter(Boolean).join(': ');
-    return redirectToAuthError(origin, detail);
+    return redirectToAuthError(origin, detail, next);
   }
 
   // return the user to an error page with instructions
-  return redirectToAuthError(origin);
+  return redirectToAuthError(origin, null, next);
 }
 
-function redirectToNext(request: Request, origin: string, next: string, forceConsoleOrigin = false) {
-  if (forceConsoleOrigin) {
-    return NextResponse.redirect(`${resolveConsoleOrigin(request.headers)}${next}`);
-  }
-
+function redirectToNext(request: Request, origin: string, next: string) {
   const forwardedHost = request.headers.get('x-forwarded-host'); // original origin before load balancer
   const isLocalEnv = process.env.NODE_ENV === 'development';
 
@@ -75,12 +75,12 @@ function redirectToNext(request: Request, origin: string, next: string, forceCon
   return NextResponse.redirect(`${origin}${next}`);
 }
 
-function redirectToAuthError(origin: string, detail?: string | null) {
+function redirectToAuthError(origin: string, detail: string | null | undefined, next: string) {
+  const url = new URL('/auth/auth-code-error', origin);
   const message = (detail ?? '').trim();
-  if (!message) {
-    return NextResponse.redirect(`${origin}/auth/auth-code-error`);
-  }
-  return NextResponse.redirect(
-    `${origin}/auth/auth-code-error?message=${encodeURIComponent(message)}`
-  );
+  if (message) url.searchParams.set('message', message);
+  // Lets the error page send "Try again" back to the login the person came
+  // from (Super User login for guide-authoring paths, venue login otherwise).
+  if (next && next !== '/') url.searchParams.set('next', next);
+  return NextResponse.redirect(url);
 }

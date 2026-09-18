@@ -41,6 +41,7 @@ Master navigation hub for all project docs. Start here.
 | [DEPLOYMENT.md](../DEPLOYMENT.md) | Vercel + Supabase deploy steps, env var checklist |
 | [PRODUCTION_REVIEW.md](../PRODUCTION_REVIEW.md) | Production readiness audit (2026-05-02) |
 | [supabase/functions/import-places/README.md](../supabase/functions/import-places/README.md) | import-places edge function operator guide |
+| [docs/push-policy.md](push-policy.md) | Per-user daily push cap + quiet hours (PUSH_DAILY_CAP, PUSH_QUIET_HOURS) |
 
 ---
 

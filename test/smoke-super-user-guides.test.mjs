@@ -67,22 +67,33 @@ test("/super-user/login renders app-style auth methods", async (t) => {
   assert.match(html, /name="next" value="\/dashboard\/guides\/new"/);
 });
 
-test("Super User OAuth uses the console origin, not the marketing /kc origin", async () => {
+test("Super User OAuth finishes on the same origin it started on", async () => {
+  // PKCE stores the code verifier in a cookie on the origin where the provider
+  // button was clicked. The console answers on two hosts
+  // (console.happitime.biz and happitime-console.vercel.app); pointing the
+  // callback at a fixed "console origin" meant a login started on the other
+  // host ended with "PKCE code verifier not found in storage". The callback,
+  // and the redirect after it, must stay on the request's own origin.
   const superUserLoginPage = await readFile(
     new URL("app/super-user/login/page.tsx", WEB_SRC),
     "utf8",
   );
   const oauthButtons = await readFile(new URL("components/OAuthButtons.tsx", WEB_SRC), "utf8");
   const callbackRoute = await readFile(new URL("app/auth/callback/route.ts", WEB_SRC), "utf8");
+  const errorPage = await readFile(new URL("app/auth/auth-code-error/page.tsx", WEB_SRC), "utf8");
   const loginPage = await readFile(new URL("app/login/page.tsx", WEB_SRC), "utf8");
 
-  assert.match(superUserLoginPage, /resolveConsoleOrigin\(await headers\(\)\)/);
+  assert.match(oauthButtons, /new URL\('\/auth\/callback', window\.location\.origin\)/);
+  assert.doesNotMatch(oauthButtons, /redirectOrigin/);
+  assert.doesNotMatch(superUserLoginPage, /resolveConsoleOrigin|redirectOrigin/);
   assert.match(superUserLoginPage, /<OAuthButtons next=\{next\}/);
-  assert.match(superUserLoginPage, /redirectOrigin=\{redirectOrigin\}/);
+  assert.doesNotMatch(callbackRoute, /resolveConsoleOrigin|forceConsoleOrigin/);
+  assert.match(callbackRoute, /type === 'recovery'/, "recovery links still land on /reset-password");
+  assert.match(callbackRoute, /searchParams\.set\('next'/, "the error page needs next to pick the right login");
+  assert.match(errorPage, /describeAuthError/);
+  assert.match(errorPage, /loginPathFor\(/, "Try again must return to the login the user came from");
   assert.match(loginPage, /loginPathFor\(GUIDE_EDITOR_PATH\)/);
   assert.match(superUserLoginPage, /GUIDE_EDITOR_PATH/);
-  assert.match(oauthButtons, /redirectOrigin \?\? window\.location\.origin/);
-  assert.match(callbackRoute, /isRecoveryFlow \|\| isGuideAuthoringPath\(next\)/);
 });
 
 test("Supabase deployment docs require query-safe console auth redirect URLs", async () => {
@@ -92,6 +103,10 @@ test("Supabase deployment docs require query-safe console auth redirect URLs", a
   assert.match(deployment, /https:\/\/happitime-console\.vercel\.app\/auth\/recovery/);
   assert.match(deployment, /https:\/\/happitime-console\.vercel\.app\/auth\/callback\*\*/);
   assert.match(deployment, /https:\/\/happitime-console\.vercel\.app\/auth\/recovery\*\*/);
+  // The branded host is the console's production URL now; a login can start
+  // on either host, so both need the query-safe patterns.
+  assert.match(deployment, /https:\/\/console\.happitime\.biz\/auth\/callback\*\*/);
+  assert.match(deployment, /https:\/\/console\.happitime\.biz\/auth\/recovery\*\*/);
   assert.match(deployment, /query-safe/);
   assert.match(deployment, /Do not rely on the bare console domain alone/);
 });
