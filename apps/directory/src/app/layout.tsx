@@ -205,7 +205,8 @@ function SiteHeader() {
         <Link href="/" className="flex items-center">
           <HappiTimeLogo className="h-8" />
         </Link>
-        <SiteNav />
+        {/* Read on the server; only the boolean reaches the client nav. */}
+        <SiteNav showLeaderboard={process.env.LEADERBOARD_ENABLED === "true"} />
       </div>
     </header>
   );
