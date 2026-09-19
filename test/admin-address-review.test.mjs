@@ -85,6 +85,19 @@ test("accept path prefers Google's structured components over the flat string", 
   assert.doesNotMatch(actionsUi, /parseFormattedAddress/);
 });
 
+test("a late Places response does not overwrite edits made while it was loading", () => {
+  // openAccept awaits the Details call, then decides whether to apply it. A
+  // `touched` useState value read after the await is the one captured at click
+  // time (always false), so typing during the fetch was silently overwritten.
+  // The guard must read a ref, which sees edits made after the click.
+  assert.match(actionsUi, /useRef/);
+  assert.doesNotMatch(actionsUi, /\[touched, setTouched\]/);
+  assert.match(actionsUi, /if \(upgraded\.source !== 'places' \|\| touchedRef\.current\) return;/);
+  // Every editable field marks the form as touched through the ref.
+  const marks = actionsUi.match(/touchedRef\.current = true/g) ?? [];
+  assert.equal(marks.length, 4, "address, city, state and zip each set touchedRef");
+});
+
 const page = readFileSync(
   new URL("../apps/web/src/app/admin/address-review/page.tsx", import.meta.url),
   "utf8"
