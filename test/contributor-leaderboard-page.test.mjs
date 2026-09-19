@@ -68,6 +68,12 @@ test("the nav link is gated by the same flag as the page", () => {
   assert.match(layout, /showLeaderboard=\{process\.env\.LEADERBOARD_ENABLED === "true"\}/);
 });
 
+test("the title leaves the brand suffix to the layout template", () => {
+  // layout.tsx sets template "%s | HappiTime"; naming the brand here too
+  // rendered "Top Contributors — HappiTime | HappiTime".
+  assert.match(page, /^  title: "Top Contributors",$/m);
+});
+
 test("the flag is documented for operators", () => {
   const env = read("apps/directory/.env.example");
   assert.match(env, /LEADERBOARD_ENABLED/);
