@@ -1,6 +1,6 @@
 # Address-Review Accept Prefill Mis-parses Google Descriptor Segments — Finding
 
-**Status:** Open finding. Not fixed; the fix needs a decision (see *Why this is not a one-liner*).
+**Status:** Fixed by #206 (option 3), merged 2026-09-18. See *Resolution*.
 **Date:** 2026-09-11
 **Component:** `apps/web/src/utils/parse-formatted-address.mjs`
 **Surfaces in:** `/admin/address-review` → Accept (`AddressReviewActions.tsx`)
@@ -84,3 +84,33 @@ Option 3 looks right and the data is already being fetched. Not decided.
 
 Pick a rule, then add the descriptor cases to `test/parse-formatted-address.test.mjs`
 alongside the existing suite test so the two stay pinned against each other.
+
+## Resolution (2026-09-18)
+
+**Option 3 was taken** in #206. The Accept form now seeds from Places `addressComponents`
+through `resolveReviewPrefill` (`apps/web/src/utils/review-prefill.mjs`), which builds the street
+from `street_number` + `route` via `buildStreetAddress` in `places-parse.ts`. Descriptor segments
+are never components, so they cannot reach the field. The house-number cost of option 1 does not
+apply either: `buildStreetAddress` falls back to `premise` for named buildings.
+
+State of the live queue on 2026-09-18 (45 rows):
+
+| Row | `google_address` | Path |
+|---|---|---|
+| No Other Pub by Sporting KC | `Located in the, 1370 Grand Blvd, …` | Places components |
+| Belfry | `1532 Grand Blvd, E 16th St entrance, …` | Places components |
+| Cru Bistro & Bottles, Cliff's Taphouse, John's Big Deck | clean, no descriptor | string parser (no `places_id`) |
+
+Belfry's string has changed since this finding was logged; the descriptor is now a *middle*
+segment, which the old parser would also have kept. The parser is still the fallback for rows
+without a `places_id`, so a descriptor on such a row would still land in the field, where the
+form labels it *"Parsed from the stored address — check the street field"*. No current row is
+in that state.
+
+**Follow-up in the same wiring:** #206's guard against a late Places response overwriting the
+admin's edits read `touched` from `useState` after an `await`, which is the click-time value and
+so always `false`. Typing during the Details call was silently replaced. Fixed by reading a ref
+instead; pinned in `test/admin-address-review.test.mjs`.
+
+**Rendering:** neither #206 nor the follow-up has been verified by rendering yet. The decision
+logic is tested; the `.tsx` wiring is not, and the repo has no component-test infrastructure.

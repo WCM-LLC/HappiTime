@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { acceptGoogleAddress, dismissAddressReview } from '@/actions/admin-address-review-actions';
 import { resolveReviewPrefill } from '@/utils/review-prefill.mjs';
 
@@ -28,14 +28,17 @@ export function AddressReviewActions({
   const [zip, setZip] = useState(seed.zip);
   const [source, setSource] = useState(seed.source);
   const [loadingPlaces, setLoadingPlaces] = useState(false);
-  const [touched, setTouched] = useState(false);
+  // A ref, not state: openAccept reads it after awaiting Places, and a state
+  // value there is the one captured at click time — edits made while the call
+  // was in flight would be overwritten by the late response.
+  const touchedRef = useRef(false);
 
   // One Details call per Accept click, only for rows that have a places_id
   // (3 of 45 in the live queue do not). A failure is not an error state: the
   // parsed seed is still there and still editable.
   async function openAccept() {
     setMode('accept');
-    if (!placesId || touched || source === 'places') return;
+    if (!placesId || touchedRef.current || source === 'places') return;
     setLoadingPlaces(true);
     try {
       const res = await fetch('/api/places/details', {
@@ -49,7 +52,7 @@ export function AddressReviewActions({
         placesPrefill: data?.prefill ?? null,
         googleAddress,
       });
-      if (upgraded.source !== 'places' || touched) return;
+      if (upgraded.source !== 'places' || touchedRef.current) return;
       setAddress(upgraded.address);
       setCity(upgraded.city);
       setStateField(upgraded.state);
@@ -115,27 +118,27 @@ export function AddressReviewActions({
       <div className="flex flex-col gap-1.5 min-w-[240px]">
         <input
           value={address}
-          onChange={(e) => { setAddress(e.target.value); setTouched(true); }}
+          onChange={(e) => { setAddress(e.target.value); touchedRef.current = true; }}
           placeholder="Street address"
           className="h-8 rounded border border-border bg-background text-body-sm px-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand"
         />
         <div className="flex gap-1.5">
           <input
             value={city}
-            onChange={(e) => { setCity(e.target.value); setTouched(true); }}
+            onChange={(e) => { setCity(e.target.value); touchedRef.current = true; }}
             placeholder="City"
             className="h-8 w-1/2 rounded border border-border bg-background text-body-sm px-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand"
           />
           <input
             value={stateField}
-            onChange={(e) => { setStateField(e.target.value); setTouched(true); }}
+            onChange={(e) => { setStateField(e.target.value); touchedRef.current = true; }}
             placeholder="ST"
             maxLength={2}
             className="h-8 w-14 rounded border border-border bg-background text-body-sm px-2 uppercase focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand"
           />
           <input
             value={zip}
-            onChange={(e) => { setZip(e.target.value); setTouched(true); }}
+            onChange={(e) => { setZip(e.target.value); touchedRef.current = true; }}
             placeholder="ZIP"
             className="h-8 w-24 rounded border border-border bg-background text-body-sm px-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand"
           />
