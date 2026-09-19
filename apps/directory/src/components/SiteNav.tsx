@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ItineraryBadge } from "@/components/ItineraryBadge";
 
-export function SiteNav() {
+export function SiteNav({ showLeaderboard = false }: { showLeaderboard?: boolean }) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
 
@@ -18,6 +18,11 @@ export function SiteNav() {
         <Link href="/guides/" className="hover:text-foreground transition-colors">
           Guides
         </Link>
+        {showLeaderboard ? (
+          <Link href="/leaderboard/" className="hover:text-foreground transition-colors">
+            Top Contributors
+          </Link>
+        ) : null}
         <ItineraryBadge />
         <a
           href="https://happitime-console.vercel.app/login"
@@ -79,6 +84,15 @@ export function SiteNav() {
             >
               Guides
             </Link>
+            {showLeaderboard ? (
+              <Link
+                href="/leaderboard/"
+                onClick={close}
+                className="block px-6 py-4 text-sm font-medium text-foreground border-b border-border hover:bg-background transition-colors"
+              >
+                Top Contributors
+              </Link>
+            ) : null}
             <div className="px-6 py-4 border-b border-border">
               <ItineraryBadge />
             </div>
