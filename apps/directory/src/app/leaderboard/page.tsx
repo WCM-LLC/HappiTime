@@ -7,7 +7,7 @@ const BASE = "https://happitime.biz";
 export const revalidate = 900;
 
 export const metadata: Metadata = {
-  title: "Top Contributors — HappiTime",
+  title: "Top Contributors",
   description:
     "The people keeping Kansas City happy hour listings accurate. Ranked by menus, events, and hours contributed in the last 90 days.",
   alternates: { canonical: `${BASE}/leaderboard/` },
