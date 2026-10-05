@@ -68,6 +68,11 @@ export const metadata: Metadata = {
   category: "food & drink",
 };
 
+// Trimmed: the Vercel value once carried a trailing newline, which split the
+// inline GTM snippet's string literal and threw "Invalid or unexpected token"
+// on every page, so Tag Manager never loaded.
+const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID?.trim() || "";
+
 import { ItineraryProvider } from "@/components/ItineraryContext";
 import { SiteNav } from "@/components/SiteNav";
 
@@ -131,14 +136,14 @@ export default function RootLayout({
           rel="stylesheet"
         />
         {/* Google Tag Manager — replace GTM-XXXXXXX with your container ID */}
-        {process.env.NEXT_PUBLIC_GTM_ID && (
+        {GTM_ID && (
           <script
             dangerouslySetInnerHTML={{
               __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','${process.env.NEXT_PUBLIC_GTM_ID}');`,
+})(window,document,'script','dataLayer',${JSON.stringify(GTM_ID)});`,
             }}
           />
         )}
@@ -168,10 +173,10 @@ gtag('config', 'G-8MZMX2GH4E');`,
       <body className="min-h-screen">
         <AuthRecoveryRedirect />
         {/* GTM noscript fallback */}
-        {process.env.NEXT_PUBLIC_GTM_ID && (
+        {GTM_ID && (
           <noscript>
             <iframe
-              src={`https://www.googletagmanager.com/ns.html?id=${process.env.NEXT_PUBLIC_GTM_ID}`}
+              src={`https://www.googletagmanager.com/ns.html?id=${encodeURIComponent(GTM_ID)}`}
               height="0"
               width="0"
               style={{ display: "none", visibility: "hidden" }}
