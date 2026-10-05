@@ -1,0 +1,174 @@
+/* The Social Life Brunch RSVP page. Every rule is scoped under .slb so the
+   page's flyer styling cannot leak into the site shell. */
+.slb{
+  --ground:#4a1a0c;        /* torn cocoa paper behind everything */
+  --ink:#3a170b;           /* espresso brown type */
+  --paper:#86bff0;         /* powder-blue invitation stock */
+  --paper-deep:#6fa9de;    /* shaded blue for fields and fills */
+  --edge:#efd9c3;          /* raw cream fibre of a torn edge */
+  --butter:#f8eaa8;        /* butter-yellow accent lines and type */
+  --field:#f6ecdc;         /* cream input card */
+  --error:#8f1d0b;
+  --display:var(--font-slb-display,"Abril Fatface"),"Abril Fatface","Bodoni Moda",Didot,"Times New Roman",serif;
+  --sans:var(--font-slb-sans,"Archivo"),"Archivo","Helvetica Neue",Arial,sans-serif;
+  --torn-a:polygon(0.00% 0.72%,1.43% 0.90%,2.86% 1.48%,4.29% 0.75%,5.71% 0.81%,7.14% 0.94%,8.57% 0.30%,10.00% 0.82%,11.43% 1.01%,12.86% 1.27%,14.29% 0.15%,15.71% 0.49%,17.14% 0.15%,18.57% 1.30%,20.00% 1.11%,21.43% 0.07%,22.86% 1.57%,24.29% 1.54%,25.71% 1.05%,27.14% 0.98%,28.57% 0.25%,30.00% 0.02%,31.43% 0.85%,32.86% 0.10%,34.29% 0.30%,35.71% 0.39%,37.14% 0.05%,38.57% 0.74%,40.00% 0.70%,41.43% 1.35%,42.86% 0.83%,44.29% 1.02%,45.71% 0.80%,47.14% 1.06%,48.57% 0.73%,50.00% 0.45%,51.43% 1.60%,52.86% 1.59%,54.29% 1.34%,55.71% 1.13%,57.14% 0.50%,58.57% 0.37%,60.00% 0.46%,61.43% 0.11%,62.86% 1.23%,64.29% 0.64%,65.71% 1.35%,67.14% 0.62%,68.57% 1.53%,70.00% 1.36%,71.43% 0.00%,72.86% 0.34%,74.29% 1.46%,75.71% 0.75%,77.14% 1.57%,78.57% 0.64%,80.00% 0.12%,81.43% 1.01%,82.86% 1.25%,84.29% 0.43%,85.71% 0.14%,87.14% 0.53%,88.57% 1.54%,90.00% 1.21%,91.43% 0.19%,92.86% 0.39%,94.29% 0.16%,95.71% 0.10%,97.14% 1.28%,98.57% 0.28%,100.00% 0.89%,99.46% 1.43%,99.77% 2.86%,99.12% 4.29%,99.84% 5.71%,99.23% 7.14%,99.86% 8.57%,99.50% 10.00%,99.74% 11.43%,99.68% 12.86%,98.83% 14.29%,99.04% 15.71%,99.64% 17.14%,98.94% 18.57%,99.75% 20.00%,99.53% 21.43%,98.97% 22.86%,99.23% 24.29%,99.88% 25.71%,98.81% 27.14%,99.74% 28.57%,99.69% 30.00%,99.07% 31.43%,99.61% 32.86%,99.64% 34.29%,99.91% 35.71%,99.89% 37.14%,99.30% 38.57%,99.71% 40.00%,99.28% 41.43%,99.55% 42.86%,99.46% 44.29%,98.85% 45.71%,99.42% 47.14%,99.31% 48.57%,98.96% 50.00%,99.78% 51.43%,99.82% 52.86%,98.91% 54.29%,99.02% 55.71%,99.70% 57.14%,99.77% 58.57%,99.11% 60.00%,98.87% 61.43%,99.76% 62.86%,98.86% 64.29%,98.94% 65.71%,99.28% 67.14%,99.49% 68.57%,99.88% 70.00%,99.95% 71.43%,98.84% 72.86%,99.71% 74.29%,99.15% 75.71%,99.69% 77.14%,99.01% 78.57%,99.28% 80.00%,99.65% 81.43%,99.79% 82.86%,99.14% 84.29%,99.92% 85.71%,99.73% 87.14%,99.33% 88.57%,98.98% 90.00%,99.26% 91.43%,99.66% 92.86%,98.90% 94.29%,99.76% 95.71%,99.98% 97.14%,99.68% 98.57%,100.00% 99.29%,98.57% 99.90%,97.14% 99.72%,95.71% 99.41%,94.29% 99.08%,92.86% 99.79%,91.43% 99.42%,90.00% 98.57%,88.57% 98.43%,87.14% 98.95%,85.71% 98.89%,84.29% 99.06%,82.86% 99.78%,81.43% 99.94%,80.00% 99.97%,78.57% 98.54%,77.14% 98.88%,75.71% 98.46%,74.29% 99.97%,72.86% 98.98%,71.43% 99.23%,70.00% 98.83%,68.57% 99.49%,67.14% 98.40%,65.71% 99.88%,64.29% 99.13%,62.86% 98.82%,61.43% 98.56%,60.00% 98.82%,58.57% 98.87%,57.14% 98.73%,55.71% 98.54%,54.29% 99.44%,52.86% 98.90%,51.43% 98.56%,50.00% 98.61%,48.57% 99.33%,47.14% 98.74%,45.71% 98.62%,44.29% 99.08%,42.86% 99.00%,41.43% 99.39%,40.00% 99.07%,38.57% 99.03%,37.14% 99.87%,35.71% 98.98%,34.29% 98.41%,32.86% 98.59%,31.43% 98.83%,30.00% 99.38%,28.57% 98.82%,27.14% 99.07%,25.71% 99.30%,24.29% 98.66%,22.86% 99.87%,21.43% 98.80%,20.00% 99.95%,18.57% 99.04%,17.14% 99.23%,15.71% 99.63%,14.29% 98.88%,12.86% 99.20%,11.43% 99.02%,10.00% 98.53%,8.57% 99.59%,7.14% 99.98%,5.71% 99.52%,4.29% 98.91%,2.86% 99.68%,1.43% 99.73%,0.00% 98.55%,0.79% 98.57%,0.53% 97.14%,1.07% 95.71%,0.39% 94.29%,0.80% 92.86%,0.24% 91.43%,0.52% 90.00%,0.97% 88.57%,1.10% 87.14%,1.06% 85.71%,0.46% 84.29%,0.70% 82.86%,0.38% 81.43%,0.16% 80.00%,0.60% 78.57%,1.00% 77.14%,1.02% 75.71%,0.85% 74.29%,1.14% 72.86%,0.33% 71.43%,0.20% 70.00%,0.54% 68.57%,0.33% 67.14%,0.26% 65.71%,0.50% 64.29%,0.75% 62.86%,0.59% 61.43%,0.38% 60.00%,1.01% 58.57%,1.18% 57.14%,0.54% 55.71%,0.09% 54.29%,0.04% 52.86%,1.05% 51.43%,0.05% 50.00%,0.85% 48.57%,0.68% 47.14%,0.37% 45.71%,0.95% 44.29%,0.02% 42.86%,0.16% 41.43%,0.55% 40.00%,0.03% 38.57%,1.00% 37.14%,0.28% 35.71%,0.17% 34.29%,0.06% 32.86%,0.76% 31.43%,0.54% 30.00%,0.76% 28.57%,0.79% 27.14%,0.97% 25.71%,1.15% 24.29%,0.82% 22.86%,0.24% 21.43%,0.57% 20.00%,0.21% 18.57%,0.01% 17.14%,0.57% 15.71%,0.86% 14.29%,0.21% 12.86%,0.33% 11.43%,0.41% 10.00%,0.84% 8.57%,0.62% 7.14%,0.74% 5.71%,0.91% 4.29%,0.47% 2.86%,0.95% 1.43%);
+  --torn-b:polygon(0.00% 0.91%,1.67% 0.09%,3.33% 0.93%,5.00% 0.72%,6.67% 0.13%,8.33% 0.45%,10.00% 0.63%,11.67% 0.91%,13.33% 0.38%,15.00% 0.57%,16.67% 0.88%,18.33% 0.80%,20.00% 0.94%,21.67% 0.46%,23.33% 0.65%,25.00% 0.20%,26.67% 0.72%,28.33% 0.82%,30.00% 0.64%,31.67% 0.72%,33.33% 0.21%,35.00% 0.90%,36.67% 0.98%,38.33% 0.98%,40.00% 0.54%,41.67% 0.79%,43.33% 0.32%,45.00% 0.91%,46.67% 0.86%,48.33% 0.35%,50.00% 0.08%,51.67% 0.44%,53.33% 0.55%,55.00% 0.77%,56.67% 0.49%,58.33% 0.03%,60.00% 0.81%,61.67% 0.06%,63.33% 0.80%,65.00% 0.17%,66.67% 0.34%,68.33% 0.79%,70.00% 0.14%,71.67% 0.15%,73.33% 0.52%,75.00% 0.72%,76.67% 0.84%,78.33% 0.69%,80.00% 0.95%,81.67% 0.49%,83.33% 0.95%,85.00% 0.09%,86.67% 0.22%,88.33% 0.53%,90.00% 0.29%,91.67% 0.73%,93.33% 0.64%,95.00% 0.52%,96.67% 0.84%,98.33% 0.56%,100.00% 0.31%,99.66% 1.67%,99.24% 3.33%,99.19% 5.00%,99.81% 6.67%,99.23% 8.33%,99.13% 10.00%,99.53% 11.67%,99.48% 13.33%,99.82% 15.00%,99.52% 16.67%,99.55% 18.33%,99.46% 20.00%,99.98% 21.67%,99.13% 23.33%,99.54% 25.00%,99.64% 26.67%,99.28% 28.33%,99.49% 30.00%,99.56% 31.67%,99.38% 33.33%,99.94% 35.00%,99.52% 36.67%,99.63% 38.33%,99.14% 40.00%,99.17% 41.67%,99.76% 43.33%,99.57% 45.00%,99.89% 46.67%,99.61% 48.33%,99.27% 50.00%,99.19% 51.67%,99.57% 53.33%,99.71% 55.00%,99.83% 56.67%,99.44% 58.33%,99.17% 60.00%,99.88% 61.67%,99.30% 63.33%,99.98% 65.00%,99.83% 66.67%,99.80% 68.33%,99.38% 70.00%,99.71% 71.67%,99.68% 73.33%,99.44% 75.00%,99.91% 76.67%,99.34% 78.33%,99.89% 80.00%,99.54% 81.67%,99.77% 83.33%,99.82% 85.00%,99.52% 86.67%,99.61% 88.33%,99.66% 90.00%,99.63% 91.67%,99.52% 93.33%,99.86% 95.00%,99.82% 96.67%,99.43% 98.33%,100.00% 99.36%,98.33% 99.47%,96.67% 99.15%,95.00% 99.39%,93.33% 99.14%,91.67% 99.77%,90.00% 99.26%,88.33% 99.19%,86.67% 99.10%,85.00% 99.68%,83.33% 99.69%,81.67% 99.08%,80.00% 99.78%,78.33% 99.00%,76.67% 99.11%,75.00% 99.87%,73.33% 99.76%,71.67% 99.27%,70.00% 99.74%,68.33% 99.90%,66.67% 99.17%,65.00% 99.58%,63.33% 99.21%,61.67% 99.87%,60.00% 99.60%,58.33% 99.31%,56.67% 99.98%,55.00% 99.80%,53.33% 99.32%,51.67% 99.09%,50.00% 99.03%,48.33% 99.88%,46.67% 99.49%,45.00% 99.24%,43.33% 99.50%,41.67% 99.31%,40.00% 99.81%,38.33% 99.93%,36.67% 99.89%,35.00% 99.96%,33.33% 99.45%,31.67% 99.49%,30.00% 99.43%,28.33% 99.85%,26.67% 99.82%,25.00% 99.80%,23.33% 99.16%,21.67% 99.01%,20.00% 99.07%,18.33% 99.90%,16.67% 99.94%,15.00% 99.05%,13.33% 99.54%,11.67% 99.24%,10.00% 99.67%,8.33% 99.53%,6.67% 99.48%,5.00% 99.57%,3.33% 99.40%,1.67% 99.99%,0.00% 99.30%,0.76% 98.33%,0.16% 96.67%,0.41% 95.00%,0.67% 93.33%,0.36% 91.67%,0.18% 90.00%,0.15% 88.33%,0.46% 86.67%,0.01% 85.00%,0.80% 83.33%,0.72% 81.67%,0.63% 80.00%,0.77% 78.33%,0.57% 76.67%,0.36% 75.00%,0.54% 73.33%,0.45% 71.67%,0.88% 70.00%,0.72% 68.33%,0.23% 66.67%,0.82% 65.00%,0.67% 63.33%,0.70% 61.67%,0.73% 60.00%,0.37% 58.33%,0.81% 56.67%,0.79% 55.00%,0.63% 53.33%,0.69% 51.67%,0.69% 50.00%,0.37% 48.33%,0.65% 46.67%,0.06% 45.00%,0.31% 43.33%,0.42% 41.67%,0.01% 40.00%,0.32% 38.33%,0.57% 36.67%,0.56% 35.00%,0.21% 33.33%,0.85% 31.67%,0.60% 30.00%,0.30% 28.33%,0.59% 26.67%,0.51% 25.00%,0.48% 23.33%,0.35% 21.67%,0.90% 20.00%,0.58% 18.33%,0.63% 16.67%,0.69% 15.00%,0.88% 13.33%,0.02% 11.67%,0.55% 10.00%,0.66% 8.33%,0.23% 6.67%,0.36% 5.00%,0.05% 3.33%,0.18% 1.67%);
+  color-scheme:light;
+}
+.slb *{box-sizing:border-box}
+.slb [hidden]{display:none!important}
+.slb{background:var(--ground)}
+.slb{
+  background-color:var(--ground);
+  background-image:
+    radial-gradient(120% 80% at 10% 0%, rgba(255,210,170,.10), transparent 60%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .18  0 0 0 0 .06  0 0 0 0 .02  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:16px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.slb .wrap{max-width:1180px;margin:0 auto;padding-inline:clamp(16px,3vw,32px);padding-block:clamp(20px,4vw,48px)}
+.slb .tear{background:var(--edge);clip-path:var(--torn-a);padding:7px;filter:drop-shadow(0 10px 18px rgba(0,0,0,.35))}
+.slb .sheet{background:var(--paper);clip-path:var(--torn-b);position:relative;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>");}
+.slb .grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:clamp(16px,2.4vw,28px);align-items:stretch}
+.slb .grid + .grid{margin-top:clamp(16px,2.4vw,28px)}
+.slb .hero .sheet{padding:clamp(28px,4.5vw,56px) clamp(22px,4vw,52px) clamp(30px,4vw,48px);text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%}
+.slb .presents{font-weight:900;font-size:clamp(13px,1.4vw,16px);letter-spacing:.02em;text-transform:uppercase}
+.slb .presents span{display:block;color:var(--butter);letter-spacing:.62em;margin-right:-.62em;font-size:.95em;text-shadow:0 1px 0 rgba(58,23,11,.35)}
+.slb h1{font-family:var(--display);font-weight:400;font-size:clamp(54px,8.2vw,104px);line-height:.86;margin:10px 0 4px;text-transform:uppercase;letter-spacing:-.005em;text-wrap:balance}
+.slb .tag{font-weight:900;text-transform:uppercase;color:var(--butter);font-size:clamp(14px,1.7vw,20px);letter-spacing:.01em;text-shadow:0 1px 0 rgba(58,23,11,.35)}
+.slb .edition{font-family:var(--display);text-transform:uppercase;font-size:clamp(24px,3vw,36px);line-height:1}
+.slb .when{margin-top:clamp(18px,3vw,30px);display:grid;justify-items:center}
+.slb .when .dow{font-family:var(--display);text-transform:uppercase;font-size:clamp(28px,3.2vw,40px);line-height:1}
+.slb .when .date{font-family:var(--display);font-size:clamp(88px,12vw,148px);line-height:.85;letter-spacing:-.02em;font-variant-numeric:lining-nums}
+.slb .when .time{font-weight:900;color:var(--butter);font-size:clamp(20px,2.4vw,28px);text-shadow:0 1px 0 rgba(58,23,11,.35);font-variant-numeric:tabular-nums}
+.slb .when .full{font-weight:600;font-size:14px;margin-top:4px;letter-spacing:.04em;text-transform:uppercase}
+.slb .badge{display:inline-block;margin-bottom:6px;font-weight:900;font-size:12px;letter-spacing:.22em;text-transform:uppercase;border:2px solid var(--ink);padding:6px 12px 5px;border-radius:2px}
+.slb .cta{margin-top:clamp(18px,2.6vw,26px);display:inline-flex;align-items:center;gap:10px;background:var(--ink);color:var(--butter);text-decoration:none;font-weight:900;text-transform:uppercase;letter-spacing:.14em;font-size:14px;padding:16px 26px 15px;border-radius:999px;transition:transform .15s ease, background .15s ease}
+.slb .cta:hover{transform:translateY(-1px);background:#26100a}
+.slb .cta:focus-visible,.slb button:focus-visible,.slb input:focus-visible,.slb .seg label:focus-within{outline:3px solid var(--butter);outline-offset:3px}
+.slb .cta svg{width:16px;height:16px}
+.slb .portrait{position:relative;height:100%;min-height:420px}
+.slb .portrait .sheet{height:100%;padding:0}
+.slb .portrait img{display:block;width:100%;height:100%;object-fit:cover;object-position:42% 30%}
+.slb .portrait .caption{position:absolute;left:0;right:0;bottom:0;padding:48px 24px 22px;background:linear-gradient(transparent, rgba(30,10,4,.82));color:var(--butter);font-weight:800;text-transform:uppercase;letter-spacing:.14em;font-size:12px;text-align:center}
+.slb .rsvp .sheet{padding:clamp(26px,4vw,48px) clamp(20px,3.6vw,44px)}
+.slb .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;border-bottom:3px solid var(--butter);padding-bottom:12px;margin-bottom:22px}
+.slb h2{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(34px,4.4vw,52px);line-height:.95;margin:0}
+.slb .sec-head p{margin:0;font-weight:800;font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+.slb form{display:grid;gap:18px}
+.slb .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.slb .field{display:grid;gap:6px;min-width:0}
+.slb .field label,.slb .legend{font-weight:900;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+.slb .field label .opt{font-weight:600;letter-spacing:.06em;text-transform:none;opacity:.75;margin-left:6px}
+.slb input[type=text],.slb input[type=email],.slb input[type=tel]{
+  width:100%;font:500 16px/1.3 var(--sans);color:var(--ink);background:var(--field);
+  border:0;border-bottom:3px solid var(--ink);border-radius:3px 3px 0 0;padding:13px 14px 11px;
+  transition:background .15s ease}
+.slb input::placeholder{color:#8a6a58}
+.slb input:focus{background:#fffaf1;outline:none}
+.slb .field.invalid input{border-bottom-color:var(--error);background:#fbe3d8}
+.slb .err{font-size:13px;font-weight:700;color:var(--error);min-height:0}
+.slb .err:empty{display:none}
+.slb fieldset{border:0;margin:0;padding:0;min-width:0}
+.slb .seg{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:8px;border:3px solid var(--ink);border-radius:999px;overflow:hidden;background:var(--field)}
+.slb .seg input{position:absolute;opacity:0;pointer-events:none}
+.slb .seg label{cursor:pointer;text-align:center;padding:12px 10px 10px;font-weight:900;font-size:14px;letter-spacing:.1em;text-transform:uppercase;transition:background .15s ease,color .15s ease}
+.slb .seg label:has(input:checked){background:var(--ink);color:var(--butter)}
+.slb .seg label small{display:block;font-weight:600;font-size:11px;letter-spacing:.04em;text-transform:none;opacity:.8}
+.slb .dress{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;background:rgba(58,23,11,.08);border-radius:4px;padding:16px}
+.slb .swatches{display:grid;grid-template-columns:repeat(6,22px);gap:4px}
+.slb .swatches i{display:block;width:22px;height:34px;border-radius:2px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}
+.slb .check{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start;cursor:pointer;font-size:15px;line-height:1.4}
+.slb .check input{appearance:none;width:24px;height:24px;margin:0;border:3px solid var(--ink);border-radius:3px;background:var(--field);display:grid;place-content:center;cursor:pointer}
+.slb .check input:checked{background:var(--ink)}
+.slb .check input:checked::after{content:"";width:10px;height:6px;border-left:3px solid var(--butter);border-bottom:3px solid var(--butter);transform:translateY(-2px) rotate(-45deg)}
+.slb .check strong{font-weight:800}
+.slb .check.invalid input{border-color:var(--error);background:#fbe3d8}
+.slb .submit{appearance:none;border:0;cursor:pointer;width:100%;background:var(--ink);color:var(--butter);font:900 15px/1 var(--sans);letter-spacing:.18em;text-transform:uppercase;padding:20px 20px 18px;border-radius:999px;margin-top:4px;transition:transform .15s ease, background .15s ease}
+.slb .submit:hover{background:#26100a;transform:translateY(-1px)}
+.slb .submit[disabled]{opacity:.6;cursor:progress}
+.slb .fine{font-size:13px;line-height:1.45;margin:0;opacity:.85}
+.slb .done{display:grid;gap:18px;text-align:center;justify-items:center;padding-block:8px}
+.slb .done h3{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(34px,4.6vw,54px);line-height:.95;margin:0;text-wrap:balance}
+.slb .ticket{width:100%;max-width:440px;background:var(--field);border-radius:6px;position:relative;text-align:left;display:grid;grid-template-columns:1fr auto;box-shadow:0 8px 20px rgba(58,23,11,.25)}
+.slb .ticket .main{padding:18px 20px;display:grid;gap:4px;min-width:0}
+.slb .ticket .main b{font-family:var(--display);font-weight:400;font-size:26px;line-height:1.05;overflow-wrap:anywhere}
+.slb .ticket .main span{font-size:14px;font-weight:600}
+.slb .ticket .stub{border-left:3px dashed var(--ink);padding:18px 18px;display:grid;place-content:center;text-align:center;font-family:var(--display);line-height:.9}
+.slb .ticket .stub small{font-family:var(--sans);font-weight:900;font-size:11px;letter-spacing:.14em}
+.slb .ticket .stub strong{font-size:40px;font-weight:400}
+.slb .preview-note{font-size:13px;font-weight:700;background:var(--butter);padding:8px 12px;border-radius:3px;max-width:440px}
+.slb .link-btn{appearance:none;background:none;border:0;color:var(--ink);font:800 13px var(--sans);letter-spacing:.12em;text-transform:uppercase;text-decoration:underline;text-underline-offset:4px;cursor:pointer;padding:6px}
+.slb .details{display:grid;gap:clamp(16px,2.4vw,28px);align-content:start}
+.slb .memo .sheet{padding:clamp(26px,3.6vw,40px) clamp(22px,3.4vw,40px);text-align:center}
+.slb .memo h2{font-size:clamp(40px,5vw,62px);margin-bottom:14px}
+.slb .memo p{font-weight:800;text-transform:uppercase;font-size:14px;line-height:1.5;letter-spacing:.01em;margin:0 auto 14px;max-width:46ch}
+.slb .memo p:last-of-type{margin-bottom:0}
+.slb .memo .rule{height:3px;width:60%;margin:18px auto;background:var(--butter)}
+.slb .food{display:grid;grid-template-columns:1.6fr 1fr;gap:clamp(12px,2vw,20px);align-items:center}
+.slb .food img{display:block;width:100%;height:auto;-webkit-mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 62%,transparent 100%);mask-image:radial-gradient(ellipse 50% 50% at 50% 50%,#000 62%,transparent 100%)}
+.slb .food .sheet{padding:clamp(14px,2vw,22px)}
+.slb .facts{display:grid;gap:0;margin:0}
+.slb .facts div{display:grid;grid-template-columns:110px 1fr;gap:12px;padding:12px 0;border-top:2px solid rgba(58,23,11,.25)}
+.slb .facts div:first-child{border-top:0}
+.slb .facts dt{font-weight:900;font-size:12px;letter-spacing:.14em;text-transform:uppercase;padding-top:2px}
+.slb .facts dd{margin:0;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.slb .facts dd a{color:var(--ink);text-underline-offset:3px}
+.slb .facts .sel{user-select:all;font-variant-numeric:tabular-nums}
+.slb .copy{appearance:none;border:2px solid var(--ink);background:transparent;color:var(--ink);border-radius:999px;font:800 11px var(--sans);letter-spacing:.12em;text-transform:uppercase;padding:4px 10px 3px;margin-left:8px;cursor:pointer;vertical-align:1px}
+.slb .powered{text-align:center;padding:4px 0 0}
+.slb .powered small{display:block;font-weight:900;letter-spacing:.16em;text-transform:uppercase;font-size:12px;color:var(--edge)}
+.slb .powered div{font-weight:900;font-size:clamp(16px,2vw,20px);color:var(--butter);letter-spacing:.06em;text-transform:uppercase}
+.slb footer{color:var(--edge);text-align:center;font-size:12px;letter-spacing:.08em;margin-top:clamp(24px,4vw,40px);opacity:.8}
+.slb .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;list-style:none;margin:-8px 0 22px;padding:0}
+.slb .steps li{height:5px;border-radius:3px;background:rgba(58,23,11,.18)}
+.slb .steps li.on{background:var(--ink)}
+.slb .step{display:grid;gap:18px}
+.slb .q{font-family:var(--display);font-size:clamp(24px,2.6vw,30px);line-height:1.05;margin:0;padding:0;text-transform:none}
+.slb .hint{margin:6px 0 0;font-size:14px;font-weight:600}
+.slb .legend .opt,.slb .field label .opt{font-weight:600;letter-spacing:.06em;text-transform:none;opacity:.75;margin-left:6px}
+.slb .chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
+.slb .chips.small{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-top:8px}
+.slb .chip{position:relative;cursor:pointer;min-width:0}
+.slb .chip input{position:absolute;opacity:0;pointer-events:none}
+.slb .chip span{display:flex;align-items:center;min-height:52px;height:100%;padding:12px 14px;background:var(--field);border:2px solid transparent;border-bottom:3px solid var(--ink);border-radius:3px;font-weight:700;font-size:15px;line-height:1.25;transition:background .15s ease,color .15s ease}
+.slb .chips.small .chip span{min-height:44px;font-size:14px;padding:10px 12px}
+.slb .chip:hover span{background:#fffaf1}
+.slb .chip input:checked + span{background:var(--ink);color:var(--butter);border-color:var(--ink)}
+.slb .chip input:focus-visible + span{outline:3px solid var(--butter);outline-offset:2px}
+.slb .chip-sep{grid-column:1/-1;font-weight:900;font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin-top:8px}
+.slb .nav{display:flex;justify-content:flex-end}
+.slb .nav .submit{width:auto;min-width:220px}
+.slb .nav.two{justify-content:space-between;align-items:center;gap:12px}
+.slb .appnote{background:var(--ink);color:var(--field);border-radius:4px;padding:14px 16px;font-size:14px;line-height:1.45}
+.slb .appnote strong{color:var(--butter)}
+.slb .getapp{width:100%;max-width:440px;text-align:left;display:grid;gap:12px;border-top:3px solid var(--butter);padding-top:18px}
+.slb .howto{margin:0;padding-left:22px;display:grid;gap:6px;font-size:15px}
+.slb .howto b{font-weight:800}
+.slb .stores{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.slb .store{display:flex;align-items:center;gap:10px;background:var(--ink);color:var(--field);text-decoration:none;border-radius:10px;padding:10px 14px;font-weight:800;font-size:16px;line-height:1.05}
+.slb .store small{display:block;font-weight:600;font-size:10px;letter-spacing:.04em;opacity:.85}
+.slb .store svg{width:24px;height:24px;flex:none}
+.slb .store:hover{background:#26100a}
+.slb .store:focus-visible{outline:3px solid var(--butter);outline-offset:3px}
+@media (max-width:520px){.slb .chips{grid-template-columns:1fr}
+.slb .chips.small{grid-template-columns:repeat(2,minmax(0,1fr))}
+.slb .nav .submit{min-width:0;flex:1}
+.slb .stores{grid-template-columns:1fr}}
+@media (max-width:860px){.slb .grid{grid-template-columns:1fr}
+.slb .portrait{min-height:0;height:auto}
+.slb .portrait .sheet{height:auto}
+.slb .portrait img{height:auto;aspect-ratio:990/1142}}
+@media (max-width:520px){.slb .row{grid-template-columns:1fr}
+.slb .dress{grid-template-columns:1fr}
+.slb .facts div{grid-template-columns:1fr;gap:2px}
+.slb .food{grid-template-columns:1fr 1fr}}
+@media (prefers-reduced-motion:reduce){.slb *{transition:none!important;animation:none!important}}
+.slb{font-family:var(--sans);font-size:16px;line-height:1.5;color:var(--ink);min-height:100%}
+.slb .howto{list-style:decimal}
+.slb .steps{list-style:none}
+.slb h3{letter-spacing:0}
