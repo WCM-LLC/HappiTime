@@ -3,6 +3,7 @@ name: HappiTime Console
 description: Venue management console for HappiTime — operator-first, warm-neutral, copper-accented.
 colors:
   brand: "#C8965A"
+  brand-hover: "#CEA16B"
   brand-dark: "#A67842"
   brand-light: "#E8D5BC"
   brand-subtle: "#F5EDE3"
@@ -126,13 +127,13 @@ components:
     backgroundColor: "rgba(26, 26, 26, 0.9)"
   button-brand:
     backgroundColor: "{colors.brand}"
-    textColor: "#FFFFFF"
+    textColor: "{colors.dark}"
     typography: "{typography.body-sm}"
     rounded: "{rounded.md}"
     padding: "8px 16px"
     height: "40px"
   button-brand-hover:
-    backgroundColor: "{colors.brand-dark}"
+    backgroundColor: "{colors.brand-hover}"
   button-secondary:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.foreground}"
@@ -238,7 +239,8 @@ A warm-neutral room with a single metal: bone-white paper, white surfaces, graph
 
 ### Primary
 - **Golden Hour** (`#C8965A`): The one metal. Primary actions, active states, focus rings, and the accent disc in the wordmark. Its scarcity is the entire mechanism — this is the color that means *act here*.
-- **Golden Hour Deep** (`#A67842`): The hover state for copper fills. Only ever a response to the pointer, never a resting color.
+- **Golden Hour Raised** (`#CEA16B`): The hover state for a copper fill. Lighter than the rest state, not darker — see The Light Fill Rule.
+- **Golden Hour Deep** (`#A67842`): Copper as emphasis *text* on a light ground, and the hover for copper links. **Not a fill behind graphite** — that pairing is 4.46:1.
 - **Golden Hour Tint** (`#E8D5BC`): Defined but **currently unused in the console**. Its intended role is a tinted border or brand-adjacent edge where a full copper border would shout. Available, not established.
 - **Golden Hour Wash** (`#F5EDE3`): The warm placeholder. Avatar fills, image slots before a cover loads, and the fill behind brand-weight badges. This is also the third step of the depth stack.
 - **Golden Hour Ink** (`#8B6535`): Copper as *text*. Exists because `#C8965A` on `#F5EDE3` does not carry enough contrast for small type; this is the legible pairing for a copper-tinted badge.
@@ -282,6 +284,12 @@ be read — a darker ink. **The mid tone is a fill or a border; the ink is the t
 **The Golden Hour Rule.** One copper commitment per view. Copper marks the single most important action or the one active state — not every clickable thing. If two copper elements are visible at once, one of them is wrong. Its rarity is the point.
 
 **The No Stock Palette Rule.** Never reach into Tailwind's default palette. `amber-500`, `violet-600`, `blue-600`, and raw hex literals like `bg-[#DBEAFE]` are all violations, even when they look close. Every color in a HappiTime surface comes from `globals.css`. If a needed color does not exist there, add the token first.
+
+**The Light Fill Rule.** Copper is a light color. Anything sitting on it is graphite, never white —
+white on `#C8965A` is 2.64:1, which fails AA outright, while graphite is 6.60:1. The consequence is
+that the copper button is the one control in the system whose hover *lightens*: darkening the fill
+reduces contrast with a dark label rather than increasing it. Reach for `brand-hover`, not
+`brand-dark`.
 
 **The One Map Rule.** A concept gets one color map, in one module, imported everywhere it is shown.
 Tier colors live in `src/utils/tier-style.ts`. Five call sites once kept their own copies and
@@ -386,7 +394,7 @@ Seven variants, which is the system's widest variant set — the console genuine
 
 - **Shape:** Softly squared (`10px`); `6px` at `sm` size, `16px` at `lg`. Never a pill.
 - **Default (dark):** Graphite fill (`#1A1A1A`) with near-white text (`#F5F5F3`), hover to 90% opacity. The neutral high-emphasis action — "Manage", "Save", "Export".
-- **Brand (copper):** Golden Hour fill (`#C8965A`) with white text, hover to Golden Hour Deep (`#A67842`). Reserved for actions that advance the core loop: confirm, claim, publish, upgrade. One per view.
+- **Brand (copper):** Golden Hour fill (`#C8965A`) with **graphite text**, hover lightening to Golden Hour Raised (`#CEA16B`). Reserved for actions that advance the core loop: confirm, claim, publish, upgrade. One per view. The label is graphite, not white, because copper is a light fill: white on it is 2.64:1 and graphite 6.60:1. This is the one button in the system whose hover goes lighter rather than darker — darkening to `#A67842` would drop graphite to 4.46:1, just under the floor.
 - **Secondary:** White surface, hairline border, graphite text; hover fills to the page color (`#FAFAF8`).
 - **Outline:** Resolves to the same declarations as Secondary in the current implementation — hairline border, Paper fill, graphite text, hover to page color. Two names, one appearance.
 - **Ghost:** No border or fill; hover fills to the page color. For low-stakes inline actions inside dense rows.
@@ -487,6 +495,8 @@ Sonner, docked bottom-right, with rich colors and a close button. Transient conf
 - **Don't** inline raw hex in a class: `bg-[#DBEAFE]`, `text-[#6D28D9]`. If the color you need is not a token, add the token first.
 - **Don't** let one concept carry different colors on different screens. Tier colors come from `src/utils/tier-style.ts`; five separate maps once disagreed about whether Verified was copper or blue.
 - **Don't** reference a token that does not exist. `text-brand-text` was written six times across four files and resolved to nothing — the token is `--color-brand-dark-alt`. Tailwind drops unknown utilities silently, so nothing warns you.
+- **Don't** put white text on copper. `bg-brand text-white` is 2.64:1 and shipped on 43 controls before it was caught. Copper carries graphite.
+- **Don't** use `text-muted-light` (`#9CA3AF`) as label or body text — it is 2.54:1 on white. It is for placeholders and inactive glyphs. `text-muted` is the quiet-but-legible option at 5.33:1.
 - **Don't** set small text in a semantic mid tone. `text-warning` on `bg-warning-light` is 2.14:1. Use `text-warning-ink` and `text-success-ink`.
 - **Don't** add `shadow-sm` to new resting surfaces. The hairline is the edge; shadows mean detachment.
 - **Don't** pair a shadow with a hairline on the same element.

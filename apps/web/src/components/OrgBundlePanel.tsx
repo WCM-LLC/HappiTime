@@ -137,7 +137,7 @@ function StartBundle({ venueCount, pending, onStart }: { orgId: string; venueCou
       <button
         onClick={onStart}
         disabled={pending}
-        className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors disabled:opacity-50"
+        className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors disabled:opacity-50"
       >
         Start bundle
       </button>

@@ -42,7 +42,7 @@ function normalizeEmail(email: string) {
 const inputCls =
   'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground placeholder:text-muted-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors';
 const btnPrimary =
-  'inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer';
+  'inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer';
 const btnSecondary =
   'inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer';
 
@@ -142,7 +142,7 @@ export default async function InvitePage({
 
                 <span className="text-caption font-medium text-muted">Role</span>
                 <span className="inline-flex items-center">
-                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-brand-subtle text-brand-dark">
+                  <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-brand-subtle text-brand-dark-alt">
                     {invite.role}
                   </span>
                 </span>

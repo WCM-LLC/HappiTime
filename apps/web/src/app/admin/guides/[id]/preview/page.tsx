@@ -27,7 +27,7 @@ function statusClass(status: string | null) {
   const base = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold';
   if (status === 'published') return `${base} bg-success-light text-success-ink`;
   if (status === 'pending_review') return `${base} bg-warning-light text-warning-ink`;
-  if (status === 'archived') return `${base} bg-surface border border-border text-muted-light`;
+  if (status === 'archived') return `${base} bg-surface border border-border text-muted`;
   return `${base} bg-surface border border-border text-muted`;
 }
 

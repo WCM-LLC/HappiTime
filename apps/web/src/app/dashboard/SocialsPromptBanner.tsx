@@ -10,7 +10,7 @@ export default function SocialsPromptBanner() {
       <div className="flex items-center gap-2 shrink-0">
         <Link
           href="/dashboard/profile"
-          className="inline-flex items-center justify-center h-8 px-3 rounded-md bg-brand text-white text-caption font-medium hover:bg-brand-dark transition-colors"
+          className="inline-flex items-center justify-center h-8 px-3 rounded-md bg-brand text-dark text-caption font-medium hover:bg-brand-hover transition-colors"
         >
           Add socials
         </Link>

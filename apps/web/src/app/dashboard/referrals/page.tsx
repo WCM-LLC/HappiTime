@@ -144,7 +144,7 @@ export default async function ReferralsPage() {
                     </div>
                     <a
                       href="/api/referrals/print?format=card"
-                      className="shrink-0 inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors"
+                      className="shrink-0 inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors"
                     >
                       Download PDF
                     </a>
@@ -156,7 +156,7 @@ export default async function ReferralsPage() {
                     </div>
                     <a
                       href="/api/referrals/print?format=stickers"
-                      className="shrink-0 inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors"
+                      className="shrink-0 inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors"
                     >
                       Download PDF
                     </a>

@@ -18,7 +18,7 @@ const STATUS_STYLE: Record<string, string> = {
   draft: 'bg-surface border border-border text-muted',
   pending_review: 'bg-warning-light border border-warning text-warning-ink',
   published: 'bg-success-light border border-success text-success-ink',
-  archived: 'bg-surface border border-border text-muted-light',
+  archived: 'bg-surface border border-border text-muted',
 };
 
 export default async function GuidesListPage({
@@ -73,7 +73,7 @@ export default async function GuidesListPage({
               </span>
             </Link>
             <Link href="/dashboard/guides/new">
-              <span className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer">
+              <span className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer">
                 + New guide
               </span>
             </Link>
@@ -97,7 +97,7 @@ export default async function GuidesListPage({
             <p className="text-body-sm font-medium text-foreground mb-1">No guides yet</p>
             <p className="text-body-sm text-muted mb-4">Write your first guide to share with the HappiTime community.</p>
             <Link href="/dashboard/guides/new">
-              <span className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer">
+              <span className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer">
                 + New guide
               </span>
             </Link>

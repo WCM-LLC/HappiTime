@@ -35,7 +35,7 @@ export default async function SuperUserLoginPage({
           <h2 className="text-[1.75rem] font-extrabold text-white leading-[1.15] tracking-tight mb-4">
             Guide authoring for HappiTime Super Users.
           </h2>
-          <p className="text-body-sm text-muted-light leading-relaxed">
+          <p className="text-body-sm text-muted leading-relaxed">
             Create featured guides, share picks, and submit content for review.
           </p>
         </div>
@@ -74,7 +74,7 @@ export default async function SuperUserLoginPage({
 
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-border" />
-            <span className="text-caption text-muted-light">or email magic link</span>
+            <span className="text-caption text-muted">or email magic link</span>
             <div className="flex-1 h-px bg-border" />
           </div>
 
@@ -96,7 +96,7 @@ export default async function SuperUserLoginPage({
             </div>
             <button
               type="submit"
-              className="inline-flex items-center justify-center h-11 px-4 w-full rounded-md bg-brand text-white text-body-sm font-semibold hover:bg-brand-dark transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center h-11 px-4 w-full rounded-md bg-brand text-dark text-body-sm font-semibold hover:bg-brand-hover transition-colors cursor-pointer"
             >
               Send magic link
             </button>

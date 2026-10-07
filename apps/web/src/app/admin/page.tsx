@@ -656,7 +656,7 @@ export default async function AdminPage({
                     </div>
                     <button
                       formAction={addAdminUser}
-                      className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer shrink-0"
+                      className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer shrink-0"
                     >
                       Add admin
                     </button>

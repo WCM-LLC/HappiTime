@@ -646,7 +646,7 @@ export default async function VenuePage({
   const selectCls =
     'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors appearance-none';
   const btnPrimary =
-    'inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer';
+    'inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer';
   const btnSecondary =
     'inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer';
   const btnDanger =
@@ -771,7 +771,7 @@ export default async function VenuePage({
               </div>
               <form className="shrink-0">
                 <SubmitButton
-                  className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer"
+                  className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer"
                   formAction={reverifyListing.bind(null, orgId, venueId)}
                   pendingLabel="Confirming…"
                 >
@@ -1279,7 +1279,7 @@ export default async function VenuePage({
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-4">
                         <div className="w-10 h-10 rounded-md bg-brand-subtle flex items-center justify-center shrink-0">
-                          <span className="text-heading-sm font-bold text-brand-dark">&#127881;</span>
+                          <span className="text-heading-sm font-bold text-brand-dark-alt">&#127881;</span>
                         </div>
                         <div>
                           <h3 className="text-body-md font-semibold text-foreground">{ev.title}</h3>
@@ -1294,7 +1294,7 @@ export default async function VenuePage({
                               {isPublished ? 'Published' : 'Draft'}
                             </span>
                             {ev.is_recurring && (
-                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-brand-subtle text-brand-dark">
+                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-brand-subtle text-brand-dark-alt">
                                 &#x1f501; Recurring
                               </span>
                             )}
@@ -1601,7 +1601,7 @@ export default async function VenuePage({
                   const isAssigned = venueStaffIds.has(member.user_id);
                   const roleBadgeColor =
                     member.role === 'owner'
-                      ? 'bg-brand-subtle text-brand-dark'
+                      ? 'bg-brand-subtle text-brand-dark-alt'
                       : member.role === 'manager' || member.role === 'admin' || member.role === 'editor'
                         ? 'bg-success-light text-success-ink'
                         : 'bg-background text-muted';
@@ -1609,7 +1609,7 @@ export default async function VenuePage({
                     <div key={member.user_id} className="rounded-lg border border-border bg-background p-4 flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-brand-subtle flex items-center justify-center shrink-0">
-                          <span className="text-body-sm font-bold text-brand-dark">
+                          <span className="text-body-sm font-bold text-brand-dark-alt">
                             {label.charAt(0).toUpperCase()}
                           </span>
                         </div>
@@ -1625,7 +1625,7 @@ export default async function VenuePage({
                                 Assigned to this venue
                               </span>
                             ) : (
-                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-background text-muted-light border border-border">
+                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-background text-muted border border-border">
                                 Org member only
                               </span>
                             )}
