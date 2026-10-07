@@ -38,7 +38,7 @@ export function VenueScanAnalytics({ summary }: { summary: ScanSummary }) {
             {SOURCE_ORDER.map((s) => (
               <span
                 key={s}
-                className="inline-flex items-center rounded-full bg-brand-subtle px-2.5 py-1 text-caption font-medium text-brand-text"
+                className="inline-flex items-center rounded-full bg-brand-subtle px-2.5 py-1 text-caption font-medium text-brand-dark-alt"
               >
                 {SOURCE_LABELS[s]} {bySource[s]}
               </span>
@@ -57,7 +57,7 @@ export function VenueScanAnalytics({ summary }: { summary: ScanSummary }) {
                       >
                         {who}
                       </span>
-                      <span className="inline-flex items-center rounded-full bg-brand-subtle px-2 py-0.5 text-caption font-medium text-brand-text shrink-0">
+                      <span className="inline-flex items-center rounded-full bg-brand-subtle px-2 py-0.5 text-caption font-medium text-brand-dark-alt shrink-0">
                         {SOURCE_LABELS[e.source] ?? e.source}
                       </span>
                     </div>

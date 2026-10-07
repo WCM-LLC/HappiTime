@@ -20,7 +20,7 @@ export default async function NewCrmLeadPage({
   if (keyError) {
     return (
       <CrmShell title="New Lead" active="/admin/crm/leads">
-        <p className="text-body-sm text-warning">Service role key required — see /admin.</p>
+        <p className="text-body-sm text-warning-ink">Service role key required — see /admin.</p>
       </CrmShell>
     );
   }

@@ -61,9 +61,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 function StatusBadge({ status }: { status: string }) {
   if (status === 'pending')
-    return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold bg-[#FEF3C7] text-[#92400E]">Pending</span>;
+    return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold bg-warning-light text-warning-ink">Pending</span>;
   if (status === 'merged')
-    return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold bg-success-light text-success">Promoted</span>;
+    return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold bg-success-light text-success-ink">Promoted</span>;
   if (status === 'rejected')
     return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold bg-background text-muted border border-border">Rejected</span>;
   return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-caption font-semibold bg-background text-muted">{status}</span>;

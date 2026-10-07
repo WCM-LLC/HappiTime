@@ -542,9 +542,9 @@ export default async function OrgPage({
               ? `/orgs/${orgId}/venues/${v.id}?from=admin`
               : `/orgs/${orgId}/venues/${v.id}`;
             const statusColor = v.status === 'published'
-              ? 'bg-success-light text-success'
+              ? 'bg-success-light text-success-ink'
               : v.status === 'draft'
-                ? 'bg-warning-light text-warning'
+                ? 'bg-warning-light text-warning-ink'
                 : 'bg-background text-muted';
 
             return (
@@ -636,8 +636,8 @@ export default async function OrgPage({
           {organizationMenuList.map((menu) => {
             const menuPublished = (menu.status ?? '').toLowerCase() === HH_STATUS_PUBLISHED;
             const menuStatusColor = menuPublished
-              ? 'bg-success-light text-success'
-              : 'bg-warning-light text-warning';
+              ? 'bg-success-light text-success-ink'
+              : 'bg-warning-light text-warning-ink';
             const menuFormId = `org-menu-save-${menu.id}`;
             const publishFormId = `org-menu-publish-${menu.id}`;
             const deleteFormId = `org-menu-delete-${menu.id}`;
@@ -983,8 +983,8 @@ export default async function OrgPage({
   const hoursReturnTo = `/orgs/${orgId}`;
   const hhStatusPill = (status: string | null) =>
     (status ?? '').toLowerCase() === HH_STATUS_PUBLISHED
-      ? 'bg-success-light text-success'
-      : 'bg-warning-light text-warning';
+      ? 'bg-success-light text-success-ink'
+      : 'bg-warning-light text-warning-ink';
 
   const hoursPanel = (
     <div>
@@ -1000,11 +1000,11 @@ export default async function OrgPage({
             const venueAddress = addressByVenue.get(v.id) ?? '';
             const { kind, label: rollupLabel } = computeHoursStatus(windows);
             const rollupPill: Record<HHStatusKind, string> = {
-              live: 'bg-success-light text-success',
+              live: 'bg-success-light text-success-ink',
               soon: 'bg-brand-subtle text-brand-dark-alt',
               scheduled: 'bg-background text-muted border border-border',
-              draft: 'bg-warning-light text-warning',
-              none: 'bg-warning-light text-warning',
+              draft: 'bg-warning-light text-warning-ink',
+              none: 'bg-warning-light text-warning-ink',
             };
 
             return (
@@ -1343,7 +1343,7 @@ export default async function OrgPage({
           action={deleteOrganization.bind(null, orgId)}
           message="Permanently delete this organization, all its venues, and associated data? This cannot be undone."
         >
-          <button type="submit" className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-error text-white text-body-sm font-medium hover:bg-[#b03535] transition-colors cursor-pointer">
+          <button type="submit" className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-error text-white text-body-sm font-medium hover:bg-error/90 transition-colors cursor-pointer">
             Delete organization
           </button>
         </ConfirmDeleteForm>

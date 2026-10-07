@@ -146,7 +146,7 @@ export function GuideEditor({
     <div>
       {pendingBackup ? (
         <div className="rounded-md border border-warning bg-warning-light px-4 py-3 mb-6 flex flex-wrap items-center justify-between gap-3">
-          <p className="text-body-sm font-medium text-warning">
+          <p className="text-body-sm font-medium text-warning-ink">
             You have unsaved writing from {new Date(pendingBackup.savedAt).toLocaleString()}
             {pendingBackup.fields.title ? ` — “${pendingBackup.fields.title}”` : ''}. Restore it?
           </p>
@@ -171,7 +171,7 @@ export function GuideEditor({
 
       {noticeText ? (
         <div className="rounded-md border border-success bg-success-light px-4 py-3 mb-6">
-          <p className="text-body-sm font-medium text-success">{noticeText}</p>
+          <p className="text-body-sm font-medium text-success-ink">{noticeText}</p>
         </div>
       ) : null}
 

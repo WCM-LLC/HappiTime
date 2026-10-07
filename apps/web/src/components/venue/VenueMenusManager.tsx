@@ -208,8 +208,8 @@ export default function VenueMenusManager({
           {menus.map((m) => {
             const menuPublished = (m.status ?? '').toLowerCase() === HH_STATUS_PUBLISHED;
             const menuStatusColor = menuPublished
-              ? 'bg-success-light text-success'
-              : 'bg-warning-light text-warning';
+              ? 'bg-success-light text-success-ink'
+              : 'bg-warning-light text-warning-ink';
             const menuFormId = `menu-save-form-${m.id}`;
             const publishMenuFormId = `menu-publish-form-${m.id}`;
             const deleteMenuFormId = `menu-delete-form-${m.id}`;

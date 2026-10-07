@@ -75,8 +75,8 @@ export default async function SubscriptionPage({
         </div>
 
         {subscriptionResult === 'success' && (
-          <div className="rounded-md border border-green-200 bg-green-50 px-4 py-3 mb-6">
-            <p className="text-body-sm font-medium text-green-700">Subscription activated — your plan is now live.</p>
+          <div className="rounded-md border border-success/30 bg-success-light px-4 py-3 mb-6">
+            <p className="text-body-sm font-medium text-success-ink">Subscription activated — your plan is now live.</p>
             <TrackOnMount
               event="subscription_checkout_completed"
               props={{ org_id: orgId, venue_id: venueId, plan: currentPlan }}

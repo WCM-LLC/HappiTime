@@ -6,6 +6,7 @@ import { adminToggleWindow, adminToggleVenueStatus, adminSetPromotionTier, admin
 import { adminSendPasswordReset, adminUpdateUserInfo, adminRemoveMembership, adminRemoveAllMemberships } from '@/actions/admin-user-actions';
 import { adminUpdateOrganization } from '@/actions/admin-org-actions';
 import { STICKY_ACTION_HEAD, STICKY_ACTION_CELL } from '@/utils/stickyActionColumn';
+import { tierBadgeColors } from '@/utils/tier-style';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -96,19 +97,23 @@ const thCls =
   'px-4 py-2.5 text-left text-caption font-semibold text-muted uppercase tracking-wider whitespace-nowrap cursor-pointer select-none';
 const tdCls = 'px-4 py-3 text-body-sm align-middle';
 const linkCls = 'text-brand font-semibold text-caption whitespace-nowrap hover:text-brand-dark transition-colors';
-const badgeGreen = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-success-light text-success';
-const badgeGray = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-background text-muted';
-const badgeFeatured = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-brand-subtle text-brand-text';
-const badgePremium = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-[#EDE9FE] text-[#6D28D9]';
-const badgeBasic = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-[#DBEAFE] text-[#2563EB]';
+const badgeBase = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold';
+const badgeGreen = `${badgeBase} bg-success-light text-success-ink`;
+const badgeGray = `${badgeBase} bg-background text-muted`;
+
+/** Tier colours come from @/utils/tier-style; only the wording lives here. */
+const TIER_LABELS: Record<string, string> = {
+  verified: 'Verified',
+  featured: '★ Featured',
+  founding_pilot: 'Founding Pilot',
+  bundle_2_4: 'Bundle 2–4',
+  bundle_5_plus: 'Bundle 5+',
+};
 
 function getPromoBadge(tier: string | null) {
-  if (tier === 'featured') return { cls: badgeFeatured, label: '★ Featured' };
-  if (tier === 'verified') return { cls: badgeBasic, label: 'Verified' };
-  if (tier === 'founding_pilot') return { cls: badgePremium, label: 'Founding Pilot' };
-  if (tier === 'bundle_2_4') return { cls: badgePremium, label: 'Bundle 2–4' };
-  if (tier === 'bundle_5_plus') return { cls: badgePremium, label: 'Bundle 5+' };
-  return { cls: badgeGray, label: 'Free' };
+  const label = tier ? TIER_LABELS[tier] : undefined;
+  if (!label) return { cls: badgeGray, label: 'Free' };
+  return { cls: `${badgeBase} ${tierBadgeColors(tier)}`, label };
 }
 
 const tableCls = 'w-full border-collapse text-body-sm';
@@ -903,10 +908,16 @@ export function WindowsTable({ windows, venues }: { windows: WindowRow[]; venues
 /* ════════════════════════════════════════════════════════════════════════
    USERS TABLE — Owners, Managers, Hosts only
    ════════════════════════════════════════════════════════════════════════ */
+/**
+ * Role is a permission level, not a category, so it reads as a neutral
+ * hierarchy rather than a third set of hues. The reserved palette is spoken
+ * for by subscription tiers; reusing it here would make navy mean "bundle" in
+ * one table and "manager" in the next.
+ */
 function roleBadgeCls(role: string) {
-  if (role === 'owner') return 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-brand-subtle text-brand-text';
-  if (role === 'manager') return 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-[#DBEAFE] text-[#2563EB]';
-  if (role === 'host') return 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-[#FEF3C7] text-[#92400E]';
+  if (role === 'owner') return `${badgeBase} bg-dark text-dark-foreground`;
+  if (role === 'manager') return `${badgeBase} bg-background text-foreground border border-border-strong`;
+  if (role === 'host') return `${badgeBase} bg-background text-muted border border-border`;
   return badgeGray;
 }
 
@@ -983,7 +994,7 @@ function UserRowItem({ user }: { user: UserRow }) {
                 <input type="hidden" name="return_path" value="/admin" />
                 <button
                   formAction={adminSendPasswordReset}
-                  className="text-caption font-medium text-warning hover:underline cursor-pointer"
+                  className="text-caption font-medium text-warning-ink hover:underline cursor-pointer"
                 >
                   Confirm send
                 </button>

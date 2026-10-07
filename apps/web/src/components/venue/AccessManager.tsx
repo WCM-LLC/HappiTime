@@ -222,7 +222,7 @@ export default function AccessManager({
               const roleBadgeColor = isMemberOwner
                 ? 'bg-brand-subtle text-brand-dark'
                 : member.role === 'manager' || member.role === 'admin' || member.role === 'editor'
-                  ? 'bg-success-light text-success'
+                  ? 'bg-success-light text-success-ink'
                   : 'bg-background text-muted';
 
               return (

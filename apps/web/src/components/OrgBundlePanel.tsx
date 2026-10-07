@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { bundleTierForCount, rateForBundleTier, type BundleTier } from '@/utils/bundle';
+import { tierBadgeColors } from '@/utils/tier-style';
 
 const TIER_LABEL: Record<BundleTier, string> = {
   bundle_2_4: 'Bundle · 2–4 venues',
@@ -85,7 +86,7 @@ export function OrgBundlePanel({ orgId, venueCount, bundle, justCheckedOut }: Pr
       </div>
 
       {error && (
-        <div className="rounded-md border border-error bg-red-50 px-4 py-3 mb-5">
+        <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-5">
           <p className="text-body-sm text-error">{error}</p>
         </div>
       )}
@@ -93,7 +94,7 @@ export function OrgBundlePanel({ orgId, venueCount, bundle, justCheckedOut }: Pr
       {bundle ? (
         <div>
           <p className="text-body-sm text-muted">
-            <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-amber-50 text-amber-700">
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${tierBadgeColors(bundle.tier)}`}>
               {TIER_LABEL[bundle.tier]}
             </span>{' '}
             <span className="ml-2">{bundle.status}</span>
