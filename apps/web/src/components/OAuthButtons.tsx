@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { safeNextPath } from '@/utils/auth-paths';
 import { createClient } from '@/utils/supabase/client';
 
@@ -66,13 +67,13 @@ export default function OAuthButtons({ next, providers = ['google'] }: OAuthButt
 
       if (error) {
         console.error(error);
-        alert(error.message);
+        toast.error(error.message);
         setBusy(null);
         return;
       }
 
       if (!data?.url) {
-        alert(`Unable to start ${provider} login. Please try again.`);
+        toast.error(`Unable to start ${provider} login. Please try again.`);
         setBusy(null);
         return;
       }
@@ -80,7 +81,7 @@ export default function OAuthButtons({ next, providers = ['google'] }: OAuthButt
       window.location.assign(data.url);
     } catch (error: any) {
       console.error(error);
-      alert(error?.message ?? `Unable to start ${provider} login.`);
+      toast.error(error?.message ?? `Unable to start ${provider} login.`);
       setBusy(null);
     }
   }

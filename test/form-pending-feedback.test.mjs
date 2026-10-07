@@ -55,7 +55,7 @@ function readTag(src, start) {
  * <form> tag appears at the call site. Verified by its own test below, so this
  * list cannot quietly rot into a false negative.
  */
-const FORM_WRAPPERS = ["ConfirmDeleteForm"];
+const FORM_WRAPPERS = ["ConfirmDeleteForm", "ConfirmForm"];
 
 /**
  * Every SubmitButton in the tree, with the <form> nesting depth at its
@@ -126,6 +126,16 @@ test("every allowlisted form wrapper really does render a form around its childr
     const matches = tsxFiles(webSrc).filter((f) => f.endsWith(`${name}.tsx`));
     assert.equal(matches.length, 1, `expected exactly one ${name}.tsx`);
     const src = readFileSync(matches[0], "utf8");
+    // A wrapper may render the <form> itself, or hand its children to another
+    // allowlisted wrapper that does — ConfirmDeleteForm delegates to
+    // ConfirmForm so both share one dialog implementation.
+    const delegatesTo = FORM_WRAPPERS.filter((w) => w !== name).find((w) =>
+      new RegExp(`<${w}\\b`).test(src),
+    );
+    if (delegatesTo) {
+      assert.match(src, /\{children\}/, `${name} must pass children to ${delegatesTo}`);
+      continue;
+    }
     assert.match(src, /<form\b/, `${name} must render a <form>`);
     assert.match(src, /\{children\}/, `${name} must render children inside that form`);
   }
