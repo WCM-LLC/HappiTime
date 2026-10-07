@@ -66,11 +66,11 @@ export default async function OrgPage({
             </label>
             <div className="row">
               <input name="address" placeholder="Street address (required)" required />
-              <input name="city" placeholder="City (required)" required />
+              <input aria-label="City" name="city" placeholder="City (required)" required />
             </div>
             <div className="row">
-              <input name="state" placeholder="State (required)" required />
-              <input name="zip" placeholder="ZIP (required)" required />
+              <input aria-label="State" name="state" placeholder="State (required)" required />
+              <input aria-label="ZIP" name="zip" placeholder="ZIP (required)" required />
             </div>
             <label>
               Timezone

@@ -136,7 +136,7 @@ function SearchInput({
           <circle cx="11" cy="11" r="7" /><path d="m21 21-3.5-3.5" />
         </svg>
       </div>
-      <input
+      <input aria-label={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -227,7 +227,7 @@ function PaginationBar({
         {total === 0 ? 'No results' : `Showing ${start + 1}–${end} of ${total}`}
       </span>
       <div className="flex items-center gap-2">
-        <select
+        <select aria-label="Rows per page"
           value={pageSize}
           onChange={(e) => setPageSize(Number(e.target.value))}
           className="h-7 rounded border border-border bg-background text-caption text-foreground px-1.5 cursor-pointer focus:ring-1 focus:ring-brand focus:outline-none"
@@ -720,7 +720,7 @@ export function VenuesTable({ venues }: { venues: VenueRow[] }) {
                       </button>
                     </td>
                     <td className={tdCls}>
-                      <select
+                      <select aria-label={`Promotion tier for ${displayName}`}
                         value={v.promotion_tier ?? ''}
                         onChange={(e) => handleTierChange(v, e.target.value)}
                         disabled={isPromoUpdating || pending}

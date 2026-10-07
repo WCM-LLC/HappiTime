@@ -884,15 +884,15 @@ export default async function VenuePage({
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                   <span className="text-body-sm text-muted w-24 shrink-0">Facebook</span>
-                  <input name="facebook_url" type="url" placeholder="https://facebook.com/yourvenue" defaultValue={v?.facebook_url ?? ''} readOnly={!canManageVenue} className={inputCls} />
+                  <input aria-label="https://facebook.com/yourvenue" name="facebook_url" type="url" placeholder="https://facebook.com/yourvenue" defaultValue={v?.facebook_url ?? ''} readOnly={!canManageVenue} className={inputCls} />
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-body-sm text-muted w-24 shrink-0">Instagram</span>
-                  <input name="instagram_url" type="url" placeholder="https://instagram.com/yourvenue" defaultValue={v?.instagram_url ?? ''} readOnly={!canManageVenue} className={inputCls} />
+                  <input aria-label="https://instagram.com/yourvenue" name="instagram_url" type="url" placeholder="https://instagram.com/yourvenue" defaultValue={v?.instagram_url ?? ''} readOnly={!canManageVenue} className={inputCls} />
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-body-sm text-muted w-24 shrink-0">TikTok</span>
-                  <input name="tiktok_url" type="url" placeholder="https://tiktok.com/@yourvenue" defaultValue={v?.tiktok_url ?? ''} readOnly={!canManageVenue} className={inputCls} />
+                  <input aria-label="https://tiktok.com/@yourvenue" name="tiktok_url" type="url" placeholder="https://tiktok.com/@yourvenue" defaultValue={v?.tiktok_url ?? ''} readOnly={!canManageVenue} className={inputCls} />
                 </div>
               </div>
             </div>

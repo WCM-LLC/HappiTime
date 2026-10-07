@@ -67,7 +67,7 @@ export function IntakeReviewActions({
 
   return (
     <div className="flex flex-col gap-1.5 min-w-[220px]">
-      <input
+      <input aria-label="Reason sent to the submitter"
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         placeholder="Reason (goes to the submitter)"

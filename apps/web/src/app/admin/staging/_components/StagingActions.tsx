@@ -103,7 +103,7 @@ export function PromoteForm({
           Will match or create org <span className="font-medium">“{venueName || 'venue name'}”</span>.
         </p>
       ) : (
-        <select
+        <select aria-label="Organization to promote this venue into"
           value={orgId}
           onChange={(e) => setOrgId(e.target.value)}
           className="h-8 rounded border border-border bg-background text-body-sm px-2 focus:ring-1 focus:ring-brand focus:outline-none"
@@ -164,7 +164,7 @@ export function RejectForm({
 
   return (
     <div className="flex flex-col gap-2 min-w-[220px]">
-      <input
+      <input aria-label="Reason for rejecting this venue"
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         placeholder="Reason (optional)"

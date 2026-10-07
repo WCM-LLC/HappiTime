@@ -116,27 +116,27 @@ export function AddressReviewActions({
   if (mode === 'accept') {
     return (
       <div className="flex flex-col gap-1.5 min-w-[240px]">
-        <input
+        <input aria-label="Corrected street address"
           value={address}
           onChange={(e) => { setAddress(e.target.value); touchedRef.current = true; }}
           placeholder="Street address"
           className="h-8 rounded border border-border bg-background text-body-sm px-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand"
         />
         <div className="flex gap-1.5">
-          <input
+          <input aria-label="City"
             value={city}
             onChange={(e) => { setCity(e.target.value); touchedRef.current = true; }}
             placeholder="City"
             className="h-8 w-1/2 rounded border border-border bg-background text-body-sm px-2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand"
           />
-          <input
+          <input aria-label="ST"
             value={stateField}
             onChange={(e) => { setStateField(e.target.value); touchedRef.current = true; }}
             placeholder="ST"
             maxLength={2}
             className="h-8 w-14 rounded border border-border bg-background text-body-sm px-2 uppercase focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand"
           />
-          <input
+          <input aria-label="ZIP"
             value={zip}
             onChange={(e) => { setZip(e.target.value); touchedRef.current = true; }}
             placeholder="ZIP"

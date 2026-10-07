@@ -86,7 +86,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
   return (
     <div>
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <input
+        <input aria-label="Filter users by handle, name, or email"
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}

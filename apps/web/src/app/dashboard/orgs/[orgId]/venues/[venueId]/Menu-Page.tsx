@@ -211,11 +211,11 @@ export default async function VenuePage({
             </label>
             <div className="row">
               <input name="address" placeholder="Address" defaultValue={v?.address ?? ''} />
-              <input name="city" placeholder="City" defaultValue={v?.city ?? ''} />
+              <input aria-label="City" name="city" placeholder="City" defaultValue={v?.city ?? ''} />
             </div>
             <div className="row">
-              <input name="state" placeholder="State" defaultValue={v?.state ?? ''} />
-              <input name="zip" placeholder="ZIP" defaultValue={v?.zip ?? ''} />
+              <input aria-label="State" name="state" placeholder="State" defaultValue={v?.state ?? ''} />
+              <input aria-label="ZIP" name="zip" placeholder="ZIP" defaultValue={v?.zip ?? ''} />
             </div>
             <label>
               Timezone
@@ -354,7 +354,7 @@ export default async function VenuePage({
           <h3 style={{ marginTop: 0 }}>Menus (structured)</h3>
 
           <form className="row" style={{ marginBottom: 12 }}>
-            <input name="menu_name" placeholder="New menu name (e.g., Happy Hour Drinks)" required />
+            <input aria-label="New menu name (e.g., Happy Hour Drinks)" name="menu_name" placeholder="New menu name (e.g., Happy Hour Drinks)" required />
             <button formAction={createMenu.bind(null, orgId, venueId)}>Add menu</button>
           </form>
 
@@ -412,7 +412,7 @@ export default async function VenuePage({
                     <div className="col" style={{ gap: 10, marginTop: 10 }}>
                       <form className="row">
                         <input type="hidden" name="menu_id" value={m.id} />
-                        <input name="section_name" placeholder="New menu section (e.g., Cocktails)" required />
+                        <input aria-label="New menu section (e.g., Cocktails)" name="section_name" placeholder="New menu section (e.g., Cocktails)" required />
                         <button className="secondary" formAction={createSection.bind(null, orgId, venueId)}>
                           Add menu section
                         </button>
@@ -430,7 +430,7 @@ export default async function VenuePage({
 
                               <div className="row" style={{ justifyContent: 'space-between', gap: 10 }}>
                                 <input form={menuFormId} type="hidden" name="section_ids" value={s.id} />
-                                <input
+                                <input aria-label="Section name"
                                   form={menuFormId}
                                   name={`section_name_${s.id}`}
                                   defaultValue={s.name}
@@ -457,14 +457,14 @@ export default async function VenuePage({
                                           <div className="col" style={{ gap: 8 }}>
                                             <input form={menuFormId} type="hidden" name="item_ids" value={it.id} />
                                             <div className="row" style={{ gap: 10 }}>
-                                              <input
+                                              <input aria-label="Item name"
                                                 form={menuFormId}
                                                 name={`item_name_${it.id}`}
                                                 defaultValue={it.name}
                                                 required
                                                 style={{ flex: 1 }}
                                               />
-                                              <input
+                                              <input aria-label="Item price"
                                                 form={menuFormId}
                                                 name={`item_price_${it.id}`}
                                                 type="number"
@@ -474,7 +474,7 @@ export default async function VenuePage({
                                                 style={{ width: 160 }}
                                               />
                                             </div>
-                                            <textarea
+                                            <textarea aria-label="Description"
                                               form={menuFormId}
                                               name={`item_description_${it.id}`}
                                               defaultValue={it.description ?? ''}
