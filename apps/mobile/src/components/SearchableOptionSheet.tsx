@@ -70,6 +70,8 @@ export const SearchableOptionSheet: React.FC<SearchableOptionSheetProps> = ({
   return (
     <View style={[styles.container, open && styles.containerOpen, style]}>
       <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
         onPress={handleToggleOpen}
         style={({ pressed }) => [
           styles.trigger,
@@ -127,6 +129,8 @@ export const SearchableOptionSheet: React.FC<SearchableOptionSheetProps> = ({
                 const selected = option === value;
                 return (
                   <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected }}
                     key={option}
                     onPress={() => handleSelect(option)}
                     style={({ pressed }) => [

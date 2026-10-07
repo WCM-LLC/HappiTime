@@ -67,7 +67,7 @@ export const VisitRatingModal: React.FC<Props> = ({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.modalRoot}
       >
-        <Pressable style={styles.backdrop} onPress={onDismiss} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Close the rating sheet" style={styles.backdrop} onPress={onDismiss} />
         <View style={styles.sheet}>
           <ScrollView
             keyboardShouldPersistTaps="handled"
@@ -87,6 +87,7 @@ export const VisitRatingModal: React.FC<Props> = ({
                 const filled = starIndex <= rating;
                 return (
                   <Pressable
+                    accessibilityRole="button"
                     key={starIndex}
                     onPress={() => setRating(starIndex)}
                     style={styles.starTouch}
@@ -116,6 +117,8 @@ export const VisitRatingModal: React.FC<Props> = ({
                   const selected = selectedAspects.includes(aspect);
                   return (
                     <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ selected }}
                       key={aspect}
                       onPress={() =>
                         setSelectedAspects((prev) =>
@@ -148,6 +151,7 @@ export const VisitRatingModal: React.FC<Props> = ({
 
             {/* Buttons */}
             <Pressable
+              accessibilityRole="button"
               style={({ pressed }) => [
                 styles.submitButton,
                 !canSubmit && styles.submitButtonDisabled,
@@ -162,6 +166,7 @@ export const VisitRatingModal: React.FC<Props> = ({
             </Pressable>
 
             <Pressable
+              accessibilityRole="button"
               style={({ pressed }) => [
                 styles.skipButton,
                 pressed && { opacity: 0.7 },

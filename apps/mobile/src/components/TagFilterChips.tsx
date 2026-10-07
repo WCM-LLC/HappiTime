@@ -46,6 +46,8 @@ export const TagFilterChips: React.FC<TagFilterChipsProps> = ({
           const active = selectedSlugs.has(tag.slug);
           return (
             <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
               key={tag.slug}
               onPress={() => onToggle(tag.slug)}
               hitSlop={6}

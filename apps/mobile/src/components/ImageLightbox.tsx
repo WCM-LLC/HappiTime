@@ -68,7 +68,7 @@ export function ImageLightbox({ visible, images, initialIndex = 0, onClose }: Im
           getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
           onMomentumScrollEnd={onMomentumEnd}
           renderItem={({ item }) => (
-            <Pressable style={[styles.page, { width }]} onPress={onClose}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Close image" style={[styles.page, { width }]} onPress={onClose}>
               <Image source={{ uri: item }} style={styles.image} resizeMode="contain" />
             </Pressable>
           )}

@@ -17,7 +17,7 @@ type Props = {
 
 export function SuggestionCard({ item, onPress }: Props) {
   return (
-    <Pressable onPress={onPress} style={styles.row}>
+    <Pressable accessibilityRole="button" onPress={onPress} style={styles.row}>
       <View style={styles.avatarWrap}>
         {item.actorAvatar ? (
           <Image source={{ uri: item.actorAvatar }} style={styles.avatar} />

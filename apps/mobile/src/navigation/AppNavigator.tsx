@@ -115,6 +115,16 @@ function AppTabs({ initialRouteName }: { initialRouteName?: keyof MainTabParamLi
         options={{
           tabBarBadge: unread > 0 ? (unread > 99 ? "99+" : unread) : undefined,
           tabBarBadgeStyle: styles.tabBarBadge,
+          // The badge is an Animated.Text nested in the tab button, so the
+          // number IS announced — as a bare "3" with nothing saying what it
+          // counts. tabBarAccessibilityLabel maps to aria-label, which replaces
+          // the whole computed name, so the tab's own name is repeated here.
+          // The other four tabs are left alone: tabBarShowLabel is true, so
+          // their visible <Text> already supplies the accessible name.
+          tabBarAccessibilityLabel:
+            unread > 0
+              ? `Activity, ${unread > 99 ? "99+" : unread} unread`
+              : "Activity",
         }}
       />
       <Tab.Screen name="Profile" component={ProfileScreen} />

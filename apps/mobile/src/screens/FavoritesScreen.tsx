@@ -216,6 +216,7 @@ export const FavoritesScreen: React.FC = () => {
           <View style={styles.itineraryHeader}>
             <Text style={styles.itineraryTitle}>Itineraries</Text>
             <Pressable
+              accessibilityRole="button"
               style={({ pressed }) => [
                 styles.newListButton,
                 pressed && { opacity: 0.75, transform: [{ scale: 0.95 }] },
@@ -433,6 +434,7 @@ const ListRow: React.FC<ListRowProps> = ({ list, onEdit }) => {
 
   return (
     <Pressable
+      accessibilityRole="button"
       onPress={onEdit}
       style={({ pressed }) => [styles.historyRow, pressed && { opacity: 0.75 }]}
     >
@@ -526,7 +528,7 @@ const NewListModal: React.FC<NewListModalProps> = ({ visible, onClose, onCreate 
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={editStyles.modalRoot}
       >
-        <Pressable style={editStyles.backdrop} onPress={handleClose} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Close the New Itinerary sheet" style={editStyles.backdrop} onPress={handleClose} />
         <View style={editStyles.sheet}>
           <ScrollView
             keyboardShouldPersistTaps="handled"
@@ -563,6 +565,7 @@ const NewListModal: React.FC<NewListModalProps> = ({ visible, onClose, onCreate 
             />
 
             <Pressable
+              accessibilityRole="button"
               style={({ pressed }) => [
                 editStyles.saveButton,
                 !canSubmit && editStyles.saveButtonDisabled,
@@ -727,7 +730,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={editStyles.modalRoot}
       >
-        <Pressable style={editStyles.backdrop} onPress={onClose} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Close the itinerary sheet" style={editStyles.backdrop} onPress={onClose} />
         <View style={editStyles.sheet}>
           <View style={editStyles.handle} />
           <ScrollView
@@ -749,12 +752,14 @@ const EditListModal: React.FC<EditListModalProps> = ({
                 {mode === "details" ? (
                   <>
                     <Pressable
+                      accessibilityRole="button"
                       onPress={() => setMode("edit")}
                       style={({ pressed }) => [editStyles.shareToggle, pressed && { opacity: 0.7 }]}
                     >
                       <Text style={editStyles.shareToggleText}>Edit</Text>
                     </Pressable>
                     <Pressable
+                      accessibilityRole="button"
                       onPress={() => setMode("share")}
                       style={({ pressed }) => [editStyles.shareToggle, pressed && { opacity: 0.7 }]}
                     >
@@ -763,6 +768,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
                   </>
                 ) : (
                   <Pressable
+                    accessibilityRole="button"
                     onPress={() => setMode("details")}
                     style={({ pressed }) => [editStyles.shareToggle, pressed && { opacity: 0.7 }]}
                   >
@@ -792,6 +798,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
                           {item.venue_name}
                         </Text>
                         <Pressable
+                          accessibilityRole="button"
                           onPress={() => onShowVenueCard(item.venue_id)}
                           style={({ pressed }) => [
                             editStyles.venueCardButton,
@@ -805,6 +812,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
                   </View>
                 )}
                 <Pressable
+                  accessibilityRole="button"
                   style={({ pressed }) => [
                     editStyles.saveButton,
                     list.items.length === 0 && editStyles.saveButtonDisabled,
@@ -841,6 +849,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
                 />
 
                 <Pressable
+                  accessibilityRole="button"
                   onPress={() => setIsPublic((v) => !v)}
                   style={({ pressed }) => [editStyles.visibilityRow, pressed && { opacity: 0.75 }]}
                 >
@@ -858,6 +867,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
                 </Pressable>
 
                 <Pressable
+                  accessibilityRole="button"
                   style={({ pressed }) => [
                     editStyles.saveButton,
                     !isValid && editStyles.saveButtonDisabled,
@@ -872,6 +882,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
                 </Pressable>
 
                 <Pressable
+                  accessibilityRole="button"
                   style={({ pressed }) => [editStyles.deleteButton, pressed && { opacity: 0.75 }]}
                   onPress={() => onDelete(list.id)}
                 >
@@ -923,6 +934,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
                           ) : null}
                         </View>
                         <Pressable
+                          accessibilityRole="button"
                           onPress={() => handleShareFriend(f.follower_id)}
                           disabled={alreadyShared || isSending}
                           style={({ pressed }) => [
@@ -950,6 +962,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
                   Send a link — if they don't have HappiTime yet, they'll be directed to download it.
                 </Text>
                 <Pressable
+                  accessibilityRole="button"
                   style={({ pressed }) => [editStyles.saveButton, pressed && { opacity: 0.85 }]}
                   onPress={handleShareOutside}
                 >

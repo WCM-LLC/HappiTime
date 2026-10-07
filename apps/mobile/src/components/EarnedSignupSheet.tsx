@@ -29,12 +29,13 @@ export function EarnedSignupSheet({ kind, onDismiss }: EarnedSignupSheetProps) {
   return (
     <Modal transparent visible animationType="fade" onRequestClose={onDismiss}>
       <View style={styles.backdrop}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onDismiss} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Dismiss this sign-up prompt" style={StyleSheet.absoluteFill} onPress={onDismiss} />
         <View style={styles.card}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
           <SignInOptions />
           <Pressable
+            accessibilityRole="button"
             style={({ pressed }) => [styles.notNowButton, pressed && styles.notNowPressed]}
             onPress={onDismiss}
           >

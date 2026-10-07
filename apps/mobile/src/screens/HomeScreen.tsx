@@ -544,6 +544,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
           <View style={styles.filterRail}>
             <Pressable
+              accessibilityRole="button"
               onPress={openCityPicker}
               style={({ pressed }) => [
                 styles.filterActionButton,
@@ -658,6 +659,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             {/* Locate / recenter button */}
             {coords && (
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Center the map on my location"
                 onPress={() => {
                   if (!coords || !mapRef.current) return;
                   mapRef.current.animateToRegion(
@@ -680,6 +683,8 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             )}
             {/* Maximize / expand map button */}
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open the full map"
               onPress={() => navigation.navigate("Map" as any)}
               style={({ pressed }) => [
                 styles.mapExpandButton,
@@ -746,6 +751,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
         )}
 
         <Pressable
+          accessibilityRole="button"
           onPress={() => navigation.navigate("EventCalendar")}
           style={({ pressed }) => [styles.eventsEntryCard, pressed && { opacity: 0.75 }]}
         >
@@ -782,12 +788,14 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
             />
             <View style={styles.modalActions}>
               <Pressable
+                accessibilityRole="button"
                 onPress={() => setCityPickerVisible(false)}
                 style={styles.modalButtonSecondary}
               >
                 <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
               </Pressable>
               <Pressable
+                accessibilityRole="button"
                 onPress={() => {
                   const trimmed = cityDraft.trim();
                   if (trimmed) {
@@ -947,6 +955,7 @@ const VenueCard: React.FC<VenueCardProps> = ({
         ) : null}
       </View>
       <Pressable
+        accessibilityRole="button"
         onPress={onSelect}
         disabled={!onSelect}
         style={({ pressed }) => [styles.cardBody, pressed && styles.cardBodyPressed]}
@@ -984,6 +993,9 @@ const VenueCard: React.FC<VenueCardProps> = ({
         )}
         <View style={styles.cardFooterRow}>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={isFavorite ? `Remove ${name} from favorites` : `Save ${name} to favorites`}
+            accessibilityState={{ selected: isFavorite }}
             onPress={(e) => {
               e.stopPropagation();
               onToggleFavorite?.();

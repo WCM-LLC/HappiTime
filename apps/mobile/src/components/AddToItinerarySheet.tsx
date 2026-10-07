@@ -36,6 +36,7 @@ export const AddToItinerarySheet: React.FC<Props> = ({ venueId }) => {
   return (
     <>
       <Pressable
+        accessibilityRole="button"
         style={({ pressed }) => [
           styles.actionButton,
           pressed && styles.actionButtonPressed,
@@ -56,6 +57,8 @@ export const AddToItinerarySheet: React.FC<Props> = ({ venueId }) => {
           style={styles.modalRoot}
         >
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close the Add to Itinerary sheet"
             style={styles.backdrop}
             onPress={() => setShowItineraryPicker(false)}
           />
@@ -89,6 +92,8 @@ export const AddToItinerarySheet: React.FC<Props> = ({ venueId }) => {
                 <View style={styles.visRow}>
                   {(["private", "friends", "public"] as const).map((v) => (
                     <Pressable
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: newListVisibility === v }}
                       key={v}
                       style={[
                         styles.visChip,
@@ -112,6 +117,7 @@ export const AddToItinerarySheet: React.FC<Props> = ({ venueId }) => {
                   ))}
                 </View>
                 <Pressable
+                  accessibilityRole="button"
                   style={[
                     styles.createBtn,
                     (!newListName.trim() || creatingList) && { opacity: 0.5 },
@@ -152,7 +158,7 @@ export const AddToItinerarySheet: React.FC<Props> = ({ venueId }) => {
                   </Text>
                 </Pressable>
                 {lists.length > 0 && (
-                  <Pressable onPress={() => setShowCreateForm(false)}>
+                  <Pressable accessibilityRole="button" onPress={() => setShowCreateForm(false)}>
                     <Text style={styles.cancelText}>Cancel</Text>
                   </Pressable>
                 )}
@@ -169,6 +175,7 @@ export const AddToItinerarySheet: React.FC<Props> = ({ venueId }) => {
                     const adding = addingToId === item.id;
                     return (
                       <Pressable
+                        accessibilityRole="button"
                         style={({ pressed }) => [
                           styles.row,
                           pressed && { opacity: 0.75 },
@@ -207,6 +214,7 @@ export const AddToItinerarySheet: React.FC<Props> = ({ venueId }) => {
                   }}
                 />
                 <Pressable
+                  accessibilityRole="button"
                   style={styles.newListBtn}
                   onPress={() => setShowCreateForm(true)}
                 >

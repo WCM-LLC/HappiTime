@@ -178,7 +178,7 @@ export const ListingFreshness: React.FC<Props> = ({ venueId }) => {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.modalRoot}
         >
-          <Pressable style={styles.backdrop} onPress={closeSheet} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Close the report sheet" style={styles.backdrop} onPress={closeSheet} />
           <View style={styles.sheet}>
             <View style={styles.handle} />
             {submitted ? (
@@ -188,7 +188,7 @@ export const ListingFreshness: React.FC<Props> = ({ venueId }) => {
                   We&apos;ll check this listing and let you know when it&apos;s
                   fixed. Reports like yours keep HappiTime honest.
                 </Text>
-                <Pressable style={styles.doneBtn} onPress={closeSheet}>
+                <Pressable accessibilityRole="button" style={styles.doneBtn} onPress={closeSheet}>
                   <Text style={styles.doneBtnText}>Done</Text>
                 </Pressable>
               </>
@@ -197,6 +197,7 @@ export const ListingFreshness: React.FC<Props> = ({ venueId }) => {
                 <Text style={styles.title}>What&apos;s off?</Text>
                 {REPORT_OPTIONS.map((opt) => (
                   <Pressable
+                    accessibilityState={{ selected: selectedType === opt.type }}
                     key={opt.type}
                     style={[
                       styles.optionRow,
@@ -224,6 +225,7 @@ export const ListingFreshness: React.FC<Props> = ({ venueId }) => {
                   multiline
                 />
                 <Pressable
+                  accessibilityRole="button"
                   style={[
                     styles.submitBtn,
                     (!selectedType || submitting) && { opacity: 0.5 },

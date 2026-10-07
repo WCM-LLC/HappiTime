@@ -25,10 +25,10 @@ export function BackgroundLocationDisclosure({ visible, onAccept, onDecline }: P
             Settings.
           </Text>
           <View style={styles.actions}>
-            <Pressable onPress={onDecline} style={styles.secondary}>
+            <Pressable accessibilityRole="button" onPress={onDecline} style={styles.secondary}>
               <Text style={styles.secondaryText}>Not now</Text>
             </Pressable>
-            <Pressable onPress={onAccept} style={styles.primary}>
+            <Pressable accessibilityRole="button" onPress={onAccept} style={styles.primary}>
               <Text style={styles.primaryText}>Turn on reminders</Text>
             </Pressable>
           </View>

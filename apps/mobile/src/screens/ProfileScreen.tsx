@@ -290,6 +290,7 @@ export const ProfileScreen: React.FC = () => {
             You can browse HappiTime without an account. Sign in to save favorites, activity, and profile settings.
           </Text>
           <Pressable
+            accessibilityRole="button"
             style={({ pressed }) => [styles.primaryButton, pressed && styles.primaryButtonPressed]}
             onPress={() => navigation.navigate("Auth")}
           >
@@ -312,6 +313,7 @@ export const ProfileScreen: React.FC = () => {
       >
         <View style={styles.avatarSection}>
           <Pressable
+            accessibilityRole="button"
             onPress={handleAvatarPress}
             disabled={avatarState.status === "uploading"}
             style={({ pressed }) => [styles.avatarWrapper, pressed && { opacity: 0.8 }]}
@@ -397,6 +399,7 @@ export const ProfileScreen: React.FC = () => {
         </View>
 
         <Pressable
+          accessibilityRole="button"
           style={({ pressed }) => [
             styles.primaryButton,
             pressed && styles.primaryButtonPressed,
@@ -422,6 +425,7 @@ export const ProfileScreen: React.FC = () => {
         ) : null}
 
         <Pressable
+          accessibilityRole="button"
           style={({ pressed }) => [
             styles.dangerButton,
             pressed && !deletingAccount && styles.primaryButtonPressed,
@@ -566,6 +570,7 @@ export const ProfileScreen: React.FC = () => {
         </View>
 
         <Pressable
+          accessibilityRole="button"
           style={({ pressed }) => [
             styles.primaryButton,
             pressed && styles.primaryButtonPressed,
@@ -598,6 +603,7 @@ export const ProfileScreen: React.FC = () => {
 
         {profile?.role === "super_user" ? (
           <Pressable
+            accessibilityRole="button"
             style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
             onPress={() => navigation.navigate("InsiderCode")}
           >
@@ -607,6 +613,7 @@ export const ProfileScreen: React.FC = () => {
 
         {canScanMenus ? (
           <Pressable
+            accessibilityRole="button"
             style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
             onPress={() => navigation.navigate("ScanMenu")}
           >
@@ -624,6 +631,7 @@ export const ProfileScreen: React.FC = () => {
         ) : null}
 
         <Pressable
+          accessibilityRole="button"
         style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
         onPress={() => setShowSuggestVenue(true)}
         >
@@ -631,6 +639,7 @@ export const ProfileScreen: React.FC = () => {
         </Pressable>
 
         <Pressable
+          accessibilityRole="button"
         style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
         onPress={handleOpenSupport}
         >
@@ -647,6 +656,7 @@ export const ProfileScreen: React.FC = () => {
         </Modal>
 
         <Pressable
+          accessibilityRole="button"
         style={({ pressed }) => [styles.signOutButton, pressed && styles.signOutButtonPressed]}
         onPress={handleSignOut}
         >
@@ -706,12 +716,14 @@ export const ProfileScreen: React.FC = () => {
             />
             <View style={styles.modalActions}>
               <Pressable
+                accessibilityRole="button"
                 onPress={() => setDeleteModalVisible(false)}
                 style={styles.modalButtonSecondary}
               >
                 <Text style={styles.modalButtonSecondaryText}>Cancel</Text>
               </Pressable>
               <Pressable
+                accessibilityRole="button"
                 onPress={() => {
                   const value = deleteDraft;
                   setDeleteModalVisible(false);

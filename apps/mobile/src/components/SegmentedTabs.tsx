@@ -27,11 +27,14 @@ export const SegmentedTabs: React.FC<Props> = ({
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.container}
         style={styles.scroll}
+        accessibilityRole="tablist"
       >
         {tabs.map((tab) => {
           const selected = tab.key === activeKey;
           return (
             <Pressable
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
               key={tab.key}
               onPress={() => onChange(tab.key)}
               style={({ pressed }) => [
