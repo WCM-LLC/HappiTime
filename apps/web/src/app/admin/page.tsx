@@ -438,18 +438,27 @@ export default async function AdminPage({
         ) : null}
 
         {/* ── Stats Grid ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3 mb-10">
+        {/*
+          Six across, not eight. At eight columns a tile had ~87px of content
+          width, and a label beside a 16px icon was left about 59px — less than
+          half what "ORGANIZATIONS" needs at 12px uppercase. A single word has
+          no break opportunity, and a flex item defaults to min-width:auto, so
+          the text ran straight out of the card instead of wrapping.
+        */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 mb-10">
           {stats.map((s) => {
-            // h-full + mt-auto put every value on one baseline. Labels wrap to
-            // two lines on some tiles and one on others, which previously left
-            // the numbers stepping up and down across the row.
+            // The icon sits on its own line so the label owns the full tile
+            // width at every breakpoint rather than competing for it, and
+            // break-words keeps any future long label inside the card.
+            // h-full + mt-auto hold every value on one baseline while labels
+            // wrap to one line or two.
             const inner = (
               <div className={`flex h-full flex-col rounded-lg border border-border bg-surface p-5 shadow-sm${s.href ? ' hover:border-brand hover:shadow-md transition-all' : ''}`}>
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <span className="text-caption font-semibold text-muted uppercase tracking-wider">{s.label}</span>
-                  <s.Icon className="size-4 shrink-0 text-muted" aria-hidden="true" />
-                </div>
-                <div className="mt-auto text-display-md font-bold text-foreground tracking-tight leading-none tabular-nums">
+                <s.Icon className="size-4 shrink-0 text-muted mb-2.5" aria-hidden="true" />
+                <span className="text-caption font-semibold text-muted uppercase tracking-wide leading-tight break-words">
+                  {s.label}
+                </span>
+                <div className="mt-auto pt-3 text-display-md font-bold text-foreground tracking-tight leading-none tabular-nums">
                   {s.value.toLocaleString()}
                 </div>
               </div>
