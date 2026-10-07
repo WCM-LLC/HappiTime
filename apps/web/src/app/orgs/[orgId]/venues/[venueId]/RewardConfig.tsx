@@ -45,7 +45,7 @@ export default function RewardConfig({
             aria-pressed={preset === p.key}
             className={`text-body-sm font-medium px-3.5 py-2 rounded-full border transition-colors cursor-pointer ${
               preset === p.key
-                ? 'bg-brand border-brand text-white'
+                ? 'bg-brand border-brand text-dark'
                 : 'bg-surface border-border text-muted hover:border-brand hover:text-foreground'
             }`}
           >
@@ -78,7 +78,7 @@ export default function RewardConfig({
       </div>
 
       <SubmitButton
-        className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer"
+        className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer"
         pendingLabel="Saving…"
       >
         Save reward

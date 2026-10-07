@@ -38,7 +38,7 @@ export function ReviewControls({ guideId, status }: { guideId: string; status: s
             <input type="hidden" name="id" value={guideId} />
             <button
               type="submit"
-              className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-success text-white text-body-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-success-ink text-white text-body-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
             >
               Approve
             </button>

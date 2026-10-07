@@ -76,7 +76,7 @@ export default async function ProfilePage({
           </div>
           <button
             type="submit"
-            className="mt-6 inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer"
+            className="mt-6 inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer"
           >
             Save socials
           </button>

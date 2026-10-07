@@ -96,7 +96,7 @@ export function AddressReviewActions({
             type="button"
             onClick={openAccept}
             disabled={!googleAddress}
-            className="h-7 px-3 rounded bg-brand text-white text-caption font-medium hover:bg-brand-dark disabled:opacity-50 transition-colors cursor-pointer"
+            className="h-7 px-3 rounded bg-brand text-dark text-caption font-medium hover:bg-brand-hover disabled:opacity-50 transition-colors cursor-pointer"
           >
             Accept Google&apos;s
           </button>
@@ -156,7 +156,7 @@ export function AddressReviewActions({
             type="button"
             onClick={runAccept}
             disabled={isPending}
-            className="h-7 px-3 rounded bg-brand text-white text-caption font-medium hover:bg-brand-dark disabled:opacity-50 transition-colors cursor-pointer"
+            className="h-7 px-3 rounded bg-brand text-dark text-caption font-medium hover:bg-brand-hover disabled:opacity-50 transition-colors cursor-pointer"
           >
             {isPending ? 'Saving…' : 'Save address'}
           </button>

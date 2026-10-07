@@ -119,7 +119,7 @@ export default function StagingDetailClient({
             <button
               type="button"
               onClick={() => setAction('promote')}
-              className="h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer"
+              className="h-9 px-4 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer"
             >
               Promote
             </button>
@@ -197,7 +197,7 @@ export default function StagingDetailClient({
                 type="button"
                 onClick={handleSave}
                 disabled={isSaving}
-                className="h-8 px-4 rounded bg-brand text-white text-caption font-medium hover:bg-brand-dark disabled:opacity-50 transition-colors cursor-pointer"
+                className="h-8 px-4 rounded bg-brand text-dark text-caption font-medium hover:bg-brand-hover disabled:opacity-50 transition-colors cursor-pointer"
               >
                 {isSaving ? 'Saving…' : 'Save changes'}
               </button>

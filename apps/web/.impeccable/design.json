@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-07T18:00:00.000Z",
+  "generatedAt": "2026-10-07T19:30:00.000Z",
   "title": "Design System: HappiTime Console",
   "extensions": {
     "colorMeta": {
@@ -17,12 +17,14 @@
           "oklch(79% 0.060 65)",
           "oklch(88% 0.040 65)",
           "oklch(96% 0.016 65)"
-        ]
+        ],
+        "note": "A light fill. Its label is graphite, not white — white on copper is 2.64:1, graphite 6.60:1."
       },
       "brand-dark": {
         "role": "primary",
         "displayName": "Golden Hour Deep",
-        "canonical": "#A67842"
+        "canonical": "#A67842",
+        "note": "Copper as emphasis text on a light ground, and the hover for copper links. Not a fill behind graphite (4.46:1)."
       },
       "brand-light": {
         "role": "primary",
@@ -291,6 +293,12 @@
         "displayName": "Pending Ink",
         "canonical": "#7F6528",
         "note": "Text on warning-light, 5.34:1. The mid tone manages only 2.14:1."
+      },
+      "brand-hover": {
+        "role": "primary",
+        "displayName": "Golden Hour Raised",
+        "canonical": "#CEA16B",
+        "note": "Hover fill for the copper button. Lighter than the rest state: graphite on brand-dark is 4.46:1, on brand-hover 7.40:1."
       }
     },
     "typographyMeta": {
@@ -428,9 +436,9 @@
       "name": "Brand Button",
       "kind": "button",
       "refersTo": "button-brand",
-      "description": "The copper action. Reserved for core-loop actions — confirm, claim, publish, upgrade. One per view.",
+      "description": "The copper action. Reserved for core-loop actions — confirm, claim, publish, upgrade. One per view. Graphite label, and the hover lightens: copper is a light fill, so darkening it would reduce contrast rather than increase it.",
       "html": "<button class=\"ds-btn ds-btn-brand\">Publish listing</button>",
-      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 8px 16px; border: none; border-radius: var(--radius-md, 10px); font-family: var(--font-sans, Inter, sans-serif); font-size: var(--text-body-sm, 0.875rem); font-weight: 500; line-height: 1.5; white-space: nowrap; cursor: pointer; transition: background-color var(--duration-fast, 150ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1)); } .ds-btn:focus-visible { outline: 2px solid var(--color-brand, #C8965A); outline-offset: 2px; } .ds-btn:disabled { opacity: 0.5; pointer-events: none; } .ds-btn-brand { background: var(--color-brand, #C8965A); color: #FFFFFF; } .ds-btn-brand:hover { background: var(--color-brand-dark, #A67842); }"
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 8px 16px; border: none; border-radius: var(--radius-md, 10px); font-family: var(--font-sans, Inter, sans-serif); font-size: var(--text-body-sm, 0.875rem); font-weight: 500; line-height: 1.5; white-space: nowrap; cursor: pointer; transition: background-color var(--duration-fast, 150ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1)); } .ds-btn:focus-visible { outline: 2px solid var(--color-brand, #C8965A); outline-offset: 2px; } .ds-btn:disabled { opacity: 0.5; pointer-events: none; } .ds-btn-brand { background: var(--color-brand, #C8965A); color: var(--color-dark, #1A1A1A); } .ds-btn-brand:hover { background: var(--color-brand-hover, #CEA16B); }"
     },
     {
       "name": "Default Button",
@@ -525,6 +533,11 @@
         "section": "colors"
       },
       {
+        "name": "The Light Fill Rule",
+        "body": "Copper is a light color. Anything sitting on it is graphite, never white — white on #C8965A is 2.64:1, which fails AA outright, while graphite is 6.60:1. The consequence is that the copper button is the one control in the system whose hover lightens: darkening the fill reduces contrast with a dark label rather than increasing it. Reach for brand-hover, not brand-dark.",
+        "section": "colors"
+      },
+      {
         "name": "The No Stock Palette Rule",
         "body": "Never reach into Tailwind's default palette. amber-500, violet-600, blue-600, and raw hex literals like bg-[#DBEAFE] are all violations, even when they look close. Every color in a HappiTime surface comes from globals.css. If a needed color does not exist there, add the token first.",
         "section": "colors"
@@ -599,6 +612,8 @@
       "Do collapse columns on narrow viewports rather than rearranging them."
     ],
     "donts": [
+      "Don't put white text on copper. bg-brand text-white is 2.64:1 and shipped on 43 controls before it was caught. Copper carries graphite.",
+      "Don't use text-muted-light (#9CA3AF) as label or body text — it is 2.54:1 on white. It is for placeholders and inactive glyphs. text-muted is the quiet-but-legible option at 5.33:1.",
       "Don't use Tailwind's default palette — amber-500, violet-600, blue-600 and the rest are off-system even when they look close. Stock amber and violet were how the paid tiers were styled before the palette was unified, and a cool stock blue in a warm system is the giveaway.",
       "Don't inline raw hex in a class: bg-[#DBEAFE], text-[#6D28D9]. If the color you need is not a token, add the token first.",
       "Don't let one concept carry different colors on different screens. Tier colors come from src/utils/tier-style.ts; five separate maps once disagreed about whether Verified was copper or blue.",

@@ -118,7 +118,7 @@ export default function AddVenueForm({
           <div>
             <button
               formAction={action}
-              className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-semibold hover:bg-brand-dark transition-colors cursor-pointer"
+              className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-dark text-body-sm font-semibold hover:bg-brand-hover transition-colors cursor-pointer"
             >
               Create venue
             </button>

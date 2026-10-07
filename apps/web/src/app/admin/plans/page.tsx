@@ -337,7 +337,7 @@ export default async function PlansPage() {
 
                 <button
                   type="submit"
-                  className="h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand/90 transition-colors"
+                  className="h-9 px-4 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand/90 transition-colors"
                 >
                   Save
                 </button>
@@ -457,7 +457,7 @@ export default async function PlansPage() {
 
                 <button
                   type="submit"
-                  className="h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand/90 transition-colors"
+                  className="h-9 px-4 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand/90 transition-colors"
                 >
                   Save
                 </button>
@@ -503,7 +503,7 @@ export default async function PlansPage() {
           </div>
           <form action={adminGrantPilotBundle} className="mt-3 flex gap-2 items-center">
             <input name="org_id" placeholder="org_id to comp a pilot bundle" className="h-9 px-3 rounded-md border border-border bg-surface text-body-sm w-96" />
-            <button className="h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium">Grant pilot</button>
+            <button className="h-9 px-4 rounded-md bg-brand text-dark text-body-sm font-medium">Grant pilot</button>
           </form>
         </section>
 
