@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { promoteToSuperUser, revokeSuperUser, toggleAutoPublish } from '@/actions/admin-user-actions';
 import UserAvatar from '@/components/UserAvatar';
 import { STICKY_ACTION_HEAD, STICKY_ACTION_CELL } from '@/utils/stickyActionColumn';
+import ConfirmForm from '@/components/ui/ConfirmForm';
 
 export type SuperUserRow = {
   user_id: string;
@@ -64,26 +65,6 @@ function avatarFallback(row: Pick<SuperUserRow, 'display_name' | 'handle' | 'ema
   return source.charAt(0).toUpperCase();
 }
 
-function ConfirmingForm({
-  action,
-  message,
-  children,
-}: {
-  action: (formData: FormData) => void | Promise<void>;
-  message: string;
-  children: ReactNode;
-}) {
-  return (
-    <form
-      action={action}
-      onSubmit={(event) => {
-        if (!window.confirm(message)) event.preventDefault();
-      }}
-    >
-      {children}
-    </form>
-  );
-}
 
 export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
   const [query, setQuery] = useState('');
@@ -170,7 +151,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                     <td className="px-4 py-3 text-muted hidden lg:table-cell">{row.email ?? '—'}</td>
                     <td className="px-4 py-3"><Badge role={row.role} /></td>
                     <td className="px-4 py-3">
-                      <ConfirmingForm
+                      <ConfirmForm
                         action={toggleAutoPublish}
                         message={`${row.auto_publish_enabled ? 'Disable' : 'Enable'} auto-publish for ${row.handle ? `@${row.handle}` : row.display_name ?? 'this user'}?`}
                       >
@@ -189,7 +170,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                             }`}
                           />
                         </button>
-                      </ConfirmingForm>
+                      </ConfirmForm>
                     </td>
                     <td className="px-4 py-3 text-muted">
                       <span className="font-medium text-foreground">{row.published_guide_count}</span> published
@@ -223,7 +204,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                         <Link href={`/admin/guides?author=${row.user_id}`} className="text-caption font-medium text-foreground hover:underline">
                           Submissions
                         </Link>
-                        <ConfirmingForm
+                        <ConfirmForm
                           action={revokeSuperUser}
                           message={`Revoke Super User access for ${row.handle ? `@${row.handle}` : row.display_name ?? 'this user'}?`}
                         >
@@ -234,7 +215,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                           >
                             Revoke
                           </button>
-                        </ConfirmingForm>
+                        </ConfirmForm>
                       </div>
                     </td>
                   </tr>
@@ -278,7 +259,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                     <td className="px-4 py-3"><Badge role={row.role} /></td>
                     <td className="px-4 py-3 text-muted">{relativeDate(row.created_at)}</td>
                     <td className={`${ACTION_TD} text-right`}>
-                      <ConfirmingForm
+                      <ConfirmForm
                         action={promoteToSuperUser}
                         message={`Promote ${row.handle ? `@${row.handle}` : row.display_name ?? 'this user'} to Super User?`}
                       >
@@ -289,7 +270,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                         >
                           Make Super User
                         </button>
-                      </ConfirmingForm>
+                      </ConfirmForm>
                     </td>
                   </tr>
                 ))}
