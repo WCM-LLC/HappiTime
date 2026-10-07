@@ -3,29 +3,8 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { approveGuide, rejectGuide, unpublishGuide } from '@/actions/guide-review-actions';
+import ConfirmForm from '@/components/ui/ConfirmForm';
 
-type GuideAction = (formData: FormData) => void | Promise<void>;
-
-function ConfirmingForm({
-  action,
-  message,
-  children,
-}: {
-  action: GuideAction;
-  message: string;
-  children: ReactNode;
-}) {
-  return (
-    <form
-      action={action}
-      onSubmit={(event) => {
-        if (!window.confirm(message)) event.preventDefault();
-      }}
-    >
-      {children}
-    </form>
-  );
-}
 
 export function ReviewControls({ guideId, status }: { guideId: string; status: string }) {
   const [showReject, setShowReject] = useState(false);
@@ -34,15 +13,15 @@ export function ReviewControls({ guideId, status }: { guideId: string; status: s
     return (
       <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
-          <ConfirmingForm action={approveGuide} message="Approve and publish this guide?">
+          <ConfirmForm action={approveGuide} message="Approve and publish this guide?">
             <input type="hidden" name="id" value={guideId} />
             <button
               type="submit"
-              className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-success text-white text-body-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-success-ink text-white text-body-sm font-medium hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
             >
               Approve
             </button>
-          </ConfirmingForm>
+          </ConfirmForm>
           <button
             type="button"
             onClick={() => setShowReject((value) => !value)}
@@ -52,12 +31,12 @@ export function ReviewControls({ guideId, status }: { guideId: string; status: s
           </button>
         </div>
         {showReject ? (
-          <form
+          <ConfirmForm
             action={rejectGuide}
             className="mt-4"
-            onSubmit={(event) => {
-              if (!window.confirm('Reject this guide and return it to draft?')) event.preventDefault();
-            }}
+            title="Reject guide?"
+            message="This returns the guide to draft. The author keeps your review notes and can resubmit."
+            confirmLabel="Reject"
           >
             <input type="hidden" name="id" value={guideId} />
             <label htmlFor="reject-notes" className="text-body-sm font-medium text-foreground block mb-1.5">
@@ -85,7 +64,7 @@ export function ReviewControls({ guideId, status }: { guideId: string; status: s
                 Cancel
               </button>
             </div>
-          </form>
+          </ConfirmForm>
         ) : null}
       </div>
     );
@@ -94,7 +73,7 @@ export function ReviewControls({ guideId, status }: { guideId: string; status: s
   if (status === 'published') {
     return (
       <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
-        <ConfirmingForm action={unpublishGuide} message="Unpublish this guide and move it to archived?">
+        <ConfirmForm action={unpublishGuide} message="Unpublish this guide and move it to archived?">
           <input type="hidden" name="id" value={guideId} />
           <button
             type="submit"
@@ -102,7 +81,7 @@ export function ReviewControls({ guideId, status }: { guideId: string; status: s
           >
             Unpublish
           </button>
-        </ConfirmingForm>
+        </ConfirmForm>
       </div>
     );
   }

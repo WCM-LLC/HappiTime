@@ -9,7 +9,13 @@
 
 @theme {
   /* ── Brand Colors ── */
+  /* Copper is a light fill, so its label is graphite, not white: white on
+     brand is 2.64:1, graphite 6.60:1. That forces the hover to lighten rather
+     than darken — graphite on brand-dark is 4.46:1, just under the floor —
+     which is what brand-hover is for (7.40:1). Use brand-dark for copper
+     TEXT on light grounds, never as a fill behind graphite. */
   --color-brand: #C8965A;
+  --color-brand-hover: #CEA16B;
   --color-brand-dark: #A67842;
   --color-brand-light: #E8D5BC;
   --color-brand-subtle: #F5EDE3;

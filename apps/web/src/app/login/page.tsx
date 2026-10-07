@@ -115,7 +115,7 @@ export default async function LoginPage({
               <SubmitButton
                 formAction={login}
                 pendingLabel="Signing in…"
-                className="inline-flex items-center justify-center h-11 px-4 w-full rounded-md bg-brand text-white text-body-sm font-semibold hover:bg-brand-dark transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-wait"
+                className="inline-flex items-center justify-center h-11 px-4 w-full rounded-md bg-brand text-dark text-body-sm font-semibold hover:bg-brand-hover transition-colors cursor-pointer disabled:opacity-70 disabled:cursor-wait"
               >
                 Sign in
               </SubmitButton>

@@ -406,7 +406,7 @@ function OrgRowItem({ org }: { org: OrgRow }) {
               <div className="md:col-span-3 flex gap-2">
                 <button
                   formAction={adminUpdateOrganization.bind(null, org.id)}
-                  className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer"
+                  className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer"
                 >
                   Save
                 </button>
@@ -1131,7 +1131,7 @@ function UserRowItem({ user }: { user: UserRow }) {
               <div className="flex gap-2">
                 <button
                   formAction={adminUpdateUserInfo}
-                  className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer"
+                  className="inline-flex items-center justify-center h-9 px-4 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer"
                 >
                   Save
                 </button>
@@ -1203,7 +1203,7 @@ export function UsersTable({ users }: { users: UserRow[] }) {
               type="button"
               onClick={() => { setRoleFilter(t.key); setPage(1); }}
               className={`px-3 h-8 text-caption font-medium rounded transition-colors cursor-pointer ${
-                roleFilter === t.key ? 'bg-brand text-white' : 'text-muted hover:text-foreground'
+                roleFilter === t.key ? 'bg-brand text-dark' : 'text-muted hover:text-foreground'
               }`}
             >
               {t.label}

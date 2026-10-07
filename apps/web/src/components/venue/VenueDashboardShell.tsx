@@ -210,7 +210,7 @@ export default function VenueDashboardShell({
               <button
                 type="button"
                 onClick={() => setTab(addButton.tabId)}
-                className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer shrink-0"
+                className="inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer shrink-0"
               >
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <line x1="12" y1="5" x2="12" y2="19" />

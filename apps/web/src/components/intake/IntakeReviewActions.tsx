@@ -42,7 +42,7 @@ export function IntakeReviewActions({
             type="button"
             onClick={() => run(() => approve(submissionId))}
             disabled={isPending}
-            className="h-7 px-3 rounded bg-brand text-white text-caption font-medium hover:bg-brand-dark disabled:opacity-50 transition-colors cursor-pointer"
+            className="h-7 px-3 rounded bg-brand text-dark text-caption font-medium hover:bg-brand-hover disabled:opacity-50 transition-colors cursor-pointer"
           >
             {isPending ? 'Approving…' : 'Approve as draft'}
           </button>

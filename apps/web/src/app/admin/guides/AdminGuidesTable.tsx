@@ -5,8 +5,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { approveGuide, rejectGuide, unpublishGuide } from '@/actions/guide-review-actions';
 import { STICKY_ACTION_HEAD, STICKY_ACTION_CELL } from '@/utils/stickyActionColumn';
-
-type GuideAction = (formData: FormData) => void | Promise<void>;
+import ConfirmForm from '@/components/ui/ConfirmForm';
 
 export type GuideReviewRow = {
   id: string;
@@ -55,7 +54,7 @@ function statusClass(status: string | null) {
   const base = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold';
   if (status === 'published') return `${base} bg-success-light text-success-ink`;
   if (status === 'pending_review') return `${base} bg-warning-light text-warning-ink`;
-  if (status === 'archived') return `${base} bg-surface border border-border text-muted-light`;
+  if (status === 'archived') return `${base} bg-surface border border-border text-muted`;
   return `${base} bg-surface border border-border text-muted`;
 }
 
@@ -63,35 +62,15 @@ function authorLabel(row: Pick<GuideReviewRow, 'author_handle' | 'author_display
   return row.author_handle ? `@${row.author_handle}` : row.author_display_name ?? '—';
 }
 
-function ConfirmingForm({
-  action,
-  message,
-  children,
-}: {
-  action: GuideAction;
-  message: string;
-  children: ReactNode;
-}) {
-  return (
-    <form
-      action={action}
-      onSubmit={(event) => {
-        if (!window.confirm(message)) event.preventDefault();
-      }}
-    >
-      {children}
-    </form>
-  );
-}
 
 function RejectForm({ guideId, onCancel }: { guideId: string; onCancel: () => void }) {
   return (
-    <form
+    <ConfirmForm
       action={rejectGuide}
       className="mt-2 p-3 rounded-md border border-border bg-background"
-      onSubmit={(event) => {
-        if (!window.confirm('Reject this guide and return it to draft?')) event.preventDefault();
-      }}
+      title="Reject guide?"
+      message="This returns the guide to draft. The author keeps your feedback and can resubmit."
+      confirmLabel="Reject"
     >
       <input type="hidden" name="id" value={guideId} />
       <label htmlFor={`notes-${guideId}`} className="text-caption font-medium text-foreground block mb-1">
@@ -119,7 +98,7 @@ function RejectForm({ guideId, onCancel }: { guideId: string; onCancel: () => vo
           Cancel
         </button>
       </div>
-    </form>
+    </ConfirmForm>
   );
 }
 
@@ -204,7 +183,7 @@ export function GuidesReviewTable({
                     </Link>
                     {g.status === 'pending_review' ? (
                       <>
-                        <ConfirmingForm action={approveGuide} message="Approve and publish this guide?">
+                        <ConfirmForm action={approveGuide} message="Approve and publish this guide?">
                           <input type="hidden" name="id" value={g.id} />
                           <button
                             type="submit"
@@ -212,7 +191,7 @@ export function GuidesReviewTable({
                           >
                             Approve
                           </button>
-                        </ConfirmingForm>
+                        </ConfirmForm>
                         {rejectingId !== g.id ? (
                           <button
                             type="button"
@@ -225,7 +204,7 @@ export function GuidesReviewTable({
                       </>
                     ) : null}
                     {g.status === 'published' ? (
-                      <ConfirmingForm action={unpublishGuide} message="Unpublish this guide and move it to archived?">
+                      <ConfirmForm action={unpublishGuide} message="Unpublish this guide and move it to archived?">
                         <input type="hidden" name="id" value={g.id} />
                         <button
                           type="submit"
@@ -233,7 +212,7 @@ export function GuidesReviewTable({
                         >
                           Unpublish
                         </button>
-                      </ConfirmingForm>
+                      </ConfirmForm>
                     ) : null}
                   </div>
                 </td>

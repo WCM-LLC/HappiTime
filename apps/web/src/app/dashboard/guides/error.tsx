@@ -31,7 +31,7 @@ export default function GuidesError({
         <div className="flex items-center justify-center gap-3">
           <button
             onClick={() => reset()}
-            className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer"
+            className="inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer"
           >
             Try again
           </button>

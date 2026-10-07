@@ -453,7 +453,7 @@ export default async function OrgPage({
   const selectCls =
     'flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-body-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:border-brand transition-colors appearance-none';
   const btnPrimary =
-    'inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-white text-body-sm font-medium hover:bg-brand-dark transition-colors cursor-pointer';
+    'inline-flex items-center justify-center h-10 px-5 rounded-md bg-brand text-dark text-body-sm font-medium hover:bg-brand-hover transition-colors cursor-pointer';
   const btnSecondary =
     'inline-flex items-center justify-center h-9 px-4 rounded-md border border-border bg-surface text-body-sm font-medium text-foreground hover:bg-background transition-colors cursor-pointer';
   const btnDanger =
@@ -506,7 +506,7 @@ export default async function OrgPage({
           {pendingIntakeCount ? (
             <Link
               href={`/orgs/${orgId}/intake-review`}
-              className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-brand text-white text-body-sm font-semibold hover:bg-brand-dark transition-colors shrink-0"
+              className="inline-flex items-center justify-center h-10 px-5 rounded-full bg-brand text-dark text-body-sm font-semibold hover:bg-brand-hover transition-colors shrink-0"
             >
               Review now
             </Link>
@@ -552,7 +552,7 @@ export default async function OrgPage({
                 <div className="flex items-center justify-between p-5">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-md bg-brand-subtle flex items-center justify-center shrink-0">
-                      <span className="text-heading-sm font-bold text-brand-dark">
+                      <span className="text-heading-sm font-bold text-brand-dark-alt">
                         {displayName.charAt(0).toUpperCase()}
                       </span>
                     </div>

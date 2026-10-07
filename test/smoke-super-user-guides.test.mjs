@@ -118,10 +118,14 @@ test("Admin guide review actions are bound to forms, not transient click handler
     "utf8",
   );
 
+  // ConfirmForm renders the <form> and gates its submit behind a dialog; the
+  // three local ConfirmingForm copies it replaced each wrapped a bare <form>
+  // guarded by window.confirm. What matters here is unchanged: every review
+  // action is a form submit bound to a server action, not a click handler.
   for (const source of [table, previewControls]) {
-    assert.match(source, /<ConfirmingForm action=\{approveGuide\}/);
-    assert.match(source, /<ConfirmingForm action=\{unpublishGuide\}/);
-    assert.match(source, /<form\s+action=\{rejectGuide\}/);
+    assert.match(source, /<ConfirmForm action=\{approveGuide\}/);
+    assert.match(source, /<ConfirmForm action=\{unpublishGuide\}/);
+    assert.match(source, /<ConfirmForm\s+action=\{rejectGuide\}/);
     assert.doesNotMatch(source, /startTransition\(\(\) => \{\}\)/);
   }
 });
