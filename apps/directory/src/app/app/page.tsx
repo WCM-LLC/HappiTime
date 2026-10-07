@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { StoreDownloadCTA } from "@/components/StoreDownloadCTA";
+import { HappiTimeLogo } from "@/components/Logo";
 
 export const metadata: Metadata = {
   // Root layout applies the "%s | HappiTime" title template, so the brand is
@@ -50,26 +51,7 @@ export default function AppDownloadPage() {
               <div className="px-5 pt-4">
                 {/* App header */}
                 <div className="flex items-center justify-between mb-6">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 439 148"
-                    className="h-5"
-                    aria-hidden="true"
-                  >
-                    <circle cx="260.2" cy="74.0" r="47.9" fill="#C8965A" />
-                    <text
-                      x="30"
-                      y="93.0"
-                      fontFamily="'Plus Jakarta Sans', sans-serif"
-                      fontWeight="800"
-                      fontSize="72"
-                      letterSpacing="-0.02em"
-                    >
-                      <tspan fill="#1A1A1A">Happ</tspan>
-                      <tspan fill="#FFFFFF">iTi</tspan>
-                      <tspan fill="#1A1A1A">me</tspan>
-                    </text>
-                  </svg>
+                  <HappiTimeLogo className="h-5" decorative />
                   <div className="w-8 h-8 rounded-full bg-brand-subtle" />
                 </div>
 

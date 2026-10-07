@@ -1,3 +1,4 @@
+import { Logo } from '@/components/ui/Logo';
 import { resetPassword } from '@/actions/password-actions';
 
 export default async function ResetPasswordPage({
@@ -22,12 +23,7 @@ export default async function ResetPasswordPage({
     <main className="min-h-screen flex items-center justify-center bg-background px-4 py-12">
       <div className="w-full max-w-md flex flex-col gap-6">
         <div className="flex flex-col items-center mb-2">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 439 148" className="h-12" aria-label="HappiTime" role="img">
-            <circle cx="260.2" cy="74.0" r="47.9" fill="#C8965A" />
-            <text x="30" y="93.0" fontFamily="var(--font-display), 'Plus Jakarta Sans', sans-serif" fontWeight="800" fontSize="72" letterSpacing="-0.02em">
-              <tspan fill="#1A1A1A">Happ</tspan><tspan fill="#ffffff">iTi</tspan><tspan fill="#1A1A1A">me</tspan>
-            </text>
-          </svg>
+          <Logo height={48} />
           <p className="text-body-sm text-muted mt-2">
             Set your new password
           </p>

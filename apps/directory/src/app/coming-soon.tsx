@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { HappiTimeLogo } from "@/components/Logo";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
@@ -41,8 +42,12 @@ export default function ComingSoon() {
       <div className="relative mb-10">
         <div className="absolute inset-0 blur-3xl opacity-20 bg-brand rounded-full scale-150" />
         <div className="relative">
-          <h1 className="text-6xl sm:text-7xl font-extrabold tracking-tight text-foreground">
-            Happi<span className="text-brand">Time</span>
+          {/* The wordmark is the heading. The sr-only text carries the
+              accessible name and keeps a real <h1> in the document, so the
+              SVG itself is decorative and the name is announced once. */}
+          <h1>
+            <span className="sr-only">HappiTime</span>
+            <HappiTimeLogo className="block mx-auto h-28 sm:h-36" decorative />
           </h1>
         </div>
       </div>
