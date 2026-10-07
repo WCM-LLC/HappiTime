@@ -60,3 +60,12 @@ build
 *.swp
 *.swo
 *~
+
+# Impeccable (design skill)
+# Tracked: .impeccable/config.json, the DESIGN.md sidecar, and the shared hook
+# in .github/hooks/. Not tracked: machine-local consent, caches, and the
+# live-mode session journals, which hold absolute paths and session ids.
+**/.impeccable/config.local.json
+**/.impeccable/hook.cache.json
+**/.impeccable/live/sessions/
+**/.impeccable/live/roots.json

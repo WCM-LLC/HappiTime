@@ -1,0 +1,265 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-07T12:00:00.000Z",
+  "title": "Design System: HappiTime Console",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "primary",
+        "displayName": "Golden Hour",
+        "canonical": "#C8965A",
+        "tonalRamp": ["oklch(20% 0.040 65)", "oklch(31% 0.058 65)", "oklch(42% 0.072 65)", "oklch(53% 0.080 65)", "oklch(68% 0.078 65)", "oklch(79% 0.060 65)", "oklch(88% 0.040 65)", "oklch(96% 0.016 65)"]
+      },
+      "brand-dark": { "role": "primary", "displayName": "Golden Hour Deep", "canonical": "#A67842" },
+      "brand-light": { "role": "primary", "displayName": "Golden Hour Tint", "canonical": "#E8D5BC", "note": "Defined in globals.css but currently unused in the console (0 uses). Available, not established." },
+      "brand-subtle": { "role": "primary", "displayName": "Golden Hour Wash", "canonical": "#F5EDE3" },
+      "brand-dark-alt": { "role": "primary", "displayName": "Golden Hour Ink", "canonical": "#8B6535" },
+      "wine": {
+        "role": "secondary",
+        "displayName": "Oxblood",
+        "canonical": "#8C3A4B",
+        "note": "Reserved palette. Zero uses in the console today; sanctioned for categorical use, with the Featured tier as its first application.",
+        "tonalRamp": ["oklch(18% 0.055 10)", "oklch(28% 0.085 10)", "oklch(38% 0.110 10)", "oklch(45% 0.115 10)", "oklch(56% 0.105 10)", "oklch(70% 0.080 10)", "oklch(84% 0.048 10)", "oklch(95% 0.018 10)"]
+      },
+      "teal": {
+        "role": "secondary",
+        "displayName": "Verdigris",
+        "canonical": "#2A7B6F",
+        "note": "Reserved palette. Zero uses in the console today; sanctioned for categorical use, with the Founding Pilot tier as its first application.",
+        "tonalRamp": ["oklch(18% 0.035 180)", "oklch(27% 0.052 180)", "oklch(36% 0.065 180)", "oklch(48% 0.072 180)", "oklch(60% 0.065 180)", "oklch(73% 0.050 180)", "oklch(86% 0.032 180)", "oklch(96% 0.012 180)"]
+      },
+      "navy": {
+        "role": "secondary",
+        "displayName": "Midnight Navy",
+        "canonical": "#2E4A6E",
+        "note": "Reserved palette. Zero uses in the console today; sanctioned for categorical use, with the org bundle tiers as its first application.",
+        "tonalRamp": ["oklch(18% 0.040 255)", "oklch(27% 0.060 255)", "oklch(36% 0.075 255)", "oklch(46% 0.082 255)", "oklch(58% 0.075 255)", "oklch(72% 0.056 255)", "oklch(86% 0.034 255)", "oklch(96% 0.013 255)"]
+      },
+      "dark": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "canonical": "#1A1A1A",
+        "tonalRamp": ["oklch(14% 0 0)", "oklch(24% 0 0)", "oklch(34% 0 0)", "oklch(45% 0 0)", "oklch(57% 0 0)", "oklch(70% 0 0)", "oklch(84% 0 0)", "oklch(96% 0 0)"]
+      },
+      "dark-surface": { "role": "neutral", "displayName": "Graphite Raised", "canonical": "#242424", "note": "Defined in globals.css but currently unused in the console (0 uses)." },
+      "background": {
+        "role": "neutral",
+        "displayName": "Bone",
+        "canonical": "#FAFAF8",
+        "tonalRamp": ["oklch(20% 0.004 95)", "oklch(31% 0.005 95)", "oklch(43% 0.006 95)", "oklch(55% 0.006 95)", "oklch(68% 0.006 95)", "oklch(82% 0.005 95)", "oklch(92% 0.004 95)", "oklch(98% 0.003 95)"]
+      },
+      "surface": { "role": "neutral", "displayName": "Paper", "canonical": "#FFFFFF" },
+      "cream": { "role": "neutral", "displayName": "Cream", "canonical": "#F5F0EB" },
+      "foreground": { "role": "neutral", "displayName": "Graphite", "canonical": "#1A1A1A" },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Slate",
+        "canonical": "#6B6B6B",
+        "tonalRamp": ["oklch(16% 0 0)", "oklch(26% 0 0)", "oklch(36% 0 0)", "oklch(47% 0 0)", "oklch(56% 0 0)", "oklch(70% 0 0)", "oklch(85% 0 0)", "oklch(96% 0 0)"]
+      },
+      "muted-light": { "role": "neutral", "displayName": "Ash", "canonical": "#9CA3AF" },
+      "dark-foreground": { "role": "neutral", "displayName": "Near White", "canonical": "#F5F5F3" },
+      "dark-muted": { "role": "neutral", "displayName": "Dark Slate", "canonical": "#A3A3A3" },
+      "border": { "role": "neutral", "displayName": "Hairline", "canonical": "#E8E8E5" },
+      "border-strong": { "role": "neutral", "displayName": "Hairline Strong", "canonical": "#D1D1CD" },
+      "border-focus": { "role": "primary", "displayName": "Focus Copper", "canonical": "#C8965A" },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Confirmed Green",
+        "canonical": "#2D8A56",
+        "tonalRamp": ["oklch(18% 0.040 155)", "oklch(28% 0.062 155)", "oklch(38% 0.080 155)", "oklch(50% 0.090 155)", "oklch(62% 0.082 155)", "oklch(75% 0.060 155)", "oklch(87% 0.038 155)", "oklch(97% 0.015 155)"]
+      },
+      "success-light": { "role": "tertiary", "displayName": "Confirmed Wash", "canonical": "#ECFDF5" },
+      "error": {
+        "role": "tertiary",
+        "displayName": "Dispute Red",
+        "canonical": "#C43E3E",
+        "tonalRamp": ["oklch(19% 0.060 25)", "oklch(29% 0.095 25)", "oklch(39% 0.125 25)", "oklch(50% 0.150 25)", "oklch(58% 0.155 25)", "oklch(72% 0.110 25)", "oklch(86% 0.060 25)", "oklch(96% 0.020 25)"]
+      },
+      "error-light": { "role": "tertiary", "displayName": "Dispute Wash", "canonical": "#FEF2F2" },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Pending Amber",
+        "canonical": "#D4A843",
+        "tonalRamp": ["oklch(20% 0.040 85)", "oklch(31% 0.062 85)", "oklch(42% 0.082 85)", "oklch(54% 0.098 85)", "oklch(74% 0.105 85)", "oklch(84% 0.075 85)", "oklch(91% 0.048 85)", "oklch(97% 0.020 85)"]
+      },
+      "warning-light": { "role": "tertiary", "displayName": "Pending Wash", "canonical": "#FFFBEB" }
+    },
+    "typographyMeta": {
+      "wordmark": { "displayName": "Wordmark", "purpose": "Plus Jakarta Sans 800, the only weight loaded. Logo and the printed HAPPITIME eyebrow only. Never sets a heading, button, or body copy." },
+      "display-xl": { "displayName": "Display XL", "purpose": "The single largest statement on a page. Rare in the console." },
+      "display-lg": { "displayName": "Display LG", "purpose": "Page titles on a venue or org dashboard." },
+      "display-md": { "displayName": "Display MD", "purpose": "Section openers on dense pages." },
+      "heading-lg": { "displayName": "Heading LG", "purpose": "Card titles. The most common heading in the console." },
+      "heading-md": { "displayName": "Heading MD", "purpose": "Sub-sections and panel headers." },
+      "heading-sm": { "displayName": "Heading SM", "purpose": "Inline group labels; smallest size that may still be a heading." },
+      "body-lg": { "displayName": "Body LG", "purpose": "Lead paragraphs and emphasis copy." },
+      "body-md": { "displayName": "Body MD", "purpose": "The document default, set on body." },
+      "body-sm": { "displayName": "Body SM", "purpose": "The console's real working size. Every control, table cell, and form field." },
+      "caption": { "displayName": "Caption", "purpose": "Badges, meta labels, timestamps. Weight 500 because 12px at 400 goes soft." }
+    },
+    "shadows": [
+      { "name": "shadow-sm", "value": "0 1px 2px rgba(0, 0, 0, 0.04)", "purpose": "Legacy resting-card shadow (93 uses). Harmless where it exists; do not add to new surfaces — the hairline is the edge." },
+      { "name": "shadow-md", "value": "0 2px 8px rgba(0, 0, 0, 0.06)", "purpose": "Dropdowns, select menus, inline popovers." },
+      { "name": "shadow-lg", "value": "0 4px 16px rgba(0, 0, 0, 0.08)", "purpose": "Toasts and side panels." },
+      { "name": "shadow-xl", "value": "0 8px 32px rgba(0, 0, 0, 0.10)", "purpose": "Modal dialogs. Currently unused; this is its reserved purpose." }
+    ],
+    "motion": [
+      { "name": "ease-default", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "The only easing curve in the system." },
+      { "name": "duration-fast", "value": "150ms", "purpose": "All hover and focus color transitions, and the pending fade." },
+      { "name": "duration-normal", "value": "200ms", "purpose": "Available for larger state changes; lightly used." },
+      { "name": "duration-slow", "value": "300ms", "purpose": "Defined but effectively unused in the console." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" },
+      { "name": "2xl", "value": "1536px" }
+    ],
+    "widths": [
+      { "name": "content", "value": "1100px", "purpose": "The only established container. Used 25 times." },
+      { "name": "narrow", "value": "720px", "purpose": "Defined but currently unused. Available, not established." },
+      { "name": "wide", "value": "1400px", "purpose": "Defined but currently unused. Available, not established." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Brand Button",
+      "kind": "button",
+      "refersTo": "button-brand",
+      "description": "The copper action. Reserved for core-loop actions — confirm, claim, publish, upgrade. One per view.",
+      "html": "<button class=\"ds-btn ds-btn-brand\">Publish listing</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 8px 16px; border: none; border-radius: var(--radius-md, 10px); font-family: var(--font-sans, Inter, sans-serif); font-size: var(--text-body-sm, 0.875rem); font-weight: 500; line-height: 1.5; white-space: nowrap; cursor: pointer; transition: background-color var(--duration-fast, 150ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1)); } .ds-btn:focus-visible { outline: 2px solid var(--color-brand, #C8965A); outline-offset: 2px; } .ds-btn:disabled { opacity: 0.5; pointer-events: none; } .ds-btn-brand { background: var(--color-brand, #C8965A); color: #FFFFFF; } .ds-btn-brand:hover { background: var(--color-brand-dark, #A67842); }"
+    },
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button-default",
+      "description": "The neutral high-emphasis action — Save, Manage, Export. Graphite does double duty as both body ink and this fill.",
+      "html": "<button class=\"ds-btn ds-btn-default\">Save changes</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 8px 16px; border: none; border-radius: var(--radius-md, 10px); font-family: var(--font-sans, Inter, sans-serif); font-size: var(--text-body-sm, 0.875rem); font-weight: 500; line-height: 1.5; white-space: nowrap; cursor: pointer; transition: background-color var(--duration-fast, 150ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1)); } .ds-btn:focus-visible { outline: 2px solid var(--color-brand, #C8965A); outline-offset: 2px; } .ds-btn-default { background: var(--color-dark, #1A1A1A); color: var(--color-dark-foreground, #F5F5F3); } .ds-btn-default:hover { background: rgba(26, 26, 26, 0.9); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Paper fill with a hairline edge. The default choice for any action that is neither core-loop nor destructive.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><polyline points=\"7 10 12 15 17 10\"/><line x1=\"12\" y1=\"15\" x2=\"12\" y2=\"3\"/></svg>Download QR</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 40px; padding: 8px 16px; border-radius: var(--radius-md, 10px); font-family: var(--font-sans, Inter, sans-serif); font-size: var(--text-body-sm, 0.875rem); font-weight: 500; line-height: 1.5; white-space: nowrap; cursor: pointer; transition: background-color var(--duration-fast, 150ms) var(--ease-default, cubic-bezier(0.4, 0, 0.2, 1)); } .ds-btn:focus-visible { outline: 2px solid var(--color-brand, #C8965A); outline-offset: 2px; } .ds-btn-secondary { background: var(--color-surface, #FFFFFF); color: var(--color-foreground, #1A1A1A); border: 1px solid var(--color-border, #E8E8E5); } .ds-btn-secondary:hover { background: var(--color-background, #FAFAF8); } .ds-btn-secondary svg { flex-shrink: 0; pointer-events: none; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "The one place in the system where focus doubles up — a copper ring AND a copper border shift, because a field's edge is its whole affordance.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Venue name\" />",
+      "css": ".ds-input { display: flex; width: 100%; height: 40px; padding: 8px 12px; background: var(--color-surface, #FFFFFF); color: var(--color-foreground, #1A1A1A); border: 1px solid var(--color-border, #E8E8E5); border-radius: var(--radius-sm, 6px); font-family: var(--font-sans, Inter, sans-serif); font-size: var(--text-body-sm, 0.875rem); line-height: 1.5; transition: border-color var(--duration-fast, 150ms), box-shadow var(--duration-fast, 150ms); } .ds-input::placeholder { color: var(--color-muted-light, #9CA3AF); } .ds-input:focus-visible { outline: none; border-color: var(--color-brand, #C8965A); box-shadow: 0 0 0 2px var(--color-brand, #C8965A); } .ds-input:disabled { opacity: 0.5; cursor: not-allowed; } .ds-input:read-only { background: var(--color-background, #FAFAF8); color: var(--color-muted, #6B6B6B); }"
+    },
+    {
+      "name": "Select",
+      "kind": "input",
+      "refersTo": "select",
+      "description": "A native select with appearance stripped and a slate chevron set as a background data URI — so it stays a real select on every platform.",
+      "html": "<select class=\"ds-select\"><option>Verified</option><option>Featured</option><option>Founding Pilot</option></select>",
+      "css": ".ds-select { display: flex; width: 100%; height: 40px; padding: 8px 40px 8px 12px; background-color: var(--color-surface, #FFFFFF); color: var(--color-foreground, #1A1A1A); border: 1px solid var(--color-border, #E8E8E5); border-radius: var(--radius-sm, 6px); font-family: var(--font-sans, Inter, sans-serif); font-size: var(--text-body-sm, 0.875rem); line-height: 1.5; appearance: none; background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%236B6B6B%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E'); background-size: 16px; background-position: right 12px center; background-repeat: no-repeat; transition: border-color var(--duration-fast, 150ms); } .ds-select:focus-visible { outline: none; border-color: var(--color-brand, #C8965A); box-shadow: 0 0 0 2px var(--color-brand, #C8965A); }"
+    },
+    {
+      "name": "Brand Badge",
+      "kind": "chip",
+      "refersTo": "badge-brand",
+      "description": "A read-only status marker. Golden Hour Wash ground with Golden Hour Ink text — the legible copper-on-copper pairing. A badge is never a control.",
+      "html": "<span class=\"ds-badge ds-badge-brand\">Verified</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: var(--radius-full, 999px); font-family: var(--font-sans, Inter, sans-serif); font-size: var(--text-caption, 0.75rem); font-weight: 500; line-height: 1.4; } .ds-badge-brand { background: var(--color-brand-subtle, #F5EDE3); color: var(--color-brand-dark-alt, #8B6535); }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Flat at rest. Paper on Bone with a 1px hairline and uniform 24px padding. No shadow — the hairline is the edge.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-header\"><div class=\"ds-card-title\">Happy hour windows</div><div class=\"ds-card-desc\">Last confirmed 3 days ago</div></div><div class=\"ds-card-content\">Mon–Fri · 4:00–6:00 PM</div></div>",
+      "css": ".ds-card { background: var(--color-surface, #FFFFFF); color: var(--color-foreground, #1A1A1A); border: 1px solid var(--color-border, #E8E8E5); border-radius: var(--radius-md, 10px); font-family: var(--font-sans, Inter, sans-serif); } .ds-card-header { display: flex; flex-direction: column; gap: 6px; padding: 24px; } .ds-card-title { font-size: var(--text-heading-lg, 1.5rem); font-weight: 600; letter-spacing: -0.02em; line-height: 1.3; } .ds-card-desc { font-size: var(--text-body-sm, 0.875rem); color: var(--color-muted, #6B6B6B); line-height: 1.5; } .ds-card-content { padding: 0 24px 24px; font-size: var(--text-body-sm, 0.875rem); line-height: 1.5; }"
+    },
+    {
+      "name": "Data Table",
+      "kind": "custom",
+      "refersTo": "table-head",
+      "description": "The console's highest-traffic surface. Headers are quieter than the data they label; row hover is a 50%-opacity whisper that tracks the eye across a wide row.",
+      "html": "<table class=\"ds-table\"><thead class=\"ds-thead\"><tr><th class=\"ds-th\">Venue</th><th class=\"ds-th\">Tier</th><th class=\"ds-th\">Last confirmed</th></tr></thead><tbody><tr class=\"ds-tr\"><td class=\"ds-td\">Westport Taproom</td><td class=\"ds-td\"><span class=\"ds-badge ds-badge-brand\">Verified</span></td><td class=\"ds-td\">3 days ago</td></tr><tr class=\"ds-tr\"><td class=\"ds-td\">Crossroads Social</td><td class=\"ds-td\"><span class=\"ds-badge ds-badge-brand\">Verified</span></td><td class=\"ds-td\">11 days ago</td></tr></tbody></table>",
+      "css": ".ds-table { width: 100%; border-collapse: collapse; caption-side: bottom; font-family: var(--font-sans, Inter, sans-serif); font-size: var(--text-body-sm, 0.875rem); } .ds-thead .ds-tr, .ds-thead tr { border-bottom: 1px solid var(--color-border, #E8E8E5); } .ds-th { height: 48px; padding: 0 16px; text-align: left; vertical-align: middle; font-weight: 500; color: var(--color-muted, #6B6B6B); } .ds-tr { border-bottom: 1px solid var(--color-border, #E8E8E5); transition: background-color var(--duration-fast, 150ms); } .ds-tr:hover { background: color-mix(in srgb, var(--color-background, #FAFAF8) 50%, transparent); } .ds-tr:last-child { border-bottom: 0; } .ds-td { padding: 16px; vertical-align: middle; } .ds-badge { display: inline-flex; align-items: center; padding: 2px 10px; border-radius: var(--radius-full, 999px); font-size: var(--text-caption, 0.75rem); font-weight: 500; } .ds-badge-brand { background: var(--color-brand-subtle, #F5EDE3); color: var(--color-brand-dark-alt, #8B6535); }"
+    },
+    {
+      "name": "Pending Fieldset",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Signature component. A real fieldset[disabled] that fades its whole group to 50% and blocks input while submitting — because on a dense page a single button spinner is easy to miss.",
+      "html": "<fieldset class=\"ds-pending\" aria-busy=\"true\" disabled><label class=\"ds-pending-label\">Window label</label><input class=\"ds-input\" type=\"text\" value=\"Weekday Happy Hour\" /><button class=\"ds-btn ds-btn-brand\"><svg class=\"ds-spin\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M21 12a9 9 0 1 1-6.219-8.56\"/></svg>Saving…</button></fieldset>",
+      "css": ".ds-pending { display: flex; flex-direction: column; gap: 12px; margin: 0; min-width: 0; padding: 0; border: 0; transition: opacity 150ms; } .ds-pending[aria-busy=\"true\"] { opacity: 0.5; pointer-events: none; } .ds-pending-label { font-family: var(--font-sans, Inter, sans-serif); font-size: var(--text-body-sm, 0.875rem); font-weight: 500; color: var(--color-foreground, #1A1A1A); } .ds-input { height: 40px; padding: 8px 12px; background: var(--color-surface, #FFFFFF); color: var(--color-foreground, #1A1A1A); border: 1px solid var(--color-border, #E8E8E5); border-radius: var(--radius-sm, 6px); font-family: var(--font-sans, Inter, sans-serif); font-size: var(--text-body-sm, 0.875rem); } .ds-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 40px; padding: 8px 16px; border: none; border-radius: var(--radius-md, 10px); font-family: var(--font-sans, Inter, sans-serif); font-size: var(--text-body-sm, 0.875rem); font-weight: 500; cursor: pointer; } .ds-btn-brand { background: var(--color-brand, #C8965A); color: #FFFFFF; } .ds-spin { animation: ds-spin 1s linear infinite; flex-shrink: 0; } @keyframes ds-spin { to { transform: rotate(360deg); } }"
+    },
+    {
+      "name": "Wordmark",
+      "kind": "custom",
+      "refersTo": "button-brand",
+      "description": "The only place Plus Jakarta Sans 800 appears. A copper disc sits behind the letterforms and the middle 'iTi' is white, so it reads out of the disc.",
+      "html": "<svg viewBox=\"0 0 439 148\" height=\"40\" role=\"img\" aria-label=\"HappiTime\" style=\"width:auto\"><circle cx=\"260.2\" cy=\"74.0\" r=\"47.9\" fill=\"#C8965A\"/><text x=\"30\" y=\"93.0\" font-family=\"Plus Jakarta Sans, sans-serif\" font-weight=\"800\" font-size=\"72\" letter-spacing=\"-0.02em\"><tspan fill=\"#1A1A1A\">Happ</tspan><tspan fill=\"#ffffff\">iTi</tspan><tspan fill=\"#1A1A1A\">me</tspan></text></svg>",
+      "css": "svg[aria-label=\"HappiTime\"] { display: block; flex-shrink: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Brass Rail",
+    "overview": "The brass rail is the polished metal fitting that runs the length of a good bar. It is warm, hard-wearing, and quietly expensive. Nobody photographs it, but every regular has a hand on it. That is the register this console works in: a warm-neutral room with real brass in it, built for people who are in it every day and need it to hold up.\n\nThe system is almost entirely warm neutrals — a bone-white page (#FAFAF8), white surfaces, and hairline borders — with exactly one metal in the room. Copper does the pointing. It marks what is active, what is focused, what the operator should touch next. Because the page is calm, a single copper element is unmissable; because copper is the only warm accent, two copper elements compete and three cancel out. Restraint here is not minimalism for its own sake, it is a signal-to-noise decision in a tool where a missed state means a venue goes stale.\n\nDepth is tonal, not cast. Surfaces separate by value and by a 1px hairline, never by a drop shadow at rest. A shadow in this system means one thing: this layer is detached from the page — a modal, a popover, a dropdown. Controls themselves are tactile and confident: firm contrast, solid fills, unambiguous hover, generous 40px targets. The console does not whisper what it is doing; a mutating action always visibly reports that it was received.",
+    "keyCharacteristics": [
+      "Warm-neutral foundation; never pure white, never cool gray",
+      "One metal in the room — copper (#C8965A, \"Golden Hour\") is the only accent that points",
+      "Flat at rest; hairlines and tonal value do the separating",
+      "Shadows mean detachment, not depth",
+      "10px default radius; pills only for status, never for actions",
+      "One typeface for all copy (Inter); the display face is wordmark-only",
+      "Tactile, confident controls with a uniform 40px control height",
+      "Every mutating action must visibly acknowledge it was received"
+    ],
+    "rules": [
+      { "name": "The Golden Hour Rule", "body": "One copper commitment per view. Copper marks the single most important action or the one active state — not every clickable thing. If two copper elements are visible at once, one of them is wrong. Its rarity is the point.", "section": "colors" },
+      { "name": "The No Stock Palette Rule", "body": "Never reach into Tailwind's default palette. amber-500, violet-600, blue-600, and raw hex literals like bg-[#DBEAFE] are all violations, even when they look close. Every color in a HappiTime surface comes from globals.css. If a needed color does not exist there, add the token first.", "section": "colors" },
+      { "name": "The Two-Weight Rule", "body": "Graphite (#1A1A1A) is both the body ink and the default button fill. That is intentional, and it means a dark button is the neutral high-emphasis action, while a copper button is the branded one. Use dark for \"Manage\", \"Save\", \"Export\"; use copper for the action that advances the product's core loop — confirm, claim, publish, upgrade.", "section": "colors" },
+      { "name": "The Warm Stack Rule", "body": "Backgrounds step warm, never cool: #FAFAF8 page → #FFFFFF surface → #F5EDE3 tinted inset. A cool gray anywhere in this stack reads as a bug.", "section": "colors" },
+      { "name": "The Wordmark-Only Rule", "body": "Plus Jakarta Sans is loaded at a single weight (800) for a single purpose. It belongs to the logo and to the HAPPITIME eyebrow on printed collateral. It must never set a heading, a button, or body copy. If a surface needs more typographic presence, reach for Inter at a heavier weight or a larger step — not for the display face.", "section": "typography" },
+      { "name": "The Working-Size Rule", "body": "Controls and data are body-sm (14px), not body-md. A console page is mostly table rows and form fields; sizing those at 16px costs roughly a fifth of the visible rows for no gain in legibility. body-md is for prose, and the console has very little prose.", "section": "typography" },
+      { "name": "The 1100 Rule", "body": "Content stops at 1100px. Full-bleed layouts are not part of this system; a table that wants more room gets horizontal scroll inside its container, not a wider page.", "section": "layout" },
+      { "name": "The Collapse-Not-Reflow Rule", "body": "Narrow viewports get fewer columns, not rearranged ones. Reading order is preserved from desktop to mobile.", "section": "layout" },
+      { "name": "The Overlay-Only Rule", "body": "If an element is part of the page, it has a hairline and no shadow. If it sits above the page, it has a shadow and needs no hairline. Nothing in this system has both.", "section": "elevation" },
+      { "name": "The 10px Default Rule", "body": "When in doubt, rounded-md. Reach for rounded-lg only when the surface is genuinely large, and never mix three radii within one composition.", "section": "shapes" },
+      { "name": "The Pill-Means-Status Rule", "body": "rounded-full signals \"this is a state, not a control.\" Badges and chips are pills; buttons are not. A pill-shaped button in the console reads as a consumer-app import and breaks the operator register.", "section": "shapes" },
+      { "name": "The One Wordmark Rule", "body": "The wordmark ships from a component, never from pasted SVG. The split is Happ + white iTi + me over the copper disc — the same split printed on the physical QR coasters and table tents — and no surface gets a second interpretation of it.", "section": "components" }
+    ],
+    "dos": [
+      "Do take every color from globals.css. If the color you need is not a token, add the token first.",
+      "Do keep copper to one commitment per view. Copper means act here; a second copper element destroys the first one's meaning.",
+      "Do use the dark button for neutral high-emphasis actions (\"Save\", \"Manage\", \"Export\") and the copper button only for core-loop actions (confirm, claim, publish, upgrade).",
+      "Do separate surfaces with the 1px #E8E8E5 hairline and a warm value step. It is enough.",
+      "Do set controls and table data at body-sm (14px) and keep the 40px control height.",
+      "Do use rounded-md (10px) by default, rounded-lg (16px) for genuinely large surfaces, and rounded-full only for status.",
+      "Do give every mutating action a visible pending state — SubmitButton for the control, PendingFieldset for the group.",
+      "Do use FormPendingReporter inside any <form id=…> whose controls live outside it, or its buttons will never show a spinner.",
+      "Do keep the focus ring exactly as it is: 2px copper at 2px offset, everywhere, no exceptions.",
+      "Do differentiate the five tiers with the reserved palette — copper for Verified, Oxblood (#8C3A4B) for Featured, Midnight Navy (#2E4A6E) for bundles, Verdigris (#2A7B6F) for Founding Pilot, neutral for Listed.",
+      "Do collapse columns on narrow viewports rather than rearranging them."
+    ],
+    "donts": [
+      "Don't use Tailwind's default palette. The current border-amber-300, bg-amber-50, text-amber-700, bg-amber-500, border-violet-400, ring-violet-200, bg-violet-50, text-violet-700, and bg-violet-600 in SubscriptionPanel.tsx are all violations of this rule.",
+      "Don't inline raw hex. bg-[#DBEAFE] text-[#2563EB] and bg-[#EDE9FE] text-[#6D28D9] in AdminTables.tsx are violations, and the stock blue in particular puts a cool color into a warm system.",
+      "Don't let the same concept carry different colors on different screens. Verified currently reads copper in SubscriptionPanel.tsx and stock blue in AdminTables.tsx; Featured reads stock amber in one and copper in the other. One tier, one color, everywhere.",
+      "Don't reference a token that does not exist. text-brand-text in AdminTables.tsx resolves to nothing — there is no --color-brand-text in globals.css.",
+      "Don't add shadow-sm to new resting surfaces. The hairline is the edge; shadows mean detachment.",
+      "Don't pair a shadow with a hairline on the same element.",
+      "Don't set type in Plus Jakarta Sans. It is loaded at weight 800 for the wordmark and the printed HAPPITIME eyebrow only.",
+      "Don't make a button a pill. rounded-full is for status markers; a pill button imports the consumer app's register into an operator tool.",
+      "Don't introduce cool grays. Every neutral in this system is warm; #FAFAF8 not #FAFAFA, #6B6B6B not #6B7280.",
+      "Don't add scale, lift, or bounce on hover. Hover is a color shift at 150ms. The only motion in the system is the pending spinner and the pending fade.",
+      "Don't use rounded-xl (24px). It appears twice and is not part of the system.",
+      "Don't use colored left-border accents on cards. Explicitly not a HappiTime pattern.",
+      "Don't put an actionable decision in a toast. Toasts are transient; operator decisions belong in the page.",
+      "Don't re-inline the wordmark SVG. Import Logo. Seven pasted copies are why the splash page drifted to a different letter split."
+    ]
+  }
+}
