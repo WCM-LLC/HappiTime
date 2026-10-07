@@ -22,13 +22,21 @@ colors:
   border-focus: "#C8965A"
   success: "#2D8A56"
   success-light: "#ECFDF5"
+  success-ink: "#246E45"
   error: "#C43E3E"
   error-light: "#FEF2F2"
   warning: "#D4A843"
   warning-light: "#FFFBEB"
+  warning-ink: "#7F6528"
   wine: "#8C3A4B"
+  wine-subtle: "#F4EBED"
+  wine-ink: "#773140"
   teal: "#2A7B6F"
+  teal-subtle: "#EAF2F1"
+  teal-ink: "#24695E"
   navy: "#2E4A6E"
+  navy-subtle: "#EAEDF1"
+  navy-ink: "#273F5E"
 typography:
   wordmark:
     fontFamily: "Plus Jakarta Sans, ui-sans-serif, system-ui, sans-serif"
@@ -231,18 +239,24 @@ A warm-neutral room with a single metal: bone-white paper, white surfaces, graph
 ### Primary
 - **Golden Hour** (`#C8965A`): The one metal. Primary actions, active states, focus rings, and the accent disc in the wordmark. Its scarcity is the entire mechanism — this is the color that means *act here*.
 - **Golden Hour Deep** (`#A67842`): The hover state for copper fills. Only ever a response to the pointer, never a resting color.
-- **Golden Hour Tint** (`#E8D5BC`): Defined but **currently unused in the console** (0 uses). Its intended role is a tinted border or brand-adjacent edge where a full copper border would shout. Available, not established.
+- **Golden Hour Tint** (`#E8D5BC`): Defined but **currently unused in the console**. Its intended role is a tinted border or brand-adjacent edge where a full copper border would shout. Available, not established.
 - **Golden Hour Wash** (`#F5EDE3`): The warm placeholder. Avatar fills, image slots before a cover loads, and the fill behind brand-weight badges. This is also the third step of the depth stack.
 - **Golden Hour Ink** (`#8B6535`): Copper as *text*. Exists because `#C8965A` on `#F5EDE3` does not carry enough contrast for small type; this is the legible pairing for a copper-tinted badge.
 
 ### Secondary
 Sanctioned for categorical use, where one hue cannot carry distinct meanings. Not decoration, and not a second brand voice.
 
-**All three are defined in `globals.css` but currently have zero uses in the console.** They were confirmed as a reserved palette rather than removed; the tier rule in Do's and Don'ts is their first sanctioned application. Treat them as available-and-approved, not as established patterns with precedent to follow.
+Each base carries a `-subtle` tint for badge grounds and a text-safe `-ink`. **The bases are
+fills and borders, never type:** on their own tints they measure 6.36, 4.44 and 7.71:1, so the
+middle one fails the AA floor for the 12px captions these badges use. The `-ink` variants are the
+same hue darkened 15% and measure 7.81, 5.67 and 9.13:1.
 
-- **Oxblood** (`#8C3A4B`): The deepest of the three; carries the most weight. In the consumer app this is the Insider ★ badge.
-- **Verdigris** (`#2A7B6F`): The coolest and quietest; reads as a steady, non-urgent state.
-- **Midnight Navy** (`#2E4A6E`): Institutional and plural; reads well for grouped or multi-venue concepts.
+- **Oxblood** (`#8C3A4B`, ink `#773140`, tint `#F4EBED`): The deepest of the three; carries the most weight. The Featured tier. In the consumer app this is also the Insider ★ badge.
+- **Verdigris** (`#2A7B6F`, ink `#24695E`, tint `#EAF2F1`): The coolest and quietest; reads as a steady, non-urgent state. The Founding Pilot tier.
+- **Midnight Navy** (`#2E4A6E`, ink `#273F5E`, tint `#EAEDF1`): Institutional and plural; reads well for grouped or multi-venue concepts. The org bundle tiers.
+
+These are a *categorical* set, spoken for by subscription tier. Do not reuse them for a second
+axis — navy meaning "bundle" in one table and "manager" in the next is worse than no color at all.
 
 ### Neutral
 - **Bone** (`#FAFAF8`): The page. A warm off-white that keeps white cards legible as objects sitting *on* something.
@@ -256,17 +270,23 @@ Sanctioned for categorical use, where one hue cannot carry distinct meanings. No
 - **Hairline Strong** (`#D1D1CD`): The emphatic divider, for separating groups rather than rows.
 
 ### Semantic
-Each pairs a saturated ink with a tinted ground; always used as a pair.
+Three families, each with a tinted ground, a mid tone, and — where the mid tone is too light to
+be read — a darker ink. **The mid tone is a fill or a border; the ink is the text.**
 
-- **Confirmed Green** (`#2D8A56`) on **Confirmed Wash** (`#ECFDF5`): Success, published, verified-fresh.
-- **Dispute Red** (`#C43E3E`) on **Dispute Wash** (`#FEF2F2`): Errors, destructive actions, disputed listings.
-- **Pending Amber** (`#D4A843`) on **Pending Wash** (`#FFFBEB`): Awaiting review, draft, expiring.
+- **Confirmed Green**: ground `#ECFDF5`, mid `#2D8A56`, ink `#246E45`. Success, published, verified-fresh. The mid tone on its own ground is only 4.08:1, so text uses the ink (5.88:1).
+- **Dispute Red**: ground `#FEF2F2`, mid `#C43E3E`. Errors, destructive actions, disputed listings. The mid tone clears AA on its ground at 4.68:1 and needs no separate ink.
+- **Pending Amber**: ground `#FFFBEB`, mid `#D4A843`, ink `#7F6528`. Awaiting review, draft, expiring. The mid tone on its own ground is **2.14:1** — the worst pairing the system had — so text always uses the ink (5.34:1).
 
 ### Named Rules
 
 **The Golden Hour Rule.** One copper commitment per view. Copper marks the single most important action or the one active state — not every clickable thing. If two copper elements are visible at once, one of them is wrong. Its rarity is the point.
 
 **The No Stock Palette Rule.** Never reach into Tailwind's default palette. `amber-500`, `violet-600`, `blue-600`, and raw hex literals like `bg-[#DBEAFE]` are all violations, even when they look close. Every color in a HappiTime surface comes from `globals.css`. If a needed color does not exist there, add the token first.
+
+**The One Map Rule.** A concept gets one color map, in one module, imported everywhere it is shown.
+Tier colors live in `src/utils/tier-style.ts`. Five call sites once kept their own copies and
+disagreed about whether Verified was copper or blue — not because anyone decided to differ, but
+because nothing made the copies agree. A second map is how the first one becomes wrong.
 
 **The Two-Weight Rule.** Graphite (`#1A1A1A`) is both the body ink and the default button fill. That is intentional, and it means a dark button is the *neutral* high-emphasis action, while a copper button is the *branded* one. Use dark for "Manage", "Save", "Export"; use copper for the action that advances the product's core loop — confirm, claim, publish, upgrade.
 
@@ -459,14 +479,15 @@ Sonner, docked bottom-right, with rich colors and a close button. Transient conf
 - **Do** give every mutating action a visible pending state — `SubmitButton` for the control, `PendingFieldset` for the group.
 - **Do** use `FormPendingReporter` inside any `<form id=…>` whose controls live outside it, or its buttons will never show a spinner.
 - **Do** keep the focus ring exactly as it is: 2px copper at 2px offset, everywhere, no exceptions.
-- **Do** differentiate the five tiers with the reserved palette — copper for Verified, Oxblood (`#8C3A4B`) for Featured, Midnight Navy (`#2E4A6E`) for bundles, Verdigris (`#2A7B6F`) for Founding Pilot, neutral for Listed.
+- **Do** take tier colors from `src/utils/tier-style.ts` — neutral for Listed, copper for Verified, Oxblood for Featured, Verdigris for Founding Pilot, Midnight Navy for both bundle sizes. Import the map; never restate it.
 - **Do** collapse columns on narrow viewports rather than rearranging them.
 
 ### Don't:
-- **Don't** use Tailwind's default palette. The current `border-amber-300`, `bg-amber-50`, `text-amber-700`, `bg-amber-500`, `border-violet-400`, `ring-violet-200`, `bg-violet-50`, `text-violet-700`, and `bg-violet-600` in `SubscriptionPanel.tsx` are all violations of this rule.
-- **Don't** inline raw hex. `bg-[#DBEAFE] text-[#2563EB]` and `bg-[#EDE9FE] text-[#6D28D9]` in `AdminTables.tsx` are violations, and the stock blue in particular puts a cool color into a warm system.
-- **Don't** let the same concept carry different colors on different screens. Verified currently reads copper in `SubscriptionPanel.tsx` and stock blue in `AdminTables.tsx`; Featured reads stock amber in one and copper in the other. One tier, one color, everywhere.
-- **Don't** reference a token that does not exist. `text-brand-text` in `AdminTables.tsx` resolves to nothing — there is no `--color-brand-text` in `globals.css`.
+- **Don't** use Tailwind's default palette — `amber-500`, `violet-600`, `blue-600` and the rest are off-system even when they look close. Stock amber and violet were how the paid tiers were styled before the palette was unified, and a cool stock blue in a warm system is the giveaway.
+- **Don't** inline raw hex in a class: `bg-[#DBEAFE]`, `text-[#6D28D9]`. If the color you need is not a token, add the token first.
+- **Don't** let one concept carry different colors on different screens. Tier colors come from `src/utils/tier-style.ts`; five separate maps once disagreed about whether Verified was copper or blue.
+- **Don't** reference a token that does not exist. `text-brand-text` was written six times across four files and resolved to nothing — the token is `--color-brand-dark-alt`. Tailwind drops unknown utilities silently, so nothing warns you.
+- **Don't** set small text in a semantic mid tone. `text-warning` on `bg-warning-light` is 2.14:1. Use `text-warning-ink` and `text-success-ink`.
 - **Don't** add `shadow-sm` to new resting surfaces. The hairline is the edge; shadows mean detachment.
 - **Don't** pair a shadow with a hairline on the same element.
 - **Don't** set type in Plus Jakarta Sans. It is loaded at weight 800 for the wordmark and the printed `HAPPITIME` eyebrow only.
