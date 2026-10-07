@@ -57,13 +57,13 @@ function payloadStr(p: Record<string, unknown>, ...keys: string[]): string {
 function statusBadge(status: string) {
   if (status === 'pending')
     return (
-      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-[#FEF3C7] text-[#92400E]">
+      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-warning-light text-warning-ink">
         Pending
       </span>
     );
   if (status === 'merged')
     return (
-      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-success-light text-success">
+      <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold bg-success-light text-success-ink">
         Promoted
       </span>
     );
@@ -206,7 +206,7 @@ function StagingRow({
           <div className="font-medium text-foreground leading-snug">{name}</div>
           {category && <div className="text-caption text-muted mt-0.5">{category}</div>}
           {!row.external_ref && (
-            <span className="inline-flex items-center rounded-full px-1.5 py-0 text-caption bg-[#FEF3C7] text-[#92400E] mt-1">
+            <span className="inline-flex items-center rounded-full px-1.5 py-0 text-caption bg-warning-light text-warning-ink mt-1">
               no places_id
             </span>
           )}
@@ -282,7 +282,7 @@ function StagingRow({
                   <button
                     type="button"
                     onClick={() => setAction('promote')}
-                    className="text-caption font-semibold text-success hover:opacity-80 transition-colors cursor-pointer"
+                    className="text-caption font-semibold text-success-ink hover:opacity-80 transition-colors cursor-pointer"
                   >
                     Promote
                   </button>
@@ -305,7 +305,7 @@ function StagingRow({
         <tr className="border-b border-border bg-background/60">
           <td colSpan={9} className="px-4 py-3">
             {toast && (
-              <p className="text-caption text-success font-medium mb-2">{toast}</p>
+              <p className="text-caption text-success-ink font-medium mb-2">{toast}</p>
             )}
             {action === 'promote' && (
               <PromoteForm
@@ -332,7 +332,7 @@ function StagingRow({
       {action === null && toast && (
         <tr className="border-b border-border">
           <td colSpan={9} className="px-4 py-2 bg-success-light">
-            <p className="text-caption text-success font-medium">{toast}</p>
+            <p className="text-caption text-success-ink font-medium">{toast}</p>
           </td>
         </tr>
       )}

@@ -53,8 +53,8 @@ function relativeDate(iso: string | null) {
 
 function statusClass(status: string | null) {
   const base = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold';
-  if (status === 'published') return `${base} bg-success-light text-success`;
-  if (status === 'pending_review') return `${base} bg-warning-light text-warning`;
+  if (status === 'published') return `${base} bg-success-light text-success-ink`;
+  if (status === 'pending_review') return `${base} bg-warning-light text-warning-ink`;
   if (status === 'archived') return `${base} bg-surface border border-border text-muted-light`;
   return `${base} bg-surface border border-border text-muted`;
 }
@@ -208,7 +208,7 @@ export function GuidesReviewTable({
                           <input type="hidden" name="id" value={g.id} />
                           <button
                             type="submit"
-                            className="text-caption font-medium text-success hover:underline cursor-pointer disabled:opacity-50"
+                            className="text-caption font-medium text-success-ink hover:underline cursor-pointer disabled:opacity-50"
                           >
                             Approve
                           </button>

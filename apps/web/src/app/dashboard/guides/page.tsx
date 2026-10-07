@@ -16,8 +16,8 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_STYLE: Record<string, string> = {
   draft: 'bg-surface border border-border text-muted',
-  pending_review: 'bg-warning-light border border-warning text-warning',
-  published: 'bg-success-light border border-success text-success',
+  pending_review: 'bg-warning-light border border-warning text-warning-ink',
+  published: 'bg-success-light border border-success text-success-ink',
   archived: 'bg-surface border border-border text-muted-light',
 };
 
@@ -82,7 +82,7 @@ export default async function GuidesListPage({
 
         {noticeText ? (
           <div className="rounded-md border border-success bg-success-light px-4 py-3 mb-6">
-            <p className="text-body-sm font-medium text-success">{noticeText}</p>
+            <p className="text-body-sm font-medium text-success-ink">{noticeText}</p>
           </div>
         ) : null}
 

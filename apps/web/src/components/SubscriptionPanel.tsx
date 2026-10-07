@@ -10,15 +10,19 @@ import {
   type FeatureKey,
 } from '@/utils/subscription-features';
 import type { SubscriptionPlan } from '@/utils/stripe';
+import { tierBadgeColors, tierBorderColors } from '@/utils/tier-style';
 
 const ALL_PLANS: SubscriptionPlan[] = ['listed', 'verified', 'featured'];
 
-const PLAN_STYLE: Record<SubscriptionPlan, { card: string; badge: string; btn: string }> = {
-  listed:         { card: 'border-border',           badge: 'bg-surface text-muted border border-border',          btn: 'bg-surface border border-border text-muted hover:bg-background' },
-  verified:       { card: 'border-border',           badge: 'bg-brand-subtle text-brand-dark-alt',                 btn: 'bg-brand text-white hover:bg-brand/90' },
-  featured:       { card: 'border-amber-300',        badge: 'bg-amber-50 text-amber-700',                          btn: 'bg-amber-500 text-white hover:bg-amber-600' },
-  founding_pilot: { card: 'border-violet-400 ring-1 ring-violet-200', badge: 'bg-violet-50 text-violet-700',       btn: 'bg-violet-600 text-white hover:bg-violet-700' },
-};
+/**
+ * Every upgrade control is the same neutral high-emphasis button.
+ *
+ * Tier identity is carried by the badge and the card border; four differently
+ * coloured buttons would compete with each other and with the brand copper,
+ * which DESIGN.md reserves for one commitment per view. The previous copper
+ * fill also shipped white text at 2.64:1, below the AA floor.
+ */
+const UPGRADE_BTN = 'bg-dark text-dark-foreground hover:bg-dark/90';
 
 type Props = {
   venueId: string;
@@ -85,7 +89,7 @@ export function SubscriptionPanel({ venueId, orgId, currentPlan }: Props) {
           <h2 className="text-heading-sm font-semibold text-foreground">Subscription</h2>
           <p className="text-body-sm text-muted mt-0.5">
             Current plan:{' '}
-            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ml-1 ${PLAN_STYLE[currentPlan].badge}`}>
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ml-1 ${tierBadgeColors(currentPlan)}`}>
               {PLAN_LABEL[currentPlan]}
             </span>
           </p>
@@ -102,7 +106,7 @@ export function SubscriptionPanel({ venueId, orgId, currentPlan }: Props) {
       </div>
 
       {error && (
-        <div className="rounded-md border border-error bg-red-50 px-4 py-3 mb-5">
+        <div className="rounded-md border border-error bg-error-light px-4 py-3 mb-5">
           <p className="text-body-sm text-error">{error}</p>
         </div>
       )}
@@ -111,7 +115,6 @@ export function SubscriptionPanel({ venueId, orgId, currentPlan }: Props) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-2">
         {ALL_PLANS.map((plan) => {
           const price = PLAN_PRICE[plan];
-          const style = PLAN_STYLE[plan];
           const isCurrent = isCurrentPlan(plan);
           const isPreviewed = preview === plan;
 
@@ -119,7 +122,7 @@ export function SubscriptionPanel({ venueId, orgId, currentPlan }: Props) {
             <div
               key={plan}
               onClick={() => handleSelectPlan(plan)}
-              className={`relative rounded-lg border-2 p-4 cursor-pointer transition-all ${style.card} ${
+              className={`relative rounded-lg border-2 p-4 cursor-pointer transition-all ${tierBorderColors(plan)} ${
                 isPreviewed ? 'shadow-md' : 'opacity-70 hover:opacity-90'
               }`}
             >
@@ -129,7 +132,7 @@ export function SubscriptionPanel({ venueId, orgId, currentPlan }: Props) {
                 </span>
               )}
               <div className="mb-3">
-                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${style.badge}`}>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium ${tierBadgeColors(plan)}`}>
                   {PLAN_LABEL[plan]}
                 </span>
               </div>
@@ -147,7 +150,7 @@ export function SubscriptionPanel({ venueId, orgId, currentPlan }: Props) {
                 <button
                   onClick={(e) => { e.stopPropagation(); handleCheckout(plan); }}
                   disabled={pending || isCurrent}
-                  className={`w-full h-8 rounded-md text-caption font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${style.btn}`}
+                  className={`w-full h-8 rounded-md text-caption font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${UPGRADE_BTN}`}
                 >
                   {isCurrent ? 'Active' : 'Upgrade'}
                 </button>

@@ -105,11 +105,11 @@ export default function StagingDetailClient({
         <h2 className="text-heading-sm font-semibold text-foreground mb-4">Review Actions</h2>
 
         {actionToast && (
-          <p className="text-body-sm text-success font-medium mb-3">{actionToast}</p>
+          <p className="text-body-sm text-success-ink font-medium mb-3">{actionToast}</p>
         )}
 
         {missingRequired.length > 0 && (
-          <p className="text-caption text-[#92400E] bg-[#FEF3C7] px-3 py-2 rounded mb-3">
+          <p className="text-caption text-warning-ink bg-warning-light px-3 py-2 rounded mb-3">
             Missing required fields: <strong>{missingRequired.join(', ')}</strong> — edit below before promoting.
           </p>
         )}

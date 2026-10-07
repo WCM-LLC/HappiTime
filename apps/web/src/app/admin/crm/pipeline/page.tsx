@@ -13,7 +13,7 @@ const PIPELINE_STAGES = CRM_STAGES.filter((s) => !['won', 'lost', 'nurture'].inc
 export default async function CrmPipelinePage() {
   const keyError = getServiceRoleKeyError();
   if (keyError) {
-    return <CrmShell title="Pipeline" active="/admin/crm/pipeline"><p className="text-body-sm text-warning">Service role key required — see /admin.</p></CrmShell>;
+    return <CrmShell title="Pipeline" active="/admin/crm/pipeline"><p className="text-body-sm text-warning-ink">Service role key required — see /admin.</p></CrmShell>;
   }
 
   const supabase = createServiceClient();

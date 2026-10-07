@@ -164,7 +164,7 @@ export default async function AdminUsersPage({
         {/* Notice */}
         {noticeText ? (
           <div className="rounded-md border border-success bg-success-light px-4 py-3 mb-6">
-            <p className="text-body-sm font-medium text-success">{noticeText}</p>
+            <p className="text-body-sm font-medium text-success-ink">{noticeText}</p>
           </div>
         ) : null}
 
@@ -179,8 +179,8 @@ export default async function AdminUsersPage({
         {/* No service key warning */}
         {keyError ? (
           <div className="rounded-md border border-warning bg-warning-light px-4 py-3 mb-6">
-            <p className="text-body-sm font-medium text-warning">Limited mode</p>
-            <p className="text-body-sm text-warning/80 mt-0.5">
+            <p className="text-body-sm font-medium text-warning-ink">Limited mode</p>
+            <p className="text-body-sm text-warning-ink/80 mt-0.5">
               Add{' '}
               <code className="text-caption bg-surface px-1.5 py-0.5 rounded border border-border">
                 SUPABASE_SERVICE_ROLE_KEY

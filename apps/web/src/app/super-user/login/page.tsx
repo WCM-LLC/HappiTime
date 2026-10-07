@@ -59,7 +59,7 @@ export default async function SuperUserLoginPage({
 
           {noticeText ? (
             <div className="rounded-md border border-success bg-success-light px-4 py-3">
-              <p className="text-body-sm font-medium text-success">{noticeText}</p>
+              <p className="text-body-sm font-medium text-success-ink">{noticeText}</p>
             </div>
           ) : null}
 

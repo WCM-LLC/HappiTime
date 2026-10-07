@@ -24,8 +24,8 @@ const ERRORS: Record<string, string> = {
 
 function statusClass(status: string | null) {
   const base = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold';
-  if (status === 'published') return `${base} bg-success-light text-success`;
-  if (status === 'pending_review') return `${base} bg-warning-light text-warning`;
+  if (status === 'published') return `${base} bg-success-light text-success-ink`;
+  if (status === 'pending_review') return `${base} bg-warning-light text-warning-ink`;
   if (status === 'archived') return `${base} bg-surface border border-border text-muted-light`;
   return `${base} bg-surface border border-border text-muted`;
 }
@@ -92,8 +92,8 @@ export default async function AdminGuideEditPage({
         </div>
 
         <div className="rounded-md border border-warning bg-warning-light px-4 py-3 mb-6">
-          <p className="text-body-sm font-semibold text-warning">Admin Edit Mode</p>
-          <p className="text-body-sm text-warning/80 mt-0.5">
+          <p className="text-body-sm font-semibold text-warning-ink">Admin Edit Mode</p>
+          <p className="text-body-sm text-warning-ink/80 mt-0.5">
             Saving updates this guide in place and keeps its current review status.
           </p>
         </div>

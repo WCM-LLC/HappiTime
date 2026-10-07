@@ -1,4 +1,20 @@
 import Link from 'next/link';
+import {
+  Beer,
+  BookOpen,
+  Briefcase,
+  Building2,
+  Clock,
+  Images,
+  Inbox,
+  MapPin,
+  MapPinned,
+  QrCode,
+  ScanLine,
+  Star,
+  Users,
+  type LucideIcon,
+} from 'lucide-react';
 import UserBar from '@/components/layout/UserBar';
 import { createClient } from '@/utils/supabase/server';
 import { createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
@@ -348,20 +364,24 @@ export default async function AdminPage({
     adminUsers = adminUsersRaw ?? [];
   }
 
-  const stats: { label: string; value: number; icon: string; href?: string }[] = [
-    { label: 'Organizations', value: orgCount ?? 0, icon: '⚙️' },
-    { label: 'Venues', value: venueCount ?? 0, icon: '🍺' },
-    { label: 'Members', value: memberCount ?? 0, icon: '👥' },
-    { label: 'Happy Hours', value: hhCount ?? 0, icon: '⏰' },
-    { label: 'Media Files', value: mediaCount ?? 0, icon: '📷' },
-    { label: 'Suggestions', value: suggestionCount ?? 0, icon: '📍', href: '/admin/suggestions' },
-    { label: 'Super Users', value: superUserCount ?? 0, icon: 'SU', href: '/admin/users' },
-    { label: 'Guide Review', value: pendingGuideCount ?? 0, icon: 'GR', href: '/admin/guides?tab=pending' },
-    { label: 'Check-ins', value: checkinCount ?? 0, icon: 'CI' },
-    { label: 'Staging', value: stagingCount ?? 0, icon: 'ST', href: '/admin/staging' },
-    { label: 'Address Review', value: addressReviewCount ?? 0, icon: 'AR', href: '/admin/address-review' },
-    { label: 'CRM Leads', value: crmOpenLeadCount ?? 0, icon: '💼', href: '/admin/crm' },
-    { label: 'Intake Review', value: intakeReviewCount ?? 0, icon: 'IR', href: '/admin/intake-review' },
+  // Lucide throughout: the previous mix of emoji and two-letter abbreviations
+  // ("SU", "GR", "AR") rendered at whatever size and weight the host font chose,
+  // so no two tiles matched. Icons are decorative here — the label names the
+  // metric — hence aria-hidden on render.
+  const stats: { label: string; value: number; Icon: LucideIcon; href?: string }[] = [
+    { label: 'Organizations', value: orgCount ?? 0, Icon: Building2 },
+    { label: 'Venues', value: venueCount ?? 0, Icon: Beer },
+    { label: 'Members', value: memberCount ?? 0, Icon: Users },
+    { label: 'Happy Hours', value: hhCount ?? 0, Icon: Clock },
+    { label: 'Media Files', value: mediaCount ?? 0, Icon: Images },
+    { label: 'Suggestions', value: suggestionCount ?? 0, Icon: MapPin, href: '/admin/suggestions' },
+    { label: 'Super Users', value: superUserCount ?? 0, Icon: Star, href: '/admin/users' },
+    { label: 'Guide Review', value: pendingGuideCount ?? 0, Icon: BookOpen, href: '/admin/guides?tab=pending' },
+    { label: 'Check-ins', value: checkinCount ?? 0, Icon: QrCode },
+    { label: 'Staging', value: stagingCount ?? 0, Icon: Inbox, href: '/admin/staging' },
+    { label: 'Address Review', value: addressReviewCount ?? 0, Icon: MapPinned, href: '/admin/address-review' },
+    { label: 'CRM Leads', value: crmOpenLeadCount ?? 0, Icon: Briefcase, href: '/admin/crm' },
+    { label: 'Intake Review', value: intakeReviewCount ?? 0, Icon: ScanLine, href: '/admin/intake-review' },
   ];
 
   return (
@@ -401,15 +421,15 @@ export default async function AdminPage({
         {/* ── Success Notice ── */}
         {noticeText ? (
           <div className="rounded-md border border-success bg-success-light px-4 py-3 mb-6">
-            <p className="text-body-sm font-medium text-success">{noticeText}</p>
+            <p className="text-body-sm font-medium text-success-ink">{noticeText}</p>
           </div>
         ) : null}
 
         {/* ── Warning Banner ── */}
         {keyError ? (
           <div className="rounded-md border border-warning bg-warning-light px-4 py-3 mb-6">
-            <p className="text-body-sm font-medium text-warning">Limited mode</p>
-            <p className="text-body-sm text-warning/80 mt-0.5">
+            <p className="text-body-sm font-medium text-warning-ink">Limited mode</p>
+            <p className="text-body-sm text-warning-ink/80 mt-0.5">
               Add <code className="text-caption bg-surface px-1.5 py-0.5 rounded border border-border">SUPABASE_SERVICE_ROLE_KEY</code> to{' '}
               <code className="text-caption bg-surface px-1.5 py-0.5 rounded border border-border">apps/web/.env.local</code> for full admin access (user list, RLS bypass).
               {keyError === 'invalid' ? ' The current key is present but has the wrong role.' : ''}
@@ -420,20 +440,23 @@ export default async function AdminPage({
         {/* ── Stats Grid ── */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-3 mb-10">
           {stats.map((s) => {
+            // h-full + mt-auto put every value on one baseline. Labels wrap to
+            // two lines on some tiles and one on others, which previously left
+            // the numbers stepping up and down across the row.
             const inner = (
-              <div className={`rounded-lg border border-border bg-surface p-5 shadow-sm${s.href ? ' hover:border-brand hover:shadow-md transition-all' : ''}`}>
-                <div className="flex items-center justify-between mb-3">
+              <div className={`flex h-full flex-col rounded-lg border border-border bg-surface p-5 shadow-sm${s.href ? ' hover:border-brand hover:shadow-md transition-all' : ''}`}>
+                <div className="flex items-start justify-between gap-3 mb-3">
                   <span className="text-caption font-semibold text-muted uppercase tracking-wider">{s.label}</span>
-                  <span className="text-body-sm">{s.icon}</span>
+                  <s.Icon className="size-4 shrink-0 text-muted" aria-hidden="true" />
                 </div>
-                <div className="text-display-md font-bold text-foreground tracking-tight leading-none">
+                <div className="mt-auto text-display-md font-bold text-foreground tracking-tight leading-none tabular-nums">
                   {s.value.toLocaleString()}
                 </div>
               </div>
             );
             return s.href
-              ? <Link key={s.label} href={s.href}>{inner}</Link>
-              : <div key={s.label}>{inner}</div>;
+              ? <Link key={s.label} href={s.href} className="block h-full rounded-lg">{inner}</Link>
+              : <div key={s.label} className="h-full">{inner}</div>;
           })}
         </div>
 
@@ -553,11 +576,11 @@ export default async function AdminPage({
                         <td className="px-4 py-3 text-muted whitespace-nowrap">{checkinSourceLabel(checkin.source)}</td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <span className={checkin.is_private ? 'inline-flex items-center rounded-full bg-background px-2 py-0.5 text-caption font-semibold text-muted border border-border' : 'inline-flex items-center rounded-full bg-success-light px-2 py-0.5 text-caption font-semibold text-success'}>
+                            <span className={checkin.is_private ? 'inline-flex items-center rounded-full bg-background px-2 py-0.5 text-caption font-semibold text-muted border border-border' : 'inline-flex items-center rounded-full bg-success-light px-2 py-0.5 text-caption font-semibold text-success-ink'}>
                               {checkin.is_private ? 'Private' : 'Public'}
                             </span>
                             {!checkin.exited_at ? (
-                              <span className="inline-flex items-center rounded-full bg-brand-subtle px-2 py-0.5 text-caption font-semibold text-brand-text">
+                              <span className="inline-flex items-center rounded-full bg-brand-subtle px-2 py-0.5 text-caption font-semibold text-brand-dark-alt">
                                 Current
                               </span>
                             ) : null}

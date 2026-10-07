@@ -24,9 +24,22 @@
   --color-dark-surface: #242424;
 
   /* ── Extended Palette ── */
+  /* Reserved for categorical use, where one hue cannot carry distinct
+     meanings. Each base has a tint for badge grounds and a text-safe ink
+     (the base darkened 15%); the bases themselves are too light for
+     12px text on their own tints. Measured against WCAG 2.1 AA:
+       wine-ink on wine-subtle  7.81:1
+       teal-ink on teal-subtle  5.67:1
+       navy-ink on navy-subtle  9.13:1 */
   --color-wine: #8C3A4B;
+  --color-wine-subtle: #F4EBED;
+  --color-wine-ink: #773140;
   --color-teal: #2A7B6F;
+  --color-teal-subtle: #EAF2F1;
+  --color-teal-ink: #24695E;
   --color-navy: #2E4A6E;
+  --color-navy-subtle: #EAEDF1;
+  --color-navy-ink: #273F5E;
 
   /* ── Text ── */
   --color-foreground: #1A1A1A;
@@ -41,12 +54,18 @@
   --color-border-focus: #C8965A;
 
   /* ── Semantic ── */
+  /* `-light` is the badge ground, `-ink` the text on it. The mid tones are
+     fills and borders, not type: success on success-light is only 4.08:1 and
+     warning on warning-light is 2.14:1, both under the AA floor for the 12px
+     captions these badges use. The ink variants measure 5.88:1 and 5.34:1. */
   --color-success: #2D8A56;
   --color-success-light: #ECFDF5;
+  --color-success-ink: #246E45;
   --color-error: #C43E3E;
   --color-error-light: #FEF2F2;
   --color-warning: #D4A843;
   --color-warning-light: #FFFBEB;
+  --color-warning-ink: #7F6528;
 
   /* ── Typography ── */
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
