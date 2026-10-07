@@ -393,7 +393,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
 
   // ── result screen ───────────────────────────────────────────────────────
   if (commitResult) {
-    const tone = commitResult.published ? '#16a34a' : commitResult.drafted ? '#6b7280' : '#f59e0b';
+    const tone = commitResult.published ? 'var(--color-success-ink)' : commitResult.drafted ? 'var(--color-muted)' : 'var(--color-warning-ink)';
     const heading = commitResult.published
       ? '✓ Published live'
       : commitResult.drafted
@@ -404,7 +404,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
         <h1 style={h1}>Done.</h1>
         <div style={{ ...card, borderColor: tone }}>
           <strong>{heading}</strong>
-          <p style={{ marginTop: 8, color: '#374151' }}>
+          <p style={{ marginTop: 8, color: 'var(--color-foreground)' }}>
             Menu ({sections.length} section{sections.length === 1 ? '' : 's'}, {totalItems} item
             {totalItems === 1 ? '' : 's'}) attached to {commitResult.window_ids?.length ?? 0} window
             {commitResult.window_ids?.length === 1 ? '' : 's'} on {venue?.name}.
@@ -414,7 +414,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
             ) : null}
           </p>
           {commitResult.claim_url ? (
-            <p style={{ fontSize: 12, color: '#6b7280', wordBreak: 'break-all', marginTop: 8 }}>
+            <p style={{ fontSize: 12, color: 'var(--color-muted)', wordBreak: 'break-all', marginTop: 8 }}>
               Claim link: <a href={commitResult.claim_url}>{commitResult.claim_url}</a>
               {commitResult.email?.sent === false ? (
                 <em> — email could not be sent ({commitResult.email?.reason}); copy this link to the owner manually.</em>
@@ -440,7 +440,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
         {venue ? (
           <div style={card}>
             <strong>{venue.name}</strong>
-            <div style={{ fontSize: 13, color: '#6b7280' }}>
+            <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>
               {venue.address ?? ''}
               {venue.city ? `, ${venue.city}` : ''}
             </div>
@@ -463,7 +463,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
                 {results.map((v) => (
                   <li key={v.id} style={resultItem} onClick={() => setVenue(v)}>
                     <strong>{v.name}</strong>
-                    <div style={{ fontSize: 12, color: '#6b7280' }}>
+                    <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>
                       {v.address ?? ''}
                       {v.city ? `, ${v.city}` : ''}
                     </div>
@@ -510,26 +510,26 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
               ...card,
               borderColor:
                 extractMeta.confidence === 'high'
-                  ? '#16a34a'
+                  ? 'var(--color-success-ink)'
                   : extractMeta.confidence === 'medium'
-                  ? '#f59e0b'
-                  : '#9ca3af',
+                  ? 'var(--color-warning-ink)'
+                  : 'var(--color-muted)',
             }}
           >
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 13 }}>
               <div>
-                <strong style={{ color: extractMeta.hasWindows ? '#15803d' : '#b91c1c' }}>
+                <strong style={{ color: extractMeta.hasWindows ? 'var(--color-success-ink)' : 'var(--color-error)' }}>
                   {extractMeta.hasWindows ? '✓' : '✗'} Times
                 </strong>
-                <div style={{ color: '#6b7280', fontSize: 12 }}>
+                <div style={{ color: 'var(--color-muted)', fontSize: 12 }}>
                   {extractedWindows.length} window{extractedWindows.length === 1 ? '' : 's'} extracted
                 </div>
               </div>
               <div>
-                <strong style={{ color: extractMeta.hasMenu ? '#15803d' : '#b91c1c' }}>
+                <strong style={{ color: extractMeta.hasMenu ? 'var(--color-success-ink)' : 'var(--color-error)' }}>
                   {extractMeta.hasMenu ? '✓' : '✗'} Menu
                 </strong>
-                <div style={{ color: '#6b7280', fontSize: 12 }}>
+                <div style={{ color: 'var(--color-muted)', fontSize: 12 }}>
                   {sections.length} section{sections.length === 1 ? '' : 's'} · {totalItems} item
                   {totalItems === 1 ? '' : 's'}
                 </div>
@@ -537,12 +537,12 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
               {extractMeta.confidence ? (
                 <div>
                   <strong>Confidence</strong>
-                  <div style={{ color: '#6b7280', fontSize: 12 }}>{extractMeta.confidence}</div>
+                  <div style={{ color: 'var(--color-muted)', fontSize: 12 }}>{extractMeta.confidence}</div>
                 </div>
               ) : null}
             </div>
             {extractMeta.notes ? (
-              <div style={{ marginTop: 8, fontSize: 12, color: '#6b7280' }}>
+              <div style={{ marginTop: 8, fontSize: 12, color: 'var(--color-muted)' }}>
                 <em>{extractMeta.notes}</em>
               </div>
             ) : null}
@@ -569,8 +569,8 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
                       display: 'flex',
                       alignItems: 'center',
                       gap: 12,
-                      borderColor: checked ? '#2563eb' : '#e5e7eb',
-                      background: checked ? '#eff6ff' : '#fff',
+                      borderColor: checked ? 'var(--color-brand)' : 'var(--color-border)',
+                      background: checked ? 'var(--color-brand-subtle)' : 'var(--color-surface)',
                       cursor: 'pointer',
                     }}
                   >
@@ -586,8 +586,8 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
               })}
             </>
           ) : (
-            <div style={{ ...card, background: '#f9fafb' }}>
-              <div style={{ fontSize: 13, color: '#6b7280' }}>
+            <div style={{ ...card, background: 'var(--color-background)' }}>
+              <div style={{ fontSize: 13, color: 'var(--color-muted)' }}>
                 No published windows on this venue yet. Use the extracted windows below, or add new ones manually in the console first.
               </div>
             </div>
@@ -604,7 +604,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
                   <div key={i} style={card}>
                     <div style={{ fontSize: 14, fontWeight: 600 }}>{fmtWindow(ew)}</div>
                     {match && d.kind !== 'create_new' && d.kind !== 'skip' ? (
-                      <div style={{ fontSize: 12, color: '#15803d', marginTop: 4 }}>
+                      <div style={{ fontSize: 12, color: 'var(--color-success-ink)', marginTop: 4 }}>
                         ✓ matches existing window — using it
                       </div>
                     ) : null}
@@ -728,13 +728,13 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
               />
               <span>
                 <strong>Send owner a confirmation link</strong>
-                <div style={{ fontSize: 12, color: '#6b7280' }}>
+                <div style={{ fontSize: 12, color: 'var(--color-muted)' }}>
                   Drafts and emails the owner a one-tap publish link. Marketing touch.
                 </div>
               </span>
             </label>
             {!confirmationConfigured ? (
-              <p style={{ fontSize: 12, color: '#b91c1c', marginTop: 8 }}>
+              <p style={{ fontSize: 12, color: 'var(--color-error)', marginTop: 8 }}>
                 Set <code>INTAKE_CONFIRM_SECRET</code> in env to enable this.
               </p>
             ) : null}
@@ -751,7 +751,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
           </div>
 
           {!canPublishStrict ? (
-            <p style={{ fontSize: 12, color: '#92400e', marginTop: 8 }}>
+            <p style={{ fontSize: 12, color: 'var(--color-warning-ink)', marginTop: 8 }}>
               {totalAttachedWindows === 0
                 ? 'No windows attached — Publish disabled. Save as draft to keep what you have.'
                 : sections.length === 0 || totalItems === 0
@@ -787,7 +787,7 @@ const shellStyle: React.CSSProperties = {
   maxWidth: 540,
   margin: '0 auto',
   padding: '24px 16px 96px',
-  fontFamily: 'system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif',
+  fontFamily: 'var(--font-sans)',
 };
 const h1: React.CSSProperties = { fontSize: 24, margin: '0 0 16px' };
 const section: React.CSSProperties = { marginBottom: 28 };
@@ -795,19 +795,19 @@ const labelStyle: React.CSSProperties = {
   display: 'block',
   fontSize: 13,
   fontWeight: 600,
-  color: '#374151',
+  color: 'var(--color-foreground)',
   marginBottom: 8,
 };
 const subLabel: React.CSSProperties = {
   fontSize: 12,
   textTransform: 'uppercase',
   letterSpacing: 0.5,
-  color: '#6b7280',
+  color: 'var(--color-muted)',
   marginBottom: 8,
 };
 const input: React.CSSProperties = {
   width: '100%',
-  border: '1px solid #d1d5db',
+  border: '1px solid var(--color-border-strong)',
   borderRadius: 8,
   padding: '10px 12px',
   fontSize: 16,
@@ -815,27 +815,27 @@ const input: React.CSSProperties = {
   boxSizing: 'border-box',
 };
 const card: React.CSSProperties = {
-  border: '1px solid #e5e7eb',
+  border: '1px solid var(--color-border)',
   borderRadius: 8,
   padding: 12,
   marginBottom: 12,
-  background: '#fff',
+  background: 'var(--color-surface)',
 };
 const resultList: React.CSSProperties = {
   listStyle: 'none',
   padding: 0,
   margin: '8px 0 0',
-  border: '1px solid #e5e7eb',
+  border: '1px solid var(--color-border)',
   borderRadius: 8,
 };
 const resultItem: React.CSSProperties = {
   padding: '10px 12px',
-  borderBottom: '1px solid #f3f4f6',
+  borderBottom: '1px solid var(--color-border)',
   cursor: 'pointer',
 };
 const primaryBtn: React.CSSProperties = {
-  background: '#111',
-  color: '#fff',
+  background: 'var(--color-dark)',
+  color: 'var(--color-dark-foreground)',
   border: 0,
   padding: '14px 22px',
   borderRadius: 8,
@@ -846,9 +846,9 @@ const primaryBtn: React.CSSProperties = {
   cursor: 'pointer',
 };
 const draftBtn: React.CSSProperties = {
-  background: '#fff',
-  color: '#111',
-  border: '1px solid #d1d5db',
+  background: 'var(--color-surface)',
+  color: 'var(--color-foreground)',
+  border: '1px solid var(--color-border-strong)',
   padding: '12px 22px',
   borderRadius: 8,
   fontSize: 14,
@@ -858,9 +858,9 @@ const draftBtn: React.CSSProperties = {
   cursor: 'pointer',
 };
 const secondaryBtn: React.CSSProperties = {
-  background: '#fff',
-  color: '#111',
-  border: '1px solid #d1d5db',
+  background: 'var(--color-surface)',
+  color: 'var(--color-foreground)',
+  border: '1px solid var(--color-border-strong)',
   padding: '10px 14px',
   borderRadius: 8,
   fontSize: 14,
@@ -870,7 +870,7 @@ const secondaryBtn: React.CSSProperties = {
 const linkBtn: React.CSSProperties = {
   background: 'transparent',
   border: 0,
-  color: '#6b7280',
+  color: 'var(--color-muted)',
   textDecoration: 'underline',
   fontSize: 12,
   padding: 0,
@@ -878,8 +878,8 @@ const linkBtn: React.CSSProperties = {
   cursor: 'pointer',
 };
 const pill: React.CSSProperties = {
-  background: '#fff',
-  border: '1px solid #d1d5db',
+  background: 'var(--color-surface)',
+  border: '1px solid var(--color-border-strong)',
   borderRadius: 999,
   padding: '6px 12px',
   fontSize: 13,
@@ -887,8 +887,8 @@ const pill: React.CSSProperties = {
 };
 const primaryPill: React.CSSProperties = {
   ...pill,
-  background: '#111',
-  color: '#fff',
-  borderColor: '#111',
+  background: 'var(--color-dark)',
+  color: 'var(--color-dark-foreground)',
+  borderColor: 'var(--color-dark)',
 };
-const errStyle: React.CSSProperties = { color: '#b91c1c', marginTop: 8, fontSize: 14 };
+const errStyle: React.CSSProperties = { color: 'var(--color-error)', marginTop: 8, fontSize: 14 };
