@@ -172,10 +172,10 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
 
   function sourceBadge(source: string | null | undefined) {
     const s = source ?? 'unknown';
-    if (s === 'upload') return { label: 'Uploaded', bg: '#DCFCE7', fg: '#065F46' };
-    if (s === 'google_places') return { label: 'Google', bg: '#E0E7FF', fg: '#3730A3' };
-    if (s === 'website') return { label: 'Website', bg: '#FEF3C7', fg: '#92400E' };
-    if (s === 'unsplash') return { label: 'Unsplash', bg: '#F3F4F6', fg: '#374151' };
+    if (s === 'upload') return { label: 'Uploaded', bg: 'var(--color-background)', fg: 'var(--color-muted)' };
+    if (s === 'google_places') return { label: 'Google', bg: 'var(--color-background)', fg: 'var(--color-muted)' };
+    if (s === 'website') return { label: 'Website', bg: 'var(--color-background)', fg: 'var(--color-muted)' };
+    if (s === 'unsplash') return { label: 'Unsplash', bg: 'var(--color-background)', fg: 'var(--color-muted)' };
     return null;
   }
 
@@ -201,7 +201,7 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
             <span>
               <span style={{
                 display: 'inline-block', minWidth: 56, padding: '1px 7px', marginRight: 6,
-                background: 'var(--brand)', color: '#fff', fontSize: 10, fontWeight: 700,
+                background: 'var(--color-brand)', color: 'var(--color-dark)', fontSize: 10, fontWeight: 700,
                 borderRadius: 999, letterSpacing: '0.06em', textTransform: 'uppercase',
                 textAlign: 'center',
               }}>Cover</span>
@@ -210,7 +210,7 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
             <span>
               <span style={{
                 display: 'inline-block', minWidth: 56, padding: '1px 7px', marginRight: 6,
-                background: '#E5E7EB', color: '#374151', fontSize: 10, fontWeight: 700,
+                background: 'var(--color-border)', color: 'var(--color-foreground)', fontSize: 10, fontWeight: 700,
                 borderRadius: 999, letterSpacing: '0.06em', textTransform: 'uppercase',
                 textAlign: 'center',
               }}>Gallery</span>
@@ -289,10 +289,10 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
                     overflow: 'hidden',
                     border: isCover ? '2px solid var(--brand)' : '1px solid var(--border)',
                     aspectRatio: '4/3',
-                    background: '#f3f4f6',
+                    background: 'var(--color-background)',
                   }}
                 >
-                  <img
+                  <img loading="lazy" decoding="async"
                     src={venueImageUrl(row, { w: 400 })}
                     alt={row.title ?? 'venue photo'}
                     style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
@@ -303,7 +303,7 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
                     top: 6,
                     left: 6,
                     background: isCover ? 'var(--brand)' : 'rgba(17,24,39,0.78)',
-                    color: '#fff',
+                    color: 'var(--color-dark-foreground)',
                     fontSize: 10,
                     fontWeight: 700,
                     padding: '2px 7px',
@@ -374,7 +374,7 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
                         fontSize: 11,
                         padding: '5px 10px',
                         width: 'auto',
-                        background: '#dc2626',
+                        background: 'var(--color-error)',
                         border: 'none',
                       }}
                     >
@@ -411,7 +411,7 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
                       <button
                         disabled={isDeleting}
                         onClick={() => void handleDelete(row)}
-                        style={{ padding: '6px 10px', fontSize: 12, background: '#dc2626', border: 'none' }}
+                        style={{ padding: '6px 10px', fontSize: 12, background: 'var(--color-error)', border: 'none' }}
                       >
                         {isDeleting ? '…' : 'Delete'}
                       </button>
@@ -446,7 +446,7 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
             padding: 16,
           }}
         >
-          <img
+          <img loading="lazy" decoding="async"
             src={previewSrc}
             alt=""
             onClick={(e) => e.stopPropagation()}
@@ -464,7 +464,7 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
               height: 40,
               borderRadius: 999,
               background: 'rgba(0,0,0,0.6)',
-              color: '#fff',
+              color: 'var(--color-dark-foreground)',
               border: 'none',
               fontSize: 22,
               lineHeight: 1,
