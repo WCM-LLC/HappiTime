@@ -8,7 +8,7 @@ import { useState } from 'react';
  * User avatar with a resilient fallback. If the image fails to load — a dead URL,
  * a 404, or a 0-byte object that returns HTTP 200 with no bytes — it falls back
  * to the initials instead of rendering a broken-image icon. A present-but-broken
- * avatar_url is exactly what a naive `url ? <img> : <initials>` check misses.
+ * avatar_url is exactly what a naive `url ? <img loading="lazy" decoding="async"> : <initials>` check misses.
  */
 export default function UserAvatar({
   url,
@@ -29,7 +29,7 @@ export default function UserAvatar({
       className={`${sizeClassName} rounded-full bg-brand-subtle overflow-hidden flex items-center justify-center shrink-0`}
     >
       {showImage ? (
-        <img
+        <img loading="lazy" decoding="async"
           src={url as string}
           alt=""
           className="h-full w-full object-cover"

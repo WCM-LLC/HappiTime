@@ -227,3 +227,33 @@
     animation-duration: 2.4s;
   }
 }
+
+/* ── Touch comfort ── */
+/*
+ * The console is desktop-primary and its tables lean on dense 28–32px
+ * controls. Those clear WCAG 2.5.8 Target Size Minimum (24px) but are small
+ * under a thumb. Rather than inflate every control for every input device,
+ * only coarse pointers get the 44px target from 2.5.5 — fine pointers keep
+ * the density the admin tables are built around.
+ *
+ * Scoped to interactive tags, and square icon controls grow on both axes so
+ * they stay square instead of stretching into rectangles.
+ */
+@media (pointer: coarse) {
+  button.h-7:not(.w-7),
+  button.h-8:not(.w-8),
+  select.h-7,
+  select.h-8,
+  a.h-7:not(.w-7),
+  a.h-8:not(.w-8) {
+    min-height: 44px;
+  }
+
+  button.h-7.w-7,
+  button.h-8.w-8,
+  a.h-7.w-7,
+  a.h-8.w-8 {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

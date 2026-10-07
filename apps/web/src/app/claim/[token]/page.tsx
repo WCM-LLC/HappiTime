@@ -92,8 +92,8 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
           {venue.address ? `${venue.address}, ` : ''}
           {venue.city ?? ''}
         </p>
-        <div style={{ ...cardStyle, borderColor: '#16a34a' }}>
-          <strong style={{ color: '#15803d' }}>Already published ✓</strong>
+        <div style={{ ...cardStyle, borderColor: 'var(--color-success)' }}>
+          <strong style={{ color: 'var(--color-success-ink)' }}>Already published ✓</strong>
           <p style={pStyle}>Your HappiTime menu is live. Thanks for confirming.</p>
         </div>
       </main>
@@ -136,7 +136,7 @@ export default async function ClaimPage({ params }: { params: Promise<{ token: s
                     <strong>{it.name}</strong>
                     {it.price != null ? <span style={priceStyle}> · {formatPrice(it.price)}</span> : null}
                     {it.description ? (
-                      <div style={{ color: '#6b7280', fontSize: 13 }}>{it.description}</div>
+                      <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>{it.description}</div>
                     ) : null}
                   </li>
                 ))}
@@ -158,12 +158,12 @@ const pageStyle: React.CSSProperties = {
   fontFamily: 'system-ui,-apple-system,Segoe UI,Helvetica,Arial,sans-serif',
 };
 const h1Style: React.CSSProperties = { fontSize: 28, margin: '0 0 4px' };
-const subStyle: React.CSSProperties = { color: '#6b7280', margin: '0 0 24px' };
+const subStyle: React.CSSProperties = { color: 'var(--color-muted)', margin: '0 0 24px' };
 const h2Style: React.CSSProperties = { fontSize: 18, margin: '24px 0 8px' };
-const h3Style: React.CSSProperties = { fontSize: 15, margin: '16px 0 6px', color: '#374151' };
-const pStyle: React.CSSProperties = { color: '#374151', lineHeight: 1.5 };
-const cardStyle: React.CSSProperties = { border: '1px solid #d1d5db', borderRadius: 8, padding: 16, marginTop: 16 };
+const h3Style: React.CSSProperties = { fontSize: 15, margin: '16px 0 6px', color: 'var(--color-foreground)' };
+const pStyle: React.CSSProperties = { color: 'var(--color-foreground)', lineHeight: 1.5 };
+const cardStyle: React.CSSProperties = { border: '1px solid var(--color-border-strong)', borderRadius: 8, padding: 16, marginTop: 16 };
 const sectionStyle: React.CSSProperties = { padding: '8px 0' };
 const listStyle: React.CSSProperties = { listStyle: 'none', padding: 0, margin: 0 };
-const liStyle: React.CSSProperties = { padding: '8px 0', borderBottom: '1px solid #f3f4f6' };
-const priceStyle: React.CSSProperties = { color: '#111', fontWeight: 600 };
+const liStyle: React.CSSProperties = { padding: '8px 0', borderBottom: '1px solid var(--color-border)' };
+const priceStyle: React.CSSProperties = { color: 'var(--color-foreground)', fontWeight: 600 };

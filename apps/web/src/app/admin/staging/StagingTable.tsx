@@ -194,7 +194,7 @@ function StagingRow({
           <div className="w-12 h-12 rounded-md overflow-hidden bg-background border border-border flex items-center justify-center shrink-0">
             {thumbnailUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={thumbnailUrl} alt="" className="w-full h-full object-cover" />
+              <img loading="lazy" decoding="async" src={thumbnailUrl} alt="" className="w-full h-full object-cover" />
             ) : (
               <span className="text-muted-light text-caption">—</span>
             )}
