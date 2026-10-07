@@ -226,7 +226,7 @@ export default async function AppPreviewVenuePage({
                 <div className={styles.heroWrap}>
                   <ImageLightbox className={styles.heroCard}>
                     {coverUrl ? (
-                      <img
+                      <img loading="lazy" decoding="async"
                         src={coverUrl}
                         data-lightbox-src={coverFullUrl ?? undefined}
                         alt={`${primaryName} cover`}

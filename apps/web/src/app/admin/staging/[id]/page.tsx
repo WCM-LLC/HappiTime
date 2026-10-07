@@ -181,7 +181,7 @@ export default async function StagingDetailPage({
             <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
               <h2 className="text-heading-sm font-semibold text-foreground mb-4">Thumbnail</h2>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <img loading="lazy" decoding="async"
                 src={thumbnailSrc}
                 alt={name}
                 className="w-full max-w-sm h-48 object-cover rounded-md border border-border"

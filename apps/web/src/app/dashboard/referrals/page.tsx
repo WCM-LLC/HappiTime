@@ -103,7 +103,7 @@ export default async function ReferralsPage() {
             {/* QR + share link */}
             <section className="rounded-lg border border-border bg-surface shadow-sm p-6 flex flex-col items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <img loading="lazy" decoding="async"
                 src="/api/referrals/qr?size=digital&disposition=inline"
                 alt={`Referral QR for @${handle}`}
                 width={220}
