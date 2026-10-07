@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-07T21:00:00.000Z",
+  "title": "Design System: HappiTime Mobile",
+  "extensions": {
+    "platform": "adaptive",
+    "note": "This is a React Native app. The component html/css below are faithful APPROXIMATIONS for the live panel, which renders web markup — the shipped components are RN StyleSheet objects in src/, not DOM. Treat the tokens and narrative as normative and the snippets as a preview.",
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Golden Hour",
+        "canonical": "#C8965A",
+        "note": "The one accent: active tab tint, primary actions, map pins, heart fills, app icon background. A light fill — white text on it is 2.64:1 and fails AA.",
+        "tonalRamp": ["oklch(20% 0.040 65)", "oklch(31% 0.058 65)", "oklch(42% 0.072 65)", "oklch(53% 0.080 65)", "oklch(68% 0.078 65)", "oklch(79% 0.060 65)", "oklch(88% 0.040 65)", "oklch(96% 0.016 65)"]
+      },
+      "primary-dark": { "role": "primary", "displayName": "Golden Hour Deep", "canonical": "#A67842", "note": "Pressed state on copper fills." },
+      "brand-light": { "role": "primary", "displayName": "Golden Hour Tint", "canonical": "#E8D5BC" },
+      "brand-subtle": { "role": "primary", "displayName": "Golden Hour Wash", "canonical": "#F5EDE3", "note": "Avatar fills and image placeholders before a cover loads." },
+      "brand-dark": { "role": "primary", "displayName": "Golden Hour Ink", "canonical": "#8B6535", "note": "Copper as text. The legible pairing on a Golden Hour Wash ground." },
+      "wine": {
+        "role": "secondary",
+        "displayName": "Oxblood",
+        "canonical": "#8C3A4B",
+        "note": "The Insider star badge, and the Featured tier. Reserved — not a general accent.",
+        "tonalRamp": ["oklch(18% 0.055 10)", "oklch(28% 0.085 10)", "oklch(38% 0.110 10)", "oklch(45% 0.115 10)", "oklch(56% 0.105 10)", "oklch(70% 0.080 10)", "oklch(84% 0.048 10)", "oklch(95% 0.018 10)"]
+      },
+      "teal": {
+        "role": "secondary",
+        "displayName": "Verdigris",
+        "canonical": "#2A7B6F",
+        "note": "Reserved categorical. The Founding Pilot tier on the console.",
+        "tonalRamp": ["oklch(18% 0.035 180)", "oklch(27% 0.052 180)", "oklch(36% 0.065 180)", "oklch(48% 0.072 180)", "oklch(60% 0.065 180)", "oklch(73% 0.050 180)", "oklch(86% 0.032 180)", "oklch(96% 0.012 180)"]
+      },
+      "navy": {
+        "role": "secondary",
+        "displayName": "Midnight Navy",
+        "canonical": "#2E4A6E",
+        "note": "Reserved categorical. The org bundle tiers on the console.",
+        "tonalRamp": ["oklch(18% 0.040 255)", "oklch(27% 0.060 255)", "oklch(36% 0.075 255)", "oklch(46% 0.082 255)", "oklch(58% 0.075 255)", "oklch(72% 0.056 255)", "oklch(86% 0.034 255)", "oklch(96% 0.013 255)"]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Bone",
+        "canonical": "#FAFAF8",
+        "note": "The app ground. Warm by design — never #FAFAFA.",
+        "tonalRamp": ["oklch(20% 0.004 95)", "oklch(31% 0.005 95)", "oklch(43% 0.006 95)", "oklch(55% 0.006 95)", "oklch(68% 0.006 95)", "oklch(82% 0.005 95)", "oklch(92% 0.004 95)", "oklch(98% 0.003 95)"]
+      },
+      "surface": { "role": "neutral", "displayName": "Paper", "canonical": "#FFFFFF", "note": "Cards, sheets, tab bar. `card` is an alias of the same value." },
+      "cream": { "role": "neutral", "displayName": "Cream", "canonical": "#F5F0EB", "note": "The splash ground." },
+      "text": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "canonical": "#1A1A1A",
+        "note": "Body text and the active pill fill.",
+        "tonalRamp": ["oklch(14% 0 0)", "oklch(24% 0 0)", "oklch(34% 0 0)", "oklch(45% 0 0)", "oklch(57% 0 0)", "oklch(70% 0 0)", "oklch(84% 0 0)", "oklch(96% 0 0)"]
+      },
+      "text-muted": { "role": "neutral", "displayName": "Slate", "canonical": "#6B6B6B" },
+      "text-muted-light": { "role": "neutral", "displayName": "Ash", "canonical": "#9CA3AF", "note": "Placeholders and inactive glyphs only. 2.54:1 on white — never label text." },
+      "input-background": { "role": "neutral", "displayName": "Warm Field", "canonical": "#F5F3F0", "note": "No console equivalent. Slightly warmer than Bone so a field reads as inset rather than as another card." },
+      "tab-bar-inactive": { "role": "neutral", "displayName": "Inactive Tint", "canonical": "#B5B0A8", "note": "A warm gray, deliberately not Ash." },
+      "border": { "role": "neutral", "displayName": "Hairline", "canonical": "#E8E8E5" },
+      "border-strong": { "role": "neutral", "displayName": "Hairline Strong", "canonical": "#D1D1CD" },
+      "dark": { "role": "neutral", "displayName": "Graphite", "canonical": "#1A1A1A" },
+      "dark-surface": { "role": "neutral", "displayName": "Graphite Raised", "canonical": "#242424" },
+      "dark-foreground": { "role": "neutral", "displayName": "Near White", "canonical": "#F5F5F3" },
+      "dark-muted": { "role": "neutral", "displayName": "Dark Slate", "canonical": "#A3A3A3" },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Confirmed Green",
+        "canonical": "#2D8A56",
+        "note": "A fill and border tone. The console's text-safe success-ink variant does not exist here yet.",
+        "tonalRamp": ["oklch(18% 0.040 155)", "oklch(28% 0.062 155)", "oklch(38% 0.080 155)", "oklch(50% 0.090 155)", "oklch(62% 0.082 155)", "oklch(75% 0.060 155)", "oklch(87% 0.038 155)", "oklch(97% 0.015 155)"]
+      },
+      "success-light": { "role": "tertiary", "displayName": "Confirmed Wash", "canonical": "#ECFDF5" },
+      "error": {
+        "role": "tertiary",
+        "displayName": "Dispute Red",
+        "canonical": "#C43E3E",
+        "tonalRamp": ["oklch(19% 0.060 25)", "oklch(29% 0.095 25)", "oklch(39% 0.125 25)", "oklch(50% 0.150 25)", "oklch(58% 0.155 25)", "oklch(72% 0.110 25)", "oklch(86% 0.060 25)", "oklch(96% 0.020 25)"]
+      },
+      "error-light": { "role": "tertiary", "displayName": "Dispute Wash", "canonical": "#FEF2F2" },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Pending Amber",
+        "canonical": "#D4A843",
+        "note": "A fill and border tone. On its own wash it is 2.14:1 — never type. The warning-ink variant does not exist here yet.",
+        "tonalRamp": ["oklch(20% 0.040 85)", "oklch(31% 0.062 85)", "oklch(42% 0.082 85)", "oklch(54% 0.098 85)", "oklch(74% 0.105 85)", "oklch(84% 0.075 85)", "oklch(91% 0.048 85)", "oklch(97% 0.020 85)"]
+      },
+      "warning-light": { "role": "tertiary", "displayName": "Pending Wash", "canonical": "#FFFBEB" }
+    },
+    "typographyMeta": {
+      "display-lg": { "displayName": "Display LG", "purpose": "The one big statement on a screen. Rare." },
+      "display-md": { "displayName": "Display MD", "purpose": "Screen titles." },
+      "display-sm": { "displayName": "Display SM", "purpose": "Section openers." },
+      "heading-lg": { "displayName": "Heading LG", "purpose": "Card titles and sheet headers." },
+      "heading-sm": { "displayName": "Heading SM", "purpose": "The most common heading; also the button label size." },
+      "body-md": { "displayName": "Body MD", "purpose": "The working body size." },
+      "body-sm": { "displayName": "Body SM", "purpose": "Secondary and supporting copy." },
+      "caption": { "displayName": "Caption", "purpose": "Tab labels, meta, timestamps. 11 is the floor." },
+      "label": { "displayName": "Label", "purpose": "Chips, pills and small emphasis." }
+    },
+    "shadows": [
+      { "name": "shadowSoft", "value": "rgba(26, 26, 26, 0.06)", "purpose": "iOS resting lift on cards. Built from Graphite, not black, so it stays in the warm family." },
+      { "name": "shadowMedium", "value": "rgba(26, 26, 26, 0.12)", "purpose": "iOS sheets, floating map controls, and detached layers." },
+      { "name": "android-elevation", "value": "1 · 2 · 3 · 4 · 6 · 8", "purpose": "Android uses Material tonal elevation rather than these shadow tokens; 3 is the most common level in use." }
+    ],
+    "motion": [
+      { "name": "modal-fade", "value": "Modal animationType=\"fade\"", "purpose": "Overlays." },
+      { "name": "modal-slide", "value": "Modal animationType=\"slide\"", "purpose": "Bottom sheets." },
+      { "name": "press-scale", "value": "transform: scale(0.95–0.99) + opacity shift", "purpose": "Tactile press feedback. Currently NOT gated on a reduce-motion preference — both platforms require honouring that setting." }
+    ],
+    "breakpoints": [
+      { "name": "phone", "value": "portrait only — orientation is locked" },
+      { "name": "tablet", "value": "supportsTablet: true on iOS, so iPad is a shipped device class with no dedicated layout yet" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Filter Chip",
+      "kind": "chip",
+      "refersTo": "chip-active",
+      "description": "Approximation of the RN chip. Two states only: Graphite fill when active, Paper with a hairline when not.",
+      "html": "<span class=\"ds-chip ds-chip-active\">Happening Now</span> <span class=\"ds-chip\">Patio</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; margin-right: 8px; padding: 6px 12px; border-radius: 999px; background: #FFFFFF; color: #1A1A1A; border: 1px solid #E8E8E5; font-family: -apple-system, Roboto, sans-serif; font-size: 13px; font-weight: 600; line-height: 18px; } .ds-chip-active { background: #1A1A1A; color: #FFFFFF; border-color: #1A1A1A; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Full-radius and 48pt tall — above both platform minimums. NOTE: the shipped app renders white on copper here, which is 2.64:1 and fails AA; this snippet shows the graphite label the console adopted as the fix.",
+      "html": "<button class=\"ds-btn-primary\">Find deals near me</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; height: 48px; padding: 0 24px; border: none; border-radius: 999px; background: #C8965A; color: #1A1A1A; font-family: -apple-system, Roboto, sans-serif; font-size: 17px; font-weight: 600; cursor: pointer; } .ds-btn-primary:active { background: #A67842; }"
+    },
+    {
+      "name": "Venue Card",
+      "kind": "card",
+      "refersTo": "venue-card",
+      "description": "The signature component — 14px radius, the most-repeated shape in the product. Time-to-close reads before the name.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-img\"></div><div class=\"ds-card-body\"><div class=\"ds-card-time\">Ends 6:00 PM · 0.4 mi</div><div class=\"ds-card-name\">Westport Taproom</div><div class=\"ds-card-deal\">$4 wells, $6 apps</div></div></div>",
+      "css": ".ds-card { width: 260px; background: #FFFFFF; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(26,26,26,0.06); font-family: -apple-system, Roboto, sans-serif; } .ds-card-img { height: 120px; background: #F5EDE3; } .ds-card-body { padding: 12px; } .ds-card-time { font-size: 13px; font-weight: 600; line-height: 18px; color: #8B6535; } .ds-card-name { font-size: 20px; font-weight: 600; line-height: 26px; color: #1A1A1A; margin-top: 2px; } .ds-card-deal { font-size: 13px; font-weight: 400; line-height: 18px; color: #6B6B6B; margin-top: 2px; }"
+    },
+    {
+      "name": "Listing Freshness",
+      "kind": "custom",
+      "refersTo": "badge-brand",
+      "description": "The trust component. Fresh under 45 days, otherwise a caveat. The 'Something's off?' link is always present and always quiet.",
+      "html": "<div class=\"ds-fresh\"><span class=\"ds-fresh-ok\">✓ Verified Oct 2</span><a class=\"ds-fresh-report\" href=\"#\">Something's off?</a></div>",
+      "css": ".ds-fresh { display: flex; align-items: center; gap: 12px; font-family: -apple-system, Roboto, sans-serif; } .ds-fresh-ok { font-size: 13px; font-weight: 600; line-height: 18px; color: #2D8A56; } .ds-fresh-report { font-size: 13px; font-weight: 400; line-height: 18px; color: #6B6B6B; text-decoration: underline; text-underline-offset: 2px; }"
+    },
+    {
+      "name": "Tab Bar",
+      "kind": "nav",
+      "refersTo": "tab-bar",
+      "description": "Five destinations authenticated, three as a guest. Copper active tint, warm-gray inactive, labels always shown. Height is 56 plus the bottom safe-area inset.",
+      "html": "<nav class=\"ds-tabs\"><span class=\"ds-tab ds-tab-on\">Map</span><span class=\"ds-tab\">Home</span><span class=\"ds-tab\">Favorites</span><span class=\"ds-tab\">Activity</span><span class=\"ds-tab\">Profile</span></nav>",
+      "css": ".ds-tabs { display: flex; justify-content: space-around; align-items: center; height: 56px; background: #FFFFFF; border-top: 1px solid #E8E8E5; font-family: -apple-system, Roboto, sans-serif; } .ds-tab { font-size: 11px; font-weight: 500; letter-spacing: 0.2px; color: #B5B0A8; } .ds-tab-on { color: #C8965A; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Warm Field ground is what distinguishes a field from a card — it reads as inset rather than raised.",
+      "html": "<input class=\"ds-input\" placeholder=\"Search bars & restaurants\" aria-label=\"Search bars and restaurants\" />",
+      "css": ".ds-input { width: 260px; height: 44px; padding: 0 12px; background: #F5F3F0; border: 1px solid #E8E8E5; border-radius: 12px; color: #1A1A1A; font-family: -apple-system, Roboto, sans-serif; font-size: 15px; } .ds-input::placeholder { color: #9CA3AF; } .ds-input:focus-visible { outline: 2px solid #C8965A; outline-offset: 2px; }"
+    },
+    {
+      "name": "Insider Badge",
+      "kind": "chip",
+      "refersTo": "badge-brand",
+      "description": "Oxblood star marking a HappiTime Insider. Reserved — Oxblood is not a general accent.",
+      "html": "<span class=\"ds-insider\" role=\"img\" aria-label=\"HappiTime Insider\">★</span>",
+      "css": ".ds-insider { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 999px; background: #8C3A4B; color: #FFFFFF; font-size: 11px; line-height: 1; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Golden Hour",
+    "overview": "Golden hour is the short window near the end of the day when the light is best. Everyone who has chased it knows two things at once: it is beautiful, and it is about to be over. That is exactly what this app is for — the happy hour that is on now, and ends at six.\n\nThe palette is already named for it. Golden Hour copper is the brand, and the app is warm the way late light is warm: a bone-white ground, white cards, and copper used where attention should go. Where the console is an operator's room, this is the street outside it at 5pm.\n\nThe character is warm and glanceable at the same time, and that tension is the design problem, not a contradiction to be split. A venue card should feel inviting enough to want to go, and readable enough to decide in two seconds on a sidewalk. The resolution is hierarchy: time and distance are the fastest things on the card, the photography and the name carry the warmth, and nothing decorative competes with either.\n\nStructure is the platform's, not ours. This app is recorded adaptive, and both HIGs govern navigation, controls and depth in every mode. Brand lives in the layer the platform leaves open: tint, type weight, motion, and content.",
+    "keyCharacteristics": [
+      "Warm-neutral ground, copper for attention — the same palette as the console, token for token",
+      "Time is the fastest-read element on any surface that lists a deal",
+      "System typeface by design: San Francisco on iOS, Roboto on Android, no custom family",
+      "Platform-native structure and depth; brand in tint, type, motion and content",
+      "Pills for status and filters; soft 14px cards",
+      "Portrait only, light only — no dark mode exists",
+      "Browsing never requires an account"
+    ],
+    "rules": [
+      { "name": "The Golden Hour Rule", "body": "Copper marks where attention goes — the active tab, the primary action, the live deal. One copper commitment per screen. Its scarcity is what makes a live happy hour findable at a glance.", "section": "colors" },
+      { "name": "The Warm Gray Rule", "body": "Every neutral here is warm. #FAFAF8 not #FAFAFA, #B5B0A8 not a cool gray for the inactive tab. A cool gray anywhere in this palette reads as a foreign component.", "section": "colors" },
+      { "name": "The Shared Palette Rule", "body": "These values are the console's values. A colour that changes here and not there is drift, not a mobile decision — change both or neither.", "section": "colors" },
+      { "name": "The System Face Rule", "body": "No custom font families. The brand is carried by colour, weight and voice. Adding a display face would cost Dynamic Type and platform metrics for a gain the brand does not need.", "section": "typography" },
+      { "name": "The Scaling Rule", "body": "Type scales with the user's system setting, everywhere, because nothing sets allowFontScaling={false}. Any layout that cannot survive a large type setting is the layout's problem, not the user's.", "section": "typography" },
+      { "name": "The Ending Soonest Rule", "body": "On any surface that lists a deal, the time it ends is the fastest thing to read. Not the venue name, not the photo. The whole product is 'what is on right now', and the layout has to answer that before anything else.", "section": "layout" },
+      { "name": "The Platform Depth Rule", "body": "Do not ship one depth model to both platforms. An iOS screen that leans on Material elevation looks like a port, and an Android screen with hand-rolled iOS shadows looks like one too. Depth is the layer where the adaptive call is most visible to a fluent user.", "section": "elevation" },
+      { "name": "The Pill Rule", "body": "999 means 'this is a state or a filter' — chips, badges, tab pills — and also the primary button, which is the one place mobile deliberately diverges from the console, where pills are forbidden on actions. A full-radius primary button is native-feeling on a phone and alien in an operator console; both are correct for their surface.", "section": "shapes" },
+      { "name": "The Fourteen Rule", "body": "The venue card is 14. It is the most-repeated shape in the product and the one a user sees hundreds of times; keep it consistent rather than drifting between 12, 14 and 16 on adjacent screens.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do answer 'what is on and when does it end' before anything else on a deal surface.",
+      "Do keep copper to one commitment per screen.",
+      "Do let type scale with the system setting, and design layouts that survive it.",
+      "Do use each platform's own depth model — flat and hairlined on iOS, tonal elevation on Android.",
+      "Do keep the venue card at 14px radius everywhere it appears.",
+      "Do use full pills for chips, badges and primary buttons on this surface.",
+      "Do take colour from src/theme/colors.ts. If a value is not there, add it there.",
+      "Do keep every neutral warm.",
+      "Do call background location 'Visit reminders' in UI copy, never 'background location'.",
+      "Do let people browse without an account, and replay a gated action after signup."
+    ],
+    "donts": [
+      "Don't use stock palette values. #8B5CF6, #7C3AED, #60A5FA and #2563EB are currently in colors.ts under promoPremium* and promoBasic* — off-system, and carrying retired tier names.",
+      "Don't put white text on Golden Hour. It measures 2.64:1 and fails AA. The console flipped the label to graphite; mobile still ships the failing combination and has no brand-hover token to support the fix.",
+      "Don't set small text in a semantic mid tone. success, warning and error are fills and borders; the text-safe -ink variants do not exist here yet.",
+      "Don't add a custom font family.",
+      "Don't ship one depth model to both platforms.",
+      "Don't introduce a cool gray.",
+      "Don't assume an in-app QR scanner exists — QR codes are read by the OS camera and arrive as universal links.",
+      "Don't design for dark mode. userInterfaceStyle is locked to light.",
+      "Don't design for landscape. Portrait is locked.",
+      "Don't imply offline capability. There is no offline layer; offline is empty states and errors."
+    ]
+  }
+}
