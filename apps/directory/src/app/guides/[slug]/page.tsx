@@ -155,7 +155,7 @@ export default async function GuidePage({
           ) : null}
           {guide.tags && guide.tags.length > 0 ? (
             <div className="flex flex-wrap gap-1.5 mt-4">
-              {guide.tags.map((tag: string) => (
+              {Array.from(new Set(guide.tags as string[])).map((tag) => (
                 <span
                   key={tag}
                   className="rounded-full border border-border px-3 py-0.5 text-xs font-medium text-muted"

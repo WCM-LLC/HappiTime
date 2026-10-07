@@ -519,7 +519,7 @@ function MapPopup({ venue, todayDow, venueHref, isMobile, onClose }: MapPopupPro
 
         {venue.tags.length > 0 && (
           <div style={{ display: "flex", gap: 5, marginBottom: 12, flexWrap: "wrap" }}>
-            {venue.tags.slice(0, 3).map((tag) => (
+            {Array.from(new Set(venue.tags)).slice(0, 3).map((tag) => (
               <span key={tag} style={{ fontSize: 10, color: "#8B6535", background: "#F5EDE3", borderRadius: 999, padding: "2px 7px", fontWeight: 500 }}>
                 {tag.replace(/_/g, " ")}
               </span>

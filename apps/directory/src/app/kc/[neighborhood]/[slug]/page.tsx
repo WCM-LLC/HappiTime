@@ -269,7 +269,7 @@ export default async function VenueDetailPage({ params }: Props) {
           )}
           {venue.tags.length > 0 && (
             <div className="flex gap-1.5 flex-wrap">
-              {venue.tags.slice(0, 3).map((tag) => (
+              {Array.from(new Set(venue.tags)).slice(0, 3).map((tag) => (
                 <span
                   key={tag}
                   className="rounded-full bg-brand-subtle px-2.5 py-0.5 text-xs font-medium text-brand-text"
