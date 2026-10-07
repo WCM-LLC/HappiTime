@@ -15,8 +15,8 @@ export default async function CrmDashboardPage() {
     return (
       <CrmShell title="CRM" description="Venue sales and relationships" active="/admin/crm">
         <div className="rounded-md border border-warning bg-warning-light px-4 py-3">
-          <p className="text-body-sm font-medium text-warning">Service role key required</p>
-          <p className="text-body-sm text-warning/80 mt-0.5">
+          <p className="text-body-sm font-medium text-warning-ink">Service role key required</p>
+          <p className="text-body-sm text-warning-ink/80 mt-0.5">
             Add <code className="text-caption bg-surface px-1.5 py-0.5 rounded border border-border">SUPABASE_SERVICE_ROLE_KEY</code> to{' '}
             <code className="text-caption bg-surface px-1.5 py-0.5 rounded border border-border">apps/web/.env.local</code> to use the CRM.
           </p>

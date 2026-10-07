@@ -18,6 +18,7 @@ import { SIZE_PRESETS } from '@happitime/venue-qr';
 import { VenueScanAnalytics } from '@/components/VenueScanAnalytics';
 import { ToastmakerCard } from '@/components/ToastmakerCard';
 import { summarizeScans, computeWindows, type ScanSummary, type ScanEvent } from '@/utils/scan-analytics';
+import { tierChipColors } from '@/utils/tier-style';
 import { serviceDate, generateCheckinCode } from '@happitime/shared-api/checkin-code';
 import {
   updateVenue,
@@ -636,8 +637,8 @@ export default async function VenuePage({
   const backHref = fromAdmin ? `/orgs/${orgId}?from=admin` : `/orgs/${orgId}`;
   const venuePublished = (v?.status ?? '').toLowerCase() === HH_STATUS_PUBLISHED;
   const venueStatusColor = venuePublished
-    ? 'bg-success-light text-success'
-    : 'bg-warning-light text-warning';
+    ? 'bg-success-light text-success-ink'
+    : 'bg-warning-light text-warning-ink';
 
   /* ── Shared input class ── */
   const inputCls =
@@ -711,12 +712,7 @@ export default async function VenuePage({
             </Link>
             {canManageVenue && (
               <Link href={`/orgs/${orgId}/venues/${venueId}/subscription`}>
-                <span className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-md border text-body-sm font-medium transition-colors cursor-pointer ${
-                  currentPlan === 'founding_pilot' ? 'border-violet-300 bg-violet-50 text-violet-700 hover:bg-violet-100' :
-                  currentPlan === 'featured' ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100' :
-                  currentPlan === 'verified' ? 'border-brand/30 bg-brand-subtle text-brand-dark-alt hover:bg-brand-subtle/80' :
-                  'border-border bg-surface text-muted hover:bg-background'
-                }`}>
+                <span className={`inline-flex items-center gap-1.5 h-9 px-3 rounded-md border text-body-sm font-medium transition-colors cursor-pointer ${tierChipColors(currentPlan)}`}>
                   <span className={`inline-block h-2 w-2 rounded-full ${
                     currentPlan === 'listed' ? 'bg-muted-light' : 'bg-current'
                   }`} />
@@ -966,8 +962,8 @@ export default async function VenuePage({
                 const isPublished = (h.status ?? '').toLowerCase() === HH_STATUS_PUBLISHED;
                 const selectedMenus = menuSelections.get(h.id) ?? new Set<string>();
                 const statusColor = isPublished
-                  ? 'bg-success-light text-success'
-                  : 'bg-warning-light text-warning';
+                  ? 'bg-success-light text-success-ink'
+                  : 'bg-warning-light text-warning-ink';
 
                 return (
                   <div key={h.id} className="rounded-lg border border-border bg-background p-5">
@@ -1243,7 +1239,7 @@ export default async function VenuePage({
                 (approvedTags as ApprovedTagRow[] | null)
                   ?.filter((t) => (currentVenueTags as VenueTagRow[]).some((vt) => vt.tag_id === t.id))
                   .map((t) => (
-                    <span key={t.id} className="inline-flex items-center rounded-full bg-brand-subtle px-2.5 py-1 text-caption font-medium text-brand-text">
+                    <span key={t.id} className="inline-flex items-center rounded-full bg-brand-subtle px-2.5 py-1 text-caption font-medium text-brand-dark-alt">
                       {t.label}
                     </span>
                   ))
@@ -1269,8 +1265,8 @@ export default async function VenuePage({
               {(venueEvents as VenueEventRow[]).map((ev) => {
                 const isPublished = ev.status === 'published';
                 const statusColor = isPublished
-                  ? 'bg-success-light text-success'
-                  : 'bg-warning-light text-warning';
+                  ? 'bg-success-light text-success-ink'
+                  : 'bg-warning-light text-warning-ink';
                 // Owners must see their own event times in the venue's zone —
                 // this renders server-side, where the runtime zone is UTC.
                 const evTz = ev.timezone || 'America/Chicago';
@@ -1577,7 +1573,7 @@ export default async function VenuePage({
               Links to happitime.biz/v/{qrSlug}?src=qr
             </p>
             {v?.status !== 'published' ? (
-              <p className="text-caption text-warning mt-1">
+              <p className="text-caption text-warning-ink mt-1">
                 QR becomes scannable once the venue is published.
               </p>
             ) : null}
@@ -1607,7 +1603,7 @@ export default async function VenuePage({
                     member.role === 'owner'
                       ? 'bg-brand-subtle text-brand-dark'
                       : member.role === 'manager' || member.role === 'admin' || member.role === 'editor'
-                        ? 'bg-success-light text-success'
+                        ? 'bg-success-light text-success-ink'
                         : 'bg-background text-muted';
                   return (
                     <div key={member.user_id} className="rounded-lg border border-border bg-background p-4 flex items-center justify-between gap-4">
@@ -1625,7 +1621,7 @@ export default async function VenuePage({
                             </span>
                             {member.email ? <span className="text-caption text-muted">{member.email}</span> : null}
                             {isAssigned ? (
-                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-success-light text-success">
+                              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-success-light text-success-ink">
                                 Assigned to this venue
                               </span>
                             ) : (

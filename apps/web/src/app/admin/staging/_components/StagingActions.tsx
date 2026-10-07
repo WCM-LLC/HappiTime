@@ -53,7 +53,7 @@ export function PromoteForm({
   return (
     <div className="flex flex-col gap-2 min-w-[220px]">
       {hasNoExternalRef && !confirmed && (
-        <p className="text-caption text-[#92400E] bg-[#FEF3C7] px-2 py-1 rounded">
+        <p className="text-caption text-warning-ink bg-warning-light px-2 py-1 rounded">
           No places_id — photo sync won&apos;t auto-run
         </p>
       )}

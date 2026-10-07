@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { PLAN_LABEL, PLAN_PRICE } from '@/utils/subscription-features';
 import type { SubscriptionPlan } from '@/utils/stripe';
+import { TIER_BADGE_COLORS } from '@/utils/tier-style';
 
 /**
  * OrgSubscriptionStatus — per-venue subscription posture for an org, shown above
@@ -10,12 +11,8 @@ import type { SubscriptionPlan } from '@/utils/stripe';
  * Stripe flow lives on the per-venue subscription page.
  */
 
-const PLAN_BADGE: Record<SubscriptionPlan, string> = {
-  listed: 'bg-background text-muted border border-border',
-  verified: 'bg-brand-subtle text-brand-dark-alt',
-  featured: 'bg-amber-50 text-amber-700',
-  founding_pilot: 'bg-violet-50 text-violet-700',
-};
+/** Tier colours live in @/utils/tier-style — see the note there on why. */
+const PLAN_BADGE = TIER_BADGE_COLORS;
 
 export type VenuePlanRow = { id: string; name: string; plan: SubscriptionPlan };
 

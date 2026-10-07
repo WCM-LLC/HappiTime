@@ -45,7 +45,7 @@ export default async function CrmLeadsPage({
   };
 
   if (keyError) {
-    return <CrmShell {...shellProps}><p className="text-body-sm text-warning">Service role key required — see /admin.</p></CrmShell>;
+    return <CrmShell {...shellProps}><p className="text-body-sm text-warning-ink">Service role key required — see /admin.</p></CrmShell>;
   }
 
   const supabase = createServiceClient();

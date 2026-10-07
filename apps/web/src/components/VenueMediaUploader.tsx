@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { MapPin } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import {
   deleteVenueMedia,
@@ -191,11 +192,9 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
         gap: 12,
         alignItems: 'start',
       }}>
-        <div style={{
-          fontSize: 18,
-          lineHeight: '20px',
-          padding: 4,
-        }}>📍</div>
+        <div style={{ padding: 4, lineHeight: 0 }}>
+          <MapPin size={18} aria-hidden="true" />
+        </div>
         <div style={{ display: 'grid', gap: 6 }}>
           <strong style={{ fontSize: 13 }}>Where these images appear</strong>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'grid', gap: 2 }}>

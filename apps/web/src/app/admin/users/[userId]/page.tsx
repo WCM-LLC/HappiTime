@@ -13,8 +13,8 @@ function formatDate(iso: string | null) {
 
 function statusBadge(status: string | null) {
   const base = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold';
-  if (status === 'published') return `${base} bg-success-light text-success`;
-  if (status === 'pending_review') return `${base} bg-warning-light text-warning`;
+  if (status === 'published') return `${base} bg-success-light text-success-ink`;
+  if (status === 'pending_review') return `${base} bg-warning-light text-warning-ink`;
   if (status === 'archived') return `${base} bg-surface border border-border text-muted-light`;
   return `${base} bg-surface border border-border text-muted`;
 }
@@ -36,8 +36,8 @@ export default async function AdminSuperUserDetailsPage({
             Admin / Users
           </Link>
           <div className="rounded-md border border-warning bg-warning-light px-4 py-3 mt-6">
-            <p className="text-body-sm font-medium text-warning">Limited mode</p>
-            <p className="text-body-sm text-warning/80 mt-0.5">
+            <p className="text-body-sm font-medium text-warning-ink">Limited mode</p>
+            <p className="text-body-sm text-warning-ink/80 mt-0.5">
               Add <code className="text-caption bg-surface px-1.5 py-0.5 rounded border border-border">SUPABASE_SERVICE_ROLE_KEY</code> to view Super User details.
             </p>
           </div>

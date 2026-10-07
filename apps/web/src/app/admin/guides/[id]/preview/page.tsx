@@ -25,8 +25,8 @@ function formatDate(iso: string | null) {
 
 function statusClass(status: string | null) {
   const base = 'inline-flex items-center rounded-full px-2 py-0.5 text-caption font-semibold';
-  if (status === 'published') return `${base} bg-success-light text-success`;
-  if (status === 'pending_review') return `${base} bg-warning-light text-warning`;
+  if (status === 'published') return `${base} bg-success-light text-success-ink`;
+  if (status === 'pending_review') return `${base} bg-warning-light text-warning-ink`;
   if (status === 'archived') return `${base} bg-surface border border-border text-muted-light`;
   return `${base} bg-surface border border-border text-muted`;
 }
@@ -117,8 +117,8 @@ export default async function AdminGuidePreviewPage({
 
         <div className="rounded-md border border-warning bg-warning-light px-4 py-3 mb-6 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-body-sm font-semibold text-warning">Preview Mode</p>
-            <p className="text-body-sm text-warning/80">
+            <p className="text-body-sm font-semibold text-warning-ink">Preview Mode</p>
+            <p className="text-body-sm text-warning-ink/80">
               Status: <span className="font-semibold">{guide.status.replace('_', ' ')}</span>. This page is admin-only.
             </p>
           </div>

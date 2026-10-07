@@ -51,7 +51,7 @@ function TaskList({ tasks, leadNames, emptyText }: { tasks: TaskRow[]; leadNames
 export default async function CrmTasksPage() {
   const keyError = getServiceRoleKeyError();
   if (keyError) {
-    return <CrmShell title="Tasks" active="/admin/crm/tasks"><p className="text-body-sm text-warning">Service role key required — see /admin.</p></CrmShell>;
+    return <CrmShell title="Tasks" active="/admin/crm/tasks"><p className="text-body-sm text-warning-ink">Service role key required — see /admin.</p></CrmShell>;
   }
 
   const supabase = createServiceClient();

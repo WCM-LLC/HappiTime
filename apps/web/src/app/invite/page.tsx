@@ -164,7 +164,7 @@ export default async function InvitePage({
               </div>
 
               {invite.accepted_at ? (
-                <p className="text-caption text-success font-medium mt-3">This invite has already been accepted.</p>
+                <p className="text-caption text-success-ink font-medium mt-3">This invite has already been accepted.</p>
               ) : null}
               {invite.expires_at ? (
                 <p className="text-caption text-muted mt-2">
@@ -176,8 +176,8 @@ export default async function InvitePage({
             {/* ── Actions ── */}
             {invite.accepted_at ? null : emailMismatch ? (
               <div className="rounded-md border border-warning bg-warning-light px-4 py-3">
-                <p className="text-body-sm text-warning font-medium">Email mismatch</p>
-                <p className="text-body-sm text-warning/80 mt-0.5">
+                <p className="text-body-sm text-warning-ink font-medium">Email mismatch</p>
+                <p className="text-body-sm text-warning-ink/80 mt-0.5">
                   You&apos;re signed in as <strong>{user?.email}</strong>. Please log in as <strong>{invite.email}</strong> to accept.
                 </p>
               </div>

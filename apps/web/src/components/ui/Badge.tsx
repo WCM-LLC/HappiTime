@@ -10,9 +10,11 @@ const badgeVariants = cva(
         default: 'bg-dark text-dark-foreground',
         brand: 'bg-brand-subtle text-brand-dark-alt',
         secondary: 'bg-background text-muted border border-border',
-        success: 'bg-success-light text-success',
+        // `-ink` not the mid tone: success/warning on their own grounds measure
+        // 4.08:1 and 2.14:1, both under the AA floor for this 12px caption.
+        success: 'bg-success-light text-success-ink',
         error: 'bg-error-light text-error',
-        warning: 'bg-warning-light text-warning',
+        warning: 'bg-warning-light text-warning-ink',
         outline: 'border border-border text-foreground',
       },
     },

@@ -16,7 +16,7 @@ export default async function CrmAccountsPage({
   const sp = await searchParams;
   const keyError = getServiceRoleKeyError();
   if (keyError) {
-    return <CrmShell title="Accounts" active="/admin/crm/accounts"><p className="text-body-sm text-warning">Service role key required — see /admin.</p></CrmShell>;
+    return <CrmShell title="Accounts" active="/admin/crm/accounts"><p className="text-body-sm text-warning-ink">Service role key required — see /admin.</p></CrmShell>;
   }
 
   const supabase = createServiceClient();

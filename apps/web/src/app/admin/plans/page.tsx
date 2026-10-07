@@ -8,6 +8,7 @@ import {
   adminDeleteUserPlan,
 } from '@/actions/admin-plans-actions';
 import { adminGrantPilotBundle, adminCancelOrgBundle } from '@/actions/admin-bundle-actions';
+import { tierBadgeColors } from '@/utils/tier-style';
 import { AdminBundleLinkButton } from '@/components/AdminBundleLinkButton';
 import { STICKY_HEAD_POS, STICKY_ACTION_POS } from '@/utils/stickyActionColumn';
 
@@ -42,26 +43,32 @@ function formatDate(iso: string) {
 const thCls = 'text-left px-4 py-3 text-caption font-semibold text-muted uppercase tracking-wider';
 const tdCls = 'px-4 py-3';
 
-const PLAN_BADGE: Record<string, string> = {
-  listed:         'bg-surface text-muted border border-border',
-  verified:       'bg-brand-subtle text-brand-dark-alt',
-  featured:       'bg-amber-50 text-amber-700',
-  founding_pilot: 'bg-violet-50 text-violet-700',
-  // legacy names kept for existing rows
-  free:     'bg-surface text-muted border border-border',
-  pro:      'bg-brand-subtle text-brand-dark-alt',
-  business: 'bg-amber-50 text-amber-700',
-  power:    'bg-violet-50 text-violet-700',
+/** Legacy plan values still on old rows, mapped to the tiers that replaced them. */
+const LEGACY_PLAN_ALIAS: Record<string, string> = {
+  free: 'listed',
+  pro: 'verified',
+  business: 'featured',
+  power: 'founding_pilot',
 };
 
+/** Colours come from @/utils/tier-style; unknown values fall back to Listed. */
+function planBadgeCls(plan: string) {
+  return tierBadgeColors(LEGACY_PLAN_ALIAS[plan] ?? plan);
+}
+
+/**
+ * Subscription status is its own axis, so it stays off the reserved tier
+ * palette — navy meaning "bundle" in one column and "trialing" in the next
+ * would be worse than no colour at all. Trialing reads as a stronger neutral.
+ */
 const STATUS_BADGE: Record<string, string> = {
-  active:   'bg-green-50 text-green-700',
-  trialing: 'bg-blue-50 text-blue-700',
-  past_due: 'bg-amber-50 text-amber-700',
+  active:   'bg-success-light text-success-ink',
+  trialing: 'bg-background text-foreground border border-border-strong',
+  trial:    'bg-background text-foreground border border-border-strong',
+  past_due: 'bg-warning-light text-warning-ink',
   paused:   'bg-surface text-muted border border-border',
   canceled: 'bg-surface text-muted border border-border',
   inactive: 'bg-surface text-muted border border-border',
-  trial:    'bg-blue-50 text-blue-700',
 };
 
 function Badge({ label, cls }: { label: string; cls: string }) {
@@ -191,8 +198,8 @@ export default async function PlansPage() {
         {/* ── Service-role warning ── */}
         {keyError && (
           <div className="rounded-md border border-warning bg-warning-light px-4 py-3 mb-6">
-            <p className="text-body-sm font-medium text-warning">Service role key required</p>
-            <p className="text-body-sm text-warning/80 mt-0.5">
+            <p className="text-body-sm font-medium text-warning-ink">Service role key required</p>
+            <p className="text-body-sm text-warning-ink/80 mt-0.5">
               Add{' '}
               <code className="text-caption bg-surface px-1.5 py-0.5 rounded border border-border">SUPABASE_SERVICE_ROLE_KEY</code>
               {' '}to <code className="text-caption bg-surface px-1.5 py-0.5 rounded border border-border">apps/web/.env.local</code> to manage plans.
@@ -238,7 +245,7 @@ export default async function PlansPage() {
                     >
                       <td className={`${tdCls} font-medium text-foreground`}>{row.venue_name}</td>
                       <td className={tdCls}>
-                        <Badge label={row.plan} cls={PLAN_BADGE[row.plan] ?? PLAN_BADGE.free} />
+                        <Badge label={row.plan} cls={planBadgeCls(row.plan)} />
                       </td>
                       <td className={tdCls}>
                         <Badge label={row.status} cls={STATUS_BADGE[row.status] ?? STATUS_BADGE.inactive} />
@@ -374,7 +381,7 @@ export default async function PlansPage() {
                         )}
                       </td>
                       <td className={tdCls}>
-                        <Badge label={row.plan} cls={PLAN_BADGE[row.plan] ?? PLAN_BADGE.free} />
+                        <Badge label={row.plan} cls={planBadgeCls(row.plan)} />
                       </td>
                       <td className={tdCls}>
                         <Badge label={row.status} cls={STATUS_BADGE[row.status] ?? STATUS_BADGE.inactive} />
