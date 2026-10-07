@@ -173,7 +173,7 @@ function StagingRow({
   const state = payloadStr(p, 'state');
   const thumbnailUrl = payloadStr(p, 'thumbnail_url', 'imageUrl');
   const rating = typeof p.rating === 'number' ? p.rating : typeof p.totalScore === 'number' ? p.totalScore : null;
-  const tags: string[] = Array.isArray(p.tags) ? (p.tags as string[]) : [];
+  const tags: string[] = Array.from(new Set(Array.isArray(p.tags) ? (p.tags as string[]) : []));
   const hasInstagram = !!(p.instagram_url || (Array.isArray((p.socials as any)?.instagram) && (p.socials as any).instagram.length));
   const hasFacebook = !!(p.facebook_url || (Array.isArray((p.socials as any)?.facebook) && (p.socials as any).facebook.length));
   const hasTiktok = !!(p.tiktok_url || (Array.isArray((p.socials as any)?.tiktok) && (p.socials as any).tiktok.length));

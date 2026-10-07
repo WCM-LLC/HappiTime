@@ -103,7 +103,7 @@ export default async function StagingDetailPage({
     }
   }
   const emails: string[] = Array.isArray(p.emails) ? (p.emails as unknown[]).map(String) : [];
-  const tags: string[] = Array.isArray(p.tags) ? (p.tags as unknown[]).map(String) : [];
+  const tags: string[] = Array.from(new Set(Array.isArray(p.tags) ? (p.tags as unknown[]).map(String) : []));
 
   const thumbnailSrc = str(p.thumbnail_url) || str(p.imageUrl);
   const rating = numOrNull(p.rating) ?? numOrNull(p.totalScore);

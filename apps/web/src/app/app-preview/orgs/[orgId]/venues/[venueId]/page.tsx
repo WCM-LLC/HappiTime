@@ -190,7 +190,7 @@ export default async function AppPreviewVenuePage({
   const rating = (v as any)?.rating ?? null;
   const priceTier = (v as any)?.price_tier ?? null;
   const reviewCount = (v as any)?.review_count ?? null;
-  const tags = Array.isArray((v as any)?.tags) ? ((v as any).tags as string[]) : [];
+  const tags = Array.from(new Set(Array.isArray((v as any)?.tags) ? ((v as any).tags as string[]) : []));
   const addressDisplay = formatAddress(v as Record<string, any> | null);
 
   return (
