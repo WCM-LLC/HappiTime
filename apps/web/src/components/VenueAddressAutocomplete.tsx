@@ -126,7 +126,7 @@ export default function VenueAddressAutocomplete({
 
   return (
     <div ref={rootRef} className="relative">
-      <input
+      <input aria-label="Venue street address"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onKeyDown={onKeyDown}

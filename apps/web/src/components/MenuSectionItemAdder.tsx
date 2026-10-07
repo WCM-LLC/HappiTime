@@ -67,10 +67,10 @@ export default function MenuSectionItemAdder({
         <input type="hidden" name="section_id" value={sectionId} />
         <input type="hidden" name="redirect_to" value={redirectTo ?? ''} />
         <div className="row">
-          <input name="item_name" placeholder="Item name" required />
-          <input name="item_price" type="number" step="0.01" placeholder="Price (optional)" />
+          <input aria-label="Item name" name="item_name" placeholder="Item name" required />
+          <input aria-label="Price" name="item_price" type="number" step="0.01" placeholder="Price (optional)" />
         </div>
-        <textarea name="item_description" placeholder="Description (optional)" rows={2} />
+        <textarea aria-label="Description" name="item_description" placeholder="Description (optional)" rows={2} />
         <div className="row" style={{ justifyContent: 'space-between', gap: 8, alignItems: 'center' }}>
           <label className="row" style={{ gap: 8, alignItems: 'center' }}>
             <input type="checkbox" name="item_is_happy_hour" />

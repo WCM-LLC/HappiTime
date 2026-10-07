@@ -197,3 +197,33 @@
     @apply text-muted;
   }
 }
+
+/* ── Reduced motion ── */
+/*
+ * Deliberately not a blanket `animation: none` kill. The spinner is this
+ * console's "action received" signal — the Pending State Family in DESIGN.md —
+ * and freezing it would make a working form look broken.
+ *
+ * The only spatial motion in the console is the spinner's rotation. Under
+ * reduced motion it keeps its meaning and loses its movement: a slow opacity
+ * breath still reads as "working" without anything travelling across the
+ * screen. Colour transitions, the PendingFieldset fade, and the skeleton pulse
+ * are all opacity or colour changes, so they stay — only gentler.
+ *
+ * Unlayered on purpose: Tailwind's utilities live in @layer utilities, and
+ * unlayered rules win over layered ones regardless of specificity.
+ */
+@keyframes ht-working {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin {
+    animation: ht-working 1.6s ease-in-out infinite;
+  }
+
+  .animate-pulse {
+    animation-duration: 2.4s;
+  }
+}

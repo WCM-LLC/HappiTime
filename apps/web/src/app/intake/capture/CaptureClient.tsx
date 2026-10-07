@@ -450,7 +450,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
           </div>
         ) : (
           <>
-            <input
+            <input aria-label="Search venues by name"
               type="search"
               placeholder="Search venues by name…"
               value={search}
@@ -574,7 +574,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
                       cursor: 'pointer',
                     }}
                   >
-                    <input
+                    <input aria-label="Attach this happy hour window to the menu"
                       type="checkbox"
                       checked={checked}
                       onChange={() => toggleExisting(ew.id)}
@@ -652,7 +652,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
 
           {sections.map((s, si) => (
             <div key={si} style={card}>
-              <input
+              <input aria-label="Section name"
                 type="text"
                 value={s.name}
                 placeholder="Section name (e.g. Eats, Drinks)"
@@ -661,14 +661,14 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
               />
               {s.items.map((it, ii) => (
                 <div key={ii} style={{ display: 'flex', gap: 6, marginTop: 8, alignItems: 'flex-start' }}>
-                  <input
+                  <input aria-label="Item name"
                     type="text"
                     value={it.name}
                     placeholder="Item name"
                     onChange={(e) => updateItem(si, ii, { name: e.target.value })}
                     style={{ ...input, flex: 2, marginTop: 0 }}
                   />
-                  <input
+                  <input aria-label="$"
                     type="number"
                     step="0.01"
                     min="0"
@@ -720,7 +720,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
                 opacity: confirmationConfigured ? 1 : 0.5,
               }}
             >
-              <input
+              <input aria-label="Email the venue a confirmation"
                 type="checkbox"
                 checked={sendConfirmation}
                 disabled={!confirmationConfigured}
@@ -739,7 +739,7 @@ export default function CaptureClient({ confirmationConfigured }: { confirmation
               </p>
             ) : null}
             {sendConfirmation ? (
-              <input
+              <input aria-label="owner@venue.com"
                 type="email"
                 placeholder="owner@venue.com"
                 value={ownerEmail}

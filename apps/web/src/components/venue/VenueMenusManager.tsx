@@ -248,7 +248,7 @@ export default function VenueMenusManager({
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
                         <div className="flex flex-col gap-1 sm:max-w-xs sm:flex-1">
-                          <input
+                          <input aria-label="Menu name"
                             form={menuFormId}
                             name="menu_name"
                             defaultValue={m.name}
@@ -365,7 +365,7 @@ export default function VenueMenusManager({
                             {canManageVenue ? (
                               <div className="flex items-center gap-3 mb-4">
                                 <input form={menuFormId} type="hidden" name="section_ids" value={s.id} />
-                                <input
+                                <input aria-label="Section name"
                                   form={menuFormId}
                                   name={`section_name_${s.id}`}
                                   defaultValue={s.name}
@@ -409,14 +409,14 @@ export default function VenueMenusManager({
                                         <div className="flex flex-col gap-3">
                                           <input form={menuFormId} type="hidden" name="item_ids" value={it.id} />
                                           <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
-                                            <input
+                                            <input aria-label="Item name"
                                               form={menuFormId}
                                               name={`item_name_${it.id}`}
                                               defaultValue={it.name}
                                               required
                                               className={inputCls}
                                             />
-                                            <input
+                                            <input aria-label="Item price"
                                               form={menuFormId}
                                               name={`item_price_${it.id}`}
                                               type="number"
@@ -426,7 +426,7 @@ export default function VenueMenusManager({
                                               className={inputCls}
                                             />
                                           </div>
-                                          <textarea
+                                          <textarea aria-label="Description"
                                             form={menuFormId}
                                             name={`item_description_${it.id}`}
                                             defaultValue={it.description ?? ''}

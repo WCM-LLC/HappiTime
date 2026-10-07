@@ -246,7 +246,7 @@ export default function VenueMediaUploader(props: { orgId: string; venueId: stri
         <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: 14 }}>
           {busy ? 'Uploading…' : 'Drop a photo/video here, or click to choose'}
         </p>
-        <input
+        <input aria-label="Choose an image, video, or PDF to upload"
           ref={fileInputRef}
           type="file"
           accept="image/*,video/*,application/pdf"

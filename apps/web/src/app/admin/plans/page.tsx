@@ -295,7 +295,7 @@ export default async function PlansPage() {
                       ))}
                     </select>
                   ) : (
-                    <input
+                    <input aria-label="Venue ID"
                       type="text"
                       name="venue_id"
                       required
@@ -502,7 +502,7 @@ export default async function PlansPage() {
             </table>
           </div>
           <form action={adminGrantPilotBundle} className="mt-3 flex gap-2 items-center">
-            <input name="org_id" placeholder="org_id to comp a pilot bundle" className="h-9 px-3 rounded-md border border-border bg-surface text-body-sm w-96" />
+            <input aria-label="org_id to comp a pilot bundle" name="org_id" placeholder="org_id to comp a pilot bundle" className="h-9 px-3 rounded-md border border-border bg-surface text-body-sm w-96" />
             <button className="h-9 px-4 rounded-md bg-brand text-dark text-body-sm font-medium">Grant pilot</button>
           </form>
         </section>

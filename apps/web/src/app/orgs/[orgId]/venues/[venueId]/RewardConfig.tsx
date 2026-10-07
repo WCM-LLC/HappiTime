@@ -59,7 +59,7 @@ export default function RewardConfig({
           <span className="block text-body-sm font-semibold text-foreground">Advertise this reward</span>
           <span className="text-caption text-muted">Shown on your listing and in-app while active</span>
         </span>
-        <input
+        <input aria-label="Enable the reward"
           type="checkbox"
           name="reward_active"
           checked={active}

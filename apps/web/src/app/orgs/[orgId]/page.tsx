@@ -670,7 +670,7 @@ export default async function OrgPage({
                   {canManageOrganizationMenus ? (
                     <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                       <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-                        <input
+                        <input aria-label="Menu name"
                           form={menuFormId}
                           name="menu_name"
                           defaultValue={menu.name}
@@ -779,7 +779,7 @@ export default async function OrgPage({
                             {canManageOrganizationMenus ? (
                               <div className="flex items-center gap-3 mb-4">
                                 <input form={menuFormId} type="hidden" name="section_ids" value={section.id} />
-                                <input
+                                <input aria-label="Section name"
                                   form={menuFormId}
                                   name={`section_name_${section.id}`}
                                   defaultValue={section.name}
@@ -817,14 +817,14 @@ export default async function OrgPage({
                                         <div className="flex flex-col gap-3">
                                           <input form={menuFormId} type="hidden" name="item_ids" value={item.id} />
                                           <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
-                                            <input
+                                            <input aria-label="Item name"
                                               form={menuFormId}
                                               name={`item_name_${item.id}`}
                                               defaultValue={item.name}
                                               required
                                               className={inputCls}
                                             />
-                                            <input
+                                            <input aria-label="Item price"
                                               form={menuFormId}
                                               name={`item_price_${item.id}`}
                                               type="number"
@@ -834,7 +834,7 @@ export default async function OrgPage({
                                               className={inputCls}
                                             />
                                           </div>
-                                          <textarea
+                                          <textarea aria-label="Description"
                                             form={menuFormId}
                                             name={`item_description_${item.id}`}
                                             defaultValue={item.description ?? ''}
@@ -1376,9 +1376,11 @@ export default async function OrgPage({
       <div className="min-w-0">
         <ShellCrumb items={[{ label: 'Dashboard', href: '/dashboard' }, { label: orgName }]} />
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[16px] font-bold text-foreground tracking-[-0.3px] truncate">
+          {/* The org name is this page's title, so it carries the h1 rather
+              than a hidden duplicate. Styling is unchanged — only the element. */}
+          <h1 className="text-[16px] font-bold text-foreground tracking-[-0.3px] truncate m-0">
             {orgName}
-          </span>
+          </h1>
           <span className="inline-flex items-center rounded-full px-2 py-0.5 text-caption font-medium bg-brand-subtle text-brand-dark-alt shrink-0">
             {displayRole}
           </span>
