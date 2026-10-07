@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   chipTextActive: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
   },
   list: {
     flex: 1,
@@ -442,12 +442,12 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   eventTypeBadgeText: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 11,
     fontWeight: "700",
   },
   eventPrice: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 12,
     fontWeight: "700",
   },
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   recurringBadgeText: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 10,
     fontWeight: "700",
   },
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   eventLink: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 13,
     fontWeight: "600",
   },

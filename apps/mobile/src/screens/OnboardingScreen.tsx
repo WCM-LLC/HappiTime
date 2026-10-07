@@ -697,7 +697,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({
         </View>
 
         <View style={styles.iconCircle}>
-          <IconSymbol name={current.icon} size={30} color={colors.primary} />
+          <IconSymbol name={current.icon} size={30} color={colors.brandDark} />
         </View>
         <Text style={styles.title}>{current.title}</Text>
         <Text style={styles.body}>{current.body}</Text>

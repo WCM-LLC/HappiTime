@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     marginTop: spacing.sm,
   },
-  primaryText: { color: "#FFFFFF", fontSize: 16, fontWeight: "700" },
+  primaryText: { color: colors.onPrimary, fontSize: 16, fontWeight: "700" },
   pressed: { opacity: 0.9 },
   secondary: { alignItems: "center", paddingVertical: spacing.sm },
   secondaryText: { color: colors.textMuted, fontSize: 14, fontWeight: "600" },

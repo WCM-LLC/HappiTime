@@ -508,7 +508,7 @@ const styles = StyleSheet.create({
     opacity: 0.5
   },
   loyaltyCheckInButtonText: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 14,
     fontWeight: "700"
   },
@@ -570,12 +570,12 @@ const styles = StyleSheet.create({
     paddingVertical: 3
   },
   eventTypeBadgeText: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 11,
     fontWeight: "700"
   },
   eventPrice: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 12,
     fontWeight: "700"
   },
@@ -602,7 +602,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs
   },
   eventLink: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 13,
     fontWeight: "600"
   },
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   recurringBadgeText: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 10,
     fontWeight: "700"
   },
@@ -630,15 +630,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: 999,
-    backgroundColor: "#EAF6EC",
-    shadowColor: "#000",
+    backgroundColor: colors.successLight,
+    shadowColor: colors.dark,
     shadowOpacity: 0.12,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
   scanBannerText: {
-    color: "#1B7A34",
+    color: colors.successInk,
     fontSize: 15,
     fontWeight: "600",
   },

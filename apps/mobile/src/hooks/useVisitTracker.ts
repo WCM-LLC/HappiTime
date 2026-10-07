@@ -6,6 +6,7 @@ import * as Notifications from "expo-notifications";
 import { supabase } from "../api/supabaseClient";
 import { useCurrentUser } from "./useCurrentUser";
 import { distanceMiles } from "../utils/location";
+import { colors } from "../theme/colors";
 
 const BACKGROUND_LOCATION_TASK = "happitime-visit-tracking";
 const PROXIMITY_MILES = 0.025; // ~40 m — triggers auto check-in + starts dwell timer
@@ -455,7 +456,7 @@ export function useVisitTracker(venues: VenuePoint[]) {
         foregroundService: {
           notificationTitle: "HappiTime",
           notificationBody: "Tracking visits nearby",
-          notificationColor: "#C8965A",
+          notificationColor: colors.primary,
         },
       });
     }

@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   primaryText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: "700",
   },

@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   kicker: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
   changelogWrap: { maxHeight: 220, marginTop: spacing.md },
   changelog: { gap: spacing.xs },
   row: { flexDirection: "row", gap: spacing.sm },
-  bullet: { color: colors.primary, fontSize: 15, lineHeight: 21 },
+  bullet: { color: colors.brandDark, fontSize: 15, lineHeight: 21 },
   item: { color: colors.text, fontSize: 15, lineHeight: 21, flex: 1 },
   update: {
     marginTop: spacing.lg,
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     alignItems: "center",
   },
-  updateText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  updateText: { color: colors.onPrimary, fontSize: 15, fontWeight: "700" },
   later: { marginTop: spacing.sm, paddingVertical: spacing.sm, alignItems: "center" },
   laterText: { color: colors.textMuted, fontSize: 14, fontWeight: "600" },
   pressed: { opacity: 0.85 },

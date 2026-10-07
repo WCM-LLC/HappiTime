@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   tabTextSelected: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: "700",
     lineHeight: 18,

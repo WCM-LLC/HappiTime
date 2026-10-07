@@ -45,14 +45,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   star: {
-    color: "#FFFFFF",
+    color: colors.surface,
     lineHeight: undefined,
     includeFontPadding: false,
   },
+  // Was #F9F2E7 on #C0773A — two raw hex values that each sat a few points off
+  // a token that already existed (brandSubtle #F5EDE3, primaryDark #A67842).
+  // Near-miss copies of a palette entry are how a palette stops being one.
+  // primaryDark rather than primary for the ring: 3.36:1 on brandSubtle and
+  // 3.90:1 against the white around it, both over the 3:1 floor for a boundary.
   toastmakerCircle: {
-    backgroundColor: "#F9F2E7",
+    backgroundColor: colors.brandSubtle,
     borderWidth: 1.5,
-    borderColor: "#C0773A",
+    borderColor: colors.primaryDark,
     alignItems: "center",
     justifyContent: "center",
   },

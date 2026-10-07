@@ -144,7 +144,7 @@ export const SignInOptions: React.FC<SignInOptionsProps> = ({
       <TextInput
         style={styles.input}
         placeholder="email@domain.com"
-        placeholderTextColor={colors.inputPlaceholder}
+        placeholderTextColor={colors.textMuted}
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}

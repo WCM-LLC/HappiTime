@@ -107,7 +107,7 @@ export const SearchableOptionSheet: React.FC<SearchableOptionSheetProps> = ({
             value={query}
             onChangeText={setQuery}
             placeholder={searchPlaceholder}
-            placeholderTextColor={colors.textMutedLight}
+            placeholderTextColor={colors.textMuted}
             autoCapitalize="none"
             autoCorrect={false}
             autoFocus
@@ -149,7 +149,7 @@ export const SearchableOptionSheet: React.FC<SearchableOptionSheetProps> = ({
                       {formatOptionLabel(option)}
                     </Text>
                     {selected ? (
-                      <IconSymbol name="checkmark" size={16} color={colors.primary} />
+                      <IconSymbol name="checkmark" size={16} color={colors.brandDark} />
                     ) : null}
                   </Pressable>
                 );

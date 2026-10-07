@@ -7,31 +7,33 @@ colors:
   cream: "#F5F0EB"
   text: "#1A1A1A"
   text-muted: "#6B6B6B"
-  text-muted-light: "#9CA3AF"
   primary: "#C8965A"
+  on-primary: "#1A1A1A"
   primary-dark: "#A67842"
   brand-subtle: "#F5EDE3"
   brand-light: "#E8D5BC"
   brand-dark: "#8B6535"
   wine: "#8C3A4B"
+  wine-subtle: "#F4EBED"
   teal: "#2A7B6F"
   navy: "#2E4A6E"
   border: "#E8E8E5"
   border-strong: "#D1D1CD"
   success: "#2D8A56"
   success-light: "#ECFDF5"
+  success-ink: "#246E45"
   error: "#C43E3E"
   error-light: "#FEF2F2"
   warning: "#D4A843"
   warning-light: "#FFFBEB"
+  warning-ink: "#7F6528"
   pill-active-bg: "#1A1A1A"
   pill-active-text: "#FFFFFF"
   pill-inactive-bg: "#FFFFFF"
   pill-inactive-text: "#1A1A1A"
   input-background: "#F5F3F0"
-  input-placeholder: "#9CA3AF"
-  tab-bar-active: "#C8965A"
-  tab-bar-inactive: "#B5B0A8"
+  tab-bar-active: "#8B6535"
+  tab-bar-inactive: "#6B6B6B"
   dark: "#1A1A1A"
   dark-surface: "#242424"
   dark-foreground: "#F5F5F3"
@@ -191,34 +193,72 @@ The palette is shared with the console **exactly** — every brand, neutral, ext
 base matches `apps/web/src/app/globals.css`. The names below are the mobile token names.
 
 ### Primary
-- **Golden Hour** (`#C8965A`, `colors.primary`): The one accent. Active tab tint, primary actions,
-  map pins, heart fills, focus. It is also the app icon background.
-- **Golden Hour Deep** (`#A67842`, `colors.primaryDark`): Pressed and hover-equivalent states on
-  copper fills.
+- **Golden Hour** (`#C8965A`, `colors.primary`): The one accent, and a **fill**. Primary action
+  grounds, the Verified badge, map pins, heart fills. Also the app icon background and the Android
+  notification accent. Never type on a light ground — see Golden Hour Ink.
+- **Golden Hour Label** (`#1A1A1A`, `colors.onPrimary`): The label *on* a Golden Hour fill. Copper
+  is a light fill, so its text is graphite at 6.60:1. White would be 2.64:1.
+- **Golden Hour Deep** (`#A67842`, `colors.primaryDark`): Borders and boundaries on copper-adjacent
+  grounds — the Verified card edge, the Toastmaker ring. A fill and border tone, not type
+  (3.90:1 on Paper clears the 3:1 boundary floor, not the 4.5:1 text floor).
 - **Golden Hour Tint** (`#E8D5BC`, `colors.brandLight`): Tinted borders and brand-adjacent edges.
 - **Golden Hour Wash** (`#F5EDE3`, `colors.brandSubtle`): Avatar fills, image placeholders before a
   cover loads, and the ground behind brand-weight badges.
-- **Golden Hour Ink** (`#8B6535`, `colors.brandDark`): Copper as *text*. The legible pairing on a
-  Golden Hour Wash ground.
+- **Golden Hour Ink** (`#8B6535`, `colors.brandDark`): Copper as *type or icon* on a light ground —
+  5.24:1 on Paper, 5.01:1 on Bone, 4.51:1 on Golden Hour Wash. This is also the active tab tint.
+  Reach for it whenever copper has to be read rather than filled.
+
+On a dark ground the rule inverts: Golden Hour itself is 6.59:1 on Graphite and Golden Hour Ink is
+only 3.32:1, so the few copper-on-dark controls stay on `colors.primary`.
 
 ### Secondary
-Reserved categorical set, matching the console: **Oxblood** (`#8C3A4B`), **Verdigris** (`#2A7B6F`),
-**Midnight Navy** (`#2E4A6E`). Oxblood is the Insider ★ badge. These are spoken for by subscription
-tier and by Insider identity; do not reuse them for a third axis.
+Reserved categorical set, matching the console: **Oxblood** (`#8C3A4B`, `colors.wine`) with its
+tint **Oxblood Wash** (`#F4EBED`, `colors.wineSubtle`), **Verdigris** (`#2A7B6F`), **Midnight Navy**
+(`#2E4A6E`). Oxblood is the Insider ★ badge *and* the Featured tier. These are spoken for by
+subscription tier and by Insider identity; do not reuse them for a third axis.
+
+Verdigris and Midnight Navy carry no mobile tint, because `src/lib/venueTier.ts` collapses
+Founding Pilot and both bundle sizes into "featured" — this surface shows two tier identities where
+the console shows five.
+
+### Tier identity
+One declaration, `tierColors` in `src/theme/colors.ts`, mirroring the console's
+`apps/web/src/utils/tier-style.ts`:
+
+| Tier | Ground | Border | Badge | Badge label |
+|---|---|---|---|---|
+| Verified | Golden Hour Wash | Golden Hour Deep | Golden Hour | Graphite (6.60:1) |
+| Featured | Oxblood Wash | Oxblood | Oxblood | Paper (7.44:1) |
+
+`promotion_tier` is one database field rendered under one set of labels on both surfaces, so a
+venue that bought Featured must not be Oxblood in the console and copper in the app. It was, until
+2026-10-07, and Verified was a stock blue that appears nowhere in this palette.
 
 ### Neutral
 - **Bone** (`#FAFAF8`) the app ground · **Paper** (`#FFFFFF`) cards, sheets, tab bar ·
   **Cream** (`#F5F0EB`) the splash ground and alternate warm surface
-- **Graphite** (`#1A1A1A`) body text and the active pill fill · **Slate** (`#6B6B6B`) secondary text ·
-  **Ash** (`#9CA3AF`) placeholders and inactive glyphs only
+- **Graphite** (`#1A1A1A`) body text, the active pill fill, and the label on a copper fill ·
+  **Slate** (`#6B6B6B`) secondary text, input placeholders, secondary glyphs, and the unselected tab
 - **Hairline** (`#E8E8E5`) every border and divider · **Hairline Strong** (`#D1D1CD`)
 - **Warm Field** (`#F5F3F0`) the input ground. This one has no console equivalent — it is slightly
   warmer than Bone and exists so a field reads as inset rather than as another card.
-- **Inactive Tint** (`#B5B0A8`) the unselected tab. A warm gray, deliberately not Ash.
+
+**Two text greys, not three.** There was an **Ash** (`#9CA3AF`) under Slate, carrying ten text
+styles, thirteen input placeholders and five glyphs at **2.43:1** — under the floor for text *and*
+under the floor for an informational icon, so it was unusable in every role it was being used for.
+Darkening it enough to pass would have landed it within a hair of Slate and left two
+indistinguishable greys pretending to be a hierarchy, so it was removed. There was also an
+**Inactive Tint** (`#B5B0A8`) for the unselected tab at **2.16:1**; the tab bar is on every screen,
+which made it the least readable thing in the app. Both now resolve to Slate.
 
 ### Semantic
-**Confirmed Green** (`#2D8A56`) on `#ECFDF5` · **Dispute Red** (`#C43E3E`) on `#FEF2F2` ·
-**Pending Amber** (`#D4A843`) on `#FFFBEB`.
+**Confirmed Green** (`#2D8A56`, `colors.success`) on `#ECFDF5` · **Dispute Red** (`#C43E3E`) on
+`#FEF2F2` · **Pending Amber** (`#D4A843`) on `#FFFBEB`.
+
+The mid tones are fills, icons and borders — not type. **Confirmed Ink** (`#246E45`,
+`colors.successInk`) and **Pending Ink** (`#7F6528`, `colors.warningInk`) are the text on those
+grounds, at 5.88:1 and 5.34:1, because the mid tones measure 4.08:1 and 2.14:1 there. Dispute Red
+needs no ink: it is 5.11:1 on Paper. These match the console's `-ink` variants exactly.
 
 ### Named Rules
 
@@ -226,8 +266,14 @@ tier and by Insider identity; do not reuse them for a third axis.
 the live deal. One copper commitment per screen. Its scarcity is what makes a live happy hour
 findable at a glance.
 
-**The Warm Gray Rule.** Every neutral here is warm. `#FAFAF8` not `#FAFAFA`, `#B5B0A8` not a cool
-gray for the inactive tab. A cool gray anywhere in this palette reads as a foreign component.
+**The Warm Gray Rule.** Every *ground* and *border* here is warm: `#FAFAF8` not `#FAFAFA`,
+`#F5F0EB`, `#F5F3F0`, `#E8E8E5`, `#D1D1CD`. The two text greys are neutral (`#1A1A1A`, `#6B6B6B`)
+and shared with the console, which is the stronger constraint where they conflict.
+
+The rule used to read "every neutral here is warm", which was never true of either text grey — and
+the one token that was genuinely **cool**, Ash `#9CA3AF`, was sitting in the palette in breach of
+it. Removing Ash for being unreadable also made this rule honest. A cool gray introduced anywhere
+else still reads as a foreign component.
 
 **The Shared Palette Rule.** These values are the console's values. A colour that changes here and
 not there is drift, not a mobile decision — change both or neither.
@@ -339,8 +385,17 @@ adjacent screens.
 
 ### Tab bar
 Five destinations for an authenticated user, three for a guest. Paper ground, hairline top border,
-copper active tint, warm-gray inactive. Labels always shown at 11pt. Activity carries an unread
-badge capped at "99+". Height is `56 + safe-area inset`.
+Golden Hour Ink active tint, Slate inactive. Labels always shown, at 10pt — the smallest type in
+the app, which is why both tints have to clear the text floor rather than the icon floor. Activity
+carries an unread badge capped at "99+", and its accessible name states the count ("Activity, 3
+unread") because the badge otherwise announces a bare number. Height is `56 + safe-area inset`.
+
+**Open: selection is signalled by tint alone.** `tabBarIcon` passes
+`weight={focused ? "semibold" : "regular"}`, but `components/ui/icon-symbol.tsx` accepts `weight`
+and discards it, and every tab uses a `.fill` glyph in both states. So the only difference between
+selected and unselected is colour. The fix is a filled/outlined glyph pair per tab, which
+MaterialIcons does not supply for all five (no `home-outline`, no `map-outline`), so it needs
+either a second icon family or the `expo-symbols` move below.
 
 ### Venue card
 The product's signature component. Paper on Bone, 14px radius, 12px internal padding, photography
@@ -368,7 +423,9 @@ treatment may imply a listing is current when the data does not say so.
 
 ### Insider badge
 A wine-coloured ★ circle with the accessible name "HappiTime Insider". Oxblood is reserved for this
-and for the Featured tier; it is not a general accent.
+and for the Featured tier; it is not a general accent. The Toastmaker variant is a 🥂 on a Golden
+Hour Wash ground inside a Golden Hour Deep ring — both tokens, where it previously carried two raw
+hex values (`#F9F2E7`, `#C0773A`) that each sat a few points off an existing token.
 
 ### Native permission panel (iOS only)
 A SwiftUI card used for the location, notifications and settings education moments. **It uses iOS
@@ -391,16 +448,18 @@ permission.
 - **Do** let people browse without an account, and replay a gated action after signup.
 
 ### Don't:
-- **Don't** use stock palette values. `#8B5CF6`, `#7C3AED`, `#60A5FA`, `#2563EB` are currently in
-  `colors.ts` under `promoPremium*` and `promoBasic*` — they are off-system **and** they carry
-  retired tier names. Featured, Verified, Founding Pilot and the bundles are the current tiers, and
-  their colours are copper, Oxblood, Verdigris and Midnight Navy.
-- **Don't** put white text on Golden Hour. It measures **2.64:1** and fails AA. The console solved
-  this by flipping the label to graphite; mobile still ships the failing combination in several
-  places, and `colors.ts` has no `brand-hover` token to support the fix.
-- **Don't** set small text in a semantic mid tone. `success`, `warning` and `error` are fills and
-  borders. The console's text-safe `-ink` variants do not exist here yet, so this is currently
-  unenforceable — add them before relying on it.
+- **Don't** use stock palette values. `#8B5CF6`, `#7C3AED`, `#60A5FA` and `#2563EB` were in
+  `colors.ts` under `promoPremium*` and `promoBasic*` until 2026-10-07 — off-system, and carrying a
+  tier name (`Premium`) that CLAUDE.md says not to quote. Tier colour now comes from `tierColors`
+  and nowhere else. `test/mobile-palette-contrast.test.mjs` fails if those names are declared again.
+- **Don't** put white text on Golden Hour: **2.64:1**. The label on a copper fill is
+  `colors.onPrimary`, and copper that has to be *read* is `colors.brandDark`. Guarded by test.
+- **Don't** set small text in a semantic mid tone. `success` and `warning` are fills, icons and
+  borders; `successInk` and `warningInk` are the type. Guarded by test.
+- **Don't** reach for a raw hex. If a value is not in `colors.ts`, add it there with its measured
+  contrast against the ground it will sit on. The one standing exception is
+  `screens/onboarding/LocationPrimeScreen.tsx`, whose `#DDE1EC`/`#C8CDD8` draw a stylised map
+  illustration rather than UI, and the Google Maps style JSON in `utils/mapViewProps.ts`.
 - **Don't** add a custom font family.
 - **Don't** ship one depth model to both platforms.
 - **Don't** introduce a cool gray.

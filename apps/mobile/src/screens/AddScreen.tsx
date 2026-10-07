@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   backText: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 14,
     fontWeight: "500",
   },
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   submitButtonText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.3,

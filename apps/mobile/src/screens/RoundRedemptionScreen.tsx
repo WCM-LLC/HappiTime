@@ -122,7 +122,7 @@ export const RoundRedemptionScreen: React.FC<Props> = ({ route, navigation }) =>
         autoCorrect={false}
         keyboardType="default"
         placeholder="CODE"
-        placeholderTextColor={colors.inputPlaceholder}
+        placeholderTextColor={colors.textMuted}
         editable={!isLoading}
         onSubmitEditing={canSubmit ? handleRedeem : undefined}
         returnKeyType="done"
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   celebrationTitle: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 32,
     fontWeight: "900",
     letterSpacing: -0.5,
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   venueName: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 14,
     fontWeight: "700",
     marginBottom: spacing.xl,
@@ -315,7 +315,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   redeemButtonText: {
-    color: colors.surface,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: "700",
   },
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   doneButtonText: {
-    color: colors.surface,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: "700",
   },

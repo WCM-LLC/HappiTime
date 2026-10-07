@@ -451,11 +451,11 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
             value={search}
             onChangeText={setSearch}
             placeholder="Search by name"
-            placeholderTextColor={colors.textMutedLight}
+            placeholderTextColor={colors.textMuted}
             autoCorrect={false}
             style={styles.input}
           />
-          {searching ? <ActivityIndicator style={{ marginTop: spacing.sm }} color={colors.primary} /> : null}
+          {searching ? <ActivityIndicator style={{ marginTop: spacing.sm }} color={colors.brandDark} /> : null}
           {results.map((v) => (
             <Pressable
               accessibilityRole="button"
@@ -487,7 +487,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
           {photoUri ? <Image source={{ uri: photoUri }} style={styles.preview} resizeMode="cover" /> : null}
           {extracting ? (
             <View style={styles.busyRow}>
-              <ActivityIndicator color={colors.primary} />
+              <ActivityIndicator color={colors.brandDark} />
               <Text style={styles.muted}>Reading the menu…</Text>
             </View>
           ) : (
@@ -599,7 +599,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
                     value={w.start_time}
                     onChangeText={(t) => setWindowTime(wi, "start_time", t)}
                     placeholder="15:00"
-                    placeholderTextColor={colors.textMutedLight}
+                    placeholderTextColor={colors.textMuted}
                     style={[styles.input, styles.timeInput, !TIME_RE.test(w.start_time) && styles.inputBad]}
                   />
                   <Text style={styles.muted}>to</Text>
@@ -607,7 +607,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
                     value={w.end_time}
                     onChangeText={(t) => setWindowTime(wi, "end_time", t)}
                     placeholder="18:00"
-                    placeholderTextColor={colors.textMutedLight}
+                    placeholderTextColor={colors.textMuted}
                     style={[styles.input, styles.timeInput, !TIME_RE.test(w.end_time) && styles.inputBad]}
                   />
                   <Pressable accessibilityRole="button" onPress={() => removeWindow(wi)}>
@@ -634,7 +634,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
                       value={it.name}
                       onChangeText={(t) => setItem(si, ii, { name: t })}
                       style={[styles.input, styles.itemName]}
-                      placeholderTextColor={colors.textMutedLight}
+                      placeholderTextColor={colors.textMuted}
                     />
                     <TextInput
                       value={it.price == null ? "" : String(it.price)}
@@ -644,7 +644,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
                       }}
                       keyboardType="decimal-pad"
                       placeholder="$"
-                      placeholderTextColor={colors.textMutedLight}
+                      placeholderTextColor={colors.textMuted}
                       style={[styles.input, styles.itemPrice]}
                     />
                     <Pressable accessibilityRole="button" onPress={() => removeItem(si, ii)}>
@@ -676,7 +676,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
                       setEvents((es) => es.map((e, i) => (i === ei ? { ...e, title: t } : e)))
                     }
                     placeholder="Event name"
-                    placeholderTextColor={colors.textMutedLight}
+                    placeholderTextColor={colors.textMuted}
                     style={styles.input}
                   />
                   <Text style={styles.muted}>
@@ -830,7 +830,7 @@ const styles = StyleSheet.create({
   },
   dowChipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
   dowChipText: { fontSize: 13, color: colors.textMuted, fontWeight: "600" },
-  dowChipTextOn: { color: colors.surface },
+  dowChipTextOn: { color: colors.onPrimary },
   timeRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
   timeInput: { width: 84, textAlign: "center" },
   sectionBlock: { marginTop: spacing.sm },
@@ -839,7 +839,7 @@ const styles = StyleSheet.create({
   itemName: { flex: 1 },
   itemPrice: { width: 76, textAlign: "right" },
   removeText: { fontSize: 15, color: colors.error, fontWeight: "600", paddingHorizontal: spacing.xs },
-  linkText: { fontSize: 14, color: colors.primary, fontWeight: "600", marginTop: spacing.sm },
+  linkText: { fontSize: 14, color: colors.brandDark, fontWeight: "600", marginTop: spacing.sm },
   primaryBtn: {
     backgroundColor: colors.primary,
     borderRadius: 999,
@@ -847,7 +847,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: spacing.md,
   },
-  primaryBtnText: { color: colors.surface, fontSize: 16, fontWeight: "700" },
+  primaryBtnText: { color: colors.onPrimary, fontSize: 16, fontWeight: "700" },
   secondaryBtn: {
     borderWidth: 1,
     borderColor: colors.border,

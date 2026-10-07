@@ -76,7 +76,7 @@ export const AddToItinerarySheet: React.FC<Props> = ({ venueId }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="Name (e.g. Friday Night Crawl)"
-                  placeholderTextColor={colors.textMutedLight}
+                  placeholderTextColor={colors.textMuted}
                   value={newListName}
                   onChangeText={setNewListName}
                   autoFocus
@@ -84,7 +84,7 @@ export const AddToItinerarySheet: React.FC<Props> = ({ venueId }) => {
                 <TextInput
                   style={[styles.input, { height: 60 }]}
                   placeholder="Description (optional)"
-                  placeholderTextColor={colors.textMutedLight}
+                  placeholderTextColor={colors.textMuted}
                   value={newListDesc}
                   onChangeText={setNewListDesc}
                   multiline
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   actionText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.3,
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   rowAction: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 13,
     fontWeight: "700",
     backgroundColor: colors.primary,
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   visChipTextActive: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
   },
   createBtn: {
     backgroundColor: colors.primary,
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   createBtnText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: "700",
   },
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   newListBtnText: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 15,
     fontWeight: "600",
   },

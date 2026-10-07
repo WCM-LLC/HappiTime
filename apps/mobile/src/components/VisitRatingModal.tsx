@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   venueName: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 16,
     fontWeight: "600",
     marginBottom: spacing.lg,
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     color: colors.border,
   },
   starFilled: {
-    color: colors.primary,
+    color: colors.brandDark,
   },
   chipsWrap: {
     flexDirection: "row",
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   chipTextSelected: {
-    color: "#fff",
+    color: colors.onPrimary,
   },
   ratingHint: {
     color: colors.textMuted,
@@ -302,7 +302,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   submitButtonText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.3,

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-07T21:00:00.000Z",
+  "generatedAt": "2026-10-07T21:48:13.661Z",
   "title": "Design System: HappiTime Mobile",
   "extensions": {
     "platform": "adaptive",
@@ -10,108 +10,355 @@
         "role": "primary",
         "displayName": "Golden Hour",
         "canonical": "#C8965A",
-        "note": "The one accent: active tab tint, primary actions, map pins, heart fills, app icon background. A light fill — white text on it is 2.64:1 and fails AA.",
-        "tonalRamp": ["oklch(20% 0.040 65)", "oklch(31% 0.058 65)", "oklch(42% 0.072 65)", "oklch(53% 0.080 65)", "oklch(68% 0.078 65)", "oklch(79% 0.060 65)", "oklch(88% 0.040 65)", "oklch(96% 0.016 65)"]
+        "note": "The one accent, and a FILL: primary action grounds, the Verified badge, map pins, heart fills, app icon background, Android notification accent. Not a text colour — #C8965A on Paper is 2.64:1. Its label is on-primary; copper that must be read is brand-dark.",
+        "tonalRamp": [
+          "oklch(20% 0.040 65)",
+          "oklch(31% 0.058 65)",
+          "oklch(42% 0.072 65)",
+          "oklch(53% 0.080 65)",
+          "oklch(68% 0.078 65)",
+          "oklch(79% 0.060 65)",
+          "oklch(88% 0.040 65)",
+          "oklch(96% 0.016 65)"
+        ]
       },
-      "primary-dark": { "role": "primary", "displayName": "Golden Hour Deep", "canonical": "#A67842", "note": "Pressed state on copper fills." },
-      "brand-light": { "role": "primary", "displayName": "Golden Hour Tint", "canonical": "#E8D5BC" },
-      "brand-subtle": { "role": "primary", "displayName": "Golden Hour Wash", "canonical": "#F5EDE3", "note": "Avatar fills and image placeholders before a cover loads." },
-      "brand-dark": { "role": "primary", "displayName": "Golden Hour Ink", "canonical": "#8B6535", "note": "Copper as text. The legible pairing on a Golden Hour Wash ground." },
+      "primary-dark": {
+        "role": "primary",
+        "displayName": "Golden Hour Deep",
+        "canonical": "#A67842",
+        "note": "Borders and boundaries on copper-adjacent grounds: the Verified card edge (3.36:1 on brand-subtle), the Toastmaker ring. Clears the 3:1 boundary floor, not the 4.5:1 text floor."
+      },
+      "brand-light": {
+        "role": "primary",
+        "displayName": "Golden Hour Tint",
+        "canonical": "#E8D5BC"
+      },
+      "brand-subtle": {
+        "role": "primary",
+        "displayName": "Golden Hour Wash",
+        "canonical": "#F5EDE3",
+        "note": "Avatar fills and image placeholders before a cover loads."
+      },
+      "brand-dark": {
+        "role": "primary",
+        "displayName": "Golden Hour Ink",
+        "canonical": "#8B6535",
+        "note": "Copper as type or icon on a light ground: 5.24:1 on Paper, 5.01:1 on Bone, 4.51:1 on brand-subtle. Also the active tab tint. On a DARK ground the rule inverts — primary is 6.59:1 on Graphite where brand-dark is only 3.32:1."
+      },
       "wine": {
         "role": "secondary",
         "displayName": "Oxblood",
         "canonical": "#8C3A4B",
         "note": "The Insider star badge, and the Featured tier. Reserved — not a general accent.",
-        "tonalRamp": ["oklch(18% 0.055 10)", "oklch(28% 0.085 10)", "oklch(38% 0.110 10)", "oklch(45% 0.115 10)", "oklch(56% 0.105 10)", "oklch(70% 0.080 10)", "oklch(84% 0.048 10)", "oklch(95% 0.018 10)"]
+        "tonalRamp": [
+          "oklch(18% 0.055 10)",
+          "oklch(28% 0.085 10)",
+          "oklch(38% 0.110 10)",
+          "oklch(45% 0.115 10)",
+          "oklch(56% 0.105 10)",
+          "oklch(70% 0.080 10)",
+          "oklch(84% 0.048 10)",
+          "oklch(95% 0.018 10)"
+        ]
       },
       "teal": {
         "role": "secondary",
         "displayName": "Verdigris",
         "canonical": "#2A7B6F",
         "note": "Reserved categorical. The Founding Pilot tier on the console.",
-        "tonalRamp": ["oklch(18% 0.035 180)", "oklch(27% 0.052 180)", "oklch(36% 0.065 180)", "oklch(48% 0.072 180)", "oklch(60% 0.065 180)", "oklch(73% 0.050 180)", "oklch(86% 0.032 180)", "oklch(96% 0.012 180)"]
+        "tonalRamp": [
+          "oklch(18% 0.035 180)",
+          "oklch(27% 0.052 180)",
+          "oklch(36% 0.065 180)",
+          "oklch(48% 0.072 180)",
+          "oklch(60% 0.065 180)",
+          "oklch(73% 0.050 180)",
+          "oklch(86% 0.032 180)",
+          "oklch(96% 0.012 180)"
+        ]
       },
       "navy": {
         "role": "secondary",
         "displayName": "Midnight Navy",
         "canonical": "#2E4A6E",
         "note": "Reserved categorical. The org bundle tiers on the console.",
-        "tonalRamp": ["oklch(18% 0.040 255)", "oklch(27% 0.060 255)", "oklch(36% 0.075 255)", "oklch(46% 0.082 255)", "oklch(58% 0.075 255)", "oklch(72% 0.056 255)", "oklch(86% 0.034 255)", "oklch(96% 0.013 255)"]
+        "tonalRamp": [
+          "oklch(18% 0.040 255)",
+          "oklch(27% 0.060 255)",
+          "oklch(36% 0.075 255)",
+          "oklch(46% 0.082 255)",
+          "oklch(58% 0.075 255)",
+          "oklch(72% 0.056 255)",
+          "oklch(86% 0.034 255)",
+          "oklch(96% 0.013 255)"
+        ]
       },
       "background": {
         "role": "neutral",
         "displayName": "Bone",
         "canonical": "#FAFAF8",
         "note": "The app ground. Warm by design — never #FAFAFA.",
-        "tonalRamp": ["oklch(20% 0.004 95)", "oklch(31% 0.005 95)", "oklch(43% 0.006 95)", "oklch(55% 0.006 95)", "oklch(68% 0.006 95)", "oklch(82% 0.005 95)", "oklch(92% 0.004 95)", "oklch(98% 0.003 95)"]
+        "tonalRamp": [
+          "oklch(20% 0.004 95)",
+          "oklch(31% 0.005 95)",
+          "oklch(43% 0.006 95)",
+          "oklch(55% 0.006 95)",
+          "oklch(68% 0.006 95)",
+          "oklch(82% 0.005 95)",
+          "oklch(92% 0.004 95)",
+          "oklch(98% 0.003 95)"
+        ]
       },
-      "surface": { "role": "neutral", "displayName": "Paper", "canonical": "#FFFFFF", "note": "Cards, sheets, tab bar. `card` is an alias of the same value." },
-      "cream": { "role": "neutral", "displayName": "Cream", "canonical": "#F5F0EB", "note": "The splash ground." },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#FFFFFF",
+        "note": "Cards, sheets, tab bar. `card` is an alias of the same value."
+      },
+      "cream": {
+        "role": "neutral",
+        "displayName": "Cream",
+        "canonical": "#F5F0EB",
+        "note": "The splash ground."
+      },
       "text": {
         "role": "neutral",
         "displayName": "Graphite",
         "canonical": "#1A1A1A",
         "note": "Body text and the active pill fill.",
-        "tonalRamp": ["oklch(14% 0 0)", "oklch(24% 0 0)", "oklch(34% 0 0)", "oklch(45% 0 0)", "oklch(57% 0 0)", "oklch(70% 0 0)", "oklch(84% 0 0)", "oklch(96% 0 0)"]
+        "tonalRamp": [
+          "oklch(14% 0 0)",
+          "oklch(24% 0 0)",
+          "oklch(34% 0 0)",
+          "oklch(45% 0 0)",
+          "oklch(57% 0 0)",
+          "oklch(70% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(96% 0 0)"
+        ]
       },
-      "text-muted": { "role": "neutral", "displayName": "Slate", "canonical": "#6B6B6B" },
-      "text-muted-light": { "role": "neutral", "displayName": "Ash", "canonical": "#9CA3AF", "note": "Placeholders and inactive glyphs only. 2.54:1 on white — never label text." },
-      "input-background": { "role": "neutral", "displayName": "Warm Field", "canonical": "#F5F3F0", "note": "No console equivalent. Slightly warmer than Bone so a field reads as inset rather than as another card." },
-      "tab-bar-inactive": { "role": "neutral", "displayName": "Inactive Tint", "canonical": "#B5B0A8", "note": "A warm gray, deliberately not Ash." },
-      "border": { "role": "neutral", "displayName": "Hairline", "canonical": "#E8E8E5" },
-      "border-strong": { "role": "neutral", "displayName": "Hairline Strong", "canonical": "#D1D1CD" },
-      "dark": { "role": "neutral", "displayName": "Graphite", "canonical": "#1A1A1A" },
-      "dark-surface": { "role": "neutral", "displayName": "Graphite Raised", "canonical": "#242424" },
-      "dark-foreground": { "role": "neutral", "displayName": "Near White", "canonical": "#F5F5F3" },
-      "dark-muted": { "role": "neutral", "displayName": "Dark Slate", "canonical": "#A3A3A3" },
+      "text-muted": {
+        "role": "neutral",
+        "displayName": "Slate",
+        "canonical": "#6B6B6B",
+        "note": "Secondary text, input placeholders, secondary glyphs, and the unselected tab. The second and last text grey: the third tier (#9CA3AF) was 2.43:1 and failed the floor for text, for placeholders and for informational icons."
+      },
+      "input-background": {
+        "role": "neutral",
+        "displayName": "Warm Field",
+        "canonical": "#F5F3F0",
+        "note": "No console equivalent. Slightly warmer than Bone so a field reads as inset rather than as another card."
+      },
+      "tab-bar-inactive": {
+        "role": "neutral",
+        "displayName": "Slate",
+        "canonical": "#6B6B6B",
+        "note": "The unselected tab. Was #B5B0A8 at 2.16:1 against the Paper tab bar — the tab bar is on every screen and its 10pt labels were the least readable type in the app. Now Slate, 5.33:1."
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#E8E8E5"
+      },
+      "border-strong": {
+        "role": "neutral",
+        "displayName": "Hairline Strong",
+        "canonical": "#D1D1CD"
+      },
+      "dark": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "canonical": "#1A1A1A"
+      },
+      "dark-surface": {
+        "role": "neutral",
+        "displayName": "Graphite Raised",
+        "canonical": "#242424"
+      },
+      "dark-foreground": {
+        "role": "neutral",
+        "displayName": "Near White",
+        "canonical": "#F5F5F3"
+      },
+      "dark-muted": {
+        "role": "neutral",
+        "displayName": "Dark Slate",
+        "canonical": "#A3A3A3"
+      },
       "success": {
         "role": "tertiary",
         "displayName": "Confirmed Green",
         "canonical": "#2D8A56",
-        "note": "A fill and border tone. The console's text-safe success-ink variant does not exist here yet.",
-        "tonalRamp": ["oklch(18% 0.040 155)", "oklch(28% 0.062 155)", "oklch(38% 0.080 155)", "oklch(50% 0.090 155)", "oklch(62% 0.082 155)", "oklch(75% 0.060 155)", "oklch(87% 0.038 155)", "oklch(97% 0.015 155)"]
+        "note": "A fill, icon and border tone. Not type on success-light (4.08:1) — that is success-ink.",
+        "tonalRamp": [
+          "oklch(18% 0.040 155)",
+          "oklch(28% 0.062 155)",
+          "oklch(38% 0.080 155)",
+          "oklch(50% 0.090 155)",
+          "oklch(62% 0.082 155)",
+          "oklch(75% 0.060 155)",
+          "oklch(87% 0.038 155)",
+          "oklch(97% 0.015 155)"
+        ]
       },
-      "success-light": { "role": "tertiary", "displayName": "Confirmed Wash", "canonical": "#ECFDF5" },
+      "success-light": {
+        "role": "tertiary",
+        "displayName": "Confirmed Wash",
+        "canonical": "#ECFDF5"
+      },
       "error": {
         "role": "tertiary",
         "displayName": "Dispute Red",
         "canonical": "#C43E3E",
-        "tonalRamp": ["oklch(19% 0.060 25)", "oklch(29% 0.095 25)", "oklch(39% 0.125 25)", "oklch(50% 0.150 25)", "oklch(58% 0.155 25)", "oklch(72% 0.110 25)", "oklch(86% 0.060 25)", "oklch(96% 0.020 25)"]
+        "tonalRamp": [
+          "oklch(19% 0.060 25)",
+          "oklch(29% 0.095 25)",
+          "oklch(39% 0.125 25)",
+          "oklch(50% 0.150 25)",
+          "oklch(58% 0.155 25)",
+          "oklch(72% 0.110 25)",
+          "oklch(86% 0.060 25)",
+          "oklch(96% 0.020 25)"
+        ]
       },
-      "error-light": { "role": "tertiary", "displayName": "Dispute Wash", "canonical": "#FEF2F2" },
+      "error-light": {
+        "role": "tertiary",
+        "displayName": "Dispute Wash",
+        "canonical": "#FEF2F2"
+      },
       "warning": {
         "role": "tertiary",
         "displayName": "Pending Amber",
         "canonical": "#D4A843",
-        "note": "A fill and border tone. On its own wash it is 2.14:1 — never type. The warning-ink variant does not exist here yet.",
-        "tonalRamp": ["oklch(20% 0.040 85)", "oklch(31% 0.062 85)", "oklch(42% 0.082 85)", "oklch(54% 0.098 85)", "oklch(74% 0.105 85)", "oklch(84% 0.075 85)", "oklch(91% 0.048 85)", "oklch(97% 0.020 85)"]
+        "note": "A fill, icon and border tone. Not type on warning-light (2.14:1) — that is warning-ink.",
+        "tonalRamp": [
+          "oklch(20% 0.040 85)",
+          "oklch(31% 0.062 85)",
+          "oklch(42% 0.082 85)",
+          "oklch(54% 0.098 85)",
+          "oklch(74% 0.105 85)",
+          "oklch(84% 0.075 85)",
+          "oklch(91% 0.048 85)",
+          "oklch(97% 0.020 85)"
+        ]
       },
-      "warning-light": { "role": "tertiary", "displayName": "Pending Wash", "canonical": "#FFFBEB" }
+      "warning-light": {
+        "role": "tertiary",
+        "displayName": "Pending Wash",
+        "canonical": "#FFFBEB"
+      },
+      "on-primary": {
+        "role": "on-primary",
+        "displayName": "Golden Hour Label",
+        "canonical": "#1A1A1A",
+        "note": "The label on a Golden Hour fill — 6.60:1. Copper is a light fill, so its text is graphite; white is 2.64:1. 37 button labels shipped white until 2026-10-07."
+      },
+      "wine-subtle": {
+        "role": "wine-subtle",
+        "displayName": "Oxblood Wash",
+        "canonical": "#F4EBED",
+        "note": "The Featured tier card ground. Oxblood on it is 6.36:1 as a boundary."
+      },
+      "success-ink": {
+        "role": "success-ink",
+        "displayName": "Confirmed Ink",
+        "canonical": "#246E45",
+        "note": "Text on success-light (5.88:1) or Paper (6.19:1). Matches the console."
+      },
+      "warning-ink": {
+        "role": "warning-ink",
+        "displayName": "Pending Ink",
+        "canonical": "#7F6528",
+        "note": "Text on warning-light (5.34:1). Matches the console."
+      },
+      "tab-bar-active": {
+        "role": "tab-bar-active",
+        "displayName": "Golden Hour Ink",
+        "canonical": "#8B6535",
+        "note": "The selected tab's tint. Was primary at 2.64:1 against the Paper tab bar. Open issue: selection is signalled by this tint alone, because components/ui/icon-symbol.tsx discards its `weight` prop and every tab uses a .fill glyph in both states."
+      }
     },
     "typographyMeta": {
-      "display-lg": { "displayName": "Display LG", "purpose": "The one big statement on a screen. Rare." },
-      "display-md": { "displayName": "Display MD", "purpose": "Screen titles." },
-      "display-sm": { "displayName": "Display SM", "purpose": "Section openers." },
-      "heading-lg": { "displayName": "Heading LG", "purpose": "Card titles and sheet headers." },
-      "heading-sm": { "displayName": "Heading SM", "purpose": "The most common heading; also the button label size." },
-      "body-md": { "displayName": "Body MD", "purpose": "The working body size." },
-      "body-sm": { "displayName": "Body SM", "purpose": "Secondary and supporting copy." },
-      "caption": { "displayName": "Caption", "purpose": "Tab labels, meta, timestamps. 11 is the floor." },
-      "label": { "displayName": "Label", "purpose": "Chips, pills and small emphasis." }
+      "display-lg": {
+        "displayName": "Display LG",
+        "purpose": "The one big statement on a screen. Rare."
+      },
+      "display-md": {
+        "displayName": "Display MD",
+        "purpose": "Screen titles."
+      },
+      "display-sm": {
+        "displayName": "Display SM",
+        "purpose": "Section openers."
+      },
+      "heading-lg": {
+        "displayName": "Heading LG",
+        "purpose": "Card titles and sheet headers."
+      },
+      "heading-sm": {
+        "displayName": "Heading SM",
+        "purpose": "The most common heading; also the button label size."
+      },
+      "body-md": {
+        "displayName": "Body MD",
+        "purpose": "The working body size."
+      },
+      "body-sm": {
+        "displayName": "Body SM",
+        "purpose": "Secondary and supporting copy."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Tab labels, meta, timestamps. 11 is the floor."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Chips, pills and small emphasis."
+      }
     },
     "shadows": [
-      { "name": "shadowSoft", "value": "rgba(26, 26, 26, 0.06)", "purpose": "iOS resting lift on cards. Built from Graphite, not black, so it stays in the warm family." },
-      { "name": "shadowMedium", "value": "rgba(26, 26, 26, 0.12)", "purpose": "iOS sheets, floating map controls, and detached layers." },
-      { "name": "android-elevation", "value": "1 · 2 · 3 · 4 · 6 · 8", "purpose": "Android uses Material tonal elevation rather than these shadow tokens; 3 is the most common level in use." }
+      {
+        "name": "shadowSoft",
+        "value": "rgba(26, 26, 26, 0.06)",
+        "purpose": "iOS resting lift on cards. Built from Graphite, not black, so it stays in the warm family."
+      },
+      {
+        "name": "shadowMedium",
+        "value": "rgba(26, 26, 26, 0.12)",
+        "purpose": "iOS sheets, floating map controls, and detached layers."
+      },
+      {
+        "name": "android-elevation",
+        "value": "1 · 2 · 3 · 4 · 6 · 8",
+        "purpose": "Android uses Material tonal elevation rather than these shadow tokens; 3 is the most common level in use."
+      }
     ],
     "motion": [
-      { "name": "modal-fade", "value": "Modal animationType=\"fade\"", "purpose": "Overlays." },
-      { "name": "modal-slide", "value": "Modal animationType=\"slide\"", "purpose": "Bottom sheets." },
-      { "name": "press-scale", "value": "transform: scale(0.95–0.99) + opacity shift", "purpose": "Tactile press feedback. Currently NOT gated on a reduce-motion preference — both platforms require honouring that setting." }
+      {
+        "name": "modal-fade",
+        "value": "Modal animationType=\"fade\"",
+        "purpose": "Overlays."
+      },
+      {
+        "name": "modal-slide",
+        "value": "Modal animationType=\"slide\"",
+        "purpose": "Bottom sheets."
+      },
+      {
+        "name": "press-scale",
+        "value": "transform: scale(0.95–0.99) + opacity shift",
+        "purpose": "Tactile press feedback. Currently NOT gated on a reduce-motion preference — both platforms require honouring that setting."
+      }
     ],
     "breakpoints": [
-      { "name": "phone", "value": "portrait only — orientation is locked" },
-      { "name": "tablet", "value": "supportsTablet: true on iOS, so iPad is a shipped device class with no dedicated layout yet" }
+      {
+        "name": "phone",
+        "value": "portrait only — orientation is locked"
+      },
+      {
+        "name": "tablet",
+        "value": "supportsTablet: true on iOS, so iPad is a shipped device class with no dedicated layout yet"
+      }
     ]
   },
   "components": [
@@ -153,7 +400,7 @@
       "refersTo": "tab-bar",
       "description": "Five destinations authenticated, three as a guest. Copper active tint, warm-gray inactive, labels always shown. Height is 56 plus the bottom safe-area inset.",
       "html": "<nav class=\"ds-tabs\"><span class=\"ds-tab ds-tab-on\">Map</span><span class=\"ds-tab\">Home</span><span class=\"ds-tab\">Favorites</span><span class=\"ds-tab\">Activity</span><span class=\"ds-tab\">Profile</span></nav>",
-      "css": ".ds-tabs { display: flex; justify-content: space-around; align-items: center; height: 56px; background: #FFFFFF; border-top: 1px solid #E8E8E5; font-family: -apple-system, Roboto, sans-serif; } .ds-tab { font-size: 11px; font-weight: 500; letter-spacing: 0.2px; color: #B5B0A8; } .ds-tab-on { color: #C8965A; }"
+      "css": ".ds-tabs { display: flex; justify-content: space-around; align-items: center; height: 56px; background: #FFFFFF; border-top: 1px solid #E8E8E5; font-family: -apple-system, Roboto, sans-serif; } .ds-tab { font-size: 10px; font-weight: 500; letter-spacing: 0.2px; color: #6B6B6B; } .ds-tab-on { color: #8B6535; }"
     },
     {
       "name": "Text Field",
@@ -161,7 +408,7 @@
       "refersTo": "input",
       "description": "Warm Field ground is what distinguishes a field from a card — it reads as inset rather than raised.",
       "html": "<input class=\"ds-input\" placeholder=\"Search bars & restaurants\" aria-label=\"Search bars and restaurants\" />",
-      "css": ".ds-input { width: 260px; height: 44px; padding: 0 12px; background: #F5F3F0; border: 1px solid #E8E8E5; border-radius: 12px; color: #1A1A1A; font-family: -apple-system, Roboto, sans-serif; font-size: 15px; } .ds-input::placeholder { color: #9CA3AF; } .ds-input:focus-visible { outline: 2px solid #C8965A; outline-offset: 2px; }"
+      "css": ".ds-input { width: 260px; height: 44px; padding: 0 12px; background: #F5F3F0; border: 1px solid #E8E8E5; border-radius: 12px; color: #1A1A1A; font-family: -apple-system, Roboto, sans-serif; font-size: 15px; } .ds-input::placeholder { color: #6B6B6B; } .ds-input:focus-visible { outline: 2px solid #C8965A; outline-offset: 2px; }"
     },
     {
       "name": "Insider Badge",
@@ -185,15 +432,51 @@
       "Browsing never requires an account"
     ],
     "rules": [
-      { "name": "The Golden Hour Rule", "body": "Copper marks where attention goes — the active tab, the primary action, the live deal. One copper commitment per screen. Its scarcity is what makes a live happy hour findable at a glance.", "section": "colors" },
-      { "name": "The Warm Gray Rule", "body": "Every neutral here is warm. #FAFAF8 not #FAFAFA, #B5B0A8 not a cool gray for the inactive tab. A cool gray anywhere in this palette reads as a foreign component.", "section": "colors" },
-      { "name": "The Shared Palette Rule", "body": "These values are the console's values. A colour that changes here and not there is drift, not a mobile decision — change both or neither.", "section": "colors" },
-      { "name": "The System Face Rule", "body": "No custom font families. The brand is carried by colour, weight and voice. Adding a display face would cost Dynamic Type and platform metrics for a gain the brand does not need.", "section": "typography" },
-      { "name": "The Scaling Rule", "body": "Type scales with the user's system setting, everywhere, because nothing sets allowFontScaling={false}. Any layout that cannot survive a large type setting is the layout's problem, not the user's.", "section": "typography" },
-      { "name": "The Ending Soonest Rule", "body": "On any surface that lists a deal, the time it ends is the fastest thing to read. Not the venue name, not the photo. The whole product is 'what is on right now', and the layout has to answer that before anything else.", "section": "layout" },
-      { "name": "The Platform Depth Rule", "body": "Do not ship one depth model to both platforms. An iOS screen that leans on Material elevation looks like a port, and an Android screen with hand-rolled iOS shadows looks like one too. Depth is the layer where the adaptive call is most visible to a fluent user.", "section": "elevation" },
-      { "name": "The Pill Rule", "body": "999 means 'this is a state or a filter' — chips, badges, tab pills — and also the primary button, which is the one place mobile deliberately diverges from the console, where pills are forbidden on actions. A full-radius primary button is native-feeling on a phone and alien in an operator console; both are correct for their surface.", "section": "shapes" },
-      { "name": "The Fourteen Rule", "body": "The venue card is 14. It is the most-repeated shape in the product and the one a user sees hundreds of times; keep it consistent rather than drifting between 12, 14 and 16 on adjacent screens.", "section": "shapes" }
+      {
+        "name": "The Golden Hour Rule",
+        "body": "Copper marks where attention goes — the active tab, the primary action, the live deal. One copper commitment per screen. Its scarcity is what makes a live happy hour findable at a glance.",
+        "section": "colors"
+      },
+      {
+        "name": "The Warm Gray Rule",
+        "body": "Every ground and border here is warm: #FAFAF8 not #FAFAFA, #F5F0EB, #F5F3F0, #E8E8E5, #D1D1CD. The two text greys are neutral (#1A1A1A, #6B6B6B) and shared with the console, which is the stronger constraint where they conflict. The rule used to read \"every neutral here is warm\", which was never true of either text grey — and the one genuinely COOL token, #9CA3AF, was sitting in the palette in breach of it. Removing it for being unreadable also made this rule honest.",
+        "section": "colors"
+      },
+      {
+        "name": "The Shared Palette Rule",
+        "body": "These values are the console's values. A colour that changes here and not there is drift, not a mobile decision — change both or neither.",
+        "section": "colors"
+      },
+      {
+        "name": "The System Face Rule",
+        "body": "No custom font families. The brand is carried by colour, weight and voice. Adding a display face would cost Dynamic Type and platform metrics for a gain the brand does not need.",
+        "section": "typography"
+      },
+      {
+        "name": "The Scaling Rule",
+        "body": "Type scales with the user's system setting, everywhere, because nothing sets allowFontScaling={false}. Any layout that cannot survive a large type setting is the layout's problem, not the user's.",
+        "section": "typography"
+      },
+      {
+        "name": "The Ending Soonest Rule",
+        "body": "On any surface that lists a deal, the time it ends is the fastest thing to read. Not the venue name, not the photo. The whole product is 'what is on right now', and the layout has to answer that before anything else.",
+        "section": "layout"
+      },
+      {
+        "name": "The Platform Depth Rule",
+        "body": "Do not ship one depth model to both platforms. An iOS screen that leans on Material elevation looks like a port, and an Android screen with hand-rolled iOS shadows looks like one too. Depth is the layer where the adaptive call is most visible to a fluent user.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Pill Rule",
+        "body": "999 means 'this is a state or a filter' — chips, badges, tab pills — and also the primary button, which is the one place mobile deliberately diverges from the console, where pills are forbidden on actions. A full-radius primary button is native-feeling on a phone and alien in an operator console; both are correct for their surface.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Fourteen Rule",
+        "body": "The venue card is 14. It is the most-repeated shape in the product and the one a user sees hundreds of times; keep it consistent rather than drifting between 12, 14 and 16 on adjacent screens.",
+        "section": "shapes"
+      }
     ],
     "dos": [
       "Do answer 'what is on and when does it end' before anything else on a deal surface.",
@@ -208,9 +491,9 @@
       "Do let people browse without an account, and replay a gated action after signup."
     ],
     "donts": [
-      "Don't use stock palette values. #8B5CF6, #7C3AED, #60A5FA and #2563EB are currently in colors.ts under promoPremium* and promoBasic* — off-system, and carrying retired tier names.",
-      "Don't put white text on Golden Hour. It measures 2.64:1 and fails AA. The console flipped the label to graphite; mobile still ships the failing combination and has no brand-hover token to support the fix.",
-      "Don't set small text in a semantic mid tone. success, warning and error are fills and borders; the text-safe -ink variants do not exist here yet.",
+      "Don't use stock palette values. #8B5CF6, #7C3AED, #60A5FA and #2563EB were in colors.ts under promoPremium* and promoBasic* until 2026-10-07 — off-system, and carrying a tier name (Premium) that CLAUDE.md says not to quote. Tier colour now comes from the tierColors map and nowhere else, and test/mobile-palette-contrast.test.mjs fails if those names are declared again.",
+      "Don't put white text on Golden Hour: 2.64:1. The label on a copper fill is colors.onPrimary, and copper that has to be read is colors.brandDark. Guarded by test.",
+      "Don't set small text in a semantic mid tone. success and warning are fills, icons and borders; successInk and warningInk are the type. Guarded by test.",
       "Don't add a custom font family.",
       "Don't ship one depth model to both platforms.",
       "Don't introduce a cool gray.",

@@ -62,7 +62,7 @@ const styles = StyleSheet.create({
   },
   caption: {
     fontSize: 12.5,
-    color: colors.textMutedLight,
+    color: colors.textMuted,
     fontWeight: "500",
     textAlign: "center",
   },

@@ -150,7 +150,7 @@ export const CheckInPrimeScreen: React.FC<CheckInPrimeScreenProps> = ({
   if (!target) {
     return (
       <View style={[styles.screen, styles.center, { paddingTop: insets.top }]}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.brandDark} />
         <Text style={styles.detectingText}>Checking where you are…</Text>
       </View>
     );
@@ -166,7 +166,7 @@ export const CheckInPrimeScreen: React.FC<CheckInPrimeScreenProps> = ({
     >
       <View style={styles.content}>
         <View style={styles.iconCircle}>
-          <IconSymbol name="checkmark.seal.fill" size={30} color={colors.primary} />
+          <IconSymbol name="checkmark.seal.fill" size={30} color={colors.brandDark} />
         </View>
         <Text style={styles.title}>You&apos;re at {target.venueName} 🍻</Text>
         <Text style={styles.body}>

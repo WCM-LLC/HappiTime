@@ -100,12 +100,12 @@ const styles = StyleSheet.create({
   // eventTypeBadge/eventTypeBadgeText copied verbatim from EventCalendarScreen —
   // colors.primaryLight does not exist in the theme.
   typeBadge: { backgroundColor: colors.brandSubtle, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-  typeBadgeText: { color: colors.primary, fontSize: 11, fontWeight: "700" },
+  typeBadgeText: { color: colors.brandDark, fontSize: 11, fontWeight: "700" },
   price: { fontSize: 12, color: colors.textMuted },
   title: { fontSize: 16, fontWeight: "600", color: colors.text },
   date: { fontSize: 13, color: colors.textMuted, marginTop: 2 },
   desc: { fontSize: 13, color: colors.textMuted, marginTop: spacing.sm },
   links: { flexDirection: "row", gap: spacing.lg, marginTop: spacing.sm },
-  link: { fontSize: 13, fontWeight: "600", color: colors.primary },
+  link: { fontSize: 13, fontWeight: "600", color: colors.brandDark },
   linkSecondary: { fontSize: 13, fontWeight: "600", color: colors.textMuted },
 });

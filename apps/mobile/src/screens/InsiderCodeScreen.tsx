@@ -55,7 +55,7 @@ export const InsiderCodeScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator color={colors.brandDark} />
         </View>
       </SafeAreaView>
     );
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 1,
     textTransform: "uppercase",
-    color: colors.primary,
+    color: colors.brandDark,
     marginBottom: spacing.xs,
   },
   heading: {
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   shareButtonText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: "700",
     letterSpacing: 0.3,

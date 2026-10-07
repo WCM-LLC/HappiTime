@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
   },
   chevron: {
     fontSize: 22,
-    color: colors.textMutedLight,
+    color: colors.textMuted,
     marginLeft: spacing.sm,
   },
   pressed: {
