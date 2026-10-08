@@ -31,12 +31,12 @@ const EventRow: React.FC<{ ev: VenueEventItem }> = ({ ev }) => (
     {ev.ticket_url || ev.external_url ? (
       <View style={styles.links}>
         {ev.ticket_url ? (
-          <Pressable onPress={() => Linking.openURL(ev.ticket_url!)}>
+          <Pressable accessibilityRole="button" onPress={() => Linking.openURL(ev.ticket_url!)}>
             <Text style={styles.link}>Get tickets</Text>
           </Pressable>
         ) : null}
         {ev.external_url ? (
-          <Pressable onPress={() => Linking.openURL(ev.external_url!)}>
+          <Pressable accessibilityRole="button" onPress={() => Linking.openURL(ev.external_url!)}>
             <Text style={styles.linkSecondary}>Visit website</Text>
           </Pressable>
         ) : null}

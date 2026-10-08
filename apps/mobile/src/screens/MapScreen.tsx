@@ -31,6 +31,7 @@ import { SocialIcon } from "../../components/ui/SocialIcon";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { getHappyHourDisplayNames } from "../utils/happyHourDisplay";
+import { venueSocialLabel, venueSocialRole } from "../lib/venueSocial";
 import { formatTimeRange } from "../utils/formatters";
 import { nativeMapViewProps } from "../utils/mapViewProps";
 
@@ -792,6 +793,8 @@ export const MapScreen: React.FC = () => {
           />
           {query.length > 0 && (
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Clear the search field"
               onPress={() => {
                 setQuery("");
                 setShowSuggestions(false);
@@ -808,6 +811,7 @@ export const MapScreen: React.FC = () => {
           <View style={styles.suggestionsContainer}>
             {suggestions.map((item, index) => (
               <Pressable
+                accessibilityRole="button"
                 key={`${item.window.id}-${index}`}
                 onPress={() => handleSuggestionPress(item)}
                 style={({ pressed }) => [
@@ -849,6 +853,7 @@ export const MapScreen: React.FC = () => {
             style={styles.filterRailControl}
           />
           <Pressable
+            accessibilityRole="button"
             onPress={handleViewItineraries}
             style={({ pressed }) => [
               styles.itineraryFilterButton,
@@ -873,7 +878,7 @@ export const MapScreen: React.FC = () => {
             </Text>
             <View style={styles.itineraryBannerActions}>
               {itineraryShareToken ? (
-                <Pressable onPress={handleSaveSharedFromMap} hitSlop={8} disabled={savingSharedItinerary}>
+                <Pressable accessibilityRole="button" onPress={handleSaveSharedFromMap} hitSlop={8} disabled={savingSharedItinerary}>
                   {savingSharedItinerary ? (
                     <ActivityIndicator color={colors.primary} size="small" />
                   ) : (
@@ -881,7 +886,7 @@ export const MapScreen: React.FC = () => {
                   )}
                 </Pressable>
               ) : null}
-              <Pressable onPress={handleClearItinerary} hitSlop={8}>
+              <Pressable accessibilityRole="button" onPress={handleClearItinerary} hitSlop={8}>
                 <Text style={styles.itineraryBannerClear}>Clear</Text>
               </Pressable>
             </View>
@@ -895,6 +900,8 @@ export const MapScreen: React.FC = () => {
 
       {/* Recenter button */}
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Center the map on my location"
         onPress={handleRecenter}
         style={({ pressed }) => [
           styles.recenterButton,
@@ -957,6 +964,7 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
 
   return (
     <Pressable
+      accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [
         styles.miniCard,
@@ -1021,6 +1029,8 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
             <View style={styles.miniCardLinkRow}>
               {venue?.phone && (
                 <Pressable
+                  accessibilityRole={venueSocialRole("phone")}
+                  accessibilityLabel={venueSocialLabel("phone", titleText)}
                   hitSlop={6}
                   onPress={(e) => { e.stopPropagation(); Linking.openURL(`tel:${venue.phone}`).catch(() => {}); }}
                   style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
@@ -1030,6 +1040,8 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
               )}
               {venue?.website && (
                 <Pressable
+                  accessibilityRole={venueSocialRole("website")}
+                  accessibilityLabel={venueSocialLabel("website", titleText)}
                   hitSlop={6}
                   onPress={(e) => { e.stopPropagation(); Linking.openURL(venue.website).catch(() => {}); }}
                   style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
@@ -1039,6 +1051,8 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
               )}
               {venue?.facebook_url && (
                 <Pressable
+                  accessibilityRole={venueSocialRole("facebook")}
+                  accessibilityLabel={venueSocialLabel("facebook", titleText)}
                   hitSlop={6}
                   onPress={(e) => { e.stopPropagation(); Linking.openURL(venue.facebook_url).catch(() => {}); }}
                   style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
@@ -1048,6 +1062,8 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
               )}
               {venue?.instagram_url && (
                 <Pressable
+                  accessibilityRole={venueSocialRole("instagram")}
+                  accessibilityLabel={venueSocialLabel("instagram", titleText)}
                   hitSlop={6}
                   onPress={(e) => { e.stopPropagation(); Linking.openURL(venue.instagram_url).catch(() => {}); }}
                   style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
@@ -1057,6 +1073,8 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
               )}
               {venue?.tiktok_url && (
                 <Pressable
+                  accessibilityRole={venueSocialRole("tiktok")}
+                  accessibilityLabel={venueSocialLabel("tiktok", titleText)}
                   hitSlop={6}
                   onPress={(e) => { e.stopPropagation(); Linking.openURL(venue.tiktok_url).catch(() => {}); }}
                   style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
@@ -1076,6 +1094,8 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
 
       {/* Dismiss X */}
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Close the preview of ${titleText}`}
         onPress={(e) => {
           e.stopPropagation();
           onDismiss();

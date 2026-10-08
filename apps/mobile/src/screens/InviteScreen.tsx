@@ -110,6 +110,7 @@ export const InviteScreen: React.FC = () => {
               onSubmitEditing={handleSearch}
             />
             <Pressable
+              accessibilityRole="button"
               onPress={handleSearch}
               disabled={searching || !handleInput.trim()}
               style={({ pressed }) => [
@@ -149,6 +150,7 @@ export const InviteScreen: React.FC = () => {
               <Text style={styles.resultHandle}>@{resolved.handle}</Text>
             </View>
             <Pressable
+              accessibilityRole="button"
               onPress={handleFollow}
               disabled={followRequested}
               style={({ pressed }) => [
@@ -189,6 +191,7 @@ export const InviteScreen: React.FC = () => {
             />
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
             <Pressable
+              accessibilityRole="button"
               onPress={handleSendInvite}
               disabled={loading}
               style={({ pressed }) => [
@@ -211,6 +214,7 @@ export const InviteScreen: React.FC = () => {
           <View style={styles.emailOnlySection}>
             <Text style={styles.orLabel}>— or —</Text>
             <Pressable
+              accessibilityRole="button"
               onPress={() => setShowEmailForm(true)}
               style={({ pressed }) => [styles.emailOnlyButton, pressed && styles.buttonPressed]}
             >
@@ -228,6 +232,7 @@ export const InviteScreen: React.FC = () => {
               that address, you'll be automatically connected.
             </Text>
             <Pressable
+              accessibilityRole="button"
               onPress={() => {
                 reset();
                 setHandleInput("");

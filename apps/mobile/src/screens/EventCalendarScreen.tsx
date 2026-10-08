@@ -148,6 +148,7 @@ const EventCard: React.FC<{ event: UpcomingEvent; onPress: () => void; onMoreInf
 
   return (
     <Pressable
+      accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [styles.eventCard, pressed && { opacity: 0.75 }]}
     >
@@ -194,11 +195,11 @@ const EventCard: React.FC<{ event: UpcomingEvent; onPress: () => void; onMoreInf
       ) : null}
 
       <View style={styles.eventLinks}>
-        <Pressable onPress={onMoreInfo}>
+        <Pressable accessibilityRole="button" onPress={onMoreInfo}>
           <Text style={styles.eventLink}>More info</Text>
         </Pressable>
         {ev.ticket_url ? (
-          <Pressable onPress={() => Linking.openURL(ev.ticket_url!)}>
+          <Pressable accessibilityRole="button" onPress={() => Linking.openURL(ev.ticket_url!)}>
             <Text style={styles.eventLink}>Get tickets</Text>
           </Pressable>
         ) : null}
@@ -236,6 +237,8 @@ const FilterBar: React.FC<{
     >
       {filters.map((f) => (
         <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: active === f.key }}
           key={f.key}
           onPress={() => handlePress(f.key)}
           onLayout={(e) => {

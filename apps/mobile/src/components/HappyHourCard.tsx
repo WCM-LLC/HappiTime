@@ -6,6 +6,7 @@ import { SocialIcon } from "../../components/ui/SocialIcon";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { getHappyHourDisplayNames } from "../utils/happyHourDisplay";
+import { venueSocialLabel, venueSocialRole } from "../lib/venueSocial";
 import { formatDays, formatTimeRange } from "../utils/formatters";
 import { timeAgo } from "../utils/time";
 
@@ -158,6 +159,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
       </View>
 
       <Pressable
+        accessibilityRole="button"
         onPress={onPress}
         disabled={!onPress}
         style={({ pressed }) => [styles.cardBody, pressed && styles.cardBodyPressed]}
@@ -283,6 +285,8 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
         <View style={styles.socialRow}>
           {venueSocial?.phone && (
             <Pressable
+              accessibilityRole={venueSocialRole("phone")}
+              accessibilityLabel={venueSocialLabel("phone", titleText)}
               style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
               onPress={() => Linking.openURL(`tel:${venueSocial.phone}`).catch(() => {})}
             >
@@ -291,6 +295,8 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
           )}
           {venueSocial?.website && (
             <Pressable
+              accessibilityRole={venueSocialRole("website")}
+              accessibilityLabel={venueSocialLabel("website", titleText)}
               style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
               onPress={() => Linking.openURL(venueSocial.website).catch(() => {})}
             >
@@ -299,6 +305,8 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
           )}
           {venueSocial?.facebook_url && (
             <Pressable
+              accessibilityRole={venueSocialRole("facebook")}
+              accessibilityLabel={venueSocialLabel("facebook", titleText)}
               style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
               onPress={() => Linking.openURL(venueSocial.facebook_url).catch(() => {})}
             >
@@ -307,6 +315,8 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
           )}
           {venueSocial?.instagram_url && (
             <Pressable
+              accessibilityRole={venueSocialRole("instagram")}
+              accessibilityLabel={venueSocialLabel("instagram", titleText)}
               style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
               onPress={() => Linking.openURL(venueSocial.instagram_url).catch(() => {})}
             >
@@ -315,6 +325,8 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
           )}
           {venueSocial?.tiktok_url && (
             <Pressable
+              accessibilityRole={venueSocialRole("tiktok")}
+              accessibilityLabel={venueSocialLabel("tiktok", titleText)}
               style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
               onPress={() => Linking.openURL(venueSocial.tiktok_url).catch(() => {})}
             >

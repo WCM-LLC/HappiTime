@@ -33,12 +33,13 @@ export function NotifPrimeSheet({ visible, onDismiss }: NotifPrimeSheetProps) {
             We'll ping you when happy hour starts at the spots you save. No spam — just the deals you care about.
           </Text>
           <Pressable
+            accessibilityRole="button"
             style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
             onPress={() => void enable()}
           >
             <Text style={styles.primaryText}>Enable alerts</Text>
           </Pressable>
-          <Pressable style={styles.secondary} onPress={onDismiss}>
+          <Pressable accessibilityRole="button" style={styles.secondary} onPress={onDismiss}>
             <Text style={styles.secondaryText}>Not now</Text>
           </Pressable>
         </View>

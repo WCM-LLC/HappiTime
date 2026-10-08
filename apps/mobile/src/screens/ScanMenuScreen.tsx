@@ -417,7 +417,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
           This is for venue owners and HappiTime super users. If you run a venue, claim it from your
           profile and it'll show up here.
         </Text>
-        <Pressable style={styles.secondaryBtn} onPress={() => navigation.goBack()}>
+        <Pressable accessibilityRole="button" style={styles.secondaryBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.secondaryBtnText}>Go back</Text>
         </Pressable>
       </View>
@@ -458,6 +458,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
           {searching ? <ActivityIndicator style={{ marginTop: spacing.sm }} color={colors.primary} /> : null}
           {results.map((v) => (
             <Pressable
+              accessibilityRole="button"
               key={v.id}
               style={styles.resultRow}
               onPress={() => {
@@ -493,6 +494,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
             <>
               {cameraAvailable ? (
                 <Pressable
+                  accessibilityRole="button"
                   style={[styles.primaryBtn, outOfScans && styles.btnDisabled]}
                   disabled={outOfScans}
                   onPress={() => pickPhoto("camera")}
@@ -501,6 +503,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
                 </Pressable>
               ) : null}
               <Pressable
+                accessibilityRole="button"
                 style={[
                   cameraAvailable ? styles.secondaryBtn : styles.primaryBtn,
                   outOfScans && styles.btnDisabled,
@@ -521,7 +524,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
                 <Text style={styles.muted}>You've used today's scans. They reset at midnight.</Text>
               ) : null}
               {!preselected ? (
-                <Pressable onPress={() => { setVenue(null); setStep("venue"); }}>
+                <Pressable accessibilityRole="button" onPress={() => { setVenue(null); setStep("venue"); }}>
                   <Text style={styles.linkText}>Pick a different venue</Text>
                 </Pressable>
               ) : null}
@@ -549,6 +552,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
             )}
             {CONFIRMABLE_TYPES.map((t) => (
               <Pressable
+                accessibilityRole="button"
                 key={t}
                 onPress={() => setConfirmedType(t)}
                 style={[styles.typeRow, confirmedType === t && styles.typeRowOn]}
@@ -581,6 +585,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
                 <View style={styles.dowRow}>
                   {DOW_LABELS.map((d, i) => (
                     <Pressable
+                      accessibilityRole="button"
                       key={i}
                       onPress={() => toggleDow(wi, i)}
                       style={[styles.dowChip, w.dow.includes(i) && styles.dowChipOn]}
@@ -605,13 +610,13 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
                     placeholderTextColor={colors.textMutedLight}
                     style={[styles.input, styles.timeInput, !TIME_RE.test(w.end_time) && styles.inputBad]}
                   />
-                  <Pressable onPress={() => removeWindow(wi)}>
+                  <Pressable accessibilityRole="button" onPress={() => removeWindow(wi)}>
                     <Text style={styles.removeText}>Remove</Text>
                   </Pressable>
                 </View>
               </View>
             ))}
-            <Pressable onPress={addWindow}>
+            <Pressable accessibilityRole="button" onPress={addWindow}>
               <Text style={styles.linkText}>+ Add another time</Text>
             </Pressable>
           </View>
@@ -642,7 +647,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
                       placeholderTextColor={colors.textMutedLight}
                       style={[styles.input, styles.itemPrice]}
                     />
-                    <Pressable onPress={() => removeItem(si, ii)}>
+                    <Pressable accessibilityRole="button" onPress={() => removeItem(si, ii)}>
                       <Text style={styles.removeText}>×</Text>
                     </Pressable>
                   </View>
@@ -685,7 +690,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
                       This one has no date. Remove it, or mark the board&apos;s date and rescan.
                     </Text>
                   ) : null}
-                  <Pressable onPress={() => setEvents((es) => es.filter((_, i) => i !== ei))}>
+                  <Pressable accessibilityRole="button" onPress={() => setEvents((es) => es.filter((_, i) => i !== ei))}>
                     <Text style={styles.removeText}>Remove</Text>
                   </Pressable>
                 </View>
@@ -694,7 +699,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
           ) : null}
 
           {!contextLoaded ? (
-            <Pressable style={styles.secondaryBtn} onPress={retryContext}>
+            <Pressable accessibilityRole="button" style={styles.secondaryBtn} onPress={retryContext}>
               <Text style={styles.secondaryBtnText}>Retry loading this venue</Text>
             </Pressable>
           ) : null}
@@ -709,6 +714,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
           </Text>
 
           <Pressable
+            accessibilityRole="button"
             style={[styles.primaryBtn, !canSubmit && styles.btnDisabled]}
             disabled={!canSubmit}
             onPress={submit}
@@ -718,6 +724,7 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
             </Text>
           </Pressable>
           <Pressable
+            accessibilityRole="button"
             onPress={() =>
               Alert.alert("Start over?", "Your edits to this scan will be lost.", [
                 { text: "Keep editing", style: "cancel" },
@@ -754,10 +761,10 @@ export const ScanMenuScreen: React.FC<Props> = ({ route, navigation }) => {
               </Text>
             </View>
           ) : null}
-          <Pressable style={styles.primaryBtn} onPress={startOver}>
+          <Pressable accessibilityRole="button" style={styles.primaryBtn} onPress={startOver}>
             <Text style={styles.primaryBtnText}>Scan another</Text>
           </Pressable>
-          <Pressable style={styles.secondaryBtn} onPress={() => navigation.goBack()}>
+          <Pressable accessibilityRole="button" style={styles.secondaryBtn} onPress={() => navigation.goBack()}>
             <Text style={styles.secondaryBtnText}>Done</Text>
           </Pressable>
         </View>

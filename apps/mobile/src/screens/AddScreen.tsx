@@ -83,7 +83,7 @@ export const VenueSuggestionForm: React.FC<VenueSuggestionFormProps> = ({ onBack
         contentContainerStyle={styles.scrollContent}
       >
         {onBack && (
-          <Pressable onPress={onBack} style={styles.backButton}>
+          <Pressable accessibilityRole="button" onPress={onBack} style={styles.backButton}>
             <Text style={styles.backText}>{"\u2190"} Back</Text>
           </Pressable>
         )}
@@ -148,6 +148,7 @@ export const VenueSuggestionForm: React.FC<VenueSuggestionFormProps> = ({ onBack
           />
 
           <Pressable
+            accessibilityRole="button"
             style={({ pressed }) => [
               styles.submitButton,
               !isValid && styles.submitButtonDisabled,

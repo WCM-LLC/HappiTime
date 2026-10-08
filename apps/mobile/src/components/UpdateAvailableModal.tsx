@@ -29,6 +29,7 @@ export const UpdateAvailableModal: React.FC = () => {
             ))}
           </ScrollView>
           <Pressable
+            accessibilityRole="button"
             onPress={openStore}
             style={({ pressed }) => [styles.update, pressed && styles.pressed]}
           >
@@ -36,6 +37,7 @@ export const UpdateAvailableModal: React.FC = () => {
           </Pressable>
           {!critical ? (
             <Pressable
+              accessibilityRole="button"
               onPress={dismiss}
               style={({ pressed }) => [styles.later, pressed && styles.pressed]}
             >

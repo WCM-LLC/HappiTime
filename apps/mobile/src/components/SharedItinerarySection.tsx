@@ -25,6 +25,7 @@ export const SharedItinerarySection: React.FC<{
           item.authorDisplayName ?? item.authorHandle ?? "A HappiTime user";
         return (
           <Pressable
+            accessibilityRole="button"
             key={item.id}
             onPress={() => onOpen(item)}
             style={({ pressed }) => [styles.row, pressed && styles.pressed]}

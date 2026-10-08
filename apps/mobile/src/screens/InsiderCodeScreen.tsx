@@ -118,6 +118,7 @@ export const InsiderCodeScreen: React.FC = () => {
           </Text>
 
           <Pressable
+            accessibilityRole="button"
             style={({ pressed }) => [
               styles.shareButton,
               pressed && styles.shareButtonPressed,

@@ -107,6 +107,7 @@ export const ItineraryDetailScreen: React.FC<Props> = ({ route, navigation }) =>
 
       {!loading && venues.length > 0 ? (
         <Pressable
+          accessibilityRole="button"
           onPress={handleViewOnMap}
           style={({ pressed }) => [styles.mapButton, pressed && styles.pressed]}
         >
@@ -132,6 +133,7 @@ export const ItineraryDetailScreen: React.FC<Props> = ({ route, navigation }) =>
             const location = formatLocation(venue);
             return (
               <Pressable
+                accessibilityRole="button"
                 key={venue.itemId}
                 onPress={() => handleOpenVenue(venue.id)}
                 style={({ pressed }) => [styles.venueRow, pressed && styles.pressed]}

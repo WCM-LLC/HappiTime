@@ -110,6 +110,7 @@ export const SignInOptions: React.FC<SignInOptionsProps> = ({
   return (
     <View style={styles.container}>
       <Pressable
+        accessibilityRole="button"
         style={({ pressed }) => [
           styles.googleButton,
           pressed && styles.googleButtonPressed,
@@ -152,6 +153,7 @@ export const SignInOptions: React.FC<SignInOptionsProps> = ({
       />
 
       <Pressable
+        accessibilityRole="button"
         style={({ pressed }) => [
           styles.primaryButton,
           pressed && styles.primaryButtonPressed,

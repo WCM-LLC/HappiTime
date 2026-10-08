@@ -92,12 +92,14 @@ const PendingRequestCard: React.FC<{
     </View>
     <View style={styles.pendingActions}>
       <Pressable
+        accessibilityRole="button"
         onPress={() => onApprove(id)}
         style={({ pressed }) => [styles.acceptButton, pressed && styles.buttonPressed]}
       >
         <Text style={styles.acceptText}>Accept</Text>
       </Pressable>
       <Pressable
+        accessibilityRole="button"
         onPress={() => onReject(id)}
         style={({ pressed }) => [styles.rejectButton, pressed && styles.buttonPressed]}
       >
@@ -154,6 +156,7 @@ const PersonRow: React.FC<{
       </View>
       {actionLabel && onAction ? (
         <Pressable
+          accessibilityRole="button"
           onPress={() => onAction(id)}
           style={({ pressed }) => [
             actionStyle === "primary" ? styles.acceptButton : styles.rejectButton,
@@ -218,6 +221,7 @@ const NotificationCard: React.FC<{
   onPress: (n: UserNotification) => void;
 }> = ({ item, onPress }) => (
   <Pressable
+    accessibilityRole="button"
     onPress={() => onPress(item)}
     style={({ pressed }) => [styles.notifRow, pressed && styles.buttonPressed]}
   >
@@ -279,6 +283,7 @@ const SuggestionCard: React.FC<{
       </View>
       <View style={styles.trailing}>
         <Pressable
+          accessibilityRole="button"
           onPress={() => onFollow(suggestion.user_id)}
           disabled={following}
           style={({ pressed }) => [
@@ -326,6 +331,7 @@ const PeopleSearchCard: React.FC<{
       </View>
       <View style={styles.trailing}>
         <Pressable
+          accessibilityRole="button"
           onPress={() => onFollow(item.user_id)}
           disabled={following}
           style={({ pressed }) => [
@@ -352,6 +358,7 @@ const InsiderItineraryCard: React.FC<{
   const authorName = item.authorDisplayName ?? item.authorHandle ?? "HappiTime Insider";
   return (
     <Pressable
+      accessibilityRole="button"
       onPress={() => onPress(item)}
       style={({ pressed }) => [styles.insiderCard, pressed && styles.buttonPressed]}
     >
@@ -444,6 +451,7 @@ const CheckInCard: React.FC<{
         </View>
       </View>
       <Pressable
+        accessibilityRole="button"
         onPress={() => onTogglePrivacy(item.id, !item.is_private)}
         style={({ pressed }) => [styles.privacyButton, pressed && styles.buttonPressed]}
         hitSlop={8}
@@ -616,6 +624,7 @@ export const ActivityScreen: React.FC = () => {
           renderItem={({ item }) => <DiscoverFeedCard item={item} anonymous />}
           ListHeaderComponent={
             <Pressable
+              accessibilityRole="button"
               onPress={() => navigation.navigate("EventCalendar")}
               style={({ pressed }) => [styles.eventsEntryCard, pressed && { opacity: 0.75 }]}
             >
@@ -665,6 +674,7 @@ export const ActivityScreen: React.FC = () => {
             unreadCount > 0 ? (
               <View style={styles.notifHeaderRow}>
                 <Pressable
+                  accessibilityRole="button"
                   onPress={() => void markAllRead()}
                   style={({ pressed }) => [pressed && styles.buttonPressed]}
                 >
@@ -707,6 +717,7 @@ export const ActivityScreen: React.FC = () => {
                 />
                 {friendHandleQuery.length > 0 ? (
                   <Pressable
+                    accessibilityRole="button"
                     onPress={() => setFriendHandleQuery("")}
                     style={({ pressed }) => [
                       styles.friendSearchClear,
@@ -917,6 +928,7 @@ export const ActivityScreen: React.FC = () => {
               />
               {peopleQuery.length > 0 ? (
                 <Pressable
+                  accessibilityRole="button"
                   onPress={() => setPeopleQuery("")}
                   style={({ pressed }) => [styles.friendSearchClear, pressed && styles.buttonPressed]}
                 >
@@ -939,6 +951,7 @@ export const ActivityScreen: React.FC = () => {
                   <>
                     <Text style={styles.emptyText}>Search for friends by @handle</Text>
                     <Pressable
+                      accessibilityRole="button"
                       onPress={() => navigation.navigate("InviteScreen" as never)}
                       style={({ pressed }) => [styles.inviteLink, pressed && styles.inviteLinkPressed]}
                     >
@@ -950,6 +963,7 @@ export const ActivityScreen: React.FC = () => {
                     <Text style={styles.emptyTitle}>No users found</Text>
                     <Text style={styles.emptyText}>Try a different handle.</Text>
                     <Pressable
+                      accessibilityRole="button"
                       onPress={() => navigation.navigate("InviteScreen" as never)}
                       style={({ pressed }) => [styles.inviteLink, pressed && styles.inviteLinkPressed]}
                     >

@@ -27,6 +27,7 @@ import { ErrorState } from "../components/ErrorState";
 import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { getHappyHourDisplayNames } from "../utils/happyHourDisplay";
+import { venueSocialLabel, venueSocialRole } from "../lib/venueSocial";
 import { formatDays, formatTagLabel, formatTimeRange } from "../utils/formatters";
 import { distanceMiles } from "../utils/location";
 import { IconSymbol } from "../../components/ui/icon-symbol";
@@ -332,6 +333,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
           </View>
           <View style={styles.heroButtons}>
             <Pressable
+              accessibilityRole="button"
               onPress={() => navigation.goBack()}
               style={({ pressed }) => [
                 styles.heroButtonBack,
@@ -341,6 +343,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
               <Text style={styles.heroButtonBackText}>{"\u2190"} Back</Text>
             </Pressable>
             <Pressable
+              accessibilityRole="button"
               onPress={handleSelect}
               style={({ pressed }) => [
                 styles.heroButton,
@@ -362,6 +365,9 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
           <View style={styles.titleRow}>
             <Text style={styles.title}>{titleText}</Text>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={saved ? `Remove ${titleText} from favorites` : `Save ${titleText} to favorites`}
+              accessibilityState={{ selected: saved }}
               onPress={handleToggleSave}
               disabled={followLoading || savingVenueId === venueId}
               hitSlop={10}
@@ -537,6 +543,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
                   : null;
               return (
                 <Pressable
+                  accessibilityRole="button"
                   key={item.id}
                   onPress={() => navigation.push("HappyHourDetail", { windowId: item.id })}
                   style={({ pressed }) => [
@@ -578,6 +585,8 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
           <View style={styles.actionSecondaryRow}>
             {venue.phone && (
               <Pressable
+                accessibilityRole={venueSocialRole("phone")}
+                accessibilityLabel={venueSocialLabel("phone", titleText)}
                 style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={callVenue}
               >
@@ -586,6 +595,8 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
             )}
             {venue.website && (
               <Pressable
+                accessibilityRole={venueSocialRole("website")}
+                accessibilityLabel={venueSocialLabel("website", titleText)}
                 style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={openWebsite}
               >
@@ -594,6 +605,8 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
             )}
             {(venue as any).facebook_url && (
               <Pressable
+                accessibilityRole={venueSocialRole("facebook")}
+                accessibilityLabel={venueSocialLabel("facebook", titleText)}
                 style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={openFacebook}
               >
@@ -602,6 +615,8 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
             )}
             {(venue as any).instagram_url && (
               <Pressable
+                accessibilityRole={venueSocialRole("instagram")}
+                accessibilityLabel={venueSocialLabel("instagram", titleText)}
                 style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={openInstagram}
               >
@@ -610,6 +625,8 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
             )}
             {(venue as any).tiktok_url && (
               <Pressable
+                accessibilityRole={venueSocialRole("tiktok")}
+                accessibilityLabel={venueSocialLabel("tiktok", titleText)}
                 style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={openTikTok}
               >

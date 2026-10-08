@@ -349,7 +349,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
             ) : null}
             {ev.ticket_url ? (
               <View style={styles.eventLinks}>
-                <Pressable onPress={() => Linking.openURL(ev.ticket_url!)}>
+                <Pressable accessibilityRole="button" onPress={() => Linking.openURL(ev.ticket_url!)}>
                   <Text style={styles.eventLink}>Get tickets</Text>
                 </Pressable>
               </View>
@@ -357,6 +357,7 @@ export const VenuePreviewScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         ))}
         <Pressable
+          accessibilityRole="button"
           onPress={() => navigation.navigate("VenueEvents", { venueId: venueId!, venueName: fetchedVenueName ?? windowsForVenue[0]?.venue?.name ?? undefined })}
           style={({ pressed }) => [pressed && { opacity: 0.7 }]}
         >

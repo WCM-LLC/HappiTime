@@ -210,6 +210,7 @@ export const SharedItineraryScreen: React.FC<Props> = ({ route, navigation }) =>
 
       <View style={styles.actions}>
         <Pressable
+          accessibilityRole="button"
           onPress={handleSave}
           disabled={saving}
           style={({ pressed }) => [styles.saveButton, pressed && styles.cardPressed]}
@@ -223,6 +224,7 @@ export const SharedItineraryScreen: React.FC<Props> = ({ route, navigation }) =>
           )}
         </Pressable>
         <Pressable
+          accessibilityRole="button"
           onPress={handleViewOnMap}
           style={({ pressed }) => [styles.mapButton, pressed && styles.cardPressed]}
         >
@@ -236,6 +238,7 @@ export const SharedItineraryScreen: React.FC<Props> = ({ route, navigation }) =>
           const location = [item.address, item.city, item.state].filter(Boolean).join(", ");
           return (
             <Pressable
+              accessibilityRole="button"
               key={item.venue_id}
               onPress={() => navigation.navigate("VenuePreview", { venueId: item.venue_id })}
               style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
