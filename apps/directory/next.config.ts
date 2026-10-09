@@ -40,6 +40,9 @@ const nextConfig: NextConfig = {
       // /claim was retired (its sales-call funnel duplicated /pricing); the
       // URL was indexed, so keep a permanent redirect.
       { source: "/claim", destination: "/pricing/", statusCode: 301 as const },
+      // Short link printed on the Tacos & Tables flyer (Oct 13, 2026 Spades
+      // tournament). Temporary: it will point at the next tournament page.
+      { source: "/spades", destination: "/sponsored-events/tacos-and-tables/", statusCode: 302 as const },
       ...HAPPY_HOUR_LANDING_PAGES.map((page) => ({
         source: `/kc/${page.neighborhoodSlug}`,
         destination: page.canonicalPath,
