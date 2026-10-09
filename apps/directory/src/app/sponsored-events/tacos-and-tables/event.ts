@@ -55,7 +55,8 @@ export const EVENT = {
  * the confirmation screen says so). Set to the Google Apps Script web-app URL
  * from My Assistant/outreach/2026-10-09_tacos-and-tables-registration/.
  */
-export const REGISTRATION_ENDPOINT = "";
+export const REGISTRATION_ENDPOINT =
+  "https://script.google.com/macros/s/AKfycbxwnqc49RUdlgyc6TZOtza7MZHXRIHy6FJPwg79dRwLzU0IpmSPgIx8oEY2tdqxKLvA/exec";
 
 export const RULES: { title: string; body?: string }[] = [
   {
