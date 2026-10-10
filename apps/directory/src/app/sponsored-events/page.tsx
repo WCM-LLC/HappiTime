@@ -30,13 +30,33 @@ type SponsoredEvent = {
   dateLabel: string;
   timeLabel: string;
   area: string;
-  access: "Invitation only" | "Open RSVP";
+  access: "Invitation only" | "Open RSVP" | "Open registration";
+  /** Button label; defaults to "RSVP for your seat". */
+  cta?: string;
   blurb: string;
   image: string;
   imageAlt: string;
 };
 
 const EVENTS: SponsoredEvent[] = [
+  {
+    slug: "tacos-and-tables",
+    title: "Tacos & Tables",
+    edition: "with Good Company",
+    hosts: "Spades tournament night",
+    partners: ["HappiTime", "Tacos Valentina", "NotCho' Taco", "DJ Stixx"],
+    starts: "2026-10-13T17:00:00-05:00",
+    ends: "2026-10-13T21:30:00-05:00",
+    dateLabel: "Tuesday, October 13",
+    timeLabel: "Doors 5 PM, first deal 6 PM",
+    area: "Crossroads",
+    access: "Open registration",
+    cta: "Register your spot",
+    blurb:
+      "A 16-team double-elimination Spades tournament at In Good Company. $20 per player, solo or with a partner. Tacos from the NotCho' Taco truck outside, music by DJ Stixx. Register by October 12.",
+    image: "/sponsored-events/tacos-and-tables/cover.jpg",
+    imageAlt: "A playing card reading Tacos & Tables, with the 13 of spades in the corners.",
+  },
   {
     slug: "social-life-brunch",
     title: "The Social Life Brunch",
@@ -98,7 +118,7 @@ function EventCard({ e, past }: { e: SponsoredEvent; past?: boolean }) {
               href={href}
               className="inline-block rounded-full bg-dark px-6 py-3 text-[14px] font-bold text-white transition-colors hover:bg-black"
             >
-              RSVP for your seat
+              {e.cta ?? "RSVP for your seat"}
             </Link>
           )}
         </div>
