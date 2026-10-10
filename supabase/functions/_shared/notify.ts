@@ -129,8 +129,12 @@ export async function sendUserNotifications(
   // 4) Send only to allowed users.
   const messages: ExpoPushMessage[] = [];
   for (const uid of allowed) {
+    // Carry the recipient's inbox row id so a push tap can mark it read
+    // (apps/mobile useNotificationNavigation). Payload routing keys unchanged.
+    const notificationId = rowIdsByUser.get(uid)?.[0];
+    const pushData = notificationId ? { ...data, notificationId } : data;
     for (const token of tokensByUser.get(uid) ?? []) {
-      messages.push({ to: token, title: msg.title, body: msg.body, sound: "default", data });
+      messages.push({ to: token, title: msg.title, body: msg.body, sound: "default", data: pushData });
     }
   }
   const pushed = await sendExpoPush(messages);

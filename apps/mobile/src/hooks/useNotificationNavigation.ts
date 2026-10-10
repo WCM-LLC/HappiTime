@@ -1,6 +1,8 @@
 // src/hooks/useNotificationNavigation.ts
 import { useEffect, useRef } from "react";
 import * as Notifications from "expo-notifications";
+import { supabase } from "../api/supabaseClient";
+import { emitUnreadChanged } from "../lib/notificationsEvents";
 import { resolveNotificationTarget } from "../lib/notificationTarget";
 
 // The navigator may still be mounting (e.g. just left the auth gate). Poll
@@ -24,29 +26,39 @@ async function waitForNav(
 }
 
 /**
- * Where an OS push TAP lands. Different from where an inbox ROW tap lands.
+ * Where an OS push TAP lands.
  *
- * Decision 2026-09-14: a push tap opens the Notifications inbox, not the
- * deep-link target. Rationale — the push body ("Someone just scanned your QR
- * code at Tacos Valentina.") exists only in the OS banner and in the inbox;
- * VenuePreview / VenueEvents render nothing about it. Landing on the target
- * directly meant the user saw a venue with zero context and the inbox row
- * stayed unread. The inbox row's own tap still deep-links (ActivityScreen ->
- * resolveNotificationTarget), so the destination is one tap further, with
- * the message in between.
+ * Decision 2026-10-09 (supersedes 2026-09-14): a push tap goes straight to
+ * the deep-link target — the same place the inbox row's tap goes. The 09-14
+ * detour through the inbox existed because the target pages gave no context
+ * (VenueEvents was titled "Events & Specials" and didn't single out the
+ * event); since #241 the page names the venue and pins the event, so the
+ * detour only added a tap. The inbox row is marked read on tap when the
+ * payload carries its id (notify.ts stamps `notificationId` per recipient).
  *
  * `friend` keeps the owner's 2026-08-04 routing (Friends segment, where
  * accept/decline lives). visit_rating is not ours — useVisitRating owns it.
  */
 function pushTapTarget(
-  data: Record<string, unknown> | undefined,
+  _data: Record<string, unknown> | undefined,
   resolved: { screen: string; params?: unknown },
 ): { screen: string; params?: unknown } {
-  if (data?.type === "friend") return resolved;
-  return {
-    screen: "AppTabs",
-    params: { screen: "Activity", params: { segment: "notifications" } },
-  };
+  return resolved;
+}
+
+async function markInboxRowRead(data: Record<string, unknown> | undefined) {
+  const id = data?.notificationId;
+  if (typeof id !== "string" || !id) return;
+  try {
+    await (supabase as any)
+      .from("user_notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("id", id)
+      .is("read_at", null);
+    emitUnreadChanged();
+  } catch {
+    // Best effort; the row stays unread and the badge catches up on next open.
+  }
 }
 
 /**
@@ -78,6 +90,7 @@ export function useNotificationNavigation(
       const target = pushTapTarget(data, resolved);
 
       lastHandledId.current = id;
+      void markInboxRowRead(data);
       const nav = await waitForNav(navigationRef);
       if (cancelled) return;
       if (!nav) {
