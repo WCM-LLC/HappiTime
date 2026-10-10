@@ -33,6 +33,8 @@ type SponsoredEvent = {
   access: "Invitation only" | "Open RSVP" | "Open registration";
   /** Button label; defaults to "RSVP for your seat". */
   cta?: string;
+  /** Postponed events stay in the upcoming list with no RSVP button. */
+  status?: "postponed";
   blurb: string;
   image: string;
   imageAlt: string;
@@ -63,14 +65,17 @@ const EVENTS: SponsoredEvent[] = [
     edition: "Fall Edition",
     hosts: "The Blacklist × MEPA",
     partners: ["HappiTime", "Hennessy", "Don Julio"],
+    // Was Sunday Oct 11; pushed back 2026-10-09. Restore the real dates and drop
+    // `status` once the new date is confirmed.
     starts: "2026-10-11T11:30:00-05:00",
     ends: "2026-10-11T16:00:00-05:00",
-    dateLabel: "Sunday, October 11",
-    timeLabel: "11:30 AM – 4 PM",
+    dateLabel: "New date to be announced",
+    timeLabel: "Brunch × day party",
     area: "18th & Vine",
     access: "Invitation only",
+    status: "postponed",
     blurb:
-      "An exclusive brunch × day party for people shaping Kansas City's business, community and culture. Dress code: shades of brown and blue.",
+      "An exclusive brunch × day party for people shaping Kansas City's business, community and culture. The Fall Edition has moved off October 11; a new date is being set and existing RSVPs carry over. Dress code: shades of brown and blue.",
     image: "/sponsored-events/social-life-brunch/portrait.jpg",
     imageAlt: "A guest in a champagne satin blouse, chin resting on her hand.",
   },
@@ -95,6 +100,9 @@ function EventCard({ e, past }: { e: SponsoredEvent; past?: boolean }) {
       <div className="flex min-w-0 flex-col gap-3 p-6 sm:p-8">
         <div className="flex flex-wrap items-center gap-2 text-[12px] font-bold uppercase tracking-[0.06em]">
           <span className="rounded-full bg-brand-subtle px-3 py-1 text-brand-dark-alt">{e.access}</span>
+          {e.status === "postponed" && (
+            <span className="rounded-full bg-dark px-3 py-1 text-white">Postponed</span>
+          )}
           <span className="text-muted">{e.hosts}</span>
         </div>
         <h2 className={`${DISPLAY} text-[clamp(1.6rem,3vw,2.1rem)]`}>
@@ -113,6 +121,10 @@ function EventCard({ e, past }: { e: SponsoredEvent; past?: boolean }) {
         <div className="mt-auto pt-2">
           {past ? (
             <span className="text-[14px] font-semibold text-muted">This event has ended.</span>
+          ) : e.status === "postponed" ? (
+            <Link href={href} className="text-[14px] font-semibold text-muted hover:text-brand-dark">
+              RSVPs reopen once the new date is set. Details &rarr;
+            </Link>
           ) : (
             <Link
               href={href}
@@ -129,10 +141,13 @@ function EventCard({ e, past }: { e: SponsoredEvent; past?: boolean }) {
 
 export default function SponsoredEventsPage() {
   const now = Date.now();
-  const upcoming = EVENTS.filter((e) => Date.parse(e.ends) >= now).sort(
-    (a, b) => Date.parse(a.starts) - Date.parse(b.starts),
-  );
-  const past = EVENTS.filter((e) => Date.parse(e.ends) < now).sort(
+  // Postponed events never age into "Past"; they list after the dated ones.
+  const isUpcoming = (e: SponsoredEvent) => e.status === "postponed" || Date.parse(e.ends) >= now;
+  const upcoming = EVENTS.filter(isUpcoming).sort((a, b) => {
+    if ((a.status === "postponed") !== (b.status === "postponed")) return a.status === "postponed" ? 1 : -1;
+    return Date.parse(a.starts) - Date.parse(b.starts);
+  });
+  const past = EVENTS.filter((e) => !isUpcoming(e)).sort(
     (a, b) => Date.parse(b.starts) - Date.parse(a.starts),
   );
 
