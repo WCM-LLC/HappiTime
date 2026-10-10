@@ -22,7 +22,7 @@ export const ObLogo: React.FC<{ size?: number }> = ({ size = 40 }) => (
     numberOfLines={1}
   >
     <Text style={{ color: colors.text }}>{"Happi"}</Text>
-    <Text style={{ color: colors.primary }}>{"Time"}</Text>
+    <Text style={{ color: colors.brandDark }}>{"Time"}</Text>
   </Text>
 );
 

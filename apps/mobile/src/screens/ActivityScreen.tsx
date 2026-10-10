@@ -614,7 +614,7 @@ export const ActivityScreen: React.FC = () => {
         <Text style={styles.emptyState}>See what people are doing around you.</Text>
         {discoverLoading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator color={colors.primary} size="small" />
+            <ActivityIndicator color={colors.brandDark} size="small" />
           </View>
         ) : null}
         <FlatList
@@ -660,7 +660,7 @@ export const ActivityScreen: React.FC = () => {
 
       {isLoading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator color={colors.primary} size="small" />
+          <ActivityIndicator color={colors.brandDark} size="small" />
         </View>
       ) : tab === "notifications" ? (
         <FlatList
@@ -710,7 +710,7 @@ export const ActivityScreen: React.FC = () => {
                   value={friendHandleQuery}
                   onChangeText={setFriendHandleQuery}
                   placeholder="Search friends by @handle"
-                  placeholderTextColor={colors.textMutedLight}
+                  placeholderTextColor={colors.textMuted}
                   autoCapitalize="none"
                   autoCorrect={false}
                   style={styles.friendSearchInput}
@@ -921,7 +921,7 @@ export const ActivityScreen: React.FC = () => {
                 value={peopleQuery}
                 onChangeText={setPeopleQuery}
                 placeholder="Search by @handle"
-                placeholderTextColor={colors.textMutedLight}
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="none"
                 autoCorrect={false}
                 style={styles.friendSearchInput}
@@ -940,7 +940,7 @@ export const ActivityScreen: React.FC = () => {
           ListFooterComponent={
             peopleLoading ? (
               <View style={styles.peopleLoadingFooter}>
-                <ActivityIndicator color={colors.primary} size="small" />
+                <ActivityIndicator color={colors.brandDark} size="small" />
               </View>
             ) : null
           }
@@ -1101,7 +1101,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   venueName: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontWeight: "600",
   },
   comment: {
@@ -1115,7 +1115,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   starFilled: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 14,
     marginRight: 1,
   },
@@ -1144,7 +1144,7 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   followText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -1200,7 +1200,7 @@ const styles = StyleSheet.create({
   },
   notifTime: {
     fontSize: 12,
-    color: colors.textMutedLight,
+    color: colors.textMuted,
   },
   notifBody: {
     marginTop: 2,
@@ -1216,7 +1216,7 @@ const styles = StyleSheet.create({
   notifMarkAll: {
     fontSize: 13,
     fontWeight: "600",
-    color: colors.primary,
+    color: colors.brandDark,
   },
   friendSearchWrap: {
     flexDirection: "row",
@@ -1279,7 +1279,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   acceptText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -1428,7 +1428,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   inviteLinkText: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 14,
     fontWeight: "600",
   },
@@ -1514,7 +1514,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   eventsEntryChevron: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 22,
     fontWeight: "300",
     marginLeft: spacing.sm,

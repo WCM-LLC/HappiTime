@@ -130,7 +130,7 @@ export const SharedItineraryScreen: React.FC<Props> = ({ route, navigation }) =>
   if (status === "loading") {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={colors.primary} />
+        <ActivityIndicator color={colors.brandDark} />
       </View>
     );
   }
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   kicker: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     alignItems: "center",
   },
-  saveButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
+  saveButtonText: { color: colors.onPrimary, fontSize: 15, fontWeight: "700" },
   mapButton: {
     borderRadius: 14,
     borderWidth: 1,
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  badgeText: { color: "#FFFFFF", fontWeight: "700", fontSize: 14 },
+  badgeText: { color: colors.onPrimary, fontWeight: "700", fontSize: 14 },
   cardBody: { flex: 1, minWidth: 0 },
   venueName: { color: colors.text, fontSize: 16, fontWeight: "600" },
   venueMeta: { color: colors.textMuted, fontSize: 13, marginTop: 2 },

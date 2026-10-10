@@ -768,7 +768,7 @@ export const MapScreen: React.FC = () => {
               key={window.id}
               identifier={window.id}
               coordinate={coordinate}
-              pinColor={active ? colors.primary : colors.textMutedLight}
+              pinColor={active ? colors.primary : colors.textMuted}
               onPress={(event) => {
                 event.stopPropagation();
                 handleMarkerPress(window);
@@ -820,7 +820,7 @@ export const MapScreen: React.FC = () => {
                   index < suggestions.length - 1 && styles.suggestionBorder,
                 ]}
               >
-                <IconSymbol name="magnifyingglass" size={12} color={colors.textMutedLight} />
+                <IconSymbol name="magnifyingglass" size={12} color={colors.textMuted} />
                 <Text style={styles.suggestionText} numberOfLines={1}>
                   {item.name}
                 </Text>
@@ -880,7 +880,7 @@ export const MapScreen: React.FC = () => {
               {itineraryShareToken ? (
                 <Pressable accessibilityRole="button" onPress={handleSaveSharedFromMap} hitSlop={8} disabled={savingSharedItinerary}>
                   {savingSharedItinerary ? (
-                    <ActivityIndicator color={colors.primary} size="small" />
+                    <ActivityIndicator color={colors.brandDark} size="small" />
                   ) : (
                     <Text style={styles.itineraryBannerSave}>Save</Text>
                   )}
@@ -1011,7 +1011,7 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
           <View style={styles.miniCardMetaRow}>
             {rating != null && (
               <View style={styles.miniCardRating}>
-                <IconSymbol name="star.fill" size={11} color={colors.primary} />
+                <IconSymbol name="star.fill" size={11} color={colors.brandDark} />
                 <Text style={styles.miniCardRatingText}>{rating.toFixed(1)}</Text>
               </View>
             )}
@@ -1035,7 +1035,7 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
                   onPress={(e) => { e.stopPropagation(); Linking.openURL(`tel:${venue.phone}`).catch(() => {}); }}
                   style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
                 >
-                  <IconSymbol name="phone" size={13} color={colors.primary} />
+                  <IconSymbol name="phone" size={13} color={colors.brandDark} />
                 </Pressable>
               )}
               {venue?.website && (
@@ -1046,7 +1046,7 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
                   onPress={(e) => { e.stopPropagation(); Linking.openURL(venue.website).catch(() => {}); }}
                   style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
                 >
-                  <IconSymbol name="globe" size={13} color={colors.primary} />
+                  <IconSymbol name="globe" size={13} color={colors.brandDark} />
                 </Pressable>
               )}
               {venue?.facebook_url && (
@@ -1057,7 +1057,7 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
                   onPress={(e) => { e.stopPropagation(); Linking.openURL(venue.facebook_url).catch(() => {}); }}
                   style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
                 >
-                  <SocialIcon platform="facebook" size={13} color={colors.primary} />
+                  <SocialIcon platform="facebook" size={13} color={colors.brandDark} />
                 </Pressable>
               )}
               {venue?.instagram_url && (
@@ -1068,7 +1068,7 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
                   onPress={(e) => { e.stopPropagation(); Linking.openURL(venue.instagram_url).catch(() => {}); }}
                   style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
                 >
-                  <SocialIcon platform="instagram" size={13} color={colors.primary} />
+                  <SocialIcon platform="instagram" size={13} color={colors.brandDark} />
                 </Pressable>
               )}
               {venue?.tiktok_url && (
@@ -1079,7 +1079,7 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
                   onPress={(e) => { e.stopPropagation(); Linking.openURL(venue.tiktok_url).catch(() => {}); }}
                   style={({ pressed }) => [styles.miniCardLinkBtn, pressed && { opacity: 0.6 }]}
                 >
-                  <SocialIcon platform="tiktok" size={13} color={colors.primary} />
+                  <SocialIcon platform="tiktok" size={13} color={colors.brandDark} />
                 </Pressable>
               )}
             </View>
@@ -1088,7 +1088,7 @@ const MiniVenueCard: React.FC<MiniVenueCardProps> = ({
 
         {/* Right arrow */}
         <View style={styles.miniCardArrow}>
-          <IconSymbol name="chevron.right" size={14} color={colors.textMutedLight} />
+          <IconSymbol name="chevron.right" size={14} color={colors.textMuted} />
         </View>
       </View>
 
@@ -1245,12 +1245,12 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   itineraryBannerSave: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 12,
     fontWeight: "800",
   },
   itineraryBannerClear: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 12,
     fontWeight: "800",
   },
@@ -1384,7 +1384,7 @@ const styles = StyleSheet.create({
   miniCardTimeText: {
     fontSize: 12,
     fontWeight: "500",
-    color: colors.primary,
+    color: colors.brandDark,
   },
   miniCardLinkRow: {
     flexDirection: "row",

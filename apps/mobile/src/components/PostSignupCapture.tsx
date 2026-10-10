@@ -130,7 +130,7 @@ export function PostSignupCapture({ session, onComplete }: PostSignupCaptureProp
         contentContainerStyle={styles.content}
       >
         <View style={styles.iconCircle}>
-          <IconSymbol name="at" size={30} color={colors.primary} />
+          <IconSymbol name="at" size={30} color={colors.brandDark} />
         </View>
         <Text style={styles.title}>Claim your handle</Text>
         <Text style={styles.body}>

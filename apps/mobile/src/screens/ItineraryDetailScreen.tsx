@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   },
   count: {
     fontSize: 13,
-    color: colors.textMutedLight,
+    color: colors.textMuted,
     marginTop: spacing.xs,
   },
   description: {
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   mapButtonText: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: colors.onPrimary,
   },
   stateWrap: {
     paddingHorizontal: spacing.xl,
@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
   chevron: {
     fontSize: 22,
-    color: colors.textMutedLight,
+    color: colors.textMuted,
     marginLeft: spacing.sm,
   },
   pressed: {

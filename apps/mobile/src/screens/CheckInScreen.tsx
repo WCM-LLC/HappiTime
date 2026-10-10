@@ -219,7 +219,7 @@ export const CheckInScreen: React.FC<Props> = ({ route, navigation }) => {
         autoCorrect={false}
         keyboardType="default"
         placeholder="CODE"
-        placeholderTextColor={colors.inputPlaceholder}
+        placeholderTextColor={colors.textMuted}
         editable={!isLoading}
         onSubmitEditing={canSubmit ? handleSubmit : undefined}
         returnKeyType="done"
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
-    color: colors.surface,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: "700",
   },
@@ -446,7 +446,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   fallbackLinkText: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   firstVisitBadgeText: {
-    color: colors.success,
+    color: colors.successInk,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   stampCount: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 40,
     fontWeight: "900",
     letterSpacing: -1,
@@ -516,7 +516,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   liveClock: {
-    color: colors.textMutedLight,
+    color: colors.textMuted,
     fontSize: 26,
     fontWeight: "300",
     letterSpacing: 2,
@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   liveClockLabel: {
-    color: colors.textMutedLight,
+    color: colors.textMuted,
     fontSize: 11,
     marginBottom: spacing.xl,
     textAlign: "center",
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
   },
   redeemButtonText: {
-    color: colors.surface,
+    color: colors.onPrimary,
     fontSize: 16,
     fontWeight: "700",
   },

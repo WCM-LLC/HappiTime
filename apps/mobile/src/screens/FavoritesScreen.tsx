@@ -896,7 +896,7 @@ const EditListModal: React.FC<EditListModalProps> = ({
                   value={friendQuery}
                   onChangeText={setFriendQuery}
                   placeholder="Search by @handle"
-                  placeholderTextColor={colors.textMutedLight}
+                  placeholderTextColor={colors.textMuted}
                   autoCapitalize="none"
                   autoCorrect={false}
                   style={editStyles.friendSearchInput}
@@ -1172,7 +1172,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   newListButtonText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 22,
     fontWeight: "600",
     lineHeight: 24,
@@ -1303,7 +1303,7 @@ const editStyles = StyleSheet.create({
     opacity: 0.45,
   },
   saveButtonText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.3,
@@ -1313,7 +1313,7 @@ const editStyles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   deleteButtonText: {
-    color: colors.error ?? "#ef4444",
+    color: colors.error,
     fontSize: 14,
     fontWeight: "500",
   },
@@ -1459,7 +1459,7 @@ const editStyles = StyleSheet.create({
     borderColor: colors.border,
   },
   friendShareBtnText: {
-    color: colors.pillActiveText,
+    color: colors.onPrimary,
     fontSize: 13,
     fontWeight: "600",
   },

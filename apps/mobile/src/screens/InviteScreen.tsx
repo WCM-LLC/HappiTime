@@ -103,7 +103,7 @@ export const InviteScreen: React.FC = () => {
                 setFollowRequested(false);
               }}
               placeholder="their_handle"
-              placeholderTextColor={colors.textMutedLight}
+              placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
               autoCorrect={false}
               returnKeyType="search"
@@ -182,7 +182,7 @@ export const InviteScreen: React.FC = () => {
               value={emailInput}
               onChangeText={setEmailInput}
               placeholder="friend@example.com"
-              placeholderTextColor={colors.textMutedLight}
+              placeholderTextColor={colors.textMuted}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   searchButtonText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: "700",
   },
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   followText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 13,
     fontWeight: "700",
   },
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   errorText: {
-    color: colors.error ?? "#D33",
+    color: colors.error,
     fontSize: 13,
     marginBottom: spacing.sm,
   },
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   sendButtonText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: "700",
   },
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   emailOnlyText: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 14,
     fontWeight: "600",
   },

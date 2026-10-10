@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, ActivityIndicator, StyleSheet } from "react-native";
+import { colors } from "../theme/colors";
 
 type Props = {
   message?: string;
@@ -22,7 +23,7 @@ const styles = StyleSheet.create({
   },
   message: {
     marginTop: 12,
-    color: "#6b7280",
+    color: colors.textMuted,
   },
 });
 

@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 40,
     fontWeight: "700",
-    color: colors.primary,
+    color: colors.brandDark,
     marginBottom: spacing.xl,
     textAlign: "center",
     alignSelf: "center"
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     width: "100%"
   },
   linkText: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontWeight: "500"
   }
 });

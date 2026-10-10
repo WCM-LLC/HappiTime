@@ -219,7 +219,7 @@ export const ListingFreshness: React.FC<Props> = ({ venueId }) => {
                 <TextInput
                   style={styles.noteInput}
                   placeholder="Anything else? (optional)"
-                  placeholderTextColor={colors.textMutedLight}
+                  placeholderTextColor={colors.textMuted}
                   value={note}
                   onChangeText={setNote}
                   multiline
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
   },
   freshBadgeText: {
-    color: colors.success,
+    color: colors.successInk,
     fontSize: 11,
     fontWeight: "700",
   },
@@ -349,7 +349,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   submitBtnText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 15,
     fontWeight: "700",
   },

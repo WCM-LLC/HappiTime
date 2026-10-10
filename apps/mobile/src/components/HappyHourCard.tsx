@@ -200,7 +200,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
             <View style={styles.metaLeft}>
               {rating != null && (
                 <View style={styles.metaItem}>
-                  <IconSymbol name="star.fill" size={13} color={colors.primary} />
+                  <IconSymbol name="star.fill" size={13} color={colors.brandDark} />
                   <Text style={styles.metaText}>{rating.toFixed(1)}</Text>
                 </View>
               )}
@@ -268,7 +268,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
         <View style={styles.footerRow}>
           {lastConfirmedText ? (
             <View style={styles.verifiedBadge}>
-              <IconSymbol name="checkmark.seal.fill" size={12} color={colors.success} />
+              <IconSymbol name="checkmark.seal.fill" size={12} color={colors.successInk} />
               <Text style={styles.verifiedText}>
                 Verified {lastConfirmedText}
               </Text>
@@ -290,7 +290,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
               style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
               onPress={() => Linking.openURL(`tel:${venueSocial.phone}`).catch(() => {})}
             >
-              <IconSymbol name="phone" size={16} color={colors.primary} />
+              <IconSymbol name="phone" size={16} color={colors.brandDark} />
             </Pressable>
           )}
           {venueSocial?.website && (
@@ -300,7 +300,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
               style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
               onPress={() => Linking.openURL(venueSocial.website).catch(() => {})}
             >
-              <IconSymbol name="globe" size={16} color={colors.primary} />
+              <IconSymbol name="globe" size={16} color={colors.brandDark} />
             </Pressable>
           )}
           {venueSocial?.facebook_url && (
@@ -310,7 +310,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
               style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
               onPress={() => Linking.openURL(venueSocial.facebook_url).catch(() => {})}
             >
-              <SocialIcon platform="facebook" size={16} color={colors.primary} />
+              <SocialIcon platform="facebook" size={16} color={colors.brandDark} />
             </Pressable>
           )}
           {venueSocial?.instagram_url && (
@@ -320,7 +320,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
               style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
               onPress={() => Linking.openURL(venueSocial.instagram_url).catch(() => {})}
             >
-              <SocialIcon platform="instagram" size={16} color={colors.primary} />
+              <SocialIcon platform="instagram" size={16} color={colors.brandDark} />
             </Pressable>
           )}
           {venueSocial?.tiktok_url && (
@@ -330,7 +330,7 @@ export const HappyHourCard: React.FC<HappyHourCardProps> = ({
               style={({ pressed }) => [styles.socialButton, pressed && styles.socialButtonPressed]}
               onPress={() => Linking.openURL(venueSocial.tiktok_url).catch(() => {})}
             >
-              <SocialIcon platform="tiktok" size={16} color={colors.primary} />
+              <SocialIcon platform="tiktok" size={16} color={colors.brandDark} />
             </Pressable>
           )}
         </View>
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   heroPlaceholderText: {
     fontSize: 48,
     fontWeight: "800",
-    color: colors.primary,
+    color: colors.brandDark,
     opacity: 0.3,
   },
   heroScroll: {
@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs
   },
   address: {
-    color: colors.textMutedLight,
+    color: colors.textMuted,
     fontSize: 13
   },
   rightHeader: {
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   labelText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 11,
     fontWeight: "700",
     letterSpacing: 0.3,
@@ -513,12 +513,12 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   verifiedText: {
-    color: colors.success,
+    color: colors.successInk,
     fontSize: 12,
     fontWeight: "500",
   },
   verifiedTextMuted: {
-    color: colors.textMutedLight,
+    color: colors.textMuted,
     fontSize: 12
   },
   socialRow: {

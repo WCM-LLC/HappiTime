@@ -379,7 +379,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
               <IconSymbol
                 name={saved ? "heart.fill" : "heart"}
                 size={24}
-                color={saved ? colors.primary : colors.textMutedLight}
+                color={saved ? colors.primary : colors.textMuted}
               />
             </Pressable>
           </View>
@@ -590,7 +590,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
                 style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={callVenue}
               >
-                <IconSymbol name="phone" size={20} color={colors.primary} />
+                <IconSymbol name="phone" size={20} color={colors.brandDark} />
               </Pressable>
             )}
             {venue.website && (
@@ -600,7 +600,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
                 style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={openWebsite}
               >
-                <IconSymbol name="globe" size={20} color={colors.primary} />
+                <IconSymbol name="globe" size={20} color={colors.brandDark} />
               </Pressable>
             )}
             {(venue as any).facebook_url && (
@@ -610,7 +610,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
                 style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={openFacebook}
               >
-                <SocialIcon platform="facebook" size={20} color={colors.primary} />
+                <SocialIcon platform="facebook" size={20} color={colors.brandDark} />
               </Pressable>
             )}
             {(venue as any).instagram_url && (
@@ -620,7 +620,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
                 style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={openInstagram}
               >
-                <SocialIcon platform="instagram" size={20} color={colors.primary} />
+                <SocialIcon platform="instagram" size={20} color={colors.brandDark} />
               </Pressable>
             )}
             {(venue as any).tiktok_url && (
@@ -630,7 +630,7 @@ export const HappyHourDetailScreen: React.FC<Props> = ({
                 style={({ pressed }) => [styles.actionIconBtn, pressed && styles.actionButtonPressed]}
                 onPress={openTikTok}
               >
-                <SocialIcon platform="tiktok" size={20} color={colors.primary} />
+                <SocialIcon platform="tiktok" size={20} color={colors.brandDark} />
               </Pressable>
             )}
           </View>
@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   heroPlaceholderInitial: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 56,
     fontWeight: "900",
     opacity: 0.22,
@@ -739,7 +739,7 @@ const styles = StyleSheet.create({
     transform: [{ scale: 0.98 }],
   },
   heroButtonText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.3,
@@ -816,7 +816,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   address: {
-    color: colors.textMutedLight,
+    color: colors.textMuted,
     fontSize: 13,
     marginTop: 2,
   },
@@ -844,7 +844,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.successLight,
   },
   tagPillActiveText: {
-    color: colors.success,
+    color: colors.successInk,
     fontSize: 12,
     fontWeight: "600",
   },

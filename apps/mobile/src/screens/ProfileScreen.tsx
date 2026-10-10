@@ -801,12 +801,12 @@ const styles = StyleSheet.create({
     borderColor: colors.surface,
   },
   avatarEditIcon: {
-    color: colors.surface,
+    color: colors.onPrimary,
     fontSize: 10,
     lineHeight: 12,
   },
   avatarText: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 24,
     fontWeight: "800",
   },
@@ -907,7 +907,7 @@ const styles = StyleSheet.create({
     opacity: 0.6
   },
   primaryButtonText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.3,
@@ -918,7 +918,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   statusSuccess: {
-    color: "#16a34a",
+    color: colors.successInk,
   },
   statusError: {
     color: colors.error,
@@ -1006,7 +1006,7 @@ const styles = StyleSheet.create({
     flex: 1
   },
   statValue: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 22,
     fontWeight: "800",
     letterSpacing: -0.3,
@@ -1043,7 +1043,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm
   },
   scanCheckFailedText: {
-    color: colors.warning,
+    color: colors.warningInk,
     fontSize: 13
   },
   modalHint: {

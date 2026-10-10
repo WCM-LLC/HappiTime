@@ -37,7 +37,7 @@ import { useCurrentUser } from "../hooks/useCurrentUser";
 import { peekGuestSelections } from "../lib/guestSelections";
 import { vibesToTagSlugs } from "../lib/vibeTagMap";
 import { IconSymbol } from "../../components/ui/icon-symbol";
-import { colors } from "../theme/colors";
+import { colors, tierColors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import { distanceMiles } from "../utils/location";
 import { nativeMapViewProps } from "../utils/mapViewProps";
@@ -531,12 +531,12 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
 
           <View style={styles.queryRow}>
-            <IconSymbol name="magnifyingglass" size={14} color={colors.textMutedLight} style={styles.searchInputIcon} />
+            <IconSymbol name="magnifyingglass" size={14} color={colors.textMuted} style={styles.searchInputIcon} />
             <TextInput
               value={query}
               onChangeText={setQuery}
               placeholder="Search bars & restaurants"
-              placeholderTextColor={colors.textMutedLight}
+              placeholderTextColor={colors.textMuted}
               style={styles.searchInput}
               autoCapitalize="none"
             />
@@ -559,7 +559,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   {cityLabel}
                 </Text>
               </View>
-              <IconSymbol name="chevron.down" size={18} color={colors.primary} />
+              <IconSymbol name="chevron.down" size={18} color={colors.brandDark} />
             </Pressable>
             <SearchableOptionSheet
               label="Price"
@@ -678,7 +678,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                   pressed && { opacity: 0.7 },
                 ]}
               >
-                <IconSymbol name="location.fill" size={16} color={colors.primary} />
+                <IconSymbol name="location.fill" size={16} color={colors.brandDark} />
               </Pressable>
             )}
             {/* Maximize / expand map button */}
@@ -691,7 +691,7 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
                 pressed && { opacity: 0.7 },
               ]}
             >
-              <IconSymbol name="arrow.up.left.and.arrow.down.right" size={14} color={colors.primary} />
+              <IconSymbol name="arrow.up.left.and.arrow.down.right" size={14} color={colors.brandDark} />
             </Pressable>
           </View>
         </View>
@@ -882,10 +882,11 @@ const VenueCard: React.FC<VenueCardProps> = ({
       style={[
         styles.card,
         { width },
-        isPromoted && (
-          promoVariant === "featured" ? styles.cardPromoFeatured
-          : styles.cardPromoVerified
-        ),
+        isPromoted && {
+          borderColor: tierColors[promoVariant].border,
+          borderWidth: 1.5,
+          backgroundColor: tierColors[promoVariant].bg,
+        },
       ]}
     >
       <View style={styles.cardHero}>
@@ -929,10 +930,16 @@ const VenueCard: React.FC<VenueCardProps> = ({
         {isPromoted && (
           <View style={[
             styles.cardPromoBadge,
-            promoVariant === "featured" ? styles.cardPromoBadgeFeatured
-            : styles.cardPromoBadgeVerified
+            { backgroundColor: tierColors[promoVariant].badge },
           ]}>
-            <Text style={styles.cardPromoBadgeText}>{promoLabel[promoVariant]}</Text>
+            <Text
+              style={[
+                styles.cardPromoBadgeText,
+                { color: tierColors[promoVariant].badgeText },
+              ]}
+            >
+              {promoLabel[promoVariant]}
+            </Text>
           </View>
         )}
         {priceTier && (
@@ -1010,7 +1017,7 @@ const VenueCard: React.FC<VenueCardProps> = ({
             <IconSymbol
               name={isFavorite ? "heart.fill" : "heart"}
               size={22}
-              color={isFavorite ? colors.primary : colors.textMutedLight}
+              color={isFavorite ? colors.primary : colors.textMuted}
             />
           </Pressable>
         </View>
@@ -1218,17 +1225,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  cardPromoFeatured: {
-    borderColor: colors.promoFeaturedBorder,
-    borderWidth: 1.5,
-    backgroundColor: colors.promoFeaturedBg,
-  },
-  // Verified reuses the blue secondary-promo palette.
-  cardPromoVerified: {
-    borderColor: colors.promoBasicBorder,
-    borderWidth: 1.5,
-    backgroundColor: colors.promoBasicBg,
-  },
+  // The per-tier card tint, border and badge colours come from `tierColors` at
+  // the call site, not from four StyleSheet entries here. One map, one place to
+  // read the tier-to-hue mapping, and adding a tier needs no new styles.
   cardPromoBadge: {
     position: "absolute",
     top: spacing.sm,
@@ -1237,14 +1236,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm + 2,
     paddingVertical: 3,
   },
-  cardPromoBadgeFeatured: {
-    backgroundColor: colors.promoFeaturedBadge,
-  },
-  cardPromoBadgeVerified: {
-    backgroundColor: colors.promoBasicBadge,
-  },
   cardPromoBadgeText: {
-    color: "#FFFFFF",
     fontSize: 10,
     fontWeight: "800",
     letterSpacing: 0.5,
@@ -1271,7 +1263,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   cardHeroPlaceholderInitial: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 42,
     fontWeight: "900",
     opacity: 0.25,
@@ -1458,7 +1450,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   modalButtonPrimaryText: {
-    color: "#FFFFFF",
+    color: colors.onPrimary,
     fontSize: 14,
     fontWeight: "700"
   },
@@ -1489,7 +1481,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   eventsEntryChevron: {
-    color: colors.primary,
+    color: colors.brandDark,
     fontSize: 22,
     fontWeight: "300",
     marginLeft: spacing.sm,

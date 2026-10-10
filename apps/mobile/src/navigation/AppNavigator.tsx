@@ -78,7 +78,7 @@ function AppTabs({ initialRouteName }: { initialRouteName?: keyof MainTabParamLi
           shadowRadius: 8,
           elevation: 8,
         },
-        tabBarActiveTintColor: colors.primary,
+        tabBarActiveTintColor: colors.tabBarActiveTint,
         tabBarInactiveTintColor: colors.tabBarInactiveTint,
         tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => {
           let name:

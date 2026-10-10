@@ -5,6 +5,7 @@ import * as Notifications from "expo-notifications";
 import { useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { supabase } from "../api/supabaseClient";
+import { colors } from "../theme/colors";
 
 type PushNotificationState = {
   expoPushToken: string | null;
@@ -28,7 +29,10 @@ const ensureAndroidChannel = async () => {
     name: "default",
     importance: Notifications.AndroidImportance.DEFAULT,
     vibrationPattern: [0, 250, 250, 250],
-    lightColor: "#FF231F7C"
+    // #FF231F7C — the Expo template's purple — shipped as this app's
+    // notification accent on Android. ARGB here, not RGB, so it is the brand
+    // copper at full alpha. Matches `notification.color` in app.json.
+    lightColor: `#FF${colors.primary.slice(1)}`
   });
 };
 
