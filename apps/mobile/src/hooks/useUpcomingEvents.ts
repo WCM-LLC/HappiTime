@@ -42,22 +42,41 @@ export function useUpcomingEvents(limit = 40) {
   const load = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
     try {
-      const { data, error } = await (supabase as any)
-        .from("venue_events")
-        .select(
-          "id, venue_id, title, description, event_type, starts_at, ends_at, timezone, is_recurring, recurrence_rule, price_info, external_url, ticket_url, venues(name, address, neighborhood, city, promotion_tier)"
-        )
-        .eq("status", "published")
-        .or(`starts_at.gte.${new Date().toISOString()},is_recurring.eq.true`)
-        .order("starts_at", { ascending: true })
-        .limit(limit);
-
-      if (error) throw error;
+      // 2026-10-09: one-off and recurring events are fetched separately.
+      // starts_at on a recurring row is the date the series was ENTERED, so a
+      // single query ordered by starts_at with a limit returned the oldest
+      // recurring series first and never reached a one-off event: with ~144
+      // published series the Events tab showed zero one-offs. The limit now
+      // applies to one-offs only; recurring series are fetched in full and
+      // expanded per day by the calendar screen as before.
+      const COLUMNS =
+        "id, venue_id, title, description, event_type, starts_at, ends_at, timezone, is_recurring, recurrence_rule, price_info, external_url, ticket_url, venues(name, address, neighborhood, city, promotion_tier)";
+      const nowIso = new Date().toISOString();
+      const [oneOffRes, recurringRes] = await Promise.all([
+        (supabase as any)
+          .from("venue_events")
+          .select(COLUMNS)
+          .eq("status", "published")
+          .eq("is_recurring", false)
+          .gte("starts_at", nowIso)
+          .order("starts_at", { ascending: true })
+          .limit(limit),
+        (supabase as any)
+          .from("venue_events")
+          .select(COLUMNS)
+          .eq("status", "published")
+          .eq("is_recurring", true)
+          .order("starts_at", { ascending: true })
+          .limit(500),
+      ]);
+      if (oneOffRes.error) throw oneOffRes.error;
+      if (recurringRes.error) throw recurringRes.error;
+      const data = [...(oneOffRes.data ?? []), ...(recurringRes.data ?? [])];
 
       // Override each event venue's promotion_tier with the effective tier
       // (folds in the active org-bundle override). Keyed by event.venue_id since
       // the nested venues embed carries no id. Fail-open: empty map → raw tier.
-      const events = (data ?? []) as UpcomingEvent[];
+      const events = data as UpcomingEvent[];
       const tierMap = await fetchEffectiveTiers(events.map((e) => e.venue_id));
       const eventsWithTiers =
         tierMap.size === 0
