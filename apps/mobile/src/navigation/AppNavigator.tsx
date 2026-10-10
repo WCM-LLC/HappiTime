@@ -4,7 +4,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import React, { useRef } from "react";
 import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { IconSymbol } from "../../components/ui/icon-symbol";
+import { TabBarIcon } from "../../components/ui/tab-bar-icon";
 import { useNotificationNavigation } from "../hooks/useNotificationNavigation";
 import { useVenueDeepLink } from "../hooks/useVenueDeepLink";
 import { useItineraryDeepLink } from "../hooks/useItineraryDeepLink";
@@ -80,30 +80,13 @@ function AppTabs({ initialRouteName }: { initialRouteName?: keyof MainTabParamLi
         },
         tabBarActiveTintColor: colors.tabBarActiveTint,
         tabBarInactiveTintColor: colors.tabBarInactiveTint,
-        tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => {
-          let name:
-            | "house.fill"
-            | "star.fill"
-            | "map.fill"
-            | "bell.fill"
-            | "person.crop.circle.fill" = "house.fill";
-          const size = 22;
-
-          if (route.name === "Home") name = "house.fill";
-          if (route.name === "Map") name = "map.fill";
-          if (route.name === "Favorites") name = "star.fill";
-          if (route.name === "Activity") name = "bell.fill";
-          if (route.name === "Profile") name = "person.crop.circle.fill";
-
-          return (
-            <IconSymbol
-              name={name}
-              size={size}
-              color={color}
-              weight={focused ? "semibold" : "regular"}
-            />
-          );
-        }
+        // Selection is carried by the glyph's fill, not by tint alone. The
+        // previous version rendered a .fill glyph in both states and leaned on
+        // `weight`, which IconSymbol silently discarded — so the only
+        // difference between selected and unselected was colour.
+        tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+          <TabBarIcon route={route.name} focused={focused} color={color} />
+        )
       })}
     >
       <Tab.Screen name="Map" component={MapScreen} />

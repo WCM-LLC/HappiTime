@@ -390,12 +390,19 @@ the app, which is why both tints have to clear the text floor rather than the ic
 carries an unread badge capped at "99+", and its accessible name states the count ("Activity, 3
 unread") because the badge otherwise announces a bare number. Height is `56 + safe-area inset`.
 
-**Open: selection is signalled by tint alone.** `tabBarIcon` passes
-`weight={focused ? "semibold" : "regular"}`, but `components/ui/icon-symbol.tsx` accepts `weight`
-and discards it, and every tab uses a `.fill` glyph in both states. So the only difference between
-selected and unselected is colour. The fix is a filled/outlined glyph pair per tab, which
-MaterialIcons does not supply for all five (no `home-outline`, no `map-outline`), so it needs
-either a second icon family or the `expo-symbols` move below.
+**Selection is a filled glyph; the other four are outlined.** The pairs live in
+`components/ui/tab-bar-icon.tsx`, keyed by route name so a new tab without a pair is a type error.
+Tint alone is not enough — it was, until 2026-10-09: every tab drew a `.fill` glyph in both states
+and leaned on `weight={focused ? "semibold" : "regular"}`, which `icon-symbol.tsx` accepted and
+discarded. MaterialIcons is single-weight, so that prop never could have worked, and the prop has
+been removed rather than left as a lie.
+
+The tab bar is the one place that draws from **MaterialCommunityIcons** rather than MaterialIcons,
+because MaterialIcons has no outlined `home` and no outlined `map` — it has `star-outline`,
+`notifications-none` and `person-outline`, three of the five, which is the sort of near-miss that
+invites a half-finished job. The second family costs nothing: `components/ui/SocialIcon.tsx`
+already imports it, so the font ships either way. Everything outside the tab bar stays on
+`IconSymbol`/MaterialIcons.
 
 ### Venue card
 The product's signature component. Paper on Bone, 14px radius, 12px internal padding, photography

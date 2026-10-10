@@ -83,7 +83,6 @@ function AppTabs() {
               name={name}
               size={size}
               color={color}
-              weight={focused ? "semibold" : "regular"}
             />
           );
         }
