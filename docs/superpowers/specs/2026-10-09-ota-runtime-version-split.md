@@ -55,9 +55,35 @@ So the Android workspace does bake `1.0.2` as its runtime version, against the s
 update URL. That is the mechanism, confirmed locally.
 
 (The stale `apps/mobile/ios/` tree on this machine reports `EXUpdatesRuntimeVersion 1.0.2`
-and `CFBundleShortVersionString 1.0.3` — three different numbers across one checkout.
-Being gitignored, it proves nothing about production; it is noted only so the next person
-does not mistake it for a fourth data point.)
+and `CFBundleShortVersionString 1.0.3`. Being gitignored, it proves nothing about
+production; it is noted only so the next person does not mistake it for more data.)
+
+### The version story has drifted in the prose too
+
+| Source | Version it states |
+|---|---|
+| `apps/mobile/app.json` | `1.0.8` |
+| `apps/android/app.json` | `1.0.2` |
+| `apps/mobile/README.md:49` | "currently `1.0.3`" |
+| `docs/ota-runbook.md:12` | "`1.0.6`/`1.0.7` remain OTA-off forever" |
+
+The runbook line is the useful one. It says OTA is re-enabled "starting with the **next
+store build**", with 1.0.6 and 1.0.7 permanently excluded — which places the OTA-capable
+era at 1.0.8 and later. `apps/android`'s **1.0.2 predates even the OTA-off builds.**
+
+That points at one of two explanations, and they call for different fixes:
+
+1. **`apps/android/app.json`'s version is simply unmaintained** — Android store builds are
+   in fact produced from `apps/mobile`, and this file's version has sat untouched while
+   the real one moved. Then the fix is to converge or remove the stale declaration.
+2. **Android really does ship from `apps/android`** — in which case the Android app is on
+   a runtime version from before the OTA work, and the `channel`/`environment` gaps below
+   mean it was never wired for updates at all.
+
+`CLAUDE.md` says `apps/android` "owns … the EAS build profiles", which favours (2). The
+`apps/mobile/README.md` figure being stale too suggests nobody has reconciled these
+numbers in a while, which favours (1). This document does not pick between them, because
+`eas build:list` answers it in one command and guessing does not.
 
 ## A second gap, same area
 
