@@ -38,6 +38,13 @@ test("itinerary with listId → ItineraryDetail", () => {
 test("event with venueId → VenueEvents (lands on the venue's events page)", () => {
   assert.deepEqual(
     resolveNotificationTarget({ type: "event", venueId: "v1", eventId: "e1" }),
+    { screen: "VenueEvents", params: { venueId: "v1", eventId: "e1" } }
+  );
+});
+
+test("event with venueId but no eventId → VenueEvents without eventId", () => {
+  assert.deepEqual(
+    resolveNotificationTarget({ type: "event", venueId: "v1" }),
     { screen: "VenueEvents", params: { venueId: "v1" } }
   );
 });
