@@ -105,16 +105,18 @@ test("useVisitRating handles cold-start taps", () => {
   assert.match(source, /getLastNotificationResponseAsync/);
 });
 
-test("a push TAP lands on the Notifications inbox (friend keeps the Friends segment)", () => {
-  // 2026-09-14: the push body only exists in the OS banner and the inbox.
-  // Deep-linking straight to VenuePreview left the user on a venue with no
-  // context and the inbox row unread. Row taps still deep-link.
+test("a push TAP deep-links straight to the resolved target and marks the inbox row read", () => {
+  // 2026-10-09 owner decision (supersedes 2026-09-14): now that VenueEvents
+  // names the venue and pins the event, the push tap goes where the inbox
+  // row's tap goes. The inbox row is marked read via data.notificationId,
+  // which notify.ts stamps per recipient.
   const source = readFileSync(
     join(__dirname, "..", "hooks", "useNotificationNavigation.ts"),
     "utf8"
   );
   assert.match(source, /function pushTapTarget/);
-  assert.match(source, /segment:\s*"notifications"/, "non-friend push taps must open the inbox segment");
-  assert.match(source, /data\?\.type === "friend"\) return resolved/, "friend keeps the 2026-08-04 owner routing");
-  assert.match(source, /nav\.navigate\(target\.screen/, "must navigate to the push-tap target, not the resolved deep link");
+  assert.doesNotMatch(source, /segment:\s*"notifications"/, "push taps must not detour through the inbox");
+  assert.match(source, /return resolved;/, "push tap target is the resolved deep link");
+  assert.match(source, /notificationId/, "must read notificationId to mark the inbox row read");
+  assert.match(source, /nav\.navigate\(target\.screen/, "must navigate to the push-tap target");
 });
