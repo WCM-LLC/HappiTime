@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
 import { fetchEffectiveTiers } from "../lib/effectiveTier";
+import { isEventLive } from "../lib/eventSchedule";
 
 export type UpcomingEvent = {
   id: string;
@@ -71,7 +72,12 @@ export function useUpcomingEvents(limit = 40) {
       ]);
       if (oneOffRes.error) throw oneOffRes.error;
       if (recurringRes.error) throw recurringRes.error;
-      const data = [...(oneOffRes.data ?? []), ...(recurringRes.data ?? [])];
+      // A series past its UNTIL (or its series-end ends_at) is still a
+      // published row; without this it keeps appearing on its weekday forever.
+      const now = new Date();
+      const data = [...(oneOffRes.data ?? []), ...(recurringRes.data ?? [])].filter((e) =>
+        isEventLive(e, now)
+      );
 
       // Override each event venue's promotion_tier with the effective tier
       // (folds in the active org-bundle override). Keyed by event.venue_id since
