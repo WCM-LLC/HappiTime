@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
+import { GuideSchedule } from "@/components/GuideSchedule";
+import { getVenuesByNeighborhood, withMenuItems } from "@/lib/queries";
+import { getNeighborhood } from "@/lib/neighborhoods";
 
 const BASE = "https://happitime.biz";
 const CANONICAL = `${BASE}/guides/westport-happy-hour-guide/`;
@@ -20,6 +24,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: CANONICAL },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "Westport Happy Hour Guide — Best Bars & Deals | HappiTime",
     description:
       "Best bars, cheapest drinks, and daily deals in Westport, Kansas City.",
@@ -66,7 +71,11 @@ const faqData = {
   ],
 };
 
-export default function WestportGuide() {
+// ISR: the schedule section reads published happy hour times.
+export const revalidate = 900;
+
+export default async function WestportGuide() {
+  const venues = await withMenuItems(await getVenuesByNeighborhood(getNeighborhood("westport")!));
   const breadcrumbs = breadcrumbJsonLd([
     { name: "HappiTime", url: `${BASE}/` },
     { name: "Guides", url: `${BASE}/guides/` },
@@ -183,6 +192,14 @@ export default function WestportGuide() {
           <li><strong>6 PM+</strong> — Wind down at a neighborhood favorite with live music and a relaxed vibe.</li>
         </ol>
       </section>
+
+      <GuideSchedule
+        heading="When is happy hour at each Westport bar?"
+        answer="Westport happy hours start in the afternoon, mostly on weekdays. These are the published times for each Westport spot on HappiTime, earliest start first."
+        venues={venues}
+        showSpecials
+        showAddress
+      />
 
       {/* FAQ */}
       <section className="mb-10">

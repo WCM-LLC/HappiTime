@@ -1,6 +1,7 @@
 // src/hooks/useVenueEvents.ts
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
+import { liveEventsSorted } from "../lib/eventSchedule";
 
 export type VenueEventItem = {
   id: string;
@@ -42,6 +43,14 @@ export function useVenueEvents(venueId: string | null) {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
+      // 2026-10-10: the server filter is deliberately loose and the precise
+      // work happens in liveEventsSorted. Ordering by starts_at with a limit
+      // (the old query) returned a venue's oldest recurring series first —
+      // starts_at on a series is its FIRST date, not its next — so Venue
+      // Preview's top three were always old weekly specials and a one-off on
+      // tomorrow never appeared. Same bug class as #238 (Events tab).
+      // The 24h look-back keeps an event that is under way right now.
+      const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data, error } = await (supabase as any)
         .from("venue_events")
         .select(
@@ -49,14 +58,14 @@ export function useVenueEvents(venueId: string | null) {
         )
         .eq("venue_id", venueId)
         .eq("status", "published")
-        .or(`starts_at.gte.${new Date().toISOString()},is_recurring.eq.true`)
-        .order("starts_at", { ascending: true })
-        .limit(20);
+        .or(`starts_at.gte.${cutoff},is_recurring.eq.true`)
+        .limit(200);
 
       if (error) throw error;
 
       setState({
-        data: (data ?? []) as VenueEventItem[],
+        // Drops finished one-offs and ended series; sorts by next occurrence.
+        data: liveEventsSorted((data ?? []) as VenueEventItem[]),
         loading: false,
         error: null,
       });

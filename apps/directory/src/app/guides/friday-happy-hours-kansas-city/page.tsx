@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
+import { GuideSchedule } from "@/components/GuideSchedule";
+import { getAllKCVenues } from "@/lib/queries";
 
 const BASE = "https://happitime.biz";
 const CANONICAL = `${BASE}/guides/friday-happy-hours-kansas-city/`;
 
 export const metadata: Metadata = {
-  title: "Friday Happy Hours in Kansas City — Where to Go This Weekend",
+  title: "Friday Happy Hours in Kansas City",
   description:
     "The best Friday happy hours in Kansas City — early starts, extended deals, and the neighborhoods that do Fridays best. Plan your weekend kickoff with HappiTime.",
   keywords: [
@@ -20,6 +23,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: CANONICAL },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "Friday Happy Hours in Kansas City | HappiTime",
     description:
       "Where to kick off your weekend — the best Friday happy hours across KC.",
@@ -74,7 +78,11 @@ const faqData = {
   ],
 };
 
-export default function FridayHappyHours() {
+// ISR: the schedule section reads published happy hour times.
+export const revalidate = 900;
+
+export default async function FridayHappyHours() {
+  const venues = await getAllKCVenues();
   const breadcrumbs = breadcrumbJsonLd([
     { name: "HappiTime", url: `${BASE}/` },
     { name: "Guides", url: `${BASE}/guides/` },
@@ -207,6 +215,14 @@ export default function FridayHappyHours() {
           <li><strong>Pro tip:</strong> Check <Link href="/kc/" className="text-brand hover:underline">HappiTime</Link> before you leave — some venues have extended Friday hours that the crowd does not know about.</li>
         </ul>
       </section>
+
+      <GuideSchedule
+        heading="Which Kansas City spots run happy hour on Friday?"
+        answer="These Kansas City spots publish a Friday happy hour on HappiTime, listed by start time."
+        venues={venues}
+        day={5}
+        limit={30}
+      />
 
       {/* FAQ */}
       <section className="mb-10">

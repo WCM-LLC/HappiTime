@@ -1,14 +1,22 @@
 import type { Metadata } from "next";
+import { jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy",
+  alternates: { canonical: "/privacy/" },
+  title: "HappiTime Privacy Policy",
   description:
-    "Privacy Policy for HappiTime, the venue management platform for Happy Hour marketing.",
+    "How HappiTime collects, uses and protects information from people looking for Kansas City happy hours and from the venues that list on it.",
 };
 
 export default function PrivacyPage() {
   return (
     <article className="mx-auto max-w-3xl px-6 py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          webPageJsonLd({ name: "HappiTime Privacy Policy", url: "https://happitime.biz/privacy/", description: metadata.description ?? "" }),
+        )}
+      />
       <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">
         Privacy Policy
       </h1>

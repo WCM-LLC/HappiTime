@@ -7,9 +7,11 @@ import {
   getNeighborhoodForLandingPage,
 } from "@/lib/seoNeighborhoods";
 import { getVenuesByNeighborhood, type VenueWithWindows } from "@/lib/queries";
-import { breadcrumbJsonLd, faqPageJsonLd } from "@/lib/structuredData";
+import { breadcrumbJsonLd, faqPageJsonLd, jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
 import { NeighborhoodVenues } from "@/components/NeighborhoodVenues";
 import { PageTracker } from "@/components/PageTracker";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
+import { venuePath } from "@/lib/neighborhoods";
 
 function formatTime(time: string): string {
   const [h, m] = time.split(":").map(Number);
@@ -60,7 +62,8 @@ function buildNeighborhoodFaqs(
   if (topRated.length >= 2) {
     faqs.push({
       question: `What are the best happy hours in ${neighborhoodName}?`,
-      answer: `Top-rated happy hour spots in ${neighborhoodName} on HappiTime include ${topRated
+      // Two short sentences: a lead-in, then the names, so the answer quotes cleanly.
+      answer: `These are the top-rated happy hour spots in ${neighborhoodName} on HappiTime. They are ${topRated
         .map((v) => `${v.name} (★ ${v.rating})`)
         .join(", ")}. Browse all ${venues.length} venues for current drink and food specials.`,
     });
@@ -107,6 +110,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       canonical: page.canonicalPath,
     },
     openGraph: {
+      images: [DEFAULT_OG_IMAGE],
       type: "website",
       title: `${page.h2} | HappiTime`,
       description: page.metaDescription,
@@ -152,13 +156,24 @@ export default async function HappyHourNeighborhoodPage({ params }: Props) {
       "@type": "ListItem",
       position: i + 1,
       name: venue.name,
-      url: `https://happitime.biz/kc/${neighborhood.slug}/${venue.slug}/`,
+      url: `https://happitime.biz${venuePath(venue)}`,
     })),
   };
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
       <PageTracker pagePath={page.canonicalPath} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          webPageJsonLd({
+            type: "CollectionPage",
+            name: page.h2,
+            url: `https://happitime.biz${page.canonicalPath}`,
+            description: page.metaDescription,
+          }),
+        )}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
@@ -199,7 +214,6 @@ export default async function HappyHourNeighborhoodPage({ params }: Props) {
 
       <NeighborhoodVenues
         venues={venues}
-        neighborhoodSlug={neighborhood.slug}
         neighborhoodName={neighborhood.name}
         todayIndex={todayIndex}
       />

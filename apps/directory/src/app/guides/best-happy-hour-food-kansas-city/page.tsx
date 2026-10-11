@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
+import { getAllKCVenues, withMenuItems } from "@/lib/queries";
+import { GuideSchedule } from "@/components/GuideSchedule";
+import { KC_NEIGHBORHOODS, bestNeighborhoodSlug } from "@/lib/neighborhoods";
+import { getHappyHourLandingPageByNeighborhoodSlug } from "@/lib/seoNeighborhoods";
 
 const BASE = "https://happitime.biz";
 const CANONICAL = `${BASE}/guides/best-happy-hour-food-kansas-city/`;
@@ -8,7 +13,7 @@ const CANONICAL = `${BASE}/guides/best-happy-hour-food-kansas-city/`;
 export const metadata: Metadata = {
   title: "Best Happy Hour Food Deals in Kansas City",
   description:
-    "The best happy hour food deals in Kansas City — half-price appetizers, dollar tacos, discounted plates, and more across Westport, Power & Light, the Crossroads, and beyond.",
+    "Kansas City happy hour food deals: half-price appetizers, dollar tacos and discounted plates in Westport, Power & Light, the Crossroads and beyond.",
   keywords: [
     "happy hour food Kansas City",
     "best happy hour appetizers KC",
@@ -20,6 +25,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: CANONICAL },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "Best Happy Hour Food Deals in Kansas City | HappiTime",
     description:
       "Half-price apps, dollar tacos, and discounted plates across every KC neighborhood.",
@@ -66,7 +72,27 @@ const faqData = {
   ],
 };
 
-export default function BestHappyHourFood() {
+// ISR: the neighborhood counts read published happy hours.
+export const revalidate = 900;
+
+export default async function BestHappyHourFood() {
+  const venues = await withMenuItems((await getAllKCVenues()).filter((v) => v.happy_hour_windows.length > 0));
+  // Venues whose happy hour menus list prices, for the "what it costs" section.
+  const pricedVenues = venues.filter((v) =>
+    v.happy_hour_windows.some((w) => w.menu_items.some((i) => i.price != null && i.price > 0)),
+  );
+  const countBySlug = new Map<string, number>();
+  for (const v of venues) {
+    const slug = bestNeighborhoodSlug(v);
+    countBySlug.set(slug, (countBySlug.get(slug) ?? 0) + 1);
+  }
+  const neighborhoodCounts = KC_NEIGHBORHOODS.map((n) => ({
+    n,
+    count: countBySlug.get(n.slug) ?? 0,
+    href: getHappyHourLandingPageByNeighborhoodSlug(n.slug)?.canonicalPath ?? `/kc/${n.slug}/`,
+  }))
+    .filter((r) => r.count > 0)
+    .sort((a, b) => b.count - a.count);
   const breadcrumbs = breadcrumbJsonLd([
     { name: "HappiTime", url: `${BASE}/` },
     { name: "Guides", url: `${BASE}/guides/` },
@@ -76,7 +102,7 @@ export default function BestHappyHourFood() {
   const article = articleJsonLd({
     title: "Best Happy Hour Food Deals in Kansas City",
     description:
-      "The best happy hour food deals in Kansas City — half-price appetizers, dollar tacos, discounted plates, and more across Westport, Power & Light, the Crossroads, and beyond.",
+      "Kansas City happy hour food deals: half-price appetizers, dollar tacos and discounted plates in Westport, Power & Light, the Crossroads and beyond.",
     url: CANONICAL,
   });
 
@@ -207,6 +233,36 @@ export default function BestHappyHourFood() {
           <li>Use <Link href="/kc/" className="text-brand hover:underline">HappiTime</Link> to check which venues have food specials today before you leave.</li>
         </ol>
       </section>
+
+      {neighborhoodCounts.length > 0 && (
+        <section className="mb-10">
+          <h2 className="text-2xl font-bold text-foreground mb-3">
+            Which Kansas City neighborhoods have the most happy hours?
+          </h2>
+          <p className="text-muted leading-relaxed mb-4">
+            {venues.length} Kansas City spots publish a happy hour on HappiTime. This is how many are in each
+            neighborhood, most first. Each neighborhood page shows the food and drink specials.
+          </p>
+          <ul className="space-y-2 text-muted leading-relaxed">
+            {neighborhoodCounts.map(({ n, count, href }) => (
+              <li key={n.slug}>
+                <a href={href} className="font-semibold text-foreground hover:text-brand">
+                  {n.name}
+                </a>
+                : {count} {count === 1 ? "spot" : "spots"}.
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <GuideSchedule
+        heading="What do happy hour specials cost in Kansas City?"
+        answer="These Kansas City spots list prices on their happy hour menus, with the three cheapest items each."
+        venues={pricedVenues}
+        limit={25}
+        showSpecials
+      />
 
       {/* FAQ */}
       <section className="mb-10">

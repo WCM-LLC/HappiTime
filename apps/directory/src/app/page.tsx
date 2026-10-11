@@ -21,15 +21,18 @@ import ForkOpener from "@/components/ForkOpener";
 import { HomeBelowFold } from "@/components/HomeBelowFold";
 import { PageTracker } from "@/components/PageTracker";
 import { getOpenerProps } from "@/lib/liveDeals";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
+import { jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
 
 export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "HappiTime — Kansas City Happy Hour Deals, Live Right Now",
   description:
-    "See which Kansas City happy hours are on right now, sorted by what ends soonest — Westport, Power & Light, Crossroads, the Plaza and more. Own a venue? See what it costs to fill your slow hours.",
+    "See which Kansas City happy hours are on right now, sorted by what ends soonest. Own a venue? See what it costs to fill your slow hours.",
   alternates: { canonical: "/" },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "HappiTime — Kansas City Happy Hour Deals, Live Right Now",
     description:
       "Which Kansas City happy hours are on right now, sorted by what ends soonest.",
@@ -46,6 +49,12 @@ export default async function HomePage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          webPageJsonLd({ type: "WebPage", name: "HappiTime — Kansas City Happy Hour Deals, Live Right Now", url: "https://happitime.biz/", description: metadata.description ?? "" }),
+        )}
+      />
       {/* The fork is only worth keeping if people pass through it. This
           page_view is the denominator; the doors fire cta_click as the
           numerator, and both share a session_id because the doors navigate

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageTracker } from "@/components/PageTracker";
 import { supabase } from "@/lib/supabase";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
 
 /**
  * ABOUT — who runs HappiTime.
@@ -73,6 +74,7 @@ export const metadata: Metadata = {
     "HappiTime is built and run in Kansas City by Juan Williams. Who is behind it, why it exists, and how to reach a person.",
   alternates: { canonical: "/about/" },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "About HappiTime — Who Runs It",
     description: "HappiTime is built and run in Kansas City by Juan Williams.",
     url: "https://happitime.biz/about/",
@@ -81,8 +83,21 @@ export const metadata: Metadata = {
 
 const DISPLAY = "heading-sans font-extrabold tracking-[-0.02em] leading-[1.15]";
 
+// Published guides with no individual author are HappiTime's own editorial
+// pieces. Their bylines credit "the HappiTime editors" and link here, so this
+// page lists them — an author page shows what its author wrote.
+async function getEditorialGuides() {
+  const { data } = await supabase
+    .from("guides")
+    .select("slug, title, published_at")
+    .is("author_id", null)
+    .eq("status", "published")
+    .order("published_at", { ascending: false });
+  return data ?? [];
+}
+
 export default async function AboutPage() {
-  const profile = await getFounderProfile();
+  const [profile, editorialGuides] = await Promise.all([getFounderProfile(), getEditorialGuides()]);
   const photo = profile?.avatar_url || FOUNDER.fallbackPhoto;
 
   const links = [
@@ -205,6 +220,21 @@ export default async function AboutPage() {
             </li>
           </ul>
         </section>
+
+        {editorialGuides.length > 0 && (
+          <section className="mt-12">
+            <h2 className={`${DISPLAY} mb-4 text-[24px]`}>Guides by the HappiTime editors</h2>
+            <ul className="list-disc space-y-2.5 pl-5 text-[15.5px] text-muted">
+              {editorialGuides.map((g) => (
+                <li key={g.slug}>
+                  <a href={`/guides/${g.slug}/`} className="font-semibold text-brand-dark-alt hover:underline">
+                    {g.title}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <section className="mt-12 border-t border-border pt-8 text-[14.5px] text-muted">
           <p>
