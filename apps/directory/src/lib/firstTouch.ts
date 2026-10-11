@@ -6,6 +6,15 @@
 
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "src"];
 const UTM_STORAGE_KEY = "ht_first_touch_utm";
+// Which page load stored the first touch, so that page's own events keep the
+// original label instead of "carried".
+const LANDING_STORAGE_KEY = "ht_first_touch_landing";
+
+/** Identifies the current document and path; changes on any navigation. */
+function landingKey(): string {
+  const origin = typeof performance !== "undefined" ? Math.round(performance.timeOrigin) : 0;
+  return `${origin}:${window.location.pathname}`;
+}
 
 /**
  * Infer a traffic source from document.referrer when no UTM params are
@@ -31,8 +40,10 @@ function inferSourceFromReferrer(): string | null {
  *
  * 1. Campaign params (utm_* or src) on the current URL, length-capped; absent
  *    params are omitted.
- * 2. The session's first touch (meta.utm_touch = "carried"), so venue pages
- *    reached by browsing from /kc/ stay attributed.
+ * 2. The session's first touch, so venue pages reached by browsing from /kc/
+ *    stay attributed. Labeled meta.utm_touch = "carried" once the visitor has
+ *    navigated; on the landing page itself it keeps its original label, since
+ *    HeyCatch may already have stripped the params from the URL.
  * 3. A tiktok/instagram/facebook referrer (meta.utm_touch = "referrer"), for
  *    link-in-bio tools and in-app browsers that drop params.
  *
@@ -51,15 +62,18 @@ export function getUtmMeta(): Record<string, string> {
   }
 
   let stored: Record<string, string> | null = null;
+  let storedLanding: string | null = null;
   try {
     const raw = sessionStorage.getItem(UTM_STORAGE_KEY);
     if (raw) stored = JSON.parse(raw);
+    storedLanding = sessionStorage.getItem(LANDING_STORAGE_KEY);
   } catch {
     // Storage unavailable or unparseable: attribute this page on its own.
   }
   const remember = (meta: Record<string, string>) => {
     try {
       sessionStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(meta));
+      sessionStorage.setItem(LANDING_STORAGE_KEY, landingKey());
     } catch {
       // Best-effort; this event still carries its own attribution.
     }
@@ -71,7 +85,9 @@ export function getUtmMeta(): Record<string, string> {
     }
     return out;
   }
-  if (stored) return { ...stored, utm_touch: "carried" };
+  if (stored) {
+    return storedLanding === landingKey() ? stored : { ...stored, utm_touch: "carried" };
+  }
   const inferred = inferSourceFromReferrer();
   if (inferred) {
     const meta = { utm_source: inferred, utm_touch: "referrer" };
