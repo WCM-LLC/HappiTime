@@ -1,5 +1,6 @@
 import { supabase } from "./supabase";
 import type { Neighborhood } from "./neighborhoods";
+import { liveEventsSorted } from "./eventSchedule";
 
 export type VenueWithWindows = {
   id: string;
@@ -112,7 +113,12 @@ function shapeVenue(raw: any): VenueWithWindows {
     menu_items: [] as MenuItem[],
   }));
 
-  const events = (raw.venue_events ?? []).map((e: any) => ({
+  // Every embedded venue_events select filters on status alone, so this is the
+  // one place past one-offs and ended series are dropped and the rest put in
+  // next-occurrence order. Until 2026-10-10 nothing did either: venue pages
+  // listed months-old events under "Upcoming Events" and cards counted them.
+  // Guarded by test/event-schedule.test.mjs.
+  const allEvents: VenueEvent[] = (raw.venue_events ?? []).map((e: any) => ({
     id: e.id,
     title: e.title,
     description: e.description ?? null,
@@ -127,6 +133,7 @@ function shapeVenue(raw: any): VenueWithWindows {
     ticket_url: e.ticket_url ?? null,
     cover_image_path: e.cover_image_path ?? null,
   }));
+  const events = liveEventsSorted(allEvents);
 
   const SOURCE_PRIORITY: Record<string, number> = {
     upload: 0,
