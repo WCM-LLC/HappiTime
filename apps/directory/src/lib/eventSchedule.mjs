@@ -51,7 +51,10 @@ function fmt(tz) {
   if (!f) {
     f = new Intl.DateTimeFormat("en-US", {
       timeZone: tz,
-      hourCycle: "h23",
+      // hour12:false (not hourCycle) because that is the option the mobile app
+      // already runs on-device under Hermes (useVisitTracker) and kcTime uses
+      // on Vercel. It can yield "24" for midnight; localParts folds that to 0.
+      hour12: false,
       year: "numeric", month: "2-digit", day: "2-digit",
       hour: "2-digit", minute: "2-digit", second: "2-digit",
     });
@@ -71,7 +74,7 @@ export function localParts(instant, tz = DEFAULT_TZ) {
   for (const part of fmt(tz).formatToParts(instant)) {
     if (part.type !== "literal") p[part.type] = Number(part.value);
   }
-  // hourCycle h23 can still yield 24 for midnight in some engines.
+  // hour12:false yields 24 for midnight in some engines.
   return { y: p.year, m: p.month, d: p.day, h: p.hour === 24 ? 0 : p.hour, mi: p.minute, s: p.second };
 }
 
