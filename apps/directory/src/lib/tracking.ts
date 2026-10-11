@@ -4,25 +4,14 @@ import { getUtmMeta } from "./firstTouch";
 import { supabase } from "./supabase";
 
 /**
- * Session ID for anonymous tracking. Kept in sessionStorage so it survives
- * full-page navigations within a tab, the same lifetime as the first-touch
- * attribution below; track-visit dedupes on (venue, source, session), so a
- * per-page-load ID would count one visitor's revisits as new visits. Falls
- * back to a per-load in-memory ID when storage is unavailable.
+ * Generate or retrieve a session ID for anonymous tracking.
+ * Uses a simple random ID stored in memory (no localStorage in SSR).
  */
-const SESSION_STORAGE_KEY = "ht_session_id";
 let sessionId: string | null = null;
 
 function getSessionId(): string {
-  if (sessionId) return sessionId;
-  try {
-    sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
-    if (!sessionId) {
-      sessionId = crypto.randomUUID();
-      sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
-    }
-  } catch {
-    sessionId ??= crypto.randomUUID();
+  if (!sessionId) {
+    sessionId = crypto.randomUUID();
   }
   return sessionId;
 }
@@ -78,10 +67,13 @@ export async function trackEvent({
 
   // Social-tagged venue page views also become venue attribution events, so
   // venue dashboards show "HappiTime sent these people" alongside QR scans.
-  // track-visit dedupes per (venue, source, session) server-side.
+  // track-visit dedupes per (venue, source, session) server-side. Only a
+  // fresh touch counts: carried and referrer-inferred sources (utm_touch set)
+  // stay in directory_events meta and never reach venue attribution.
   const socialSource = (utm.utm_source ?? utm.src ?? "").toLowerCase();
   if (
     eventType === "page_view" &&
+    !utm.utm_touch &&
     venueId &&
     ATTRIBUTED_SOCIAL_SOURCES.has(socialSource)
   ) {

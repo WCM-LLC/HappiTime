@@ -71,6 +71,9 @@ export function getUtmMeta(): Record<string, string> {
     // Storage unavailable or unparseable: attribute this page on its own.
   }
   const remember = (meta: Record<string, string>) => {
+    // /v/ QR landings validate src themselves (VenueLandingClient); don't let
+    // an unvalidated value seed the session.
+    if (window.location.pathname.startsWith("/v/")) return;
     try {
       sessionStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(meta));
       sessionStorage.setItem(LANDING_STORAGE_KEY, landingKey());
