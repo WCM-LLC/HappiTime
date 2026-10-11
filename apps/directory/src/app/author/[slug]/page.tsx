@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { authorPath, getGuideAuthorBySlug } from "@/lib/authors";
+import { authorPath, resolveGuideAuthor } from "@/lib/authors";
 import { breadcrumbJsonLd, jsonLdHtml } from "@/lib/structuredData";
 import { DEFAULT_OG_IMAGE, fitDescription, fitTitle } from "@/lib/seoText";
 
@@ -35,7 +35,7 @@ function formatMonth(iso: string): string {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const found = await getGuideAuthorBySlug(slug);
+  const found = await resolveGuideAuthor(slug);
   if (!found) return {};
   const name = found.author.display_name ?? "HappiTime author";
   const guides = await getAuthorGuides(found.author.author_id);
@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     `${guides.length} published ${guides.length === 1 ? "guide" : "guides"}.`,
     "Read them free on HappiTime.",
   ]);
-  const canonical = `${BASE}${authorPath(slug)}`;
+  const canonical = `${BASE}${authorPath(found.slug)}`;
   const image = found.author.avatar_url ? { url: found.author.avatar_url } : DEFAULT_OG_IMAGE;
   return {
     title,
@@ -59,15 +59,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function AuthorPage({ params }: Props) {
   const { slug } = await params;
-  const found = await getGuideAuthorBySlug(slug);
+  const found = await resolveGuideAuthor(slug);
   if (!found) notFound();
+  // A stale name part or an old name-only URL: send it to the current one.
+  if (found.slug !== slug) permanentRedirect(authorPath(found.slug));
   const { author } = found;
   const name = author.display_name ?? "HappiTime author";
   const guides = await getAuthorGuides(author.author_id);
   const socials = LINKS.map((l) => ({ ...l, href: author[l.key] })).filter(
     (l): l is (typeof l) & { href: string } => !!l.href,
   );
-  const canonical = `${BASE}${authorPath(slug)}`;
+  const canonical = `${BASE}${authorPath(found.slug)}`;
   const firstPublished = guides.map((g) => g.published_at).filter(Boolean).sort()[0] as string | undefined;
 
   const profileJsonLd = {
