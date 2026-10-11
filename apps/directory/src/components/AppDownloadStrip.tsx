@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/storeLinks";
 
-export function AppDownloadStrip() {
+export function AppDownloadStrip({ ratingLabel = null }: { ratingLabel?: string | null }) {
   const [dismissed, setDismissed] = useState(false);
 
   if (dismissed) return null;
@@ -18,6 +18,12 @@ export function AppDownloadStrip() {
           <p className="text-xs mt-0.5" style={{ color: "#9CA3AF" }}>
             Download HappiTime — free on iPhone and Android.
           </p>
+          {ratingLabel ? (
+            <p className="text-xs mt-1 font-semibold" style={{ color: "#E8D5BC" }}>
+              <span aria-hidden="true">★ </span>
+              {ratingLabel}
+            </p>
+          ) : null}
         </div>
         <div className="flex items-center gap-2.5 flex-shrink-0">
           <a

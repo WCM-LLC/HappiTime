@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { trackEvent } from "@/lib/tracking";
+import { VenueProofStrip } from "@/components/VenueProofStrip";
+import type { VenueAvatar } from "@/lib/siteStats";
 
 export type LiveDeal = {
   id: string;
@@ -80,12 +82,17 @@ export default function StartOpener({
   firstEndsAt,
   initialClock,
   initialMinutes,
+  venueCount,
+  avatars,
 }: {
   deals: LiveDeal[];
   liveCount: number;
   firstEndsAt: string | null;
   initialClock: string;
   initialMinutes: number;
+  /** The one sitewide venue count (lib/siteStats) and real listed venues' photos. */
+  venueCount: number;
+  avatars: VenueAvatar[];
 }) {
   const router = useRouter();
 
@@ -171,6 +178,15 @@ export default function StartOpener({
     [pressing, remembered, router]
   );
 
+  /* The doors are real links (href) so they work with JavaScript off, can be
+     opened in a new tab, and show crawlers where they lead. A plain left-click
+     still gets the animated hand-off; anything else is left to the browser. */
+  const onDoor = (role: Role) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    go(role);
+  };
+
   const forget = () => {
     try {
       localStorage.removeItem(REMEMBER_KEY);
@@ -221,7 +237,7 @@ export default function StartOpener({
       )}
 
       <section
-        className="flex flex-col justify-center gap-10 px-6 py-16 transition-[transform,opacity] duration-slow ease-default md:px-12 md:py-24"
+        className="flex flex-col justify-center gap-8 px-6 py-10 transition-[transform,opacity] duration-slow ease-default md:gap-10 md:px-12 md:py-20"
         style={{
           transform: leaving ? `translateX(${pressing === "venues" ? 18 : -18}%)` : "translateX(0)",
           opacity: leaving ? 0 : 1,
@@ -230,6 +246,11 @@ export default function StartOpener({
         {/* Clock line — the headline */}
         <div className="flex flex-col items-start gap-6 md:flex-row md:items-end md:gap-12">
           <h1 className="heading-sans m-0 max-w-[660px] flex-1 text-[clamp(2.25rem,6vw,3.75rem)] font-bold leading-[1.04] tracking-[-0.035em] text-pretty">
+            {/* The clock is the hook, but on its own it names no product. This
+                line sits inside the h1 so the headline itself says what this is. */}
+            <span className="mb-3 block font-sans text-xs font-extrabold uppercase leading-normal tracking-[0.1em] text-brand-dark-alt">
+              Kansas City happy hours, live right now
+            </span>
             It is{" "}
             <span className="text-brand tabular-nums" suppressHydrationWarning>
               {clock}
@@ -240,6 +261,9 @@ export default function StartOpener({
             {timeCopy(minutes, liveCount, firstEndsAt)}
           </p>
         </div>
+
+        {/* Real venues, one count — the directory shown above the fold */}
+        <VenueProofStrip venueCount={venueCount} avatars={avatars} />
 
         {/* The fork */}
         <div className="flex flex-col gap-[18px]">
@@ -256,17 +280,20 @@ export default function StartOpener({
             className="grid grid-cols-1 gap-5 md:grid-cols-2"
           >
             {/* Door 1 — deal seekers */}
-            <button
-              type="button"
-              onClick={() => go("deals")}
-              disabled={pressing !== null}
-              className="flex cursor-pointer flex-col gap-2.5 rounded-lg border border-brand-light bg-brand-subtle p-7 text-left transition-shadow duration-normal ease-default hover:shadow-xl disabled:cursor-default md:p-8"
+            <a
+              href={DESTINATIONS.deals}
+              onClick={onDoor("deals")}
+              aria-disabled={pressing !== null || undefined}
+              className={`flex flex-col gap-2.5 rounded-lg border border-brand-light bg-brand-subtle p-7 text-left text-foreground no-underline transition-shadow duration-normal ease-default hover:shadow-xl md:p-8 ${pressing ? "cursor-default" : "cursor-pointer"}`}
             >
               <span className="text-[26px] font-bold leading-[1.1] tracking-[-0.02em] md:text-[30px]">
                 I am here for the deals
               </span>
               <span className="text-base leading-[1.5] text-brand-dark-alt">
                 Show me what is on near me, right now.
+              </span>
+              <span className="text-[15px] font-semibold leading-[1.5] text-brand-dark-alt">
+                Be the friend who always knows where to go.
               </span>
               <span className="mt-2.5 flex items-center gap-2.5 text-sm font-semibold text-brand-dark">
                 {pressing === "deals" && <Spinner />}
@@ -275,14 +302,14 @@ export default function StartOpener({
                   : "Deals near me, sorted by what ends soonest"}
                 {pressing !== "deals" && <span aria-hidden="true" className="text-[17px]">&#8594;</span>}
               </span>
-            </button>
+            </a>
 
             {/* Door 2 — operators */}
-            <button
-              type="button"
-              onClick={() => go("venues")}
-              disabled={pressing !== null}
-              className="flex cursor-pointer flex-col gap-2.5 rounded-lg border border-dark bg-dark p-7 text-left transition-colors duration-normal ease-default hover:bg-dark-surface disabled:cursor-default md:p-8"
+            <a
+              href={DESTINATIONS.venues}
+              onClick={onDoor("venues")}
+              aria-disabled={pressing !== null || undefined}
+              className={`flex flex-col gap-2.5 rounded-lg border border-dark bg-dark p-7 text-left no-underline transition-colors duration-normal ease-default hover:bg-dark-surface md:p-8 ${pressing ? "cursor-default" : "cursor-pointer"}`}
             >
               <span className="text-[26px] font-bold leading-[1.1] tracking-[-0.02em] text-cream md:text-[30px]">
                 I am the one pouring
@@ -290,6 +317,9 @@ export default function StartOpener({
               <span className="text-base leading-[1.5] text-dark-muted">
                 An empty stool at <span suppressHydrationWarning>{clock}</span> costs more than the
                 discount.
+              </span>
+              <span className="text-[15px] font-semibold leading-[1.5] text-cream">
+                Be the happy hour your neighborhood is known for.
               </span>
               <span className="mt-2.5 flex items-center gap-2.5 text-sm font-semibold text-brand-light">
                 {pressing === "venues" && <Spinner />}
@@ -300,7 +330,7 @@ export default function StartOpener({
                   <span aria-hidden="true" className="text-[17px]">&#8594;</span>
                 )}
               </span>
-            </button>
+            </a>
           </div>
         </div>
 
