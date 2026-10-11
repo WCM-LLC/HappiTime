@@ -46,7 +46,8 @@ test("My QR is self-only and counts-only", () => {
   for (const table of ["checkin_super_user_attributions", "super_user_venue_touches"]) {
     assert.doesNotMatch(myQr, new RegExp(table), `My QR never reads row-level ${table}`);
   }
-  assert.doesNotMatch(myQr, /['"`,\s]people['"`,\s]/, "no per-venue head-count on the Insider page");
+  // The exact select above is the guard against a per-venue head-count ("people")
+  // leaking onto the Insider page: with tiny numbers it would identify someone.
 });
 
 test("admin detail shows the per-venue split between influence and referral", () => {
