@@ -23,6 +23,20 @@ async function getGuide(slug: string) {
   return data ?? null;
 }
 
+type GuideItinerary = { token: string; spots: number; author_handle: string | null };
+
+// The guide's companion itinerary: every venue the guide links to, owned by the
+// author (see 20261011041500_guide_itineraries.sql). Opening it in the app is what
+// lets a later check-in be credited to the author. Null for guides with no linked
+// venues or a non-Insider author — the page then simply shows no "open in app" card.
+async function getGuideItinerary(guideId: string): Promise<GuideItinerary | null> {
+  const { data, error } = await supabase.rpc("get_guide_itinerary", { p_guide_id: guideId });
+  if (error || !data) return null;
+  const row = data as Partial<GuideItinerary>;
+  if (!row.token || !row.spots) return null;
+  return { token: row.token, spots: row.spots, author_handle: row.author_handle ?? null };
+}
+
 async function getAuthor(authorId: string | null) {
   if (!authorId) return null;
   const { data } = await supabase
@@ -78,7 +92,14 @@ export default async function GuidePage({
   const guide = await getGuide(slug);
   if (!guide) notFound();
 
-  const author = await getAuthor(guide.author_id);
+  const [author, itinerary] = await Promise.all([
+    getAuthor(guide.author_id),
+    getGuideItinerary(guide.id),
+  ]);
+  // Same shape the app's own share sheet produces: /i/{token}?ref={handle}.
+  const itineraryHref = itinerary
+    ? `/i/${itinerary.token}${itinerary.author_handle ? `?ref=${encodeURIComponent(itinerary.author_handle)}` : ""}`
+    : null;
 
   const canonical = `${BASE}/guides/${slug}/`;
   const coverImageUrl = normalizeGuideCoverImageUrl(guide.cover_image_url);
@@ -175,8 +196,26 @@ export default async function GuidePage({
         </article>
       </ImageLightbox>
 
+      {/* Take the guide with you — the guide's linked venues as an in-app itinerary */}
+      {itinerary && itineraryHref ? (
+        <section className="mt-12 rounded-2xl border border-border bg-surface p-8 text-center">
+          <h2 className="text-xl font-bold text-foreground mb-2">
+            Take {itinerary.spots === 1 ? "this spot" : `these ${itinerary.spots} spots`} with you
+          </h2>
+          <p className="text-sm text-muted mb-5 max-w-md mx-auto">
+            Open this guide as an itinerary in the HappiTime app to save it, see it on the map and check in when you get there.
+          </p>
+          <a
+            href={itineraryHref}
+            className="inline-block rounded-full bg-brand px-6 py-2.5 text-white font-semibold text-sm hover:bg-brand-dark transition-colors"
+          >
+            Open the itinerary
+          </a>
+        </section>
+      ) : null}
+
       {/* CTA */}
-      <section className="mt-12 rounded-2xl bg-brand-subtle p-8 text-center">
+      <section className={`${itineraryHref ? "mt-6" : "mt-12"} rounded-2xl bg-brand-subtle p-8 text-center`}>
         <h2 className="text-xl font-bold text-foreground mb-2">
           Find happy hours happening right now
         </h2>
