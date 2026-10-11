@@ -26,6 +26,11 @@ function redactValue(value, depth) {
   if (typeof value === "string") return redactString(value);
   if (depth > 8 || value === null || typeof value !== "object") return value;
   if (Array.isArray(value)) return value.map((item) => redactValue(item, depth + 1));
+  // Only plain objects are rebuilt. The SDK hands over the event's `timestamp`
+  // as a Date, which has no own enumerable entries — walking it would return
+  // `{}` and every event would go out with its timestamp destroyed.
+  const proto = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null) return value;
   const out = {};
   for (const [key, item] of Object.entries(value)) out[key] = redactValue(item, depth + 1);
   return out;

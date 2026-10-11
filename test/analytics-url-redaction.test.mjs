@@ -94,3 +94,18 @@ test("never drops an event, and passes null through", () => {
   assert.equal(redactEvent(null), null);
   assert.deepEqual(redactEvent({ event: "x", properties: {} }), { event: "x", properties: {} });
 });
+
+test("keeps the event timestamp (a Date) intact", () => {
+  // The SDK passes `timestamp` as a Date. Rebuilding it as a plain object
+  // serialises to `{}`, so the event would reach ingest with no usable time.
+  const timestamp = new Date("2026-10-11T03:30:00.000Z");
+  const out = redactEvent({
+    event: "$pageview",
+    timestamp,
+    properties: { $current_url: `https://happitime.biz/staff/${STAFF}/` },
+  });
+  assert.ok(out.timestamp instanceof Date, "timestamp is still a Date");
+  assert.equal(out.timestamp.getTime(), timestamp.getTime());
+  assert.equal(JSON.parse(JSON.stringify(out)).timestamp, "2026-10-11T03:30:00.000Z");
+  assert.equal(out.properties.$current_url, `https://happitime.biz/staff/${REDACTED}/`);
+});
