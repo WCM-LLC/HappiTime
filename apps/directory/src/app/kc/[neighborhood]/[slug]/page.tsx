@@ -7,6 +7,7 @@ import { getNeighborhood } from "@/lib/neighborhoods";
 import { getHappyHourLandingPageByNeighborhoodSlug } from "@/lib/seoNeighborhoods";
 import { getVenueBySlug } from "@/lib/queries";
 import { KC_TZ, formatEventDate, formatEventTime } from "@/lib/kcTime";
+import { occurrenceEnd, recurrenceLabel } from "@/lib/eventSchedule";
 import { venueJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 import { PageTracker } from "@/components/PageTracker";
 import { ItineraryButton } from "@/components/ItineraryButton";
@@ -444,6 +445,9 @@ export default async function VenueDetailPage({ params }: Props) {
               const tz = ev.timezone ?? KC_TZ;
               const dateStr = formatEventDate(ev.starts_at, tz);
               const timeStr = formatEventTime(ev.starts_at, tz);
+              // On a series, a far-off ends_at is when the series stops, not
+              // when tonight's occurrence does — don't print it as a time.
+              const endsAt = occurrenceEnd(ev);
               const eventTypeLabel =
                 ev.event_type === "live_music"
                   ? "Live Music"
@@ -459,13 +463,8 @@ export default async function VenueDetailPage({ params }: Props) {
                     <div>
                       <h3 className="font-bold text-foreground">{ev.title}</h3>
                       <p className="text-sm text-muted">
-                        {ev.is_recurring ? (() => {
-                          const dayMap: Record<string, string> = { SU: 'Sun', MO: 'Mon', TU: 'Tue', WE: 'Wed', TH: 'Thu', FR: 'Fri', SA: 'Sat' };
-                          const match = (ev.recurrence_rule ?? '').match(/BYDAY=([A-Z,]+)/);
-                          const days = match ? match[1].split(',').map((d: string) => dayMap[d] ?? d).join(', ') : '';
-                          return days ? `Every ${days}` : 'Recurring';
-                        })() : dateStr} at {timeStr}
-                        {ev.ends_at && ` – ${formatEventTime(ev.ends_at, tz)}`}
+                        {ev.is_recurring ? recurrenceLabel(ev.recurrence_rule) : dateStr} at {timeStr}
+                        {endsAt && ` – ${formatEventTime(endsAt.toISOString(), tz)}`}
                       </p>
                     </div>
                     <div className="shrink-0 flex items-center gap-2">

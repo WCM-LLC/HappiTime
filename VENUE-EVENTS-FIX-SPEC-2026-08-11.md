@@ -1,5 +1,13 @@
 # Venue Events Display — Fix Spec (2026-08-11)
 
+> **Bug 1 FIXED 2026-10-10.** Past one-offs and ended series are now dropped,
+> and the rest ordered by next occurrence, in `lib/eventSchedule.mjs` (one copy
+> each in `apps/directory` and `apps/mobile`), guarded by
+> `test/event-schedule.test.mjs`. A nightly job
+> (`public.expire_venue_events()`, migration `20261011043000`) deletes expired
+> rows so the table stops accumulating them. Still open from this document:
+> the "Weekly at {venue}" / "Upcoming" split and the Events button.
+
 > **PARTIALLY SUPERSEDED 2026-08-16.** Bug 3 (times render in server TZ) is
 > **FIXED** — see `VENUE-EVENTS-TZ-FIX-2026-08-16.md`, now guarded by
 > `test/event-time-timezone.test.mjs`. Bug 2's recurrence labels shipped.
