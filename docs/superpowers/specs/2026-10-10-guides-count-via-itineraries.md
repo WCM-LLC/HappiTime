@@ -68,11 +68,16 @@ public link stops resolving. Republishing mints a new token.
   onboarding gate was lost.** The root capture hook kept only the `ref`. It now stashes the URL
   (`pendingItineraryLink`), and `useItineraryDeepLink` opens it once the navigator mounts. Needs
   an app release.
-- **Open — eligibility is only re-checked when the guide is written.** Unpublishing a venue or
-  demoting an author does not retire the companion until the guide is next saved. A demoted
-  author earns nothing in the meantime (`record_itinerary_touch` checks the role itself), but
-  the link keeps resolving.
-- **Open — the author can edit or delete the companion like any list.** Deleting it removes the
-  guide card until the next guide save recreates it; making it public puts it in the Insider feed.
-- **Open — retiring on guide delete fails open.** If the token-clearing update ever raised, the
-  delete would still commit and leave a working link.
+- **Fixed in `20261011050000_guide_itinerary_guards.sql` — eligibility was only re-checked when
+  the guide was written.** A venue's status or slug changing, or the author being promoted or
+  demoted, now re-syncs the affected guides immediately.
+- **Fixed, same migration — the author could break the companion from the app.** Direct client
+  writes can no longer delete a companion, change its sharing (visibility, token, owner) or its
+  venue set. Renaming and item notes are still allowed. The guards apply only when
+  `current_user` is `authenticated` / `anon`, so the sync, FK cascades, account deletion and the
+  service role are unaffected. The app shows the refusal as an error; it has no special UI for
+  companion lists yet.
+  A companion retired with its guide can only be given a link again by the sync, not by the app's
+  share button. Deleting a linked venue re-syncs too, and the sync resets a companion to private.
+- **Fixed, same migration — retiring on guide delete failed open.** It now fails closed: if the
+  link cannot be retired the delete aborts.
