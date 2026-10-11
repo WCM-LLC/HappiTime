@@ -14,6 +14,8 @@ import { CopyLinkField } from './CopyLinkField';
 
 export const dynamic = 'force-dynamic';
 
+const TOP_VENUES = 10;
+
 const PNG_DOWNLOADS: { preset: string; label: string; hint: string }[] = [
   { preset: 'postcard', label: 'Postcard PNG', hint: '4" · 1200px' },
   { preset: 'table_tent', label: 'Table tent PNG', hint: '3" · 900px' },
@@ -26,6 +28,14 @@ type TrafficSummaryRow = {
   first_checkins_driven: number;
   venues_touched: number;
   redemptions_driven: number;
+  influenced_checkins: number;
+  influenced_new_faces: number;
+  influenced_venues: number;
+};
+type VenueInfluenceRow = {
+  venue_id: string;
+  influenced_checkins: number;
+  influenced_new_faces: number;
 };
 
 export default async function ReferralsPage() {
@@ -48,7 +58,7 @@ export default async function ReferralsPage() {
   let referral: ReferralSummaryRow | null = null;
   let traffic: TrafficSummaryRow | null = null;
   const service = createServiceClient();
-  const [refRes, trafRes] = await Promise.all([
+  const [refRes, trafRes, venueRes] = await Promise.all([
     service
       .from('super_user_referral_summary')
       .select('referees, itinerary_saves')
@@ -56,14 +66,44 @@ export default async function ReferralsPage() {
       .maybeSingle(),
     service
       .from('super_user_traffic_summary')
-      .select('first_checkins_driven, venues_touched, redemptions_driven')
+      .select(
+        'first_checkins_driven, venues_touched, redemptions_driven, influenced_checkins, influenced_new_faces, influenced_venues',
+      )
       .eq('super_user_id', user.id)
       .maybeSingle(),
+    // Per-venue counts only — never who checked in. Same self-only filter.
+    (service as any)
+      .from('super_user_venue_influence')
+      .select('venue_id, influenced_checkins, influenced_new_faces')
+      .eq('super_user_id', user.id)
+      .gt('influenced_checkins', 0)
+      .order('influenced_checkins', { ascending: false })
+      .limit(TOP_VENUES),
   ]);
   referral = (refRes.data as ReferralSummaryRow | null) ?? null;
   traffic = (trafRes.data as TrafficSummaryRow | null) ?? null;
 
+  const venueRows = ((venueRes.data ?? []) as VenueInfluenceRow[]) ?? [];
+  const venueNameById = new Map<string, string>();
+  if (venueRows.length > 0) {
+    const { data: venues } = await service
+      .from('venues')
+      .select('id, name')
+      .in('id', venueRows.map((v) => v.venue_id));
+    for (const v of (venues ?? []) as { id: string; name: string }[]) venueNameById.set(v.id, v.name);
+  }
+
   const shareUrl = handle ? referralQrUrl(handle) : null;
+
+  // Two different claims, kept apart on purpose: "influence" is a check-in at a
+  // venue the person saw through this Insider's itinerary in the prior 7 days;
+  // "referrals" is traffic from people this Insider recruited to the app.
+  const influenceStats = [
+    { label: 'Check-ins you influenced', value: traffic?.influenced_checkins ?? 0 },
+    { label: 'New faces you sent', value: traffic?.influenced_new_faces ?? 0 },
+    { label: 'Venues you sent people to', value: traffic?.influenced_venues ?? 0 },
+    { label: 'Itinerary saves', value: referral?.itinerary_saves ?? 0 },
+  ];
 
   const stats = [
     { label: 'Sign-ups you drove', value: referral?.referees ?? 0 },
@@ -87,7 +127,7 @@ export default async function ReferralsPage() {
           </div>
           <h1 className="text-display-md font-bold text-foreground tracking-tight">My QR &amp; referrals</h1>
           <p className="text-body-sm text-muted mt-1">
-            Every scan of your QR carries your name. Sign-ups and check-ins it drives are credited to you — first touch, permanently.
+            Every scan of your QR carries your name, and so does every itinerary you share. Sign-ups, and the check-ins your picks lead to, are credited to you.
           </p>
         </div>
 
@@ -120,9 +160,50 @@ export default async function ReferralsPage() {
             </section>
 
             <div className="flex flex-col gap-6">
-              {/* Stats */}
+              {/* Influence — venue-level */}
               <section>
-                <h2 className="text-heading-sm font-semibold text-foreground mb-3">Your impact</h2>
+                <h2 className="text-heading-sm font-semibold text-foreground mb-1">Your influence</h2>
+                <p className="text-body-sm text-muted mb-3">
+                  Verified check-ins at a venue within 7 days of someone opening, tapping or saving it in one of your itineraries.
+                </p>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {influenceStats.map((s) => (
+                    <div key={s.label} className="rounded-lg border border-border bg-surface shadow-sm px-4 py-3">
+                      <p className="text-display-sm font-bold text-foreground">{s.value}</p>
+                      <p className="text-body-sm text-muted mt-0.5">{s.label}</p>
+                    </div>
+                  ))}
+                </div>
+                {venueRows.length > 0 ? (
+                  <div className="mt-3 rounded-lg border border-border bg-surface shadow-sm overflow-hidden">
+                    <table className="w-full text-body-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-background/50">
+                          <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Venue</th>
+                          <th className="text-right px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Check-ins</th>
+                          <th className="text-right px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">New faces</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {venueRows.map((v) => (
+                          <tr key={v.venue_id} className="border-b border-border last:border-0">
+                            <td className="px-4 py-2.5 text-foreground">{venueNameById.get(v.venue_id) ?? 'Venue'}</td>
+                            <td className="px-4 py-2.5 text-right font-medium text-foreground">{v.influenced_checkins}</td>
+                            <td className="px-4 py-2.5 text-right text-muted">{v.influenced_new_faces}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : null}
+              </section>
+
+              {/* Referrals — person-level */}
+              <section>
+                <h2 className="text-heading-sm font-semibold text-foreground mb-1">Your referrals</h2>
+                <p className="text-body-sm text-muted mb-3">
+                  People who joined through your QR or link, and what they went on to do.
+                </p>
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {stats.map((s) => (
                     <div key={s.label} className="rounded-lg border border-border bg-surface shadow-sm px-4 py-3">

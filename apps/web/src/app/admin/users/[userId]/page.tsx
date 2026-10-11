@@ -97,7 +97,14 @@ export default async function AdminSuperUserDetailsPage({
   const refSummary = refSummaryRaw as { referees: number; itinerary_saves: number } | null;
 
   // Traffic summary — guarded: view only exists once Phase 1 (PR #77) is merged
-  let trafficSummary: { first_checkins_driven: number; venues_touched: number; redemptions_driven: number } | null = null;
+  let trafficSummary: {
+    first_checkins_driven: number;
+    venues_touched: number;
+    redemptions_driven: number;
+    influenced_checkins?: number;
+    influenced_new_faces?: number;
+    influenced_venues?: number;
+  } | null = null;
   {
     const { data: t, error: tErr } = await (db as any)
       .from('super_user_traffic_summary')
@@ -105,6 +112,35 @@ export default async function AdminSuperUserDetailsPage({
       .eq('super_user_id', userId)
       .maybeSingle();
     if (!tErr && t) trafficSummary = t as any;
+  }
+
+  // Per-venue credit: venue-touch influence vs recruited-user first check-ins.
+  type VenueInfluence = {
+    venue_id: string;
+    influenced_checkins: number;
+    influenced_new_faces: number;
+    referral_first_checkins: number;
+    people: number;
+    last_checkin_at: string | null;
+  };
+  let venueInfluence: VenueInfluence[] = [];
+  const venueNameById = new Map<string, string>();
+  {
+    const { data: vi, error: viErr } = await (db as any)
+      .from('super_user_venue_influence')
+      .select('venue_id, influenced_checkins, influenced_new_faces, referral_first_checkins, people, last_checkin_at')
+      .eq('super_user_id', userId)
+      .order('influenced_checkins', { ascending: false })
+      .order('last_checkin_at', { ascending: false })
+      .limit(50);
+    if (!viErr && vi) venueInfluence = vi as VenueInfluence[];
+    if (venueInfluence.length > 0) {
+      const { data: venues } = await (db as any)
+        .from('venues')
+        .select('id, name')
+        .in('id', venueInfluence.map((v) => v.venue_id));
+      for (const v of (venues ?? []) as { id: string; name: string }[]) venueNameById.set(v.id, v.name);
+    }
   }
 
   const p = profile as any;
@@ -237,11 +273,54 @@ export default async function AdminSuperUserDetailsPage({
               <p className="text-caption text-muted-light mt-0.5">by referees</p>
             </div>
           </div>
-          {trafficSummary === null && (
-            <p className="text-caption text-muted-light mt-3">
-              Per-venue breakdown and traffic data available once check-in data is live (Phase 1).
-            </p>
-          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
+            <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+              <p className="text-caption font-semibold uppercase tracking-wider text-muted">Influenced check-ins</p>
+              <p className="text-display-md font-bold text-foreground mt-2">{trafficSummary?.influenced_checkins ?? 0}</p>
+              <p className="text-caption text-muted-light mt-0.5">within 7 days of an itinerary touch</p>
+            </div>
+            <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+              <p className="text-caption font-semibold uppercase tracking-wider text-muted">New faces</p>
+              <p className="text-display-md font-bold text-foreground mt-2">{trafficSummary?.influenced_new_faces ?? 0}</p>
+              <p className="text-caption text-muted-light mt-0.5">first visit to that venue</p>
+            </div>
+            <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
+              <p className="text-caption font-semibold uppercase tracking-wider text-muted">Influenced venues</p>
+              <p className="text-display-md font-bold text-foreground mt-2">{trafficSummary?.influenced_venues ?? 0}</p>
+              <p className="text-caption text-muted-light mt-0.5">with at least one</p>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-border bg-surface shadow-sm overflow-hidden mt-3">
+            {venueInfluence.length === 0 ? (
+              <p className="text-body-sm text-muted p-5">No check-ins credited to this Insider yet.</p>
+            ) : (
+              <table className="w-full text-body-sm">
+                <thead>
+                  <tr className="border-b border-border bg-background/50">
+                    <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Venue</th>
+                    <th className="text-right px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Influenced</th>
+                    <th className="text-right px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">New faces</th>
+                    <th className="text-right px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Via referral</th>
+                    <th className="text-right px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden sm:table-cell">People</th>
+                    <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Last check-in</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {venueInfluence.map((v) => (
+                    <tr key={v.venue_id} className="border-b border-border last:border-0">
+                      <td className="px-4 py-2.5 text-foreground">{venueNameById.get(v.venue_id) ?? v.venue_id}</td>
+                      <td className="px-4 py-2.5 text-right font-medium text-foreground">{v.influenced_checkins}</td>
+                      <td className="px-4 py-2.5 text-right text-muted">{v.influenced_new_faces}</td>
+                      <td className="px-4 py-2.5 text-right text-muted">{v.referral_first_checkins}</td>
+                      <td className="px-4 py-2.5 text-right text-muted hidden sm:table-cell">{v.people}</td>
+                      <td className="px-4 py-2.5 text-muted hidden md:table-cell">{formatDate(v.last_checkin_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </section>
 
         <section className="mb-8">

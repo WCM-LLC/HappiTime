@@ -126,6 +126,8 @@ export default async function AdminUsersPage({
         first_checkins_driven: traffic?.first_checkins_driven,
         venues_touched: traffic?.venues_touched,
         redemptions_driven: traffic?.redemptions_driven,
+        influenced_checkins: traffic?.influenced_checkins,
+        influenced_new_faces: traffic?.influenced_new_faces,
       };
     });
   }

@@ -1,6 +1,6 @@
 # Super User Check-in Influence Attribution — Design
 
-**Status:** Database layer and mobile logging calls in this PR. Dashboard tiles are a follow-up (below).
+**Status:** Shipped — database and mobile in #247, dashboards in the follow-up PR.
 **Date:** 2026-10-10
 **Migration:** `supabase/migrations/20261011031500_super_user_checkin_influence.sql`
 **Governing decision:** `OPTION_B_ATTRIBUTION_SPEC.md` — presence-based, in-app only, no MMP, no scan logging on `/r`.
@@ -67,9 +67,15 @@ is pressed. The helper does no filtering of its own: the RPC is a
 no-op for the viewer's own lists and for lists that are not an Insider's. Venues opened from the
 Map tab's itinerary banner are not logged separately — the open already touched every venue.
 
-## Follow-ups (not in this PR)
+## Dashboards
 
-1. **Web:** add influenced check-ins / new faces / venues to `/dashboard/referrals` and
-   `/admin/users`; per-venue table from `super_user_venue_influence`.
-2. **Later, if volume justifies it:** venue-facing "Insiders who sent you guests" line, a
+- `/dashboard/referrals` (My QR): a "Your influence" block (influenced check-ins, new faces,
+  venues, itinerary saves) plus the Insider's top venues, kept separate from "Your referrals".
+  Counts only, self-filtered, read through the service client.
+- `/admin/users`: an "Influenced" column. `/admin/users/[userId]`: influence tiles and a
+  per-venue table from `super_user_venue_influence` splitting influence from referral credit.
+
+## Follow-ups
+
+1. **Later, if volume justifies it:** venue-facing "Insiders who sent you guests" line, a
    guide→venue mapping, payout rules.
