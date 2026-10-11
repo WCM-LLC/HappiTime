@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         Privacy Policy
       </h1>
       <p className="text-sm text-muted mb-10">
-        Effective Date: April 20, 2026
+        Effective Date: October 11, 2026
       </p>
 
       <div className="prose">
@@ -55,7 +55,10 @@ export default function PrivacyPage() {
             We automatically collect usage data including pages visited,
             features used, device type, browser type, IP address, and
             approximate location. We use Vercel Analytics to collect
-            aggregated, privacy-friendly website analytics.
+            aggregated, privacy-friendly website analytics, and HeyCatch to
+            understand how visitors find and use the site — the pages you
+            view, what you click, and the link or campaign that brought you
+            here.
           </p>
 
           <h3 className="font-semibold text-foreground mt-4 mb-2">
@@ -97,8 +100,8 @@ export default function PrivacyPage() {
           <p>
             We share data with trusted service providers who help us operate
             the Platform, including Supabase (database and authentication),
-            Vercel (hosting and analytics), and Google and Apple (OAuth
-            authentication).
+            Vercel (hosting and analytics), HeyCatch (website analytics), and
+            Google and Apple (OAuth authentication).
           </p>
 
           <h3 className="font-semibold text-foreground mt-4 mb-2">

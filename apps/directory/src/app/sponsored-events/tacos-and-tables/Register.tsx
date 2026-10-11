@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { trackOutcome } from "@/lib/heycatch";
 import { EVENT, REGISTRATION_ENDPOINT } from "./event";
 
 type Entry = "team" | "solo";
@@ -119,6 +120,16 @@ export function Register() {
         return;
       }
       setSending(false);
+    }
+    // Only this browser knows the sheet accepted the entry (the endpoint is a
+    // third-party script, not a route of ours), so report it from here.
+    if (recorded) {
+      trackOutcome("event_registration_completed", {
+        event: "tacos-and-tables",
+        entry_type: entry,
+        players: data.players,
+        amount_due: amount,
+      });
     }
     setDone({ first: data.first, last: data.last, amount, recorded, entry, partner });
   }
