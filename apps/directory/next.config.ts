@@ -43,6 +43,16 @@ const nextConfig: NextConfig = {
       // Short link printed on the Tacos & Tables flyer (Oct 13, 2026 Spades
       // tournament). Temporary: it will point at the next tournament page.
       { source: "/spades", destination: "/sponsored-events/tacos-and-tables/", statusCode: 302 as const },
+      // HeyCatch short links: single-character paths (/a–/z, /0–/9) are
+      // reserved for channel attribution. The query IS the attribution — a
+      // bare redirect to / would lose it; the SDK strips the params from the
+      // URL bar after landing. No real route is a single character (/i, /r and
+      // /v only exist with a second segment, which this pattern cannot match).
+      {
+        source: "/:l([a-z0-9])",
+        destination: "/?utm_source=heycatch&utm_campaign=:l",
+        permanent: false,
+      },
       ...HAPPY_HOUR_LANDING_PAGES.map((page) => ({
         source: `/kc/${page.neighborhoodSlug}`,
         destination: page.canonicalPath,

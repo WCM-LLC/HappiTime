@@ -2,6 +2,7 @@
 
 import { FormEvent, Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { trackOutcome } from "@/lib/heycatch";
 
 type SubmitState = "idle" | "loading" | "success" | "error";
 
@@ -105,6 +106,11 @@ function ContactUsForm() {
       if (!response.ok) {
         throw new Error(payload?.error ?? "Unable to send your message right now.");
       }
+
+      // The visitor is anonymous, so the server route has no user id to send
+      // this with; report the lead from the browser, tagged with the /pricing
+      // plan CTA that brought them here (if any).
+      trackOutcome("contact_form_submitted", plan ? { plan } : {});
 
       setState("success");
       setEmail("");
