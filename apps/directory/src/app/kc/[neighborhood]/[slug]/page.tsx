@@ -117,6 +117,19 @@ function formatTime(time: string): string {
     : `${hour}:${String(m).padStart(2, "0")} ${period}`;
 }
 
+/** First candidate whose length fits 18–48; overlong names are flagged, not cut. */
+function venueTitle(name: string, city: string | null): string {
+  const candidates = [
+    city ? `${name} Happy Hour in ${city}` : null,
+    `${name} Happy Hour Specials`,
+    `${name} Happy Hour`,
+  ].filter((c): c is string => c !== null);
+  const fit = candidates.find((c) => c.length >= 18 && c.length <= 48);
+  if (fit) return fit;
+  console.warn(`[seo] venue title out of 18–48 range: "${name}"`);
+  return candidates[candidates.length - 1];
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const venue = await getVenueBySlug(slug);
@@ -136,7 +149,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const dayList = days.length > 0 ? days.slice(0, 3).join(", ") : "select days";
 
   return {
-    title: `${venue.name} Happy Hour Specials & Deals — ${venue.city} | HappiTime`,
+    // The layout template appends " | HappiTime" (12 chars), so this part
+    // must stay 18–48 chars to land the rendered title at 30–60.
+    title: venueTitle(venue.name, venue.city),
     description: `${venue.name} at ${venue.address} has ${windowCount} happy hour ${windowCount === 1 ? "special" : "specials"} on ${dayList}. See today's drink specials, food deals, full menu, and times for 2026.`,
     keywords: [
       `${venue.name} happy hour`,

@@ -61,7 +61,8 @@ export async function generateMetadata({
   const coverImageUrl = normalizeGuideCoverImageUrl(guide.cover_image_url);
 
   return {
-    title: `${guide.title} | HappiTime`,
+    // The root layout template already appends " | HappiTime".
+    title: guide.title,
     description,
     keywords: guide.tags ?? [],
     alternates: { canonical },
