@@ -20,7 +20,8 @@ export function EventTabs({ tabs }: { tabs: Tab[] }) {
 
   useEffect(() => {
     const fromHash = () => {
-      const id = window.location.hash.slice(1);
+      // #coming-soon, or #panel-coming-soon from a pre-hydration tab link.
+      const id = window.location.hash.slice(1).replace(/^panel-/, "");
       if (tabs.some((t) => t.id === id)) setActive(id);
     };
     fromHash();
