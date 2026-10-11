@@ -41,7 +41,26 @@ async function getSharedItinerary(token: string): Promise<SharedItinerary | null
   return data as SharedItinerary;
 }
 
-type Props = { params: Promise<{ token: string }> };
+type Props = {
+  params: Promise<{ token: string }>;
+  searchParams?: Promise<{ ref?: string | string[] }>;
+};
+
+// Custom-scheme handoff into the installed app: happitime://itinerary?token=…&ref=…
+// (the form apps/mobile/src/lib/parseItineraryLink.mjs accepts).
+//
+// Needed because Universal Links do NOT fire when the tap starts on happitime.biz
+// itself — iOS keeps same-domain navigation in Safari — and that is exactly the
+// path from a guide page's "Open the itinerary" card. It also covers in-app
+// browsers (Instagram, TikTok) that never hand links to the OS. Without this the
+// reader is stranded on the web copy, never reaches SharedItineraryScreen, and the
+// itinerary's author gets no check-in credit.
+function appDeepLink(token: string, ref: string | string[] | undefined): string {
+  const raw = (Array.isArray(ref) ? ref[0] : ref) ?? "";
+  const handle = raw.replace(/^@/, "").toLowerCase();
+  const refPart = /^[a-z0-9_]{2,30}$/.test(handle) ? `&ref=${handle}` : "";
+  return `happitime://itinerary?token=${token}${refPart}`;
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { token } = await params;
@@ -76,10 +95,11 @@ function metaLine(item: SharedItem): string {
     .join(" · ");
 }
 
-export default async function SharedItineraryPage({ params }: Props) {
+export default async function SharedItineraryPage({ params, searchParams }: Props) {
   const { token } = await params;
   const itinerary = await getSharedItinerary(token);
   if (!itinerary) notFound();
+  const openInAppHref = appDeepLink(token, (await searchParams)?.ref);
 
   const author = itinerary.author_display_name ?? itinerary.author_handle;
   const count = itinerary.items.length;
@@ -139,6 +159,18 @@ export default async function SharedItineraryPage({ params }: Props) {
         </div>
 
         <div className="mt-5 rounded-2xl border border-[#E5E0D8] bg-white p-5 text-center shadow-sm">
+          <p className="text-sm font-medium text-[#1A1A1A]">
+            Already have HappiTime? Open this itinerary there to save it, map it and check in.
+          </p>
+          <a
+            href={openInAppHref}
+            className="mt-3 block rounded-full bg-[#C8965A] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#b3854f]"
+          >
+            Open in the HappiTime app
+          </a>
+        </div>
+
+        <div className="mt-3 rounded-2xl border border-[#E5E0D8] bg-white p-5 text-center shadow-sm">
           <p className="text-sm font-medium text-[#1A1A1A]">
             Get HappiTime to save this itinerary and discover happy hours near you.
           </p>

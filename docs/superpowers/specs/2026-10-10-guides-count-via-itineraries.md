@@ -56,3 +56,23 @@ public link stops resolving. Republishing mints a new token.
 - Guides with no venue links earn nothing until links are added (three published guides today).
 - The six hand-built static guide pages under `apps/directory/src/app/guides/<name>/` have no
   author and are untouched.
+
+## Post-merge findings (review of #250)
+
+- **Fixed in the follow-up PR — the guide card did not open the app on iOS.** Universal Links do
+  not fire when the tap starts on `happitime.biz` itself; iOS keeps same-domain navigation in
+  Safari. The card links to `/i/{token}` on the same domain, so Safari readers landed on the web
+  copy and were never attributed. `/i/[token]` now carries an explicit "Open in the HappiTime app"
+  button (`happitime://itinerary?token=…&ref=…`), which also covers in-app browsers.
+- **Fixed in the follow-up PR — an itinerary link tapped while the app sat on the sign-in /
+  onboarding gate was lost.** The root capture hook kept only the `ref`. It now stashes the URL
+  (`pendingItineraryLink`), and `useItineraryDeepLink` opens it once the navigator mounts. Needs
+  an app release.
+- **Open — eligibility is only re-checked when the guide is written.** Unpublishing a venue or
+  demoting an author does not retire the companion until the guide is next saved. A demoted
+  author earns nothing in the meantime (`record_itinerary_touch` checks the role itself), but
+  the link keeps resolving.
+- **Open — the author can edit or delete the companion like any list.** Deleting it removes the
+  guide card until the next guide save recreates it; making it public puts it in the Insider feed.
+- **Open — retiring on guide delete fails open.** If the token-clearing update ever raised, the
+  delete would still commit and leave a working link.
