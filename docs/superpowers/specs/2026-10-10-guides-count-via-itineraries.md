@@ -64,6 +64,10 @@ public link stops resolving. Republishing mints a new token.
   Safari. The card links to `/i/{token}` on the same domain, so Safari readers landed on the web
   copy and were never attributed. `/i/[token]` now carries an explicit "Open in the HappiTime app"
   button (`happitime://itinerary?token=…&ref=…`), which also covers in-app browsers.
+- **Fixed in the follow-up PR — an itinerary link tapped while the app sat on the sign-in /
+  onboarding gate was lost.** The root capture hook kept only the `ref`. It now stashes the URL
+  (`pendingItineraryLink`), and `useItineraryDeepLink` opens it once the navigator mounts. Needs
+  an app release.
 - **Open — eligibility is only re-checked when the guide is written.** Unpublishing a venue or
   demoting an author does not retire the companion until the guide is next saved. A demoted
   author earns nothing in the meantime (`record_itinerary_touch` checks the role itself), but

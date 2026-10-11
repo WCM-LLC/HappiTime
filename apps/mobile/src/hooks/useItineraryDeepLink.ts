@@ -15,6 +15,10 @@
 import { useEffect } from "react";
 import * as Linking from "expo-linking";
 import { parseItineraryLink } from "../lib/parseItineraryLink";
+import {
+  markItineraryLinkHandled,
+  takePendingItineraryLink,
+} from "../lib/pendingItineraryLink";
 
 async function waitForNav(
   navigationRef: React.RefObject<any>,
@@ -36,17 +40,27 @@ export function useItineraryDeepLink(navigationRef: React.RefObject<any>) {
     async function handleUrl(url: string) {
       const parsed = parseItineraryLink(url);
       if (!parsed) return; // not an itinerary link — ignore
+      // Tell the above-the-gate stash this one is taken care of, so the root
+      // capture hook (which hears the same URL) cannot leave it to replay later.
+      markItineraryLinkHandled(url);
       const nav = await waitForNav(navigationRef);
       if (cancelled || !nav) return;
       nav.navigate("SharedItinerary", { token: parsed.token });
     }
 
-    // Cold start
+    // A link captured above the auth / onboarding gate, before this hook existed
+    // to hear it (see pendingItineraryLink). Covers both a cold start and a warm
+    // link delivered while gated.
+    const pending = takePendingItineraryLink();
+    if (pending) handleUrl(pending);
+
+    // Cold start — skip if it is the same URL the stash just handled, or the
+    // itinerary would be pushed twice.
     Linking.getInitialURL().then((url) => {
-      if (url) handleUrl(url);
+      if (url && url !== pending) handleUrl(url);
     });
 
-    // Foreground
+    // Foreground, navigator already mounted.
     const sub = Linking.addEventListener("url", ({ url }) => handleUrl(url));
     return () => {
       cancelled = true;
