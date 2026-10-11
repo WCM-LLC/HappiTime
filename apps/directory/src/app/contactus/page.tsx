@@ -2,7 +2,7 @@
 
 import { FormEvent, Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { analytics } from "@heycatch/sdk";
+import { trackOutcome } from "@/lib/heycatch";
 
 type SubmitState = "idle" | "loading" | "success" | "error";
 
@@ -110,7 +110,7 @@ function ContactUsForm() {
       // The visitor is anonymous, so the server route has no user id to send
       // this with; report the lead from the browser, tagged with the /pricing
       // plan CTA that brought them here (if any).
-      analytics.trackEvent("contact_form_submitted", plan ? { plan } : {});
+      trackOutcome("contact_form_submitted", plan ? { plan } : {});
 
       setState("success");
       setEmail("");

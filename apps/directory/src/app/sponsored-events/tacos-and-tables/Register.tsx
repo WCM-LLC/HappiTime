@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { analytics } from "@heycatch/sdk";
+import { trackOutcome } from "@/lib/heycatch";
 import { EVENT, REGISTRATION_ENDPOINT } from "./event";
 
 type Entry = "team" | "solo";
@@ -122,10 +122,9 @@ export function Register() {
       setSending(false);
     }
     // Only this browser knows the sheet accepted the entry (the endpoint is a
-    // third-party script, not a route of ours), so report it from here. Kept
-    // outside the try above so analytics can never read as a failed send.
+    // third-party script, not a route of ours), so report it from here.
     if (recorded) {
-      analytics.trackEvent("event_registration_completed", {
+      trackOutcome("event_registration_completed", {
         event: "tacos-and-tables",
         entry_type: entry,
         players: data.players,
