@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { RootStackParamList } from "../navigation/types";
 import { usePublicItinerary } from "../hooks/usePublicItinerary";
+import { recordItineraryTouch } from "../api/itineraryTouch";
 import { SuperUserBadge } from "../components/SuperUserBadge";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 import { ErrorState } from "../components/ErrorState";
@@ -36,6 +37,14 @@ export const ItineraryDetailScreen: React.FC<Props> = ({ route, navigation }) =>
   const insets = useSafeAreaInsets();
   const { header, venues, loading, error } = usePublicItinerary(listId);
 
+  // Insider attribution: opening the itinerary is a (weak) touch for every venue in it.
+  // Only once the venues are actually on screen — a failed or abandoned load showed
+  // the viewer nothing, so it must not earn anyone credit.
+  const venuesShown = !loading && !error && venues.length > 0;
+  useEffect(() => {
+    if (venuesShown) recordItineraryTouch(listId);
+  }, [listId, venuesShown]);
+
   // Route params give an instant paint (feed / "Shared with me"); a notification
   // deep-link carries only listId, so fall back to the fetched header.
   const name = route.params.name ?? header?.name ?? "Itinerary";
@@ -48,6 +57,7 @@ export const ItineraryDetailScreen: React.FC<Props> = ({ route, navigation }) =>
   const authorName = authorDisplayName ?? authorHandle ?? "HappiTime Insider";
 
   const handleOpenVenue = (venueId: string) => {
+    recordItineraryTouch(listId, venueId);
     navigation.navigate("VenuePreview", { venueId });
   };
 
