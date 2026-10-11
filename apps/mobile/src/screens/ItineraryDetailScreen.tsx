@@ -38,9 +38,12 @@ export const ItineraryDetailScreen: React.FC<Props> = ({ route, navigation }) =>
   const { header, venues, loading, error } = usePublicItinerary(listId);
 
   // Insider attribution: opening the itinerary is a (weak) touch for every venue in it.
+  // Only once the venues are actually on screen — a failed or abandoned load showed
+  // the viewer nothing, so it must not earn anyone credit.
+  const venuesShown = !loading && !error && venues.length > 0;
   useEffect(() => {
-    recordItineraryTouch(listId);
-  }, [listId]);
+    if (venuesShown) recordItineraryTouch(listId);
+  }, [listId, venuesShown]);
 
   // Route params give an instant paint (feed / "Shared with me"); a notification
   // deep-link carries only listId, so fall back to the fetched header.

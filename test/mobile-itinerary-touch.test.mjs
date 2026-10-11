@@ -36,8 +36,13 @@ test("the helper never names the Insider — the server derives it from the list
   assert.doesNotMatch(helper, /super_user|owner|author/i);
 });
 
-test("ItineraryDetail logs the open once per list and every venue tap", () => {
-  assert.match(detail, /useEffect\(\(\) => \{\s*recordItineraryTouch\(listId\);\s*\}, \[listId\]\)/);
+test("ItineraryDetail logs the open only once venues are on screen, and every venue tap", () => {
+  // A failed or abandoned load rendered nothing, so it must not create touches.
+  assert.match(detail, /const venuesShown = !loading && !error && venues\.length > 0;/);
+  assert.match(
+    detail,
+    /useEffect\(\(\) => \{\s*if \(venuesShown\) recordItineraryTouch\(listId\);\s*\}, \[listId, venuesShown\]\)/,
+  );
   const tap = detail.slice(detail.indexOf("const handleOpenVenue"));
   assert.match(tap.slice(0, tap.indexOf("};")), /recordItineraryTouch\(listId, venueId\)/);
 });

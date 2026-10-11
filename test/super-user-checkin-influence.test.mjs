@@ -81,9 +81,13 @@ test("the client can only log its own touches, and never names the Insider", () 
   assert.match(sql, /revoke all on function public\.record_itinerary_touch\(uuid, uuid\) from public, anon/);
 });
 
-test("repeat views in a day are one touch", () => {
+test("repeat views in a day are one touch, carrying the latest time", () => {
   assert.match(sql, /create unique index if not exists super_user_venue_touches_daily_uidx/);
   assert.match(sql, /\(\(created_at at time zone 'utc'\)::date\)/);
+  // DO NOTHING would freeze the day's FIRST timestamp and break last-touch-wins.
+  const body = fn("record_itinerary_touch");
+  assert.match(body, /do update set created_at = excluded\.created_at/);
+  assert.doesNotMatch(body, /do nothing/);
 });
 
 test("row-level presence data is admin-only; definer functions pin search_path", () => {

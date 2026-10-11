@@ -39,7 +39,8 @@ from a strong one (tapped the venue, saved the itinerary).
 | `itinerary_view` | `record_itinerary_touch(list_id)` | wired in this PR — needs an app release |
 | `itinerary_venue_tap` | `record_itinerary_touch(list_id, venue_id)` | wired in this PR — needs an app release |
 
-One row per (user, Insider, venue, kind) per UTC day.
+One row per (user, Insider, venue, kind) per UTC day; a repeat the same day moves that row's
+timestamp to now, so last-touch-wins holds within a day too.
 
 **Not covered:** Guides. `guides.body_md` is free markdown with no venue link table, and the
 directory guide pages are anonymous web. Crediting a guide needs a guide→venue mapping first.
@@ -60,8 +61,9 @@ directory guide pages are anonymous web. Crediting a guide needs a guide→venue
 ## Mobile wiring
 
 `apps/mobile/src/api/itineraryTouch.ts` exposes `recordItineraryTouch(listId, venueId?)`,
-fire-and-forget. `ItineraryDetailScreen` and `SharedItineraryScreen` call it when an itinerary
-opens and when a venue row is pressed. The helper does no filtering of its own: the RPC is a
+fire-and-forget. `ItineraryDetailScreen` and `SharedItineraryScreen` call it once an itinerary
+has loaded with venues on screen (a failed or abandoned load logs nothing) and when a venue row
+is pressed. The helper does no filtering of its own: the RPC is a
 no-op for the viewer's own lists and for lists that are not an Insider's. Venues opened from the
 Map tab's itinerary banner are not logged separately — the open already touched every venue.
 

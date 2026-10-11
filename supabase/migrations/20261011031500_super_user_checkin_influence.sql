@@ -41,7 +41,8 @@ create table if not exists public.super_user_venue_touches (
 );
 
 -- One row per (user, Insider, venue, kind) per UTC day: re-opening an itinerary
--- ten times is one touch, not ten. Writers use ON CONFLICT DO NOTHING.
+-- ten times is one touch, not ten. record_itinerary_touch upserts onto this key,
+-- refreshing created_at so the row always carries the latest time that day.
 create unique index if not exists super_user_venue_touches_daily_uidx
   on public.super_user_venue_touches
   (user_id, super_user_id, venue_id, kind, ((created_at at time zone 'utc')::date));
@@ -248,7 +249,12 @@ begin
   from public.user_list_items i
   where i.list_id = p_list_id
     and (p_venue_id is null or i.venue_id = p_venue_id)
-  on conflict do nothing;
+  -- Same (user, Insider, venue, kind) again today: keep one row but move it to
+  -- now, so "last touch" really is the last one. Staying inside the same UTC day
+  -- means the unique key is unchanged.
+  on conflict (user_id, super_user_id, venue_id, kind, ((created_at at time zone 'utc')::date))
+  do update set created_at = excluded.created_at,
+                subject_id = excluded.subject_id;
 end;
 $$;
 revoke all on function public.record_itinerary_touch(uuid, uuid) from public, anon;
