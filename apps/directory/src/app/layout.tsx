@@ -4,7 +4,6 @@ import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { AppDownloadStrip } from "@/components/AppDownloadStrip";
 import { AuthRecoveryRedirect } from "@/components/AuthRecoveryRedirect";
-import { FirstTouchCapture } from "@/components/FirstTouchCapture";
 import { HappiTimeLogo } from "@/components/Logo";
 import { formatAppRating, getAppStoreRating } from "@/lib/appRating";
 
@@ -183,7 +182,6 @@ gtag('config', 'G-8MZMX2GH4E');`,
       </head>
       <body className="min-h-screen">
         <AuthRecoveryRedirect />
-        <FirstTouchCapture />
         {/* GTM noscript fallback */}
         {GTM_ID && (
           <noscript>
