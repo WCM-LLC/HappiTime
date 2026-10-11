@@ -1,4 +1,8 @@
-import { analytics, HeyCatchProvider } from "@heycatch/sdk";
+import { analytics } from "@heycatch/sdk";
+// HeyCatchProvider comes from the platform module: the SDK's browser build
+// (Expo web) has no provider. `analytics` stays a direct import — the install
+// guide's static import in the root entry file.
+import { HeyCatchProvider } from "./src/lib/heycatchSdk";
 import type { Session } from "@supabase/supabase-js";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
@@ -32,6 +36,7 @@ import { setSignInRequestHandler, type GatedActionKind } from "./src/lib/gatedAc
 import { setNotifPrimeHandler } from "./src/lib/notifPrime";
 import { setGuestSelections } from "./src/lib/guestSelections";
 import { clearIdentity, identifyUser } from "./src/lib/heycatch";
+import { ScreenView } from "./src/components/ScreenView";
 import { registerVisitRatingHandler } from "./src/lib/ratingRequest";
 import { colors } from "./src/theme/colors";
 import { spacing } from "./src/theme/spacing";
@@ -328,16 +333,15 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
     };
   }, []);
 
-  // Link this device's activity to the signed-in user in HeyCatch. Keyed on
-  // id + email so a token refresh (a new session object, same user) does not
-  // re-send it.
+  // Link this device's activity to the signed-in user in HeyCatch (by account
+  // id only — see lib/heycatch). Keyed on the id so a token refresh (a new
+  // session object, same user) does not re-send it.
   const sessionUser = session?.user ?? null;
   const sessionUserId = sessionUser?.id;
-  const sessionUserEmail = sessionUser?.email;
   useEffect(() => {
     if (sessionUser) identifyUser(sessionUser);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionUserId, sessionUserEmail]);
+  }, [sessionUserId]);
 
   useEffect(() => {
     const userId = session?.user?.id;
@@ -365,7 +369,12 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
 
   if (!session) {
     if (guestChoice === "signin") {
-      return <AuthScreen />;
+      return (
+        <>
+          <ScreenView name="Auth" />
+          <AuthScreen />
+        </>
+      );
     }
 
     if (guestChoice === "skip") {
@@ -384,19 +393,22 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
     }
     if (!prefeed.seen) {
       return (
-        <PreFeedOnboarding
-          onDone={async (guest) => {
-            // Stash the guest's selections durably so the feed can seed its
-            // filter and signup can persist them (Phase 3). Enter guest browse
-            // even if a write fails (worst case: no personalization this run).
-            try {
-              await setGuestSelections(guest);
-              await prefeed.markSeen();
-            } finally {
-              setGuestChoice("skip");
-            }
-          }}
-        />
+        <>
+          <ScreenView name="PreFeedOnboarding" />
+          <PreFeedOnboarding
+            onDone={async (guest) => {
+              // Stash the guest's selections durably so the feed can seed its
+              // filter and signup can persist them (Phase 3). Enter guest browse
+              // even if a write fails (worst case: no personalization this run).
+              try {
+                await setGuestSelections(guest);
+                await prefeed.markSeen();
+              } finally {
+                setGuestChoice("skip");
+              }
+            }}
+          />
+        </>
       );
     }
     // Already saw the pre-feed flow but still no account → straight to guest browse.
@@ -414,12 +426,15 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
 
   if (!onboarding.hasCompletedOnboarding) {
     return (
-      <OnboardingScreen
-        session={session}
-        initialStep={onboarding.step}
-        onProgress={onboarding.saveProgress}
-        onComplete={onboarding.completeOnboarding}
-      />
+      <>
+        <ScreenView name="Onboarding" />
+        <OnboardingScreen
+          session={session}
+          initialStep={onboarding.step}
+          onProgress={onboarding.saveProgress}
+          onComplete={onboarding.completeOnboarding}
+        />
+      </>
     );
   }
 
@@ -429,10 +444,13 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
 
   if (handleGate === "needed") {
     return (
-      <PostSignupCapture
-        session={session}
-        onComplete={() => setHandleGate("satisfied")}
-      />
+      <>
+        <ScreenView name="PostSignupCapture" />
+        <PostSignupCapture
+          session={session}
+          onComplete={() => setHandleGate("satisfied")}
+        />
+      </>
     );
   }
 

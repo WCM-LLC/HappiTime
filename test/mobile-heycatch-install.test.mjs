@@ -104,3 +104,32 @@ test("both build workspaces declare the SDK and its Expo companions", () => {
   }
   assert.doesNotMatch(mobile["@heycatch/sdk"], /-/, "never a prerelease (-dev/-beta) SDK build");
 });
+
+test("HeyCatch identity is the account id only — no email or name", () => {
+  // HeyCatch cannot delete a person, and identify events keep a copy of the
+  // properties they carried, so personal properties sent here would outlive
+  // account deletion (Codex P1 on #253). The bare id points at nothing once
+  // delete-account has run.
+  const lib = read("apps/mobile/src/lib/heycatch.ts");
+  const identify = lib.slice(lib.indexOf("export function identifyUser"), lib.indexOf("export function clearIdentity"));
+  assert.match(identify, /setIdentity\(\s*user\.id,\s*undefined,/);
+  assert.doesNotMatch(identify, /email|full_name|user_metadata|display_name|\bname\b/);
+  assert.doesNotMatch(appTsx, /sessionUserEmail/);
+});
+
+test("gate screens rendered outside AppNavigator report screen views", () => {
+  for (const name of ["Auth", "PreFeedOnboarding", "Onboarding", "PostSignupCapture"]) {
+    assert.match(appTsx, new RegExp(`<ScreenView name="${name}" />`), `${name} is not reported`);
+  }
+  // One shared reporter, so repeats are skipped across the gate → navigator hand-off.
+  assert.match(navigator, /reportScreen\(navigationRef/);
+});
+
+test("the Expo web target gets a provider and trackScreen from the platform module", () => {
+  // The SDK's browser entry (what Metro resolves on web) exports no
+  // HeyCatchProvider and no analytics.trackScreen.
+  assert.match(appTsx, /import \{ HeyCatchProvider \} from "\.\/src\/lib\/heycatchSdk";/);
+  const web = read("apps/mobile/src/lib/heycatchSdk.web.tsx");
+  assert.match(web, /export function HeyCatchProvider/);
+  assert.match(web, /trackScreen\(name/);
+});

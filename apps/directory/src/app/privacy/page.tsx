@@ -59,8 +59,8 @@ export default function PrivacyPage() {
             understand how people find and use the site and the mobile app —
             the pages and screens you view, what you click or tap, and the
             link or campaign that brought you here. In the mobile app, once
-            you sign in, this activity is associated with your account (your
-            account ID, email address, and name).
+            you sign in, this activity is associated with your account ID
+            only. We do not send HeyCatch your email address or name.
           </p>
 
           <h3 className="font-semibold text-foreground mt-4 mb-2">
