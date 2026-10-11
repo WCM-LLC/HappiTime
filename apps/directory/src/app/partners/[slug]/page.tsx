@@ -395,7 +395,7 @@ export default async function PartnerPage({ params }: Props) {
           </TrackedLink>
           {partner.instagramUrl && (
             <TrackedLink
-              href={partner.instagramUrl}
+              href={withAffiliateUtm(partner.instagramUrl, partner.utmCampaign, "footer_instagram")}
               eventType="cta_click"
               pagePath={pagePath}
               meta={{ ...meta, cta: "partner_instagram" }}
@@ -406,7 +406,7 @@ export default async function PartnerPage({ params }: Props) {
           )}
           {partner.facebookUrl && (
             <TrackedLink
-              href={partner.facebookUrl}
+              href={withAffiliateUtm(partner.facebookUrl, partner.utmCampaign, "footer_facebook")}
               eventType="cta_click"
               pagePath={pagePath}
               meta={{ ...meta, cta: "partner_facebook" }}
