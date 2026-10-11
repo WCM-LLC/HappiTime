@@ -87,5 +87,12 @@ longer need a subtitle to pass `c_meta_description`.
   (401). Options: enable transformations, enable Cloudinary fetch, or migrate those photos to
   Cloudinary.
 - **Content-Security-Policy (`t_security_headers`).** It ships as `Content-Security-Policy-Report-Only`,
-  as the audit advises. Review a week of violations, then switch the header name to enforce. The
-  audit re-run may still count CSP as missing until then.
+  as the audit advises. There is no `report-uri` yet, so violations show only in the browser
+  console. Watch the console on the main pages, or add a reporting endpoint, then rename the
+  header to enforce it. The audit re-run may still count CSP as missing until then.
+- **Daycap guide author.** `guides.author_id` is null, so the page credits "the HappiTime editors"
+  and links to `/about/`, which now lists the editorial guides. If one person wrote it, setting
+  `author_id` gives it a personal byline and `/author/` page. That is a data write, so it's your call.
+- **Two founder author identities.** `public_guide_authors` has both "Juan Williams" and
+  "juanderful1". The second one's `/author/juanderful1/` page reads as a handle, not a person.
+  Either set that profile's display name or move its guides to the main profile.
