@@ -7,6 +7,8 @@
 // visiting from another state — or a KC user whose phone is still on Pacific
 // after a trip — sees the wrong time for a bar three blocks away. Pass the
 // event's `timezone` column; KC is only the fallback.
+import { recurrenceLabel } from "./eventSchedule";
+
 export const VENUE_FALLBACK_TZ = "America/Chicago";
 
 export function formatEventDate(dateStr: string, timeZone: string = VENUE_FALLBACK_TZ): string {
@@ -27,15 +29,10 @@ export function formatRecurrenceRule(
   startTime: string,
   timeZone: string = VENUE_FALLBACK_TZ,
 ): string {
-  const DOW_MAP: Record<string, string> = {
-    SU: "Sun", MO: "Mon", TU: "Tue", WE: "Wed", TH: "Thu", FR: "Fri", SA: "Sat",
-  };
-  const time = formatEventTime(startTime, timeZone);
-  if (!rule) return `Recurring at ${time}`;
-  const match = rule.match(/BYDAY=([A-Z,]+)/);
-  if (!match) return `Recurring at ${time}`;
-  const days = match[1].split(",").map((d) => DOW_MAP[d] ?? d).join(", ");
-  return `Every ${days} at ${time}`;
+  // recurrenceLabel understands monthly ("2nd Thu of the month") and daily
+  // rules as well as weekly; the regex this replaced only knew BYDAY=MO,TU and
+  // labelled everything else "Recurring".
+  return `${recurrenceLabel(rule)} at ${formatEventTime(startTime, timeZone)}`;
 }
 
 export const EVENT_TYPE_LABELS: Record<string, string> = {

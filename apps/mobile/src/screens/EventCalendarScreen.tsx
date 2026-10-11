@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useUpcomingEvents, type UpcomingEvent } from "../hooks/useUpcomingEvents";
 import { tierVariant } from "../lib/venueTier";
 import { EVENT_TYPE_LABELS, formatEventDate, formatEventTime, formatRecurrenceRule } from "../lib/eventDisplay";
+import { occursOnLocalDate } from "../lib/eventSchedule";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useUserFollowedVenues } from "../hooks/useUserFollowedVenues";
 import { useUserPreferences } from "../hooks/useUserPreferences";
@@ -25,23 +26,20 @@ import { spacing } from "../theme/spacing";
 
 /* ── Recurrence helpers ── */
 
-const DOW_RRULE: Record<string, number> = {
-  SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6,
-};
-
-// Returns true if a recurring event's BYDAY schedule includes the given JS day-of-week (0=Sun).
-// Falls back to the DOW of starts_at when no BYDAY is present.
-function recurringOccursOnDow(rule: string | null, startTime: string, targetDow: number): boolean {
-  if (!rule) return new Date(startTime).getDay() === targetDow;
-  const match = rule.match(/BYDAY=([A-Z,]+)/);
-  if (!match) return new Date(startTime).getDay() === targetDow;
-  return match[1].split(",").some((d) => DOW_RRULE[d] === targetDow);
+// Does a recurring event fall on the calendar day `offset` days from `now`?
+// Delegates to lib/eventSchedule, which understands weekly, monthly ("2nd Thu")
+// and daily rules and stops matching once a series has ended. The regex this
+// replaced only read BYDAY=MO,TU: a monthly series showed up every week, and a
+// series past its UNTIL never went away.
+function recurringOccursInDays(ev: UpcomingEvent, now: Date, offset: number): boolean {
+  const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+  return occursOnLocalDate(ev, day.getFullYear(), day.getMonth() + 1, day.getDate());
 }
 
-// Returns true if any of the next 7 days (starting from today) matches the recurrence schedule.
-function recurringOccursThisWeek(rule: string | null, startTime: string, todayDow: number): boolean {
+// True if any of the next 7 days (starting today) has an occurrence.
+function recurringOccursThisWeek(ev: UpcomingEvent, now: Date): boolean {
   for (let i = 0; i < 7; i++) {
-    if (recurringOccursOnDow(rule, startTime, (todayDow + i) % 7)) return true;
+    if (recurringOccursInDays(ev, now, i)) return true;
   }
   return false;
 }
@@ -111,14 +109,14 @@ function applyFilter(
 
     case "today":
       return events.filter((ev) => {
-        if (ev.is_recurring) return recurringOccursOnDow(ev.recurrence_rule, ev.starts_at, now.getDay());
+        if (ev.is_recurring) return recurringOccursInDays(ev, now, 0);
         const d = new Date(ev.starts_at);
         return d >= todayStart && d < todayEnd;
       });
 
     case "this_week":
       return events.filter((ev) => {
-        if (ev.is_recurring) return recurringOccursThisWeek(ev.recurrence_rule, ev.starts_at, now.getDay());
+        if (ev.is_recurring) return recurringOccursThisWeek(ev, now);
         const d = new Date(ev.starts_at);
         return d >= todayStart && d < weekEnd;
       });
