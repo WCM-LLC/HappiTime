@@ -1,6 +1,6 @@
 # Super User Check-in Influence Attribution — Design
 
-**Status:** Database layer in this PR. Mobile logging calls and dashboard tiles are follow-ups (below).
+**Status:** Database layer and mobile logging calls in this PR. Dashboard tiles are a follow-up (below).
 **Date:** 2026-10-10
 **Migration:** `supabase/migrations/20261011031500_super_user_checkin_influence.sql`
 **Governing decision:** `OPTION_B_ATTRIBUTION_SPEC.md` — presence-based, in-app only, no MMP, no scan logging on `/r`.
@@ -36,8 +36,8 @@ from a strong one (tapped the venue, saved the itinerary).
 | Kind | Written by | Client change needed |
 |---|---|---|
 | `itinerary_save` | trigger on `super_user_credit_events` (already written by `copy_shared_itinerary`) | none — live on merge |
-| `itinerary_view` | `record_itinerary_touch(list_id)` | yes |
-| `itinerary_venue_tap` | `record_itinerary_touch(list_id, venue_id)` | yes |
+| `itinerary_view` | `record_itinerary_touch(list_id)` | wired in this PR — needs an app release |
+| `itinerary_venue_tap` | `record_itinerary_touch(list_id, venue_id)` | wired in this PR — needs an app release |
 
 One row per (user, Insider, venue, kind) per UTC day.
 
@@ -57,13 +57,17 @@ directory guide pages are anonymous web. Crediting a guide needs a guide→venue
   only way to game this is a real, code-verified check-in. Fine for reporting; revisit before
   money rides on it.
 
+## Mobile wiring
+
+`apps/mobile/src/api/itineraryTouch.ts` exposes `recordItineraryTouch(listId, venueId?)`,
+fire-and-forget. `ItineraryDetailScreen` and `SharedItineraryScreen` call it when an itinerary
+opens and when a venue row is pressed. The helper does no filtering of its own: the RPC is a
+no-op for the viewer's own lists and for lists that are not an Insider's. Venues opened from the
+Map tab's itinerary banner are not logged separately — the open already touched every venue.
+
 ## Follow-ups (not in this PR)
 
-1. **Mobile:** call `record_itinerary_touch(listId)` when `ItineraryDetailScreen` /
-   `SharedItineraryScreen` opens a list the viewer does not own, and
-   `record_itinerary_touch(listId, venueId)` on venue press. Fire-and-forget; the RPC is a no-op
-   for non-Insider lists.
-2. **Web:** add influenced check-ins / new faces / venues to `/dashboard/referrals` and
+1. **Web:** add influenced check-ins / new faces / venues to `/dashboard/referrals` and
    `/admin/users`; per-venue table from `super_user_venue_influence`.
-3. **Later, if volume justifies it:** venue-facing "Insiders who sent you guests" line, a
+2. **Later, if volume justifies it:** venue-facing "Insiders who sent you guests" line, a
    guide→venue mapping, payout rules.
