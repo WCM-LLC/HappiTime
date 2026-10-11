@@ -81,3 +81,16 @@ public link stops resolving. Republishing mints a new token.
   share button. Deleting a linked venue re-syncs too, and the sync resets a companion to private.
 - **Fixed, same migration — retiring on guide delete failed open.** It now fails closed: if the
   link cannot be retired the delete aborts.
+
+## Follow-ups from the review of #254
+
+All three fixed in `20261011060000_guide_itinerary_followups.sql`:
+
+- **A venue born published.** A venue inserted already-published under a slug a guide links now
+  re-syncs that guide. (Delete-and-recreate is this project's normal way to replace a venue.)
+- **Friend shares of a retired companion.** A friend the companion was shared with in the app
+  keeps their `itinerary_share` grant and can still open it, but `record_itinerary_touch` no
+  longer credits a companion whose link has been retired.
+- **Racing re-syncs.** `sync_guide_itinerary` takes a per-guide advisory lock before reading
+  anything, so a sync that waited cannot act on eligibility that was lost while it waited.
+  Multi-guide re-syncs take those locks in id order.
