@@ -17,7 +17,7 @@ import * as Linking from "expo-linking";
 import { parseItineraryLink } from "../lib/parseItineraryLink";
 import {
   markItineraryLinkHandled,
-  setPendingItineraryLink,
+  restorePendingItineraryLink,
   takePendingItineraryLink,
 } from "../lib/pendingItineraryLink";
 
@@ -45,8 +45,8 @@ export function useItineraryDeepLink(navigationRef: React.RefObject<any>) {
       if (cancelled || !nav) {
         // Not routed (navigator never became ready, or this hook unmounted during
         // an auth transition). Put it back so the next mount opens it, instead of
-        // losing it silently.
-        setPendingItineraryLink(url);
+        // losing it silently — unless a newer link has arrived meanwhile.
+        restorePendingItineraryLink(url);
         return;
       }
       nav.navigate("SharedItinerary", { token: parsed.token });
@@ -62,10 +62,11 @@ export function useItineraryDeepLink(navigationRef: React.RefObject<any>) {
     const pending = takePendingItineraryLink();
     if (pending) handleUrl(pending);
 
-    // Cold start — skip if it is the same URL the stash just handled, or the
-    // itinerary would be pushed twice.
+    // Cold start — only when nothing was stashed. A stashed link is the latest
+    // thing the person tapped (it is the launch URL itself, or something newer
+    // that arrived at the gate), so the launch URL must not be routed on top of it.
     Linking.getInitialURL().then((url) => {
-      if (url && url !== pending) handleUrl(url);
+      if (url && !pending) handleUrl(url);
     });
 
     // Foreground, navigator already mounted.

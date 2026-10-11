@@ -14,6 +14,7 @@ import { readFileSync } from "node:fs";
 import {
   HANDLED_WINDOW_MS,
   markItineraryLinkHandled,
+  restorePendingItineraryLink,
   setPendingItineraryLink,
   takePendingItineraryLink,
 } from "../apps/mobile/src/lib/pendingItineraryLink.mjs";
@@ -60,7 +61,7 @@ test("the root capture hook stashes itinerary links but does not leave the gate 
 test("the navigator consumes the stash on mount and does not route the launch URL twice", () => {
   const hook = read("apps/mobile/src/hooks/useItineraryDeepLink.ts");
   assert.match(hook, /const pending = takePendingItineraryLink\(\);\s*if \(pending\) handleUrl\(pending\);/);
-  assert.match(hook, /if \(url && url !== pending\) handleUrl\(url\);/);
+  assert.match(hook, /if \(url && !pending\) handleUrl\(url\);/, "a stashed link supersedes the launch URL");
 });
 
 test("a link is marked handled only after the navigator accepts it; otherwise it goes back in the stash", () => {
@@ -71,15 +72,24 @@ test("a link is marked handled only after the navigator accepts it; otherwise it
   assert.ok(navigate !== -1 && mark > navigate, "mark comes after navigate");
   assert.match(
     body,
-    /if \(cancelled \|\| !nav\) \{[\s\S]*?setPendingItineraryLink\(url\);\s*return;\s*\}/,
+    /if \(cancelled \|\| !nav\) \{[\s\S]*?restorePendingItineraryLink\(url\);\s*return;\s*\}/,
     "a timed-out or cancelled route is re-stashed for the next mount",
   );
 });
 
-test("re-stashing an unrouted link works even though it was never marked handled", () => {
+test("an unrouted link is put back for the next mount", () => {
   takePendingItineraryLink();
   setPendingItineraryLink(URL_B, 9_000_000); // capture hook
   assert.equal(takePendingItineraryLink(), URL_B); // navigator mounts, takes it…
-  setPendingItineraryLink(URL_B, 9_000_050); // …navigation times out → put back
+  restorePendingItineraryLink(URL_B); // …navigation times out → put back
   assert.equal(takePendingItineraryLink(), URL_B, "still there for the next mount");
+});
+
+test("putting a link back never overwrites a newer one — the latest tap wins", () => {
+  takePendingItineraryLink();
+  setPendingItineraryLink(URL_A, 9_500_000);
+  assert.equal(takePendingItineraryLink(), URL_A); // navigator starts routing A…
+  setPendingItineraryLink(URL_B, 9_500_100); // …B arrives while A is still waiting
+  restorePendingItineraryLink(URL_A); // A could not be routed
+  assert.equal(takePendingItineraryLink(), URL_B);
 });

@@ -35,6 +35,12 @@ export function setPendingItineraryLink(url, now = Date.now()) {
   pending = url;
 }
 
+/** Put back a URL the navigator took but could not route. Never overwrites a
+ *  newer link that arrived in the meantime — the latest tap wins. */
+export function restorePendingItineraryLink(url) {
+  if (pending === null) pending = url;
+}
+
 /** Return and clear the stashed itinerary deep-link URL (null if none). */
 export function takePendingItineraryLink() {
   const url = pending;
