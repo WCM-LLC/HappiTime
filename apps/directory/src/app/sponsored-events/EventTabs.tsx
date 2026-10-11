@@ -5,14 +5,18 @@ import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 
 type Tab = { id: string; label: string; panel: ReactNode };
 
 /**
- * Tabs for /sponsored-events/. Both panels are server-rendered (the inactive
- * one is `hidden`), so crawlers and no-JS readers get all of it, and
- * /sponsored-events/#coming-soon opens straight to that tab. Keyboard: the
- * WAI-ARIA tabs pattern (arrow keys, Home/End move between tabs).
+ * Tabs for /sponsored-events/. Both panels are server-rendered and stay visible
+ * until this component hydrates, so crawlers and no-JS readers get all of it;
+ * without JS the tabs are plain in-page links to each panel. Once hydrated, the
+ * inactive panel is hidden and /sponsored-events/#coming-soon opens straight to
+ * that tab. Keyboard: the WAI-ARIA tabs pattern (arrow keys, Home/End).
  */
 export function EventTabs({ tabs }: { tabs: Tab[] }) {
   const [active, setActive] = useState(tabs[0].id);
-  const buttons = useRef<(HTMLButtonElement | null)[]>([]);
+  // False on the server and before hydration: nothing is hidden until the
+  // tab handlers exist to show it again.
+  const [ready, setReady] = useState(false);
+  const buttons = useRef<(HTMLAnchorElement | null)[]>([]);
 
   useEffect(() => {
     const fromHash = () => {
@@ -20,6 +24,7 @@ export function EventTabs({ tabs }: { tabs: Tab[] }) {
       if (tabs.some((t) => t.id === id)) setActive(id);
     };
     fromHash();
+    setReady(true);
     window.addEventListener("hashchange", fromHash);
     return () => window.removeEventListener("hashchange", fromHash);
   }, [tabs]);
@@ -50,18 +55,21 @@ export function EventTabs({ tabs }: { tabs: Tab[] }) {
         {tabs.map((t, i) => {
           const selected = t.id === active;
           return (
-            <button
+            <a
               key={t.id}
+              href={`#panel-${t.id}`}
               ref={(el) => {
                 buttons.current[i] = el;
               }}
               id={`tab-${t.id}`}
               role="tab"
-              type="button"
               aria-selected={selected}
               aria-controls={`panel-${t.id}`}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => select(i)}
+              tabIndex={ready ? (selected ? 0 : -1) : undefined}
+              onClick={(e) => {
+                e.preventDefault();
+                select(i);
+              }}
               onKeyDown={(e) => onKeyDown(e, i)}
               className={`-mb-px border-b-2 px-4 py-3 text-[15px] font-bold transition-colors ${
                 selected
@@ -70,7 +78,7 @@ export function EventTabs({ tabs }: { tabs: Tab[] }) {
               }`}
             >
               {t.label}
-            </button>
+            </a>
           );
         })}
       </div>
@@ -80,7 +88,7 @@ export function EventTabs({ tabs }: { tabs: Tab[] }) {
           id={`panel-${t.id}`}
           role="tabpanel"
           aria-labelledby={`tab-${t.id}`}
-          hidden={t.id !== active}
+          hidden={ready && t.id !== active}
           tabIndex={0}
         >
           {t.panel}
