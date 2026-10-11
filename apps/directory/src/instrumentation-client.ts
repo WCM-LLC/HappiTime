@@ -12,7 +12,15 @@
 // not hand-instrument those for HeyCatch. Business outcomes go through
 // `trackOutcome` (lib/heycatch.ts) at the point they happen.
 import { analytics } from "@heycatch/sdk";
+import { captureFirstTouch } from "@/lib/firstTouch";
 import { redactEvent } from "@/lib/redactSensitiveUrls";
+
+// Before init: HeyCatch strips utm_* from the URL shortly after it starts.
+try {
+  captureFirstTouch();
+} catch {
+  /* attribution must never break the page */
+}
 
 // This file runs before hydration, so a throw here would leave every client
 // component on the site inert. Analytics is never worth that.

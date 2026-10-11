@@ -1,5 +1,6 @@
 "use client";
 
+import { getUtmMeta } from "./firstTouch";
 import { supabase } from "./supabase";
 
 /**
@@ -21,22 +22,6 @@ type TrackEventParams = {
   venueId?: string;
   meta?: Record<string, unknown>;
 };
-
-/**
- * Capture campaign params (utm_* or src) from the current URL so every event
- * carries its traffic source in meta. Values are length-capped; absent params
- * are omitted.
- */
-function getUtmMeta(): Record<string, string> {
-  if (typeof window === "undefined") return {};
-  const params = new URLSearchParams(window.location.search);
-  const out: Record<string, string> = {};
-  for (const k of ["utm_source", "utm_medium", "utm_campaign", "src"]) {
-    const v = params.get(k);
-    if (v) out[k] = v.slice(0, 64);
-  }
-  return out;
-}
 
 /**
  * Social sources that should also be recorded as venue attribution events
@@ -82,10 +67,13 @@ export async function trackEvent({
 
   // Social-tagged venue page views also become venue attribution events, so
   // venue dashboards show "HappiTime sent these people" alongside QR scans.
-  // track-visit dedupes per (venue, source, session) server-side.
+  // track-visit dedupes per (venue, source, session) server-side. Only a
+  // fresh touch counts: carried and referrer-inferred sources (utm_touch set)
+  // stay in directory_events meta and never reach venue attribution.
   const socialSource = (utm.utm_source ?? utm.src ?? "").toLowerCase();
   if (
     eventType === "page_view" &&
+    !utm.utm_touch &&
     venueId &&
     ATTRIBUTED_SOCIAL_SOURCES.has(socialSource)
   ) {
