@@ -51,7 +51,9 @@ const nextConfig: NextConfig = {
       {
         source: "/:l([a-z0-9])",
         destination: "/?utm_source=heycatch&utm_campaign=:l",
-        permanent: false,
+        // Explicit 302, as the HeyCatch guide specifies (`permanent: false`
+        // emits 307 here), matching the /spades rule above.
+        statusCode: 302 as const,
       },
       ...HAPPY_HOUR_LANDING_PAGES.map((page) => ({
         source: `/kc/${page.neighborhoodSlug}`,
