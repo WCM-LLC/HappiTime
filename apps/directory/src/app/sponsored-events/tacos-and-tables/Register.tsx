@@ -171,7 +171,7 @@ export function Register() {
         {EVENT.contactPhone && (
           <p className="lede">
             Text <a href={`sms:${EVENT.contactPhone.replace(/\D/g, "")}`}>{EVENT.contactPhone}</a>{" "}
-            to ask if there's room.
+            to ask if there&apos;s room.
           </p>
         )}
       </div>
