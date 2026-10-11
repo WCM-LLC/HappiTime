@@ -10,6 +10,7 @@ import {
   classifyBackup,
   type GuideBackup,
 } from '@/utils/guideDraftBackup.mjs';
+import { guideVenueSlugs } from '@/utils/guideVenueLinks.mjs';
 
 // SSR must be disabled — @uiw/react-md-editor uses window on init.
 const MDEditor = dynamic(() => import('@uiw/react-md-editor'), {
@@ -62,6 +63,7 @@ export function GuideEditor({
   // Ref mirror of bodyMd: schedulePersist's timeout would otherwise capture a
   // stale render's state and persist one edit behind.
   const bodyRef = useRef(initialBodyMd);
+  const linkedVenueCount = guideVenueSlugs(bodyMd).length;
   const persistTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const key = backupKey(id ?? null);
   // Submit posts the draft's id; before the first save there is no row, so the
@@ -306,6 +308,13 @@ export function GuideEditor({
               preview="edit"
             />
           </div>
+          <p className="text-body-sm text-muted mt-2">
+            <span className="font-medium text-foreground">
+              {linkedVenueCount} {linkedVenueCount === 1 ? 'venue' : 'venues'} linked.
+            </span>{' '}
+            Link each spot to its HappiTime page (happitime.biz/kc/…). Once the guide is published, the linked
+            spots become an itinerary readers can open in the app, and check-ins that follow are credited to you.
+          </p>
         </div>
 
         {/* Actions */}
