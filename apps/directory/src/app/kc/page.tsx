@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { KC_NEIGHBORHOODS, type Neighborhood } from "@/lib/neighborhoods";
+import { KC_NEIGHBORHOODS, OTHER_KC_SLUG, bestNeighborhoodSlug } from "@/lib/neighborhoods";
 import {
   HAPPY_HOUR_LANDING_PAGES,
   getHappyHourLandingPageByNeighborhoodSlug,
@@ -10,13 +10,14 @@ import type { VenueWithWindows } from "@/lib/queries";
 import { itemListJsonLd } from "@/lib/structuredData";
 import { KCMapPage } from "@/components/KCMapPage";
 import { PageTracker } from "@/components/PageTracker";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
 
 // Revalidate every 15 minutes — keeps venue data fresh
 export const revalidate = 900;
 
 const KC_SEO_TITLE = "Happy Hours in Kansas City | HappiTime";
 const KC_SEO_DESCRIPTION =
-  "Find the best happy hour deals in Kansas City. Browse drink specials and food deals by neighborhood — Westport, Plaza, Crossroads & more. Download HappiTime free.";
+  "Kansas City happy hour deals by neighborhood: drink specials and food deals in Westport, the Plaza, the Crossroads and more. HappiTime is free.";
 const HAPPITIME_BUSINESS_JSON_LD = [
   {
     "@context": "https://schema.org",
@@ -87,6 +88,7 @@ export const metadata: Metadata = {
     canonical: "/kc/",
   },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     type: "website",
     title: KC_SEO_TITLE,
     description: KC_SEO_DESCRIPTION,
@@ -98,43 +100,6 @@ export const metadata: Metadata = {
     description: KC_SEO_DESCRIPTION,
   },
 };
-
-/**
- * Check if a venue falls within a neighborhood's geographic radius.
- */
-function isVenueInNeighborhood(
-  venue: VenueWithWindows,
-  n: Neighborhood
-): boolean {
-  if (venue.lat == null || venue.lng == null) return false;
-  const latDelta = n.radiusMiles / 69;
-  const lngDelta = n.radiusMiles / (69 * Math.cos((n.lat * Math.PI) / 180));
-  return (
-    venue.lat >= n.lat - latDelta &&
-    venue.lat <= n.lat + latDelta &&
-    venue.lng >= n.lng - lngDelta &&
-    venue.lng <= n.lng + lngDelta
-  );
-}
-
-/**
- * Find the best-matching neighborhood for a venue (closest center).
- */
-function bestNeighborhoodSlug(venue: VenueWithWindows): string {
-  if (venue.lat == null || venue.lng == null) return "kansas-city";
-  let best = "kansas-city";
-  let bestDist = Infinity;
-  for (const n of KC_NEIGHBORHOODS) {
-    const dlat = venue.lat - n.lat;
-    const dlng = venue.lng - n.lng;
-    const dist = dlat * dlat + dlng * dlng;
-    if (dist < bestDist && isVenueInNeighborhood(venue, n)) {
-      bestDist = dist;
-      best = n.slug;
-    }
-  }
-  return best;
-}
 
 export default async function KCPage() {
   const venues = await getAllKCVenues();
@@ -268,6 +233,21 @@ function NeighborhoodSeoLinks() {
               </a>
             );
           })}
+          {/* The hub for venues outside every neighborhood radius. */}
+          <a
+            href={`/kc/${OTHER_KC_SLUG}/`}
+            className="group block rounded-2xl border border-border bg-surface p-5 transition-all hover:border-brand hover:shadow-sm"
+          >
+            <h2 className="text-lg font-bold text-foreground transition-colors group-hover:text-brand">
+              Happy Hours Elsewhere in Kansas City
+            </h2>
+            <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted">
+              Spots outside the neighborhoods above, with their times and specials.
+            </p>
+            <span className="mt-4 inline-flex text-xs font-semibold text-brand">
+              View happy hours →
+            </span>
+          </a>
         </div>
       </div>
     </section>

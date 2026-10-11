@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { StoreDownloadCTA } from "@/components/StoreDownloadCTA";
 import { HappiTimeLogo } from "@/components/Logo";
+import { jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/app/" },
   // Root layout applies the "%s | HappiTime" title template, so the brand is
   // appended automatically — don't repeat it here (renders: "Kansas City Happy
   // Hour App for iPhone & Android | HappiTime", ~59 chars, fits the SERP).
@@ -14,6 +16,12 @@ export const metadata: Metadata = {
 export default function AppDownloadPage() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          webPageJsonLd({ type: "WebPage", name: "Kansas City Happy Hour App for iPhone & Android", url: "https://happitime.biz/app/", description: metadata.description ?? "" }),
+        )}
+      />
       <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
         {/* Left — text content */}
         <div className="flex-1 text-center lg:text-left">

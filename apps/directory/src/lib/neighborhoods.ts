@@ -182,3 +182,50 @@ export const KC_NEIGHBORHOODS: Neighborhood[] = [
 export function getNeighborhood(slug: string): Neighborhood | undefined {
   return KC_NEIGHBORHOODS.find((n) => n.slug === slug);
 }
+
+/**
+ * URL segment for venues outside every neighborhood radius. Not a
+ * KC_NEIGHBORHOODS entry: /kc/kansas-city/ is the hub that lists those venues.
+ */
+export const OTHER_KC_SLUG = "kansas-city";
+
+type Located = { lat: number | null; lng: number | null };
+
+/** True when a venue falls inside a neighborhood's bounding box. */
+export function isVenueInNeighborhood(venue: Located, n: Neighborhood): boolean {
+  if (venue.lat == null || venue.lng == null) return false;
+  const latDelta = n.radiusMiles / 69;
+  const lngDelta = n.radiusMiles / (69 * Math.cos((n.lat * Math.PI) / 180));
+  return (
+    venue.lat >= n.lat - latDelta &&
+    venue.lat <= n.lat + latDelta &&
+    venue.lng >= n.lng - lngDelta &&
+    venue.lng <= n.lng + lngDelta
+  );
+}
+
+/**
+ * The neighborhood a venue's canonical URL lives under: the closest center
+ * whose box contains it, else OTHER_KC_SLUG. The sitemap, /kc/ and every venue
+ * link must agree on this, so it lives here once.
+ */
+export function bestNeighborhoodSlug(venue: Located): string {
+  if (venue.lat == null || venue.lng == null) return OTHER_KC_SLUG;
+  let best = OTHER_KC_SLUG;
+  let bestDist = Infinity;
+  for (const n of KC_NEIGHBORHOODS) {
+    const dlat = venue.lat - n.lat;
+    const dlng = venue.lng - n.lng;
+    const dist = dlat * dlat + dlng * dlng;
+    if (dist < bestDist && isVenueInNeighborhood(venue, n)) {
+      bestDist = dist;
+      best = n.slug;
+    }
+  }
+  return best;
+}
+
+/** Canonical path of a venue detail page, e.g. /kc/westport/harry-s-bard-tables/. */
+export function venuePath(venue: Located & { slug: string }): string {
+  return `/kc/${bestNeighborhoodSlug(venue)}/${venue.slug}/`;
+}

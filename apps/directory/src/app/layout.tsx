@@ -33,10 +33,11 @@ export const metadata: Metadata = {
     "bar deals",
   ],
   metadataBase: new URL("https://happitime.biz"),
-  alternates: {
-    canonical: "/",
-  },
+  // No canonical here: a layout-level canonical is inherited by every page that
+  // doesn't set its own, which declared ~200 venue pages duplicates of the
+  // homepage. Each page sets its own (the homepage's is in app/page.tsx).
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     type: "website",
     locale: "en_US",
     siteName: "HappiTime",
@@ -77,6 +78,7 @@ const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID?.trim() || "";
 
 import { ItineraryProvider } from "@/components/ItineraryContext";
 import { SiteNav } from "@/components/SiteNav";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
 
 /**
  * Sitewide Organization + WebSite JSON-LD.
@@ -243,6 +245,9 @@ async function SiteFooter() {
             className="hover:text-foreground transition-colors"
           >
             Manage Your Venue
+          </a>
+          <a href="/sponsored-events/" className="hover:text-foreground transition-colors">
+            Events
           </a>
           <a href="/pricing/" className="hover:text-foreground transition-colors">
             Pricing

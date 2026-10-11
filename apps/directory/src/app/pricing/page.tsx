@@ -4,17 +4,20 @@ import { VenueQuotes } from "@/components/VenueQuotes";
 import { PressStrip } from "@/components/PressStrip";
 import { getDirectoryStats } from "@/lib/siteStats";
 import { formatAppRating, getAppStoreRating } from "@/lib/appRating";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
+import { jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
 
 // The venue count on this page is the live directory count (lib/siteStats), so
 // the page re-renders on the same 15-minute cycle as /kc/.
 export const revalidate = 900;
 
 export const metadata: Metadata = {
-  title: "Venue Pricing — Get Your Happy Hour Found on HappiTime",
+  title: "Venue Pricing — Get Your Happy Hour Found",
   description:
     "List your Kansas City bar or restaurant on HappiTime. Free listings, Verified at $49/mo, Featured at $99/mo with 30 days free. Month-to-month, cancel anytime.",
   alternates: { canonical: "/pricing" },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "Venue Pricing — HappiTime",
     description:
       "Put your happy hour in front of Kansas City locals at the moment they're deciding where to go. Plans from free.",
@@ -201,6 +204,12 @@ export default async function PricingPage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          webPageJsonLd({ type: "WebPage", name: "Venue Pricing — Get Your Happy Hour Found", url: "https://happitime.biz/pricing/", description: metadata.description ?? "" }),
+        )}
+      />
       {/* Completes the venue-side funnel. The fork's cta_click already records
           that someone chose the "pouring" door; this records whether they
           actually arrived, so a door that gets pressed but never lands is

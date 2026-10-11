@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
+import { GuideSchedule } from "@/components/GuideSchedule";
+import { getAllKCVenues } from "@/lib/queries";
 
 const BASE = "https://happitime.biz";
 const CANONICAL = `${BASE}/guides/best-happy-hours-kansas-city/`;
@@ -21,6 +24,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: CANONICAL },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "The 15 Best Happy Hours in Kansas City (2026) | HappiTime",
     description:
       "Our curated list of the best happy hours across every KC neighborhood.",
@@ -75,7 +79,11 @@ const faqData = {
   ],
 };
 
-export default function BestHappyHoursKC() {
+// ISR: the schedule section reads published happy hour times.
+export const revalidate = 900;
+
+export default async function BestHappyHoursKC() {
+  const venues = await getAllKCVenues();
   const breadcrumbs = breadcrumbJsonLd([
     { name: "HappiTime", url: `${BASE}/` },
     { name: "Guides", url: `${BASE}/guides/` },
@@ -240,6 +248,13 @@ export default function BestHappyHoursKC() {
           <li>Food deals often offer the best value — half-price appetizers can stretch a $20 budget surprisingly far.</li>
         </ul>
       </section>
+
+      <GuideSchedule
+        heading="What time is happy hour at Kansas City bars?"
+        answer="Most Kansas City happy hours start in the afternoon and end around 6 PM, Monday to Friday."
+        venues={venues}
+        limit={30}
+      />
 
       {/* FAQ */}
       <section className="mb-10">

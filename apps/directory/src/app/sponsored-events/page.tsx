@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PageTracker } from "@/components/PageTracker";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
+import { jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
 
 export const metadata: Metadata = {
-  title: "Sponsored Events — Kansas City Events Powered by HappiTime",
+  title: "Sponsored Events in Kansas City",
   description:
     "Kansas City brunches, day parties and community nights HappiTime powers with local hosts and partners. RSVP, then check in with the HappiTime app.",
   alternates: { canonical: "/sponsored-events/" },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "Sponsored Events — HappiTime",
     description:
       "Kansas City events HappiTime powers with local hosts and partners.",
@@ -37,6 +40,9 @@ type SponsoredEvent = {
   status?: "postponed";
   blurb: string;
   image: string;
+  /** Intrinsic pixel size, so the <img> reserves its space before load. */
+  imageWidth: number;
+  imageHeight: number;
   imageAlt: string;
 };
 
@@ -57,6 +63,8 @@ const EVENTS: SponsoredEvent[] = [
     blurb:
       "A 16-team double-elimination Spades tournament at In Good Company. $20 per player, solo or with a partner. Tacos from the NotCho' Taco truck outside, music by DJ Stixx. Register by October 12.",
     image: "/sponsored-events/tacos-and-tables/cover.jpg",
+    imageWidth: 990,
+    imageHeight: 1142,
     imageAlt: "A playing card reading Tacos & Tables, with the 13 of spades in the corners.",
   },
   {
@@ -77,6 +85,8 @@ const EVENTS: SponsoredEvent[] = [
     blurb:
       "An exclusive brunch × day party for people shaping Kansas City's business, community and culture. The Fall Edition has moved off October 11; a new date is being set and existing RSVPs carry over. Dress code: shades of brown and blue.",
     image: "/sponsored-events/social-life-brunch/portrait.jpg",
+    imageWidth: 990,
+    imageHeight: 1142,
     imageAlt: "A guest in a champagne satin blouse, chin resting on her hand.",
   },
 ];
@@ -93,6 +103,8 @@ function EventCard({ e, past }: { e: SponsoredEvent; past?: boolean }) {
         <img
           src={e.image}
           alt={e.imageAlt}
+          width={e.imageWidth}
+          height={e.imageHeight}
           className={`h-full max-h-[340px] w-full object-cover object-[50%_25%] sm:max-h-none ${past ? "grayscale" : ""}`}
           loading="lazy"
         />
@@ -153,6 +165,12 @@ export default function SponsoredEventsPage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          webPageJsonLd({ type: "CollectionPage", name: "Sponsored Events in Kansas City", url: "https://happitime.biz/sponsored-events/", description: metadata.description ?? "" }),
+        )}
+      />
       <PageTracker pagePath="/sponsored-events/" />
       <header className="pt-16 pb-8">
         <div className={SHELL}>

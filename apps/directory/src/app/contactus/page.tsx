@@ -234,7 +234,18 @@ export default function ContactUsPage() {
   // useSearchParams() needs a Suspense boundary or the whole route opts into
   // client-side rendering at build time.
   return (
-    <Suspense fallback={<main className="mx-auto w-full max-w-3xl px-6 py-12" />}>
+    // The fallback is what crawlers and no-JS readers get: the same heading and
+    // intro the form shows by default, so the page is not empty.
+    <Suspense
+      fallback={
+        <main className="mx-auto w-full max-w-3xl px-6 py-12">
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">Contact Support</h1>
+          <p className="text-sm text-muted mb-8">
+            Need help with HappiTime? Send us your question and our team will follow up.
+          </p>
+        </main>
+      }
+    >
       <ContactUsForm />
     </Suspense>
   );

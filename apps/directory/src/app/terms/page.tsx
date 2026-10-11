@@ -1,14 +1,22 @@
 import type { Metadata } from "next";
+import { jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
 
 export const metadata: Metadata = {
-  title: "Terms of Service",
+  alternates: { canonical: "/terms/" },
+  title: "HappiTime Terms of Service",
   description:
-    "Terms of Service for HappiTime, the venue management platform for Happy Hour marketing.",
+    "The terms for using HappiTime, the Kansas City happy hour app and directory, whether you are looking for a happy hour or listing a venue.",
 };
 
 export default function TermsPage() {
   return (
     <article className="mx-auto max-w-3xl px-6 py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          webPageJsonLd({ name: "HappiTime Terms of Service", url: "https://happitime.biz/terms/", description: metadata.description ?? "" }),
+        )}
+      />
       <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">
         Terms of Service
       </h1>

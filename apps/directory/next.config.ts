@@ -29,6 +29,34 @@ const nextConfig: NextConfig = {
   // iOS expects application/json). Static public/ files bypass trailingSlash.
   async headers() {
     return [
+      // Baseline security headers on every route. CSP ships Report-Only first:
+      // the site runs GTM/gtag inline scripts and loads Google Fonts, Fontshare,
+      // Cloudinary, Supabase Storage and qrserver images, HeyCatch analytics
+      // (in.heycatch.ai), Google Maps and the Spades form's Apps Script, so an
+      // enforced policy on day one would break them. There is no report-uri yet:
+      // violations show only in the browser console. Watch those (or add a
+      // reporting endpoint), then rename the header to enforce.
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Content-Security-Policy-Report-Only",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://va.vercel-scripts.com https://maps.googleapis.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://api.fontshare.com",
+              "font-src 'self' https://fonts.gstatic.com https://cdn.fontshare.com",
+              "img-src 'self' data: blob: https://res.cloudinary.com https://*.supabase.co https://api.qrserver.com https://www.googletagmanager.com https://maps.gstatic.com https://*.googleapis.com",
+              "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://*.google-analytics.com https://vitals.vercel-insights.com https://in.heycatch.ai https://maps.googleapis.com https://script.google.com",
+              "frame-src https://www.google.com https://www.googletagmanager.com",
+              "frame-ancestors 'self'",
+            ].join("; "),
+          },
+        ],
+      },
       {
         source: "/.well-known/apple-app-site-association",
         headers: [{ key: "Content-Type", value: "application/json" }],

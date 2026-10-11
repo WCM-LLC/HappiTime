@@ -155,7 +155,7 @@ export const HAPPY_HOUR_LANDING_PAGES: HappyHourLandingPage[] = [
     neighborhoodSlug: "kck",
     h2: "Happy Hour in Kansas City, Kansas",
     intro:
-      "Find happy hour in Kansas City, Kansas — legendary BBQ, tacos, and dive bars across the state line with some of the metro's best-kept drink specials.",
+      "Find happy hour in Kansas City, Kansas. BBQ, tacos, and dive bars across the state line, with their drink and food specials.",
     metaDescription:
       "Find happy hour in Kansas City, Kansas. Browse drink specials, food deals, and bar listings across the state line in KCK.",
     canonicalPath: "/happy-hour/kansas-city-kansas/",
