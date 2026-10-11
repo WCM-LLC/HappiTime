@@ -16,6 +16,7 @@
     "assetBundlePatterns": ["**/*"],
     "plugins": [
       "expo-notifications",
+      "expo-localization",
       [
         "expo-location",
         {
