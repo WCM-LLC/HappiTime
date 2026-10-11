@@ -2,6 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Session } from "@supabase/supabase-js";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../api/supabaseClient";
+import { trackOutcome } from "../lib/heycatch";
 import {
   ONBOARDING_VERSION,
   normalizeInterests,
@@ -225,6 +226,12 @@ export function useOnboardingStatus(session: Session | null) {
         step: "complete",
         error: errors.length > 0 ? `Onboarding saved locally: ${errors.join("; ")}` : null,
       });
+
+      // The one sign-up outcome only the client witnesses: auth goes straight
+      // to Supabase and onboarding is saved from the device, so there is no
+      // server route of ours to report it from. Sent even on the local-fallback
+      // path — the user did finish, and is past the gate either way.
+      trackOutcome("onboarding_completed", { saved_to_server: errors.length === 0 });
 
       return {
         error: errors.length > 0 ? new Error(errors.join("; ")) : null,
