@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageTracker } from "@/components/PageTracker";
 import { supabase } from "@/lib/supabase";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
 
 /**
  * ABOUT — who runs HappiTime.
@@ -73,6 +74,7 @@ export const metadata: Metadata = {
     "HappiTime is built and run in Kansas City by Juan Williams. Who is behind it, why it exists, and how to reach a person.",
   alternates: { canonical: "/about/" },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "About HappiTime — Who Runs It",
     description: "HappiTime is built and run in Kansas City by Juan Williams.",
     url: "https://happitime.biz/about/",

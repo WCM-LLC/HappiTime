@@ -4,19 +4,18 @@ import { useState } from "react";
 import type { VenueWithWindows } from "@/lib/queries";
 import { orderVenuesForDisplay } from "@/lib/venueTier";
 import { VenueCardClient } from "./VenueCardClient";
+import { bestNeighborhoodSlug } from "@/lib/neighborhoods";
 
 const DOW_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 type Props = {
   venues: VenueWithWindows[];
-  neighborhoodSlug: string;
   neighborhoodName: string;
   todayIndex: number;
 };
 
 export function NeighborhoodVenues({
   venues,
-  neighborhoodSlug,
   neighborhoodName,
   todayIndex,
 }: Props) {
@@ -122,7 +121,10 @@ export function NeighborhoodVenues({
             <VenueCardClient
               key={venue.id}
               venue={venue}
-              neighborhoodSlug={neighborhoodSlug}
+              // The venue's canonical segment, not this page's: a venue inside two
+              // overlapping neighborhood boxes must link to the one URL the
+              // sitemap lists.
+              neighborhoodSlug={bestNeighborhoodSlug(venue)}
               todayIndex={activeDay}
             />
           ))}

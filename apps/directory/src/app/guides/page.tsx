@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { breadcrumbJsonLd } from "@/lib/structuredData";
+import { breadcrumbJsonLd, jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
 import { supabase } from "@/lib/supabase";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
 
 const BASE = "https://happitime.biz";
 
@@ -18,10 +19,9 @@ const STATIC_SLUGS = new Set([
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title:
-    "Kansas City Happy Hour Guides — Tips, Best-of Lists & Neighborhood Spotlights | HappiTime",
+  title: "Kansas City Happy Hour Guides",
   description:
-    "Expert guides to Kansas City happy hours — best-of lists, neighborhood deep-dives, food deal roundups, and day-by-day picks. Find your next happy hour with HappiTime.",
+    "Kansas City happy hour guides: best-of lists, neighborhood guides, food deal roundups and Friday picks. Read one, then see which spots are on now.",
   keywords: [
     "Kansas City happy hour guide",
     "KC happy hour tips",
@@ -33,6 +33,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: `${BASE}/guides/` },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "Kansas City Happy Hour Guides | HappiTime",
     description:
       "Expert guides to Kansas City happy hours — best-of lists, neighborhood spotlights, and insider tips.",
@@ -96,6 +97,12 @@ export default async function GuidesHub() {
     <div className="mx-auto max-w-5xl px-6 py-12">
       <script
         type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          webPageJsonLd({ type: "CollectionPage", name: "Kansas City Happy Hour Guides", url: "https://happitime.biz/guides/", description: metadata.description ?? "" }),
+        )}
+      />
+      <script
+        type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
       />
 
@@ -113,9 +120,8 @@ export default async function GuidesHub() {
         <span className="text-brand">Guides</span>
       </h1>
       <p className="text-muted text-lg mb-10 max-w-2xl">
-        Tips, best-of lists, and neighborhood spotlights to help you find the
-        perfect happy hour in KC — whether you want cheap eats, craft
-        cocktails, or a Friday wind-down spot.
+        Tips, best-of lists, and neighborhood spotlights for happy hour in KC.
+        Find cheap eats, craft cocktails, or a Friday wind-down spot.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-16">

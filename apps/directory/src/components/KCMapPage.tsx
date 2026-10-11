@@ -458,9 +458,10 @@ function MapPopup({ venue, todayDow, venueHref, isMobile, onClose }: MapPopupPro
             <Image
               src={cover}
               alt={venue.name}
-              fill
+              width={400}
+              height={90}
               sizes="400px"
-              style={{ objectFit: "cover" }}
+              style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
           )}
           <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.45) 0%, transparent 60%)" }} />

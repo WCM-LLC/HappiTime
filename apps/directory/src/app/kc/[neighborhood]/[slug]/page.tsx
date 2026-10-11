@@ -3,18 +3,20 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
-import { getNeighborhood } from "@/lib/neighborhoods";
+import { OTHER_KC_SLUG, getNeighborhood, venuePath } from "@/lib/neighborhoods";
 import { getHappyHourLandingPageByNeighborhoodSlug } from "@/lib/seoNeighborhoods";
-import { getVenueBySlug } from "@/lib/queries";
+import { getNearbyVenues, getVenueBySlug } from "@/lib/queries";
 import { KC_TZ, formatEventDate, formatEventTime } from "@/lib/kcTime";
 import { occurrenceEnd, recurrenceLabel } from "@/lib/eventSchedule";
-import { venueJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
+import { venueJsonLd, breadcrumbJsonLd, jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
 import { PageTracker } from "@/components/PageTracker";
 import { ItineraryButton } from "@/components/ItineraryButton";
 import { venueImageUrl } from "@/lib/mediaUrl";
 import ImageLightbox from "@/components/ImageLightbox";
 import { StoreDownloadCTA } from "@/components/StoreDownloadCTA";
+import { formatDays } from "@/components/GuideSchedule";
 import { rewardLabel } from "@/lib/rewards";
+import { DEFAULT_OG_IMAGE, fitDescription, fitTitle } from "@/lib/seoText";
 
 // ── service-role client (server-only, never exposed to client) ─────────────────
 function getServiceClient() {
@@ -117,25 +119,13 @@ function formatTime(time: string): string {
     : `${hour}:${String(m).padStart(2, "0")} ${period}`;
 }
 
-/** First candidate whose length fits 18–48; overlong names are flagged, not cut. */
-function venueTitle(name: string, city: string | null): string {
-  const candidates = [
-    city ? `${name} Happy Hour in ${city}` : null,
-    `${name} Happy Hour Specials`,
-    `${name} Happy Hour`,
-  ].filter((c): c is string => c !== null);
-  const fit = candidates.find((c) => c.length >= 18 && c.length <= 48);
-  if (fit) return fit;
-  console.warn(`[seo] venue title out of 18–48 range: "${name}"`);
-  return candidates[candidates.length - 1];
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const venue = await getVenueBySlug(slug);
   if (!venue) return {};
 
   const windowCount = venue.happy_hour_windows.length;
+  const specials = `${windowCount} happy hour ${windowCount === 1 ? "special" : "specials"}`;
   const days = [
     ...new Set(
       venue.happy_hour_windows.flatMap((w) =>
@@ -146,13 +136,42 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       )
     ),
   ];
-  const dayList = days.length > 0 ? days.slice(0, 3).join(", ") : "select days";
+  // Naming only the first three days of a longer list would read as "only these".
+  const dayList =
+    days.length === 0 ? "select days" : days.length <= 3 ? days.join(", ") : `${days.length} days a week`;
+
+  const title = fitTitle([
+    ...(venue.city ? [`${venue.name} Happy Hour in ${venue.city}`] : []),
+    `${venue.name} Happy Hour Specials`,
+    `${venue.name} Happy Hour`,
+    venue.name,
+  ]);
+  const description = fitDescription([
+    `${venue.name} at ${venue.address} has ${specials} on ${dayList}.`,
+    `${venue.name} in ${venue.city ?? "Kansas City"} has ${specials} on ${dayList}.`,
+    "See the times, the drink and food prices, and the menu.",
+    "Free to browse on HappiTime.",
+  ]);
+  // The page renders under any /kc/<neighborhood>/ segment; the canonical is
+  // the one the sitemap lists, so duplicates consolidate onto it.
+  const canonical = `https://happitime.biz${venuePath(venue)}`;
+  // First venue photo as the share card. Cloudinary crops it to 1200×630 as
+  // JPEG (not every unfurler reads WebP);
+  // other storage is passed through at its own size; no photo, the site card.
+  const coverMedia = venue.venue_media
+    .filter((m) => m.type === "image")
+    .sort((a, b) => a.sort_order - b.sort_order)[0];
+  const ogImage = coverMedia
+    ? coverMedia.storage_bucket === "cloudinary"
+      ? { url: venueImageUrl(coverMedia, { w: 1200, h: 630, crop: "fill", format: "jpg" }), width: 1200, height: 630 }
+      : { url: venueImageUrl(coverMedia) }
+    : DEFAULT_OG_IMAGE;
 
   return {
-    // The layout template appends " | HappiTime" (12 chars), so this part
-    // must stay 18–48 chars to land the rendered title at 30–60.
-    title: venueTitle(venue.name, venue.city),
-    description: `${venue.name} at ${venue.address} has ${windowCount} happy hour ${windowCount === 1 ? "special" : "specials"} on ${dayList}. See today's drink specials, food deals, full menu, and times for 2026.`,
+    // The layout template appends " | HappiTime".
+    title,
+    description,
+    alternates: { canonical },
     keywords: [
       `${venue.name} happy hour`,
       `${venue.name} specials`,
@@ -163,8 +182,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       "food deals",
     ],
     openGraph: {
-      title: `${venue.name} Happy Hour Specials — HappiTime`,
-      description: `Happy hour deals at ${venue.name}, ${venue.city} — ${windowCount} ${windowCount === 1 ? "special" : "specials"} with drink and food deals.`,
+      title,
+      description,
+      url: canonical,
+      type: "website",
+      siteName: "HappiTime",
+      images: [ogImage === DEFAULT_OG_IMAGE ? ogImage : { ...ogImage, alt: `${venue.name}, ${venue.city ?? "Kansas City"}` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage.url],
     },
   };
 }
@@ -179,9 +208,10 @@ export default async function VenueDetailPage({ params }: Props) {
   // Both are service-role lookups (venue_toastmakers and org_members are not
   // anon-readable). Independent of each other, so run them concurrently — this is
   // a dynamic route and they'd otherwise serialise on every uncached request.
-  const [toastmakerHandle, hasOwner] = await Promise.all([
+  const [toastmakerHandle, hasOwner, nearby] = await Promise.all([
     fetchToastmakerHandle(venue.id),
     venueHasOwner(venue.id),
+    getNearbyVenues(venue),
   ]);
 
   const jsonLd = venueJsonLd(venue);
@@ -201,7 +231,9 @@ export default async function VenueDetailPage({ params }: Props) {
             url: `https://happitime.biz${neighborhoodPath}`,
           },
         ]
-      : []),
+      : neighborhoodSlug === OTHER_KC_SLUG
+        ? [{ name: "Elsewhere in Kansas City", url: `https://happitime.biz/kc/${OTHER_KC_SLUG}/` }]
+        : []),
     {
       name: venue.name,
       url: `https://happitime.biz/kc/${neighborhoodSlug}/${slug}/`,
@@ -220,6 +252,17 @@ export default async function VenueDetailPage({ params }: Props) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          webPageJsonLd({
+            name: `${venue.name} happy hour`,
+            url: `https://happitime.biz${venuePath(venue)}`,
+            description: `Happy hour times, drink and food specials at ${venue.name}, ${venue.address}.`,
+            about: { "@type": "Restaurant", name: venue.name, address: venue.address },
+          }),
+        )}
       />
 
       {/* Breadcrumb */}
@@ -240,6 +283,14 @@ export default async function VenueDetailPage({ params }: Props) {
             >
               {neighborhood.name}
             </a>
+          </>
+        )}
+        {!neighborhood && neighborhoodSlug === OTHER_KC_SLUG && (
+          <>
+            <span className="text-muted-light">/</span>
+            <Link href={`/kc/${OTHER_KC_SLUG}/`} className="hover:text-foreground transition-colors">
+              Elsewhere in Kansas City
+            </Link>
           </>
         )}
         <span className="text-muted-light">/</span>
@@ -545,9 +596,12 @@ export default async function VenueDetailPage({ params }: Props) {
                       src={venueImageUrl(m, { w: 800 })}
                       data-lightbox-src={venueImageUrl(m, { w: 1600 })}
                       alt={m.title ?? `${venue.name} photo`}
-                      fill
+                      // Explicit 4:3 intrinsic size (not `fill`) so the <img>
+                      // carries width/height and the browser reserves space.
+                      width={800}
+                      height={600}
                       sizes="(max-width: 640px) 50vw, 33vw"
-                      className="object-cover"
+                      className="w-full h-full object-cover"
                     />
                   </div>
                 ))}
@@ -571,6 +625,33 @@ export default async function VenueDetailPage({ params }: Props) {
               src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_MAPS_API_KEY ?? ""}&q=${encodeURIComponent(venue.name + " " + venue.address)}`}
             />
           </div>
+        </section>
+      )}
+
+      {/* Nearby happy hours — links every venue page to its closest neighbors,
+          so no venue is reachable only through the sitemap. */}
+      {nearby.length > 0 && (
+        <section className="mb-12">
+          <h2 className="text-xl font-bold text-foreground mb-4">Nearby happy hours</h2>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {nearby.map((v) => {
+              const w = v.happy_hour_windows[0];
+              return (
+                <li key={v.id}>
+                  <Link
+                    href={venuePath(v)}
+                    className="block rounded-xl border border-border bg-surface p-4 hover:border-brand hover:shadow-sm transition-all"
+                  >
+                    <span className="block font-semibold text-foreground">{v.name}</span>
+                    <span className="block text-sm text-muted mt-1">
+                      {v.miles < 0.1 ? "Next door" : `${v.miles.toFixed(1)} mi away`}
+                      {w ? ` · ${formatDays(w.dow)}, ${formatTime(w.start_time)} to ${formatTime(w.end_time)}` : ""}
+                    </span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       )}
 

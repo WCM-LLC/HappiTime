@@ -404,3 +404,76 @@ export async function getAllKCVenues(): Promise<VenueWithWindows[]> {
 
   return withEffectiveTiers((data ?? []).map(shapeVenue));
 }
+
+export type NearbyVenue = {
+  id: string;
+  name: string;
+  slug: string;
+  lat: number;
+  lng: number;
+  miles: number;
+  happy_hour_windows: { dow: number[]; start_time: string; end_time: string }[];
+};
+
+/**
+ * The closest published venues with a happy hour, for the venue page's
+ * "Nearby happy hours" block. Searches a ~3-mile box with only the fields the
+ * block needs, so a page render doesn't pull the whole city.
+ */
+export async function getNearbyVenues(
+  venue: { id: string; lat: number | null; lng: number | null },
+  limit = 4,
+): Promise<NearbyVenue[]> {
+  if (venue.lat == null || venue.lng == null) return [];
+  const latDelta = 3 / 69;
+  const lngDelta = 3 / (69 * Math.cos((venue.lat * Math.PI) / 180));
+
+  const { data, error } = await supabase
+    .from("venues")
+    .select("id, name, slug, lat, lng, happy_hour_windows(dow, start_time, end_time, status)")
+    .neq("id", venue.id)
+    .gte("lat", venue.lat - latDelta)
+    .lte("lat", venue.lat + latDelta)
+    .gte("lng", venue.lng - lngDelta)
+    .lte("lng", venue.lng + lngDelta)
+    .eq("happy_hour_windows.status", "published");
+
+  if (error) {
+    console.error("[directory] nearby venues query failed:", error.message);
+    return [];
+  }
+
+  const toMiles = (lat: number, lng: number) => {
+    const dLat = (lat - venue.lat!) * 69;
+    const dLng = (lng - venue.lng!) * 69 * Math.cos((venue.lat! * Math.PI) / 180);
+    return Math.sqrt(dLat * dLat + dLng * dLng);
+  };
+
+  return (data ?? [])
+    .filter((v) => v.lat != null && v.lng != null && (v.happy_hour_windows ?? []).length > 0)
+    .map((v) => ({
+      id: v.id as string,
+      name: v.name as string,
+      slug: v.slug as string,
+      lat: v.lat as number,
+      lng: v.lng as number,
+      miles: toMiles(v.lat as number, v.lng as number),
+      happy_hour_windows: (v.happy_hour_windows ?? []) as NearbyVenue["happy_hour_windows"],
+    }))
+    .sort((a, b) => a.miles - b.miles)
+    .slice(0, limit);
+}
+
+/**
+ * Attach each window's menu items to a list of venues (the list queries leave
+ * menu_items empty). One query for every window in the list.
+ */
+export async function withMenuItems(venues: VenueWithWindows[]): Promise<VenueWithWindows[]> {
+  const menuMap = await fetchMenuItemsByWindowIds(
+    venues.flatMap((v) => v.happy_hour_windows.map((w) => w.id)),
+  );
+  return venues.map((v) => ({
+    ...v,
+    happy_hour_windows: v.happy_hour_windows.map((w) => ({ ...w, menu_items: menuMap[w.id] ?? [] })),
+  }));
+}

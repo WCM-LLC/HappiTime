@@ -3,11 +3,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
+import { articleJsonLd, breadcrumbJsonLd, jsonLdHtml } from "@/lib/structuredData";
 import { supabase } from "@/lib/supabase";
 import { guideCoverImageSrc, normalizeGuideCoverImageUrl } from "@/lib/guideCoverUrl";
 import ImageLightbox from "@/components/ImageLightbox";
 import AuthorByline from "@/components/AuthorByline";
+import { authorPath, getGuideAuthorById } from "@/lib/authors";
+import { DEFAULT_OG_IMAGE, fitDescription, fitTitle } from "@/lib/seoText";
 
 const BASE = "https://happitime.biz";
 
@@ -38,13 +40,7 @@ async function getGuideItinerary(guideId: string): Promise<GuideItinerary | null
 }
 
 async function getAuthor(authorId: string | null) {
-  if (!authorId) return null;
-  const { data } = await supabase
-    .from("public_guide_authors")
-    .select("display_name, avatar_url, instagram_url, tiktok_url, website_url, youtube_url")
-    .eq("author_id", authorId)
-    .maybeSingle();
-  return data ?? null;
+  return getGuideAuthorById(authorId);
 }
 
 export async function generateMetadata({
@@ -57,12 +53,24 @@ export async function generateMetadata({
   if (!guide) return {};
 
   const canonical = `${BASE}/guides/${slug}/`;
-  const description = guide.subtitle ?? `A Super User guide from HappiTime — ${guide.title}`;
+  const author = await getAuthor(guide.author_id);
+  const subtitle = guide.subtitle?.trim().replace(/([^.!?])$/, "$1.");
+  const updated = guide.updated_at ?? guide.published_at;
+  // Short subtitles are topped up with facts the page already shows — who
+  // wrote it and when it was last updated — never with filler.
+  const description = fitDescription([
+    ...(subtitle ? [subtitle] : [`${guide.title}.`]),
+    "A Kansas City happy hour guide on HappiTime.",
+    ...(author?.author.display_name ? [`By ${author.author.display_name}.`] : []),
+    ...(updated
+      ? [`Updated ${new Date(updated).toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "America/Chicago" })}.`]
+      : []),
+  ]);
   const coverImageUrl = normalizeGuideCoverImageUrl(guide.cover_image_url);
 
   return {
     // The root layout template already appends " | HappiTime".
-    title: guide.title,
+    title: fitTitle([guide.title]),
     description,
     keywords: guide.tags ?? [],
     alternates: { canonical },
@@ -72,7 +80,7 @@ export async function generateMetadata({
       url: canonical,
       type: "article",
       siteName: "HappiTime",
-      ...(coverImageUrl ? { images: [{ url: coverImageUrl }] } : {}),
+      images: [coverImageUrl ? { url: coverImageUrl } : DEFAULT_OG_IMAGE],
       ...(guide.published_at ? { publishedTime: guide.published_at } : {}),
       ...(guide.updated_at ? { modifiedTime: guide.updated_at } : {}),
     },
@@ -119,17 +127,19 @@ export default async function GuidePage({
     imageUrl: coverImageUrl ?? undefined,
     publishedTime: guide.published_at ?? undefined,
     modifiedTime: guide.updated_at ?? undefined,
+    authorName: author?.author.display_name ?? undefined,
+    authorUrl: author ? `${BASE}${authorPath(author.slug)}` : undefined,
   });
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-12">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}
+        dangerouslySetInnerHTML={jsonLdHtml(breadcrumbs)}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(article) }}
+        dangerouslySetInnerHTML={jsonLdHtml(article)}
       />
 
       {/* Breadcrumb nav */}
@@ -189,7 +199,18 @@ export default async function GuidePage({
           ) : null}
         </header>
 
-        {author ? <AuthorByline author={author} /> : null}
+        {author ? (
+          <AuthorByline author={author.author} href={authorPath(author.slug)} />
+        ) : (
+          // Guides with no author_id are HappiTime's own editorial pieces; /about/
+          // is the page that says who runs HappiTime and how to reach them.
+          <p className="border-t border-border pt-6 mb-8 text-sm text-muted">
+            By the{" "}
+            <Link href="/about/" rel="author" className="font-semibold text-foreground hover:text-brand">
+              HappiTime editors
+            </Link>
+          </p>
+        )}
 
         {/* Body */}
         <article className="prose prose-gray max-w-none">

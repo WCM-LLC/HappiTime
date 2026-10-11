@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { PageTracker } from "@/components/PageTracker";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
+import { jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
 
 /**
  * HOW WE COUNT A VISIT — the plain-English attribution method.
@@ -16,9 +18,10 @@ import { PageTracker } from "@/components/PageTracker";
 export const metadata: Metadata = {
   title: "How HappiTime Counts a Visit",
   description:
-    "Exactly what HappiTime counts for Kansas City bars and restaurants — listing views, QR scans, and check-ins confirmed with a daily staff code — and what we do not claim.",
+    "What HappiTime counts for Kansas City bars and restaurants: listing views, QR scans, and check-ins confirmed with a daily staff code. And what we don't claim.",
   alternates: { canonical: "/how-we-count-visits/" },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "How HappiTime Counts a Visit",
     description:
       "What we count for venues, what we do not, and how to check the numbers yourself.",
@@ -58,6 +61,12 @@ const SIGNALS = [
 export default function HowWeCountVisitsPage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          webPageJsonLd({ type: "WebPage", name: "How HappiTime Counts a Visit", url: "https://happitime.biz/how-we-count-visits/", description: metadata.description ?? "" }),
+        )}
+      />
       <PageTracker pagePath="/how-we-count-visits/" />
       <article className="mx-auto max-w-[var(--width-narrow)] px-6 py-14 md:py-20">
         <p className="mb-3 text-[13px] font-bold uppercase tracking-[0.08em] text-brand-dark-alt">

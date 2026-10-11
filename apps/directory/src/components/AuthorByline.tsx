@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 type Author = {
   display_name: string | null;
   avatar_url: string | null;
@@ -14,9 +16,10 @@ const LINKS = [
   { key: "website_url", label: "Website", color: "#0F766E" },
 ] as const;
 
-export default function AuthorByline({ author }: { author: Author }) {
+/** `href` is the author's page; the name links there so every guide credits a real person. */
+export default function AuthorByline({ author, href }: { author: Author; href?: string }) {
   const socials = LINKS.map((l) => ({ ...l, href: author[l.key] })).filter((l) => !!l.href);
-  if (socials.length === 0) return null;
+  if (socials.length === 0 && !author.display_name) return null;
 
   return (
     <div className="flex items-center gap-4 border-t border-border pt-6 mb-8">
@@ -37,8 +40,17 @@ export default function AuthorByline({ author }: { author: Author }) {
       ) : null}
       <div>
         {author.display_name ? (
-          <p className="text-sm font-semibold text-foreground">{author.display_name}</p>
+          <p className="text-sm font-semibold text-foreground">
+            {href ? (
+              <Link href={href} rel="author" className="hover:text-brand">
+                {author.display_name}
+              </Link>
+            ) : (
+              author.display_name
+            )}
+          </p>
         ) : null}
+        {socials.length > 0 ? (
         <div className="flex flex-wrap gap-1.5 mt-1.5">
           {socials.map((l) => (
             <a
@@ -53,6 +65,7 @@ export default function AuthorByline({ author }: { author: Author }) {
             </a>
           ))}
         </div>
+        ) : null}
       </div>
     </div>
   );

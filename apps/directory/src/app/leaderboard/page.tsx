@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
 
 const BASE = "https://happitime.biz";
 
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
     "The people keeping Kansas City happy hour listings accurate. Ranked by menus, events, and hours contributed in the last 90 days.",
   alternates: { canonical: `${BASE}/leaderboard/` },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "Top Contributors | HappiTime",
     description: "The people keeping Kansas City happy hour listings accurate.",
     url: `${BASE}/leaderboard/`,

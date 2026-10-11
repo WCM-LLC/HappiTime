@@ -23,5 +23,9 @@ export default function imageLoader({
   if (!match) return src;
   const [, prefix, , rest] = match;
   const q = quality ? `q_${quality}` : "q_auto";
-  return `${prefix}f_auto,${q},c_limit,w_${width}/${rest}`;
+  // f_webp, not f_auto: f_auto picks the format from the request's Accept
+  // header and falls back to JPEG when there is none (crawlers, auditors,
+  // link unfurlers). Every browser we support decodes WebP, so pinning it
+  // serves the same bytes to people and a modern format to everything else.
+  return `${prefix}f_webp,${q},c_limit,w_${width}/${rest}`;
 }

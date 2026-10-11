@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/storeLinks";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
 
 // Public shared-itinerary viewer: https://happitime.biz/i/{share_token}
 // Anyone holding the unguessable token can view the itinerary (read-only). Data comes
@@ -77,7 +78,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
-    openGraph: { title, description, type: "website" },
+    openGraph: { images: [DEFAULT_OG_IMAGE], title, description, type: "website" },
     twitter: { card: "summary", title, description },
     robots: { index: false, follow: false }, // private share link, not for search
   };

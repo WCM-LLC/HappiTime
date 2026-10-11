@@ -3,24 +3,58 @@ import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import {
   KC_NEIGHBORHOODS,
+  OTHER_KC_SLUG,
+  bestNeighborhoodSlug,
   getNeighborhood,
+  venuePath,
 } from "@/lib/neighborhoods";
 import { getHappyHourLandingPageByNeighborhoodSlug } from "@/lib/seoNeighborhoods";
-import { getVenuesByNeighborhood } from "@/lib/queries";
-import { breadcrumbJsonLd } from "@/lib/structuredData";
+import { getAllKCVenues, getVenuesByNeighborhood } from "@/lib/queries";
+import { breadcrumbJsonLd, itemListJsonLd, jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
 import { NeighborhoodVenues } from "@/components/NeighborhoodVenues";
 import { PageTracker } from "@/components/PageTracker";
+import { DEFAULT_OG_IMAGE, fitDescription } from "@/lib/seoText";
 
 export const revalidate = 900;
 
 type Props = { params: Promise<{ neighborhood: string }> };
 
 export async function generateStaticParams() {
-  return KC_NEIGHBORHOODS.map((n) => ({ neighborhood: n.slug }));
+  return [...KC_NEIGHBORHOODS.map((n) => ({ neighborhood: n.slug })), { neighborhood: OTHER_KC_SLUG }];
+}
+
+// /kc/kansas-city/ — the hub for venues outside every neighborhood radius. Their
+// detail pages live under this segment, and without a page listing them they
+// were reachable only from the sitemap.
+const OTHER_KC_TITLE = "Happy Hours Elsewhere in Kansas City";
+const OTHER_KC_DESCRIPTION = fitDescription([
+  "Kansas City happy hours at spots outside the neighborhoods HappiTime groups by.",
+  "Happy hour times and drink and food specials, where each spot publishes them.",
+]);
+
+async function getOtherKCVenues() {
+  return (await getAllKCVenues())
+    // Every venue under this segment, as the neighborhood pages list theirs —
+    // including ones with no published happy hour yet (they have a page too).
+    .filter((v) => bestNeighborhoodSlug(v) === OTHER_KC_SLUG)
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { neighborhood: slug } = await params;
+  if (slug === OTHER_KC_SLUG) {
+    return {
+      title: OTHER_KC_TITLE,
+      description: OTHER_KC_DESCRIPTION,
+      alternates: { canonical: `/kc/${OTHER_KC_SLUG}/` },
+      openGraph: {
+        images: [DEFAULT_OG_IMAGE],
+        title: OTHER_KC_TITLE,
+        description: OTHER_KC_DESCRIPTION,
+        url: `https://happitime.biz/kc/${OTHER_KC_SLUG}/`,
+      },
+    };
+  }
   const n = getNeighborhood(slug);
   if (!n) return {};
   const landingPage = getHappyHourLandingPageByNeighborhoodSlug(slug);
@@ -53,6 +87,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       canonical: `/kc/${slug}/`,
     },
     openGraph: {
+      images: [DEFAULT_OG_IMAGE],
       title: `${n.name} Happy Hour Deals & Specials — HappiTime`,
       description: `Today's happy hour deals in ${n.name}, Kansas City — drink specials, food deals, and more.`,
     },
@@ -61,6 +96,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function NeighborhoodPage({ params }: Props) {
   const { neighborhood: slug } = await params;
+  if (slug === OTHER_KC_SLUG) return <OtherKCHub />;
   const neighborhood = getNeighborhood(slug);
   if (!neighborhood) notFound();
   const landingPage = getHappyHourLandingPageByNeighborhoodSlug(slug);
@@ -100,7 +136,7 @@ export default async function NeighborhoodPage({ params }: Props) {
               "@type": "ListItem",
               position: i + 1,
               name: v.name,
-              url: `https://happitime.biz/kc/${neighborhood.slug}/${v.slug}/`,
+              url: `https://happitime.biz${venuePath(v)}`,
             })),
           }),
         }}
@@ -132,7 +168,6 @@ export default async function NeighborhoodPage({ params }: Props) {
       {/* Interactive day filter + venue grid (client component) */}
       <NeighborhoodVenues
         venues={venues}
-        neighborhoodSlug={neighborhood.slug}
         neighborhoodName={neighborhood.name}
         todayIndex={todayIndex}
       />
@@ -195,6 +230,80 @@ export default async function NeighborhoodPage({ params }: Props) {
         >
           Get the App
         </a>
+      </section>
+    </div>
+  );
+}
+
+async function OtherKCHub() {
+  const venues = await getOtherKCVenues();
+  const url = `https://happitime.biz/kc/${OTHER_KC_SLUG}/`;
+
+  return (
+    <div className="mx-auto max-w-5xl px-6 py-12">
+      <PageTracker pagePath={`/kc/${OTHER_KC_SLUG}/`} />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          webPageJsonLd({ type: "CollectionPage", name: OTHER_KC_TITLE, url, description: OTHER_KC_DESCRIPTION }),
+        )}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          breadcrumbJsonLd([
+            { name: "HappiTime", url: "https://happitime.biz/" },
+            { name: "Kansas City", url: "https://happitime.biz/kc/" },
+            { name: "Elsewhere in Kansas City", url },
+          ]),
+        )}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          itemListJsonLd(venues.map((v) => ({ name: v.name, url: `https://happitime.biz${venuePath(v)}` }))),
+        )}
+      />
+
+      <nav className="text-sm text-muted mb-6 flex items-center gap-1.5">
+        <Link href="/" className="hover:text-foreground transition-colors">
+          HappiTime
+        </Link>
+        <span className="text-muted-light">/</span>
+        <Link href="/kc/" className="hover:text-foreground transition-colors">
+          Kansas City
+        </Link>
+        <span className="text-muted-light">/</span>
+        <span className="text-foreground font-medium">Elsewhere in Kansas City</span>
+      </nav>
+
+      <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground mb-3">
+        Happy Hours <span className="text-brand">Elsewhere in Kansas City</span>
+      </h1>
+      <p className="text-muted text-lg mb-4 max-w-2xl">
+        These Kansas City spots sit outside the neighborhoods we group by. Each page shows the happy hour times and
+        specials, where the spot publishes them.
+      </p>
+      <p className="text-sm text-muted-light mb-10">
+        {venues.length} {venues.length === 1 ? "venue" : "venues"} listed,{" "}
+        {venues.filter((v) => v.happy_hour_windows.length > 0).length} with a published happy hour
+      </p>
+
+      <NeighborhoodVenues venues={venues} neighborhoodName="Kansas City" todayIndex={new Date().getDay()} />
+
+      <section className="mt-16 mb-10">
+        <h2 className="text-xl font-bold text-foreground mb-4">Browse by neighborhood</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {KC_NEIGHBORHOODS.map((n) => (
+            <a
+              key={n.slug}
+              href={getHappyHourLandingPageByNeighborhoodSlug(n.slug)?.canonicalPath ?? `/kc/${n.slug}/`}
+              className="block rounded-xl border border-border bg-surface p-4 hover:border-brand hover:shadow-sm transition-all"
+            >
+              <p className="font-semibold text-foreground text-sm">{n.name}</p>
+            </a>
+          ))}
+        </div>
       </section>
     </div>
   );
