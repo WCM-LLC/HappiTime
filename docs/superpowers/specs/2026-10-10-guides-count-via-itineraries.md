@@ -81,3 +81,32 @@ public link stops resolving. Republishing mints a new token.
   share button. Deleting a linked venue re-syncs too, and the sync resets a companion to private.
 - **Fixed, same migration — retiring on guide delete failed open.** It now fails closed: if the
   link cannot be retired the delete aborts.
+
+## Follow-ups from the review of #254
+
+All three fixed in `20261011060000_guide_itinerary_followups.sql`:
+
+- **A venue born published.** A venue inserted already-published under a slug a guide links now
+  re-syncs that guide. (Delete-and-recreate is this project's normal way to replace a venue.)
+- **Friend shares of a retired companion.** A friend the companion was shared with in the app
+  keeps their `itinerary_share` grant and can still open it, but `record_itinerary_touch` no
+  longer credits a companion whose link has been retired.
+- **Racing re-syncs.** `sync_guide_itinerary` takes a per-guide advisory lock before reading
+  anything, so a sync that waited cannot act on eligibility that was lost while it waited.
+  Multi-guide re-syncs take those locks in id order.
+  Deleting a guide retires its link under the same lock.
+
+Three points from the review of that migration are deliberately left:
+
+- **After a guide is deleted, its list is an ordinary list.** `source_guide_id` is cleared, so a
+  friend it was shared with can credit the author again — the same as any private list an Insider
+  shares with a friend. That is existing itinerary behaviour, not guide credit.
+- **Bulk venue writes in two transactions can deadlock on the per-guide locks**, because the
+  triggers are row-level and the locks are held to commit. Postgres aborts one sync, the venue
+  write still commits (the trigger swallows it with a warning), and that guide's companion is
+  stale until its next re-sync.
+- **Deleting a guide at the instant a re-sync creates its first companion can deadlock.** The
+  delete holds the guide row and waits for the per-guide lock; the sync holds the lock and its
+  insert waits on the guide row for the foreign-key check. Postgres aborts one after its deadlock
+  timeout: either the delete fails and can be retried, or the sync fails with a warning. Nothing
+  is left inconsistent.
