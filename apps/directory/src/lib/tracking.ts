@@ -3,14 +3,25 @@
 import { supabase } from "./supabase";
 
 /**
- * Generate or retrieve a session ID for anonymous tracking.
- * Uses a simple random ID stored in memory (no localStorage in SSR).
+ * Session ID for anonymous tracking. Kept in sessionStorage so it survives
+ * full-page navigations within a tab, the same lifetime as the first-touch
+ * attribution below; track-visit dedupes on (venue, source, session), so a
+ * per-page-load ID would count one visitor's revisits as new visits. Falls
+ * back to a per-load in-memory ID when storage is unavailable.
  */
+const SESSION_STORAGE_KEY = "ht_session_id";
 let sessionId: string | null = null;
 
 function getSessionId(): string {
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
+  if (sessionId) return sessionId;
+  try {
+    sessionId = sessionStorage.getItem(SESSION_STORAGE_KEY);
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      sessionStorage.setItem(SESSION_STORAGE_KEY, sessionId);
+    }
+  } catch {
+    sessionId ??= crypto.randomUUID();
   }
   return sessionId;
 }
@@ -45,15 +56,19 @@ function inferSourceFromReferrer(): string | null {
 }
 
 /**
- * Capture campaign params (utm_* or src) from the current URL so every event
- * carries its traffic source in meta. Values are length-capped; absent params
- * are omitted.
+ * Campaign attribution for an event, in priority order:
  *
- * First-touch persistence: when a session lands with campaign params, they're
- * stored in sessionStorage and reused for every later event in that session —
- * so venue pages reached via internal navigation from /kc/ stay attributed
- * (meta.utm_touch = "carried"). If there's no UTM at all, we fall back to
- * inferring the source from document.referrer (meta.utm_touch = "referrer").
+ * 1. Campaign params (utm_* or src) on the current URL, length-capped; absent
+ *    params are omitted.
+ * 2. The session's first touch (meta.utm_touch = "carried"), so venue pages
+ *    reached by browsing from /kc/ stay attributed.
+ * 3. A tiktok/instagram/facebook referrer (meta.utm_touch = "referrer"), for
+ *    link-in-bio tools and in-app browsers that drop params.
+ *
+ * First touch is stored in sessionStorage the first time a session lands with
+ * utm_source/src or a social referrer. A later campaign landing doesn't
+ * replace it, except that explicit params may upgrade a referrer guess.
+ * Storage is best-effort: without it, 1 and 3 still apply per page.
  */
 function getUtmMeta(): Record<string, string> {
   if (typeof window === "undefined") return {};
@@ -64,27 +79,44 @@ function getUtmMeta(): Record<string, string> {
     if (v) out[k] = v.slice(0, 64);
   }
 
+  let stored: Record<string, string> | null = null;
   try {
-    if (out.utm_source || out.src) {
-      // Fresh campaign landing — remember it for the rest of the session.
-      sessionStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(out));
-      return out;
-    }
-    const stored = sessionStorage.getItem(UTM_STORAGE_KEY);
-    if (stored) {
-      return { ...JSON.parse(stored), utm_touch: "carried" };
-    }
-    const inferred = inferSourceFromReferrer();
-    if (inferred) {
-      const meta = { utm_source: inferred, utm_touch: "referrer" };
-      sessionStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(meta));
-      return meta;
-    }
+    const raw = sessionStorage.getItem(UTM_STORAGE_KEY);
+    if (raw) stored = JSON.parse(raw);
   } catch {
-    // sessionStorage unavailable (private mode etc.) — degrade to per-URL capture.
+    // Storage unavailable or unparseable: attribute this page on its own.
   }
+  const remember = (meta: Record<string, string>) => {
+    try {
+      sessionStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(meta));
+    } catch {
+      // Best-effort; this event still carries its own attribution.
+    }
+  };
 
+  if (Object.keys(out).length > 0) {
+    if ((out.utm_source || out.src) && (!stored || stored.utm_touch === "referrer")) {
+      remember(out);
+    }
+    return out;
+  }
+  if (stored) return { ...stored, utm_touch: "carried" };
+  const inferred = inferSourceFromReferrer();
+  if (inferred) {
+    const meta = { utm_source: inferred, utm_touch: "referrer" };
+    remember(meta);
+    return meta;
+  }
   return out;
+}
+
+/**
+ * Record the session's first touch without sending an event. Mounted in the
+ * root layout so landings on pages without a PageTracker (guides, /app/) are
+ * captured before a plain link drops the query string and the referrer.
+ */
+export function captureFirstTouch(): void {
+  getUtmMeta();
 }
 
 /**
