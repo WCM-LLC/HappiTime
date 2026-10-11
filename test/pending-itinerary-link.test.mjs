@@ -61,9 +61,25 @@ test("the navigator consumes the stash on mount and does not route the launch UR
   const hook = read("apps/mobile/src/hooks/useItineraryDeepLink.ts");
   assert.match(hook, /const pending = takePendingItineraryLink\(\);\s*if \(pending\) handleUrl\(pending\);/);
   assert.match(hook, /if \(url && url !== pending\) handleUrl\(url\);/);
-  assert.match(hook, /markItineraryLinkHandled\(url\);/);
-  assert.ok(
-    hook.indexOf("if (!parsed) return;") < hook.indexOf("markItineraryLinkHandled(url);"),
-    "only real itinerary links are marked handled",
+});
+
+test("a link is marked handled only after the navigator accepts it; otherwise it goes back in the stash", () => {
+  const hook = read("apps/mobile/src/hooks/useItineraryDeepLink.ts");
+  const body = hook.slice(hook.indexOf("async function handleUrl"), hook.indexOf("const pending = takePendingItineraryLink();"));
+  const navigate = body.indexOf('nav.navigate("SharedItinerary"');
+  const mark = body.indexOf("markItineraryLinkHandled(url);");
+  assert.ok(navigate !== -1 && mark > navigate, "mark comes after navigate");
+  assert.match(
+    body,
+    /if \(cancelled \|\| !nav\) \{[\s\S]*?setPendingItineraryLink\(url\);\s*return;\s*\}/,
+    "a timed-out or cancelled route is re-stashed for the next mount",
   );
+});
+
+test("re-stashing an unrouted link works even though it was never marked handled", () => {
+  takePendingItineraryLink();
+  setPendingItineraryLink(URL_B, 9_000_000); // capture hook
+  assert.equal(takePendingItineraryLink(), URL_B); // navigator mounts, takes it…
+  setPendingItineraryLink(URL_B, 9_000_050); // …navigation times out → put back
+  assert.equal(takePendingItineraryLink(), URL_B, "still there for the next mount");
 });

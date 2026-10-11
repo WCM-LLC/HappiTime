@@ -17,6 +17,7 @@ import * as Linking from "expo-linking";
 import { parseItineraryLink } from "../lib/parseItineraryLink";
 import {
   markItineraryLinkHandled,
+  setPendingItineraryLink,
   takePendingItineraryLink,
 } from "../lib/pendingItineraryLink";
 
@@ -40,12 +41,19 @@ export function useItineraryDeepLink(navigationRef: React.RefObject<any>) {
     async function handleUrl(url: string) {
       const parsed = parseItineraryLink(url);
       if (!parsed) return; // not an itinerary link — ignore
-      // Tell the above-the-gate stash this one is taken care of, so the root
-      // capture hook (which hears the same URL) cannot leave it to replay later.
-      markItineraryLinkHandled(url);
       const nav = await waitForNav(navigationRef);
-      if (cancelled || !nav) return;
+      if (cancelled || !nav) {
+        // Not routed (navigator never became ready, or this hook unmounted during
+        // an auth transition). Put it back so the next mount opens it, instead of
+        // losing it silently.
+        setPendingItineraryLink(url);
+        return;
+      }
       nav.navigate("SharedItinerary", { token: parsed.token });
+      // Only now — after the navigator has accepted it — tell the above-the-gate
+      // stash this one is done, so the root capture hook (which hears the same
+      // URL) cannot leave a copy to replay on a later remount.
+      markItineraryLinkHandled(url);
     }
 
     // A link captured above the auth / onboarding gate, before this hook existed
