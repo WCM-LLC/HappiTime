@@ -3,6 +3,8 @@ import Link from "next/link";
 import { PageTracker } from "@/components/PageTracker";
 import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
 import { jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
+import { comingSoonPartners, withAffiliateUtm, type Partner } from "@/lib/partners";
+import { EventTabs } from "./EventTabs";
 
 export const metadata: Metadata = {
   title: "Sponsored Events in Kansas City",
@@ -151,6 +153,44 @@ function EventCard({ e, past }: { e: SponsoredEvent; past?: boolean }) {
   );
 }
 
+/** A partner whose page isn't live yet (lib/partners.ts status "coming_soon"). */
+function ComingSoonCard({ p }: { p: Partner }) {
+  const links = [
+    { label: "Website", href: p.websiteUrl },
+    { label: "Instagram", href: p.instagramUrl },
+    { label: "Facebook", href: p.facebookUrl },
+  ].filter((l): l is { label: string; href: string } => !!l.href);
+  return (
+    <article className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-6 sm:p-8">
+      <div className="flex flex-wrap items-center gap-2 text-[12px] font-bold uppercase tracking-[0.06em]">
+        <span className="rounded-full bg-dark px-3 py-1 text-white">Coming soon</span>
+        <span className="text-muted">Partner experience</span>
+      </div>
+      <h2 className={`${DISPLAY} text-[clamp(1.6rem,3vw,2.1rem)]`}>
+        {p.offeringName}
+        <span className="text-muted"> · {p.name}</span>
+      </h2>
+      <p className="max-w-[60ch] text-pretty text-[15px] text-muted">{p.teaser}</p>
+      <p className="text-[14px] font-semibold">Dates and booking open here soon.</p>
+      {links.length > 0 && (
+        <p className="flex flex-wrap gap-x-5 gap-y-2 text-[14px] font-semibold">
+          {links.map((l) => (
+            <a
+              key={l.label}
+              href={withAffiliateUtm(l.href, p.utmCampaign, "coming-soon")}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-brand-dark-alt hover:underline"
+            >
+              {p.name} {l.label}
+            </a>
+          ))}
+        </p>
+      )}
+    </article>
+  );
+}
+
 export default function SponsoredEventsPage() {
   const now = Date.now();
   // Postponed events never age into "Past"; they list after the dated ones.
@@ -159,6 +199,7 @@ export default function SponsoredEventsPage() {
     if ((a.status === "postponed") !== (b.status === "postponed")) return a.status === "postponed" ? 1 : -1;
     return Date.parse(a.starts) - Date.parse(b.starts);
   });
+  const soon = comingSoonPartners();
   const past = EVENTS.filter((e) => !isUpcoming(e)).sort(
     (a, b) => Date.parse(b.starts) - Date.parse(a.starts),
   );
@@ -187,26 +228,55 @@ export default function SponsoredEventsPage() {
         </div>
       </header>
 
-      <section className={`${SHELL} grid gap-6 pb-12`} aria-label="Upcoming events">
-        {upcoming.length ? (
-          upcoming.map((e) => <EventCard key={e.slug} e={e} />)
-        ) : (
-          <p className="rounded-2xl border border-dashed border-border-strong p-8 text-center text-muted">
-            No sponsored events on the calendar right now. Check back soon.
-          </p>
-        )}
-      </section>
+      <div className={`${SHELL} pb-4`}>
+        <EventTabs
+          tabs={[
+            {
+              id: "events",
+              label: "Events",
+              panel: (
+                <>
+                  <section className="grid gap-6 pb-12" aria-label="Upcoming events">
+                    {upcoming.length ? (
+                      upcoming.map((e) => <EventCard key={e.slug} e={e} />)
+                    ) : (
+                      <p className="rounded-2xl border border-dashed border-border-strong p-8 text-center text-muted">
+                        No sponsored events on the calendar right now. Check back soon.
+                      </p>
+                    )}
+                  </section>
 
-      {past.length > 0 && (
-        <section className={`${SHELL} grid gap-6 pb-16`} aria-labelledby="past-events">
-          <h2 id="past-events" className={`${DISPLAY} text-[22px]`}>
-            Past events
-          </h2>
-          {past.map((e) => (
-            <EventCard key={e.slug} e={e} past />
-          ))}
-        </section>
-      )}
+                  {past.length > 0 && (
+                    <section className="grid gap-6 pb-16" aria-labelledby="past-events">
+                      <h2 id="past-events" className={`${DISPLAY} text-[22px]`}>
+                        Past events
+                      </h2>
+                      {past.map((e) => (
+                        <EventCard key={e.slug} e={e} past />
+                      ))}
+                    </section>
+                  )}
+                </>
+              ),
+            },
+            {
+              id: "coming-soon",
+              label: "Coming soon",
+              panel: (
+                <section className="grid gap-6 pb-16" aria-label="Coming soon">
+                  {soon.length ? (
+                    soon.map((p) => <ComingSoonCard key={p.slug} p={p} />)
+                  ) : (
+                    <p className="rounded-2xl border border-dashed border-border-strong p-8 text-center text-muted">
+                      Nothing announced yet. Check back soon.
+                    </p>
+                  )}
+                </section>
+              ),
+            },
+          ]}
+        />
+      </div>
     </>
   );
 }

@@ -4,6 +4,7 @@ import { HAPPY_HOUR_LANDING_PAGES } from "@/lib/seoNeighborhoods";
 import { getAllKCVenues } from "@/lib/queries";
 import { supabase } from "@/lib/supabase";
 import { authorPath, getGuideAuthors } from "@/lib/authors";
+import { livePartners } from "@/lib/partners";
 
 const STATIC_GUIDE_SLUGS = new Set([
   "best-happy-hours-kansas-city",
@@ -166,6 +167,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // If DB is unavailable, skip author pages
   }
 
+  // Partner pages — live ones only; coming-soon partners 404 (lib/partners.ts).
+  const partnerPages: MetadataRoute.Sitemap = livePartners().map((p) => ({
+    url: `${baseUrl}/partners/${p.slug}/`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.6,
+  }));
+
   // Venue detail pages
   let venuePages: MetadataRoute.Sitemap = [];
   try {
@@ -186,6 +195,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticPages,
     ...dynamicGuidePages,
     ...authorPages,
+    ...partnerPages,
     ...happyHourLandingPages,
     ...venuePages,
   ];
