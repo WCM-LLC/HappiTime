@@ -27,6 +27,8 @@ const FOUNDER: {
   /** user_profiles.user_id for handle jwill86. */
   profileId: string;
   fallbackPhoto: string;
+  /** HappiTime's own TikTok — shown unless the profile sets a different one. */
+  tiktok: string;
   linkedin: string | null;
   x: string | null;
 } = {
@@ -35,6 +37,7 @@ const FOUNDER: {
   location: "Kansas City",
   profileId: "7a01495d-983a-4726-a6a5-5693865d20a0",
   fallbackPhoto: "/about/juan-williams.jpg",
+  tiktok: "https://www.tiktok.com/@_happitime_",
   linkedin: null,
   x: null,
 };
@@ -84,7 +87,7 @@ export default async function AboutPage() {
 
   const links = [
     { label: "Instagram", href: profile?.instagram_url },
-    { label: "TikTok", href: profile?.tiktok_url },
+    { label: "TikTok", href: profile?.tiktok_url || FOUNDER.tiktok },
     { label: "YouTube", href: profile?.youtube_url },
     { label: "Website", href: profile?.website_url },
     { label: "LinkedIn", href: FOUNDER.linkedin },

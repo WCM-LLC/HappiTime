@@ -88,7 +88,7 @@ const FAQ: FaqItem[] = [
   },
   {
     q: "What does “venue-confirmed” mean?",
-    a: "Unlike AI-scraped aggregators, HappiTime only shows happy-hour data that's been confirmed with the venue. That's why locals trust the listings — and why a Verified badge means something to them.",
+    a: "It means the venue itself has claimed its listing and keeps its own hours and deals current — that is what the Verified badge tells locals. For every other listing, nothing scraped goes live on its own: a person confirms each change first. That's why locals trust the listings — and why a Verified badge means something to them.",
   },
   {
     q: "What happens right after I pay?",

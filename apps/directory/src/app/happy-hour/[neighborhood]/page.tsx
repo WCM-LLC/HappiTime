@@ -50,7 +50,7 @@ function buildNeighborhoodFaqs(
     question: `How many bars and restaurants in ${neighborhoodName} have happy hour specials?`,
     answer: `HappiTime currently tracks ${venues.length} ${
       venues.length === 1 ? "venue" : "venues"
-    } with happy hour specials in ${neighborhoodName}, Kansas City. Every listing is checked by hand by HappiTime, and venues on a paid plan can update their own any day.`,
+    } with happy hour specials in ${neighborhoodName}, Kansas City. Venues on a paid plan update their own listings; the rest are re-scanned by HappiTime, and a person confirms every change before it is published.`,
   });
 
   const topRated = venues
@@ -69,7 +69,7 @@ function buildNeighborhoodFaqs(
   faqs.push({
     question: "How do I find current happy hour deals near me in Kansas City?",
     answer:
-      "HappiTime is a free Kansas City happy hour guide, on the web and as an iPhone and Android app. Every listing is checked by hand, and venues on a paid plan update their own, so times and specials reflect what is actually running.",
+      "HappiTime is a free Kansas City happy hour guide, on the web and as an iPhone and Android app. Venues on a paid plan update their own listings, and a person confirms every other change before it is published.",
   });
 
   return faqs;

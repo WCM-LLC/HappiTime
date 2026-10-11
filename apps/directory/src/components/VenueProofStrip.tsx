@@ -49,8 +49,8 @@ export function VenueProofStrip({
         <Link href="/kc/" className={`font-bold ${strong} hover:underline`}>
           {venueCount} Kansas City spots listed
         </Link>{" "}
-        <span aria-hidden="true">·</span> every one checked by hand, and paying venues update
-        their own
+        <span aria-hidden="true">·</span> paying venues update their own; we re-scan the rest and a
+        person confirms every change
       </p>
     </div>
   );
