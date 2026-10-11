@@ -18,6 +18,9 @@ export function SiteNav({ showLeaderboard = false }: { showLeaderboard?: boolean
         <Link href="/guides/" className="hover:text-foreground transition-colors">
           Guides
         </Link>
+        <Link href="/pricing/" className="hover:text-foreground transition-colors">
+          Pricing
+        </Link>
         {showLeaderboard ? (
           <Link href="/leaderboard/" className="hover:text-foreground transition-colors">
             Top Contributors
@@ -83,6 +86,13 @@ export function SiteNav({ showLeaderboard = false }: { showLeaderboard?: boolean
               className="block px-6 py-4 text-sm font-medium text-foreground border-b border-border hover:bg-background transition-colors"
             >
               Guides
+            </Link>
+            <Link
+              href="/pricing/"
+              onClick={close}
+              className="block px-6 py-4 text-sm font-medium text-foreground border-b border-border hover:bg-background transition-colors"
+            >
+              Pricing
             </Link>
             {showLeaderboard ? (
               <Link

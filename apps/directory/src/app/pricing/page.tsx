@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
 import { PageTracker } from "@/components/PageTracker";
+import { VenueQuotes } from "@/components/VenueQuotes";
+import { PressStrip } from "@/components/PressStrip";
+import { getDirectoryStats } from "@/lib/siteStats";
+import { formatAppRating, getAppStoreRating } from "@/lib/appRating";
+
+// The venue count on this page is the live directory count (lib/siteStats), so
+// the page re-renders on the same 15-minute cycle as /kc/.
+export const revalidate = 900;
 
 export const metadata: Metadata = {
   title: "Venue Pricing — Get Your Happy Hour Found on HappiTime",
@@ -60,6 +68,57 @@ const PRICING_JSONLD = {
   })),
 };
 
+/* The FAQ lives in one array so the visible answers and the FAQPage JSON-LD are
+   the same strings — they cannot drift. `a` is the full plain-text answer;
+   `link` is an optional "read more" rendered after it on the page only. */
+const METHODOLOGY_PATH = "/how-we-count-visits/";
+
+type FaqItem = {
+  q: string;
+  a: string;
+  open?: boolean;
+  link?: { href: string; label: string };
+};
+
+const FAQ: FaqItem[] = [
+  {
+    q: "Is there a contract or minimum term?",
+    a: "No. Every plan is month-to-month. Cancel anytime from your billing portal and you keep your paid features until the end of the billing period. Your free listing never goes away.",
+    open: true,
+  },
+  {
+    q: "What does “venue-confirmed” mean?",
+    a: "It means the venue itself has claimed its listing and keeps its own hours and deals current — that is what the Verified badge tells locals. For every other listing, nothing scraped goes live on its own: a person confirms each change first. That's why locals trust the listings — and why a Verified badge means something to them.",
+  },
+  {
+    q: "What happens right after I pay?",
+    a: "Your payment is tied to your venue automatically, so your badge and ranking upgrade go live the moment checkout completes. Stripe emails you a receipt, and you manage everything from the venue console from then on.",
+  },
+  {
+    q: "How do I update my specials?",
+    a: "Verified and Featured venues get access to the HappiTime venue console — change hours, deals, menus, and photos yourself, anytime, from any browser. No emails, no waiting.",
+  },
+  {
+    q: "What data do I actually get?",
+    a: "Verified venues get a monthly performance snapshot: how many locals viewed your listing, clicked through, and asked for directions. Featured venues also get the attribution report — the visits and nights HappiTime drove to your door. We count three things and keep them separate: people who opened your listing, people who scanned your HappiTime QR code, and people who checked in at your bar with the day's staff code while their phone was in your building. The numbers are yours, in plain English, every month.",
+    link: { href: METHODOLOGY_PATH, label: "Read exactly how we count a visit" },
+  },
+  {
+    q: "How does the free 30 days of Featured work?",
+    a: "Start Featured and Stripe collects your card but charges $0 today. Your first $99 charge lands on day 31. Cancel anytime during the 30 days and you pay nothing at all. You'll get an email reminder before the trial ends.",
+  },
+];
+
+const FAQ_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: { "@type": "Answer", text: item.a },
+  })),
+};
+
 function Check() {
   return (
     <svg
@@ -109,6 +168,8 @@ const PIN_PATH =
   "M15 10.5a3 3 0 11-6 0 3 3 0 016 0zM19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z";
 const CHECK_CIRCLE_PATH = "M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z";
 const CLOCK_PATH = "M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z";
+const STAR_PATH =
+  "M11.48 3.5a.56.56 0 011.04 0l2.12 5.11a.56.56 0 00.48.35l5.52.44c.5.04.7.66.32.99l-4.2 3.6a.56.56 0 00-.19.56l1.29 5.38a.56.56 0 01-.84.61l-4.73-2.88a.56.56 0 00-.58 0l-4.73 2.88a.56.56 0 01-.84-.61l1.29-5.38a.56.56 0 00-.19-.56l-4.2-3.6a.56.56 0 01.32-.99l5.52-.44a.56.56 0 00.48-.35l2.12-5.11z";
 const CARD_PATH =
   "M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z";
 const LOCK_PATH =
@@ -132,7 +193,12 @@ function FeatureList({ items }: { items: Feature[] }) {
   );
 }
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const [{ venueCount }, appRating] = await Promise.all([
+    getDirectoryStats(),
+    getAppStoreRating(),
+  ]);
+
   return (
     <>
       {/* Completes the venue-side funnel. The fork's cta_click already records
@@ -143,6 +209,10 @@ export default function PricingPage() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(PRICING_JSONLD) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_JSONLD) }}
       />
 
       {SHOW_PROMO_BAR && (
@@ -178,7 +248,7 @@ export default function PricingPage() {
           <div className="mt-7 flex flex-wrap justify-center gap-x-[26px] gap-y-2.5 text-sm font-medium text-muted">
             <span className="flex items-center gap-2">
               <TrustIcon d={PIN_PATH} />
-              180+ KC spots listed
+              {venueCount} KC spots listed
             </span>
             <span className="flex items-center gap-2">
               <TrustIcon d={CHECK_CIRCLE_PATH} />
@@ -188,7 +258,18 @@ export default function PricingPage() {
               <TrustIcon d={CLOCK_PATH} />
               No contract — cancel anytime
             </span>
+            {appRating ? (
+              <span className="flex items-center gap-2">
+                <TrustIcon d={STAR_PATH} />
+                {formatAppRating(appRating)}
+              </span>
+            ) : null}
           </div>
+          <p className="mx-auto mt-4 max-w-[560px] text-[13px] text-muted-light">
+            Kansas City metro only for now, Missouri and Kansas sides. If your bar is somewhere
+            else, HappiTime is not for you yet.
+          </p>
+          <PressStrip className="mt-5 justify-center" />
         </div>
       </header>
 
@@ -428,11 +509,19 @@ export default function PricingPage() {
                 We track how locals find you and when they show up — you get the results, not the
                 homework. The report arrives monthly, readable in 60 seconds.
               </p>
+              <p className="mt-3.5 text-[15.5px]">
+                <a
+                  href={METHODOLOGY_PATH}
+                  className="font-bold text-brand-dark-alt underline decoration-brand-light underline-offset-4 hover:text-brand-dark"
+                >
+                  How we count a visit, in plain English &#8594;
+                </a>
+              </p>
             </div>
 
             <div className="relative rounded-lg border border-border bg-surface px-6 py-[22px] shadow-xl">
               <span className="absolute -top-[11px] right-[18px] rounded-full bg-dark px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.06em] text-dark-foreground">
-                Sample report
+                Sample report · example numbers
               </span>
               <div className="mb-3.5 flex items-center justify-between border-b border-border pb-3">
                 <span className="text-[14.5px] font-extrabold">Your Venue — Monthly Report</span>
@@ -468,14 +557,17 @@ export default function PricingPage() {
                   <span className="mx-3.5 h-2 flex-1 overflow-hidden rounded bg-brand-subtle">
                     <i className="block h-full rounded bg-brand-dark" style={{ width: row.width }} />
                   </span>
-                  <span className="select-none font-extrabold text-brand-dark-alt blur-[7px]">
-                    {row.value}
-                  </span>
+                  <span className="font-extrabold text-brand-dark-alt">{row.value}</span>
                 </div>
               ))}
               <div className="mt-3 flex items-center gap-2 border-t border-dashed border-border pt-3 text-[12.5px] text-muted">
                 <TrustIcon d={LOCK_PATH} className="size-3.5" />
-                Attribution rows unlock with Featured
+                <span>
+                  Example numbers, not a real venue. The two attribution rows come with Featured.{" "}
+                  <a href={METHODOLOGY_PATH} className="font-semibold text-brand-dark-alt hover:underline">
+                    How they are counted
+                  </a>
+                </span>
               </div>
             </div>
           </div>
@@ -576,8 +668,10 @@ export default function PricingPage() {
             ))}
           </div>
           <p className="mt-3.5 text-sm text-muted">
-            Founding partners — alongside 180+ Kansas City spots already listed on HappiTime.
+            Founding partners — alongside {venueCount} Kansas City spots already listed on HappiTime.
           </p>
+          {/* Real quotes only — renders nothing until lib/socialProof.ts has one. */}
+          <VenueQuotes heading="In their words" className="mt-10" />
         </div>
       </section>
 
@@ -673,33 +767,7 @@ export default function PricingPage() {
           <h2 className={`${DISPLAY} mb-[34px] text-center text-[30px]`}>
             Questions venue owners ask
           </h2>
-          {[
-            {
-              q: "Is there a contract or minimum term?",
-              a: "No. Every plan is month-to-month. Cancel anytime from your billing portal and you keep your paid features until the end of the billing period. Your free listing never goes away.",
-              open: true,
-            },
-            {
-              q: "What does “venue-confirmed” mean?",
-              a: "Unlike AI-scraped aggregators, HappiTime only shows happy-hour data that's been confirmed with the venue. That's why locals trust the listings — and why a Verified badge means something to them.",
-            },
-            {
-              q: "What happens right after I pay?",
-              a: "Your payment is tied to your venue automatically, so your badge and ranking upgrade go live the moment checkout completes. Stripe emails you a receipt, and you manage everything from the venue console from then on.",
-            },
-            {
-              q: "How do I update my specials?",
-              a: "Verified and Featured venues get access to the HappiTime venue console — change hours, deals, menus, and photos yourself, anytime, from any browser. No emails, no waiting.",
-            },
-            {
-              q: "What data do I actually get?",
-              a: "Verified venues get a monthly performance snapshot: how many locals viewed your listing, clicked through, and asked for directions. Featured venues also get the attribution report — the visits and nights HappiTime drove to your door. How we measure it is our recipe; the numbers are yours, in plain English, every month.",
-            },
-            {
-              q: "How does the free 30 days of Featured work?",
-              a: "Start Featured and Stripe collects your card but charges $0 today. Your first $99 charge lands on day 31. Cancel anytime during the 30 days and you pay nothing at all. You'll get an email reminder before the trial ends.",
-            },
-          ].map((item) => (
+          {FAQ.map((item) => (
             <details
               key={item.q}
               open={item.open}
@@ -714,7 +782,20 @@ export default function PricingPage() {
                   +
                 </span>
               </summary>
-              <div className="px-[22px] pb-[18px] text-[14.5px] text-muted">{item.a}</div>
+              <div className="px-[22px] pb-[18px] text-[14.5px] text-muted">
+                {item.a}
+                {item.link ? (
+                  <>
+                    {" "}
+                    <a
+                      href={item.link.href}
+                      className="font-semibold text-brand-dark-alt underline decoration-brand-light underline-offset-4 hover:text-brand-dark"
+                    >
+                      {item.link.label} &#8594;
+                    </a>
+                  </>
+                ) : null}
+              </div>
             </details>
           ))}
         </div>
@@ -727,7 +808,9 @@ export default function PricingPage() {
             Tonight, someone&rsquo;s choosing a happy hour.
           </h2>
           <p className="mx-auto mb-7 max-w-[520px] text-pretty text-base text-muted">
-            Make sure it&rsquo;s yours they find. Try Featured{" "}
+            Make sure it&rsquo;s yours they find.{" "}
+            <b className="text-foreground">Be the happy hour your neighborhood is known for.</b>{" "}
+            Try Featured{" "}
             <b className="text-foreground">free for 30 days</b> — $0 today, cancel anytime.
           </p>
           <div className="flex flex-wrap justify-center gap-3.5">

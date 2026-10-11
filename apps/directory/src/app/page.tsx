@@ -18,6 +18,7 @@
 import type { Metadata } from "next";
 import ComingSoon from "./coming-soon";
 import ForkOpener from "@/components/ForkOpener";
+import { HomeBelowFold } from "@/components/HomeBelowFold";
 import { PageTracker } from "@/components/PageTracker";
 import { getOpenerProps } from "@/lib/liveDeals";
 
@@ -41,6 +42,8 @@ export default async function HomePage() {
     return <ComingSoon />;
   }
 
+  const opener = await getOpenerProps();
+
   return (
     <>
       {/* The fork is only worth keeping if people pass through it. This
@@ -48,7 +51,10 @@ export default async function HomePage() {
           numerator, and both share a session_id because the doors navigate
           client-side. Without it every session looks like a bounce. */}
       <PageTracker pagePath="/" />
-      <ForkOpener {...(await getOpenerProps())} />
+      <ForkOpener {...opener} />
+      {/* Second scroll: the directory's depth, and a way forward for anyone
+          who was not ready to pick a door. */}
+      <HomeBelowFold venueCount={opener.venueCount} />
     </>
   );
 }
