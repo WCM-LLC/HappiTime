@@ -41,7 +41,11 @@ test("A: deleting a venue is an eligibility change too", () => {
 test("A: promoting or demoting an author re-syncs their guides", () => {
   assert.match(sql, /after update of role on public\.user_profiles/);
   assert.match(sql, /when \(old\.role is distinct from new\.role\)/);
-  assert.match(fn("user_profiles_resync_guide_itineraries"), /g\.author_id = new\.user_id/);
+  const body = fn("user_profiles_resync_guide_itineraries");
+  assert.match(body, /v_user uuid := old\.user_id;/);
+  assert.match(body, /g\.author_id = v_user/);
+  assert.doesNotMatch(body, /new\./, "NEW does not exist on DELETE");
+  assert.match(sql, /create trigger user_profiles_resync_guide_itineraries_del_trg\s+after delete on public\.user_profiles/);
 });
 
 test("A: a guide can never make a venue or profile write fail", () => {
@@ -101,8 +105,11 @@ test("B: only the guide sync can give a retired companion its link back", () => 
   assert.equal(offs.length, returns.length, "the flag is switched off on every way out");
 });
 
-test("B: the sync puts an existing companion back to private", () => {
-  assert.match(fn("sync_guide_itinerary"), /visibility\s+= 'private',/);
+test("B: the sync puts an existing companion back to private, live or retired", () => {
+  const sync = fn("sync_guide_itinerary");
+  const privates = sync.match(/visibility\s+= 'private'/g) ?? [];
+  assert.equal(privates.length, 2, "one in the retire branch, one in the refresh branch");
+  assert.match(sync, /share_token is not null or visibility <> 'private'/);
 });
 
 test("the restated sync keeps the eligibility rules from the first migration", () => {
@@ -112,7 +119,7 @@ test("the restated sync keeps the eligibility rules from the first migration", (
   const strip = (t) =>
     t
       .split("\n")
-      .filter((l) => !/happitime\.guide_sync|visibility\s+= 'private'|Tells guard_guide|allowed to give a retired|switched off again/.test(l))
+      .filter((l) => !/happitime\.guide_sync|visibility\s+= 'private'|Tells guard_guide|allowed to give a retired|switched off again|update public\.user_lists\s*$|set share_token = null|where id = v_list_id and/.test(l))
       .join("\n")
       .replace(/\n{2,}/g, "\n");
   assert.equal(strip(fn("sync_guide_itinerary")), strip(original), "only the flag and the visibility line differ");

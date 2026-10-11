@@ -81,13 +81,14 @@ set search_path = public
 as $$
 declare
   r record;
+  v_user uuid := old.user_id;   -- same on UPDATE; the only row there is on DELETE
 begin
-  for r in select g.id from public.guides g where g.author_id = new.user_id loop
+  for r in select g.id from public.guides g where g.author_id = v_user loop
     perform public.sync_guide_itinerary(r.id);
   end loop;
   return null;
 exception when others then
-  raise warning 'user_profiles_resync_guide_itineraries failed for user %: %', new.user_id, sqlerrm;
+  raise warning 'user_profiles_resync_guide_itineraries failed for user %: %', v_user, sqlerrm;
   return null;
 end;
 $$;
@@ -99,6 +100,12 @@ create trigger user_profiles_resync_guide_itineraries_trg
   for each row
   when (old.role is distinct from new.role)
   execute function public.user_profiles_resync_guide_itineraries();
+
+-- A deleted profile is no longer a super_user either.
+drop trigger if exists user_profiles_resync_guide_itineraries_del_trg on public.user_profiles;
+create trigger user_profiles_resync_guide_itineraries_del_trg
+  after delete on public.user_profiles
+  for each row execute function public.user_profiles_resync_guide_itineraries();
 
 -- ── B. A companion list is managed by its guide ──────────────────────────────
 -- Direct client writes (the app, signed in as the author) may not delete a
@@ -259,8 +266,10 @@ begin
 
   if v_count = 0 then
     if v_list_id is not null then
-      update public.user_lists set share_token = null
-      where id = v_list_id and share_token is not null;
+      update public.user_lists
+      set share_token = null,
+          visibility  = 'private'   -- retired companions leave the Insider feed too
+      where id = v_list_id and (share_token is not null or visibility <> 'private');
     end if;
     perform set_config('happitime.guide_sync', 'off', true);
     return null;
@@ -345,6 +354,7 @@ $$;
 -- drop trigger if exists user_list_items_guard_guide_companion on public.user_list_items;
 -- drop trigger if exists user_lists_guard_guide_companion on public.user_lists;
 -- drop trigger if exists user_profiles_resync_guide_itineraries_trg on public.user_profiles;
+-- drop trigger if exists user_profiles_resync_guide_itineraries_del_trg on public.user_profiles;
 -- drop trigger if exists venues_resync_guide_itineraries_trg on public.venues;
 -- drop trigger if exists venues_resync_guide_itineraries_del_trg on public.venues;
 -- (restore sync_guide_itinerary from 20261011041500)
