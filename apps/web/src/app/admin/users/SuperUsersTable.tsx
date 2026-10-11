@@ -26,6 +26,8 @@ export type SuperUserRow = {
   first_checkins_driven?: number;
   venues_touched?: number;
   redemptions_driven?: number;
+  influenced_checkins?: number;
+  influenced_new_faces?: number;
 };
 
 // Pin the trailing actions column so buttons (Revoke, Make Super User, etc.)
@@ -120,6 +122,7 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Guides</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden lg:table-cell">Brought</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden lg:table-cell">First check-ins</th>
+                  <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden lg:table-cell">Influenced</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden lg:table-cell">Saves</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden xl:table-cell">Venues</th>
                   <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider hidden md:table-cell">Last submit</th>
@@ -185,6 +188,14 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                       <span className="font-medium text-foreground">
                         {row.first_checkins_driven !== undefined ? row.first_checkins_driven : '—'}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted hidden lg:table-cell">
+                      <span className="font-medium text-foreground">
+                        {row.influenced_checkins !== undefined ? row.influenced_checkins : '—'}
+                      </span>
+                      {row.influenced_new_faces !== undefined ? (
+                        <span className="block text-caption text-muted-light">{row.influenced_new_faces} new</span>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3 text-muted hidden lg:table-cell">
                       <span className="font-medium text-foreground">{row.itinerary_saves ?? 0}</span>

@@ -1,0 +1,93 @@
+// test/influence-dashboards.test.mjs
+//
+// The Insider dashboards must show venue-level influence next to — never mixed
+// into — recruited-user referral traffic, and the Insider-facing page must stay
+// counts-only (it reads through the service client, so nothing but the
+// self-filter stands between an Insider and other people's rows).
+//
+// Static wiring check. It does not prove the pages render.
+
+import assert from "node:assert/strict";
+import test from "node:test";
+import { readFileSync } from "node:fs";
+
+const read = (rel) => readFileSync(new URL(`../${rel}`, import.meta.url), "utf8");
+const myQr = read("apps/web/src/app/dashboard/referrals/page.tsx");
+const adminList = read("apps/web/src/app/admin/users/page.tsx");
+const adminTable = read("apps/web/src/app/admin/users/SuperUsersTable.tsx");
+const adminDetail = read("apps/web/src/app/admin/users/[userId]/page.tsx");
+const migration = read("supabase/migrations/20261011031500_super_user_checkin_influence.sql");
+
+const INFLUENCE_COLUMNS = ["influenced_checkins", "influenced_new_faces", "influenced_venues"];
+
+test("every influence column the pages read exists in the migration", () => {
+  for (const col of INFLUENCE_COLUMNS) {
+    assert.match(migration, new RegExp(`as ${col}\\b`), `${col} is produced by a view`);
+    assert.match(myQr, new RegExp(col), `My QR reads ${col}`);
+    assert.match(adminDetail, new RegExp(col), `admin detail reads ${col}`);
+  }
+  assert.match(adminList, /influenced_checkins: traffic\?\.influenced_checkins/);
+  assert.match(adminTable, />Influenced<\/th>/);
+});
+
+test("My QR keeps influence and referrals as separate sections", () => {
+  const influence = myQr.indexOf("Your influence");
+  const referrals = myQr.indexOf("Your referrals");
+  assert.ok(influence !== -1 && referrals > influence);
+  const influenceTiles = myQr.slice(myQr.indexOf("const influenceStats"), myQr.indexOf("const stats ="));
+  assert.doesNotMatch(influenceTiles, /first_checkins_driven|referees/, "referral numbers stay out of the influence tiles");
+});
+
+test("My QR is self-only and counts-only", () => {
+  const venueQuery = myQr.slice(myQr.indexOf(".from('super_user_venue_influence')"));
+  const untilLimit = venueQuery.slice(0, venueQuery.indexOf(".limit("));
+  assert.match(untilLimit, /\.eq\('super_user_id', user\.id\)/, "per-venue read is filtered to the signed-in Insider");
+  assert.match(untilLimit, /\.select\('venue_id, influenced_checkins, influenced_new_faces'\)/);
+  for (const table of ["checkin_super_user_attributions", "super_user_venue_touches"]) {
+    assert.doesNotMatch(myQr, new RegExp(table), `My QR never reads row-level ${table}`);
+  }
+  // The exact select above is the guard against a per-venue head-count ("people")
+  // leaking onto the Insider page: with tiny numbers it would identify someone.
+});
+
+test("admin detail shows the per-venue split between influence and referral", () => {
+  assert.match(adminDetail, /\.from\('super_user_venue_influence'\)/);
+  assert.match(adminDetail, /referral_first_checkins/);
+  assert.match(adminDetail, /\.eq\('super_user_id', userId\)/);
+});
+
+test("My QR shows the stats even when the Insider has no handle", () => {
+  // A handle is only needed for the QR and its print assets. Itinerary influence
+  // accrues without one, so the numbers must not sit behind the handle gate.
+  const gate = myQr.indexOf("{!handle ? (");
+  const gateEnd = myQr.indexOf(")}", myQr.indexOf("QR + share link"));
+  const gated = myQr.slice(gate, myQr.indexOf("<div className=\"flex flex-col gap-6\">"));
+  assert.ok(gate !== -1 && gateEnd > gate);
+  assert.doesNotMatch(gated, /influenceStats|Your influence|Your referrals/);
+  assert.ok(myQr.indexOf("Your influence") > myQr.indexOf("<div className=\"flex flex-col gap-6\">"));
+  assert.match(myQr, /\{handle \? \(\s*<section>\s*<h2[^>]*>Print &amp; download/, "only the downloads stay handle-gated");
+});
+
+test("admin detail never shows an unread summary as zero, or a failed read as empty", () => {
+  for (const col of INFLUENCE_COLUMNS) {
+    assert.match(adminDetail, new RegExp(`trafficSummary !== null \\? \\(trafficSummary\\.${col} \\?\\? 0\\) : '—'`));
+  }
+  assert.match(adminDetail, /if \(viErr\) venueInfluenceFailed = true;/);
+  assert.ok(
+    adminDetail.indexOf("venueInfluenceFailed ? (") < adminDetail.indexOf("No check-ins credited to this Insider yet."),
+    "the failure message is checked before the empty state",
+  );
+});
+
+test("admin detail says so when the per-venue table is truncated", () => {
+  assert.match(adminDetail, /\.limit\(VENUE_ROW_LIMIT\)/);
+  assert.match(adminDetail, /venueInfluence\.length >= VENUE_ROW_LIMIT \?/);
+  assert.match(adminDetail, /Showing the top \{VENUE_ROW_LIMIT\} venues/);
+});
+
+test("unavailable is never shown as zero in the list, and a failed venue read is surfaced on My QR", () => {
+  assert.match(adminTable, /row\.influenced_checkins !== undefined \? row\.influenced_checkins : '—'/);
+  assert.doesNotMatch(adminTable, /influenced_(checkins|new_faces) \?\? 0/);
+  assert.match(myQr, /const venueRowsFailed = Boolean\(venueRes\.error\);/);
+  assert.match(myQr, /venueRowsFailed \? \(/);
+});
