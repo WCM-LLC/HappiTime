@@ -77,5 +77,7 @@ public link stops resolving. Republishing mints a new token.
   `current_user` is `authenticated` / `anon`, so the sync, FK cascades, account deletion and the
   service role are unaffected. The app shows the refusal as an error; it has no special UI for
   companion lists yet.
+  A companion retired with its guide can only be given a link again by the sync, not by the app's
+  share button. Deleting a linked venue re-syncs too, and the sync resets a companion to private.
 - **Fixed, same migration — retiring on guide delete failed open.** It now fails closed: if the
   link cannot be retired the delete aborts.

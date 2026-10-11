@@ -27,8 +27,15 @@ test("A: venue status or slug changes re-sync, ordinary venue edits do not", () 
   assert.match(sql, /after update of status, slug on public\.venues/);
   assert.match(sql, /when \(old\.status is distinct from new\.status or old\.slug is distinct from new\.slug\)/);
   const body = fn("venues_resync_guide_itineraries");
-  assert.match(body, /lower\(old\.slug\), lower\(new\.slug\)/, "both the old and the new slug are considered");
+  assert.match(body, /s\.slug in \(v_old_slug, v_new_slug\)/, "both the old and the new slug are considered");
+  assert.match(body, /if tg_op = 'UPDATE' then\s*v_new_slug := lower\(new\.slug\);/, "NEW is only read on UPDATE");
   assert.match(body, /perform public\.sync_guide_itinerary\(r\.id\)/);
+});
+
+test("A: deleting a venue is an eligibility change too", () => {
+  // This project hard-deletes unwanted venues. The cascade removes the item, so
+  // without this a guide whose only venue was deleted would keep a live link.
+  assert.match(sql, /create trigger venues_resync_guide_itineraries_del_trg\s+after delete on public\.venues/);
 });
 
 test("A: promoting or demoting an author re-syncs their guides", () => {
@@ -48,11 +55,10 @@ test("A: a guide can never make a venue or profile write fail", () => {
 test("B: the guards apply to direct client writes only", () => {
   for (const name of ["guard_guide_companion_list", "guard_guide_companion_items"]) {
     const body = fn(name);
-    assert.match(
-      body,
-      /if current_user not in \('authenticated', 'anon'\) then\s*return coalesce\(new, old\);/,
-      `${name} lets the sync, cascades, account deletion and the service role through`,
-    );
+    assert.match(body, /if current_user not in \('authenticated', 'anon'\) then/);
+    const privileged = body.slice(body.indexOf("if current_user not in"), body.indexOf("end if;\n\n  if tg_op"));
+    assert.match(privileged, /return coalesce\(new, old\);/, `${name} lets the sync, cascades, account deletion and the service role through`);
+    assert.doesNotMatch(privileged, /tg_op = 'DELETE'/, `${name} never blocks a privileged delete (cascades, account deletion)`);
     assert.doesNotMatch(body, /security definer/, `${name} must see the caller's role, not the owner's`);
     assert.doesNotMatch(body, /exception when/, `${name} must not swallow its own refusals`);
   }
@@ -63,8 +69,8 @@ test("B: ordinary lists pass straight through", () => {
   // Every refusal is conditional on source_guide_id.
   const raises = list.split("raise exception").length - 1;
   const conditions = (list.match(/source_guide_id is (not null|distinct from)/g) ?? []).length;
-  assert.equal(raises, 4);
-  assert.ok(conditions >= 4, "each refusal is gated on the list being (or becoming) a companion");
+  assert.equal(raises, 5);
+  assert.ok(conditions >= 5, "each refusal is gated on the list being (or becoming) a companion");
   const items = fn("guard_guide_companion_items");
   const companionChecks = items.match(/l\.source_guide_id is not null/g) ?? [];
   assert.equal(companionChecks.length, 2, "item refusals only for items in a companion");
@@ -83,6 +89,35 @@ test("B: what an author may and may not change on a companion", () => {
   assert.doesNotMatch(items, /new\.notes/, "notes stay editable");
 });
 
+test("B: only the guide sync can give a retired companion its link back", () => {
+  // ensure_share_token is SECURITY DEFINER, so the app's ordinary share button
+  // would otherwise revive a companion retired with its guide.
+  const list = fn("guard_guide_companion_list");
+  assert.match(list, /old\.share_token is null\s+and new\.share_token is not null\s+and coalesce\(current_setting\('happitime\.guide_sync', true\), ''\) <> 'on'/);
+  const sync = fn("sync_guide_itinerary");
+  assert.match(sync, /perform set_config\('happitime\.guide_sync', 'on', true\);/);
+  const offs = sync.match(/perform set_config\('happitime\.guide_sync', 'off', true\);/g) ?? [];
+  const returns = sync.match(/\n\s+return (null|v_list_id);/g) ?? [];
+  assert.equal(offs.length, returns.length, "the flag is switched off on every way out");
+});
+
+test("B: the sync puts an existing companion back to private", () => {
+  assert.match(fn("sync_guide_itinerary"), /visibility\s+= 'private',/);
+});
+
+test("the restated sync keeps the eligibility rules from the first migration", () => {
+  const first = read("supabase/migrations/20261011041500_guide_itineraries.sql");
+  const a = first.indexOf("create or replace function public.sync_guide_itinerary(");
+  const original = first.slice(a, first.indexOf("$$;", a));
+  const strip = (t) =>
+    t
+      .split("\n")
+      .filter((l) => !/happitime\.guide_sync|visibility\s+= 'private'|Tells guard_guide|allowed to give a retired|switched off again/.test(l))
+      .join("\n")
+      .replace(/\n{2,}/g, "\n");
+  assert.equal(strip(fn("sync_guide_itinerary")), strip(original), "only the flag and the visibility line differ");
+});
+
 test("C: retiring a deleted guide's link fails closed", () => {
   const body = fn("guides_retire_itinerary");
   assert.match(body, /update public\.user_lists set share_token = null/);
@@ -91,7 +126,8 @@ test("C: retiring a deleted guide's link fails closed", () => {
 
 test("definer functions pin search_path; nothing here is callable by clients", () => {
   const definers = sql.match(/security definer\s+set search_path = public/g) ?? [];
-  assert.equal(definers.length, 3);
+  assert.equal(definers.length, 4);
   const revokes = sql.match(/revoke all on function public\.\w+\(\) from public, anon, authenticated;/g) ?? [];
-  assert.equal(revokes.length, 5, "all five functions are locked down");
+  assert.equal(revokes.length, 5, "all five trigger functions are locked down");
+  assert.ok(sql.includes("revoke all on function public.sync_guide_itinerary(uuid) from public, anon, authenticated;"));
 });
