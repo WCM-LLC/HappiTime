@@ -22,19 +22,68 @@ type TrackEventParams = {
   meta?: Record<string, unknown>;
 };
 
+const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "src"];
+const UTM_STORAGE_KEY = "ht_first_touch_utm";
+
+/**
+ * Infer a traffic source from document.referrer when no UTM params are
+ * present (e.g. link-in-bio tools or in-app browsers that drop params).
+ */
+function inferSourceFromReferrer(): string | null {
+  if (typeof document === "undefined" || !document.referrer) return null;
+  try {
+    const host = new URL(document.referrer).hostname;
+    if (host === "tiktok.com" || host.endsWith(".tiktok.com")) return "tiktok";
+    if (host === "instagram.com" || host.endsWith(".instagram.com"))
+      return "instagram";
+    if (host === "facebook.com" || host.endsWith(".facebook.com"))
+      return "facebook";
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Capture campaign params (utm_* or src) from the current URL so every event
  * carries its traffic source in meta. Values are length-capped; absent params
  * are omitted.
+ *
+ * First-touch persistence: when a session lands with campaign params, they're
+ * stored in sessionStorage and reused for every later event in that session —
+ * so venue pages reached via internal navigation from /kc/ stay attributed
+ * (meta.utm_touch = "carried"). If there's no UTM at all, we fall back to
+ * inferring the source from document.referrer (meta.utm_touch = "referrer").
  */
 function getUtmMeta(): Record<string, string> {
   if (typeof window === "undefined") return {};
   const params = new URLSearchParams(window.location.search);
   const out: Record<string, string> = {};
-  for (const k of ["utm_source", "utm_medium", "utm_campaign", "src"]) {
+  for (const k of UTM_KEYS) {
     const v = params.get(k);
     if (v) out[k] = v.slice(0, 64);
   }
+
+  try {
+    if (out.utm_source || out.src) {
+      // Fresh campaign landing — remember it for the rest of the session.
+      sessionStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(out));
+      return out;
+    }
+    const stored = sessionStorage.getItem(UTM_STORAGE_KEY);
+    if (stored) {
+      return { ...JSON.parse(stored), utm_touch: "carried" };
+    }
+    const inferred = inferSourceFromReferrer();
+    if (inferred) {
+      const meta = { utm_source: inferred, utm_touch: "referrer" };
+      sessionStorage.setItem(UTM_STORAGE_KEY, JSON.stringify(meta));
+      return meta;
+    }
+  } catch {
+    // sessionStorage unavailable (private mode etc.) — degrade to per-URL capture.
+  }
+
   return out;
 }
 
