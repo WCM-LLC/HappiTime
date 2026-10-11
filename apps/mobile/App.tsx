@@ -1,3 +1,4 @@
+import { analytics, HeyCatchProvider } from "@heycatch/sdk";
 import type { Session } from "@supabase/supabase-js";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from "react-native";
@@ -30,9 +31,36 @@ import { NotifPrimeSheet } from "./src/components/NotifPrimeSheet";
 import { setSignInRequestHandler, type GatedActionKind } from "./src/lib/gatedAction";
 import { setNotifPrimeHandler } from "./src/lib/notifPrime";
 import { setGuestSelections } from "./src/lib/guestSelections";
+import { clearIdentity, identifyUser } from "./src/lib/heycatch";
 import { registerVisitRatingHandler } from "./src/lib/ratingRequest";
 import { colors } from "./src/theme/colors";
 import { spacing } from "./src/theme/spacing";
+
+// HeyCatch analytics — the single init point for the mobile app (iOS and
+// Android: apps/android/App.tsx re-exports this file).
+//
+// Per the HeyCatch install guide: a static import and a module-scope call in
+// the root entry file, with the key inlined — it is a publishable key, not a
+// secret. Nothing is queued before `init`, so do not move this into a
+// component, an effect or a lazy import. HeyCatchProvider (mounted once in
+// App below) adds touch autocapture; screen views are reported from
+// AppNavigator, because this app uses React Navigation rather than Expo Router.
+//
+// The try/catch is deliberate: this runs before the first render, and a throw
+// here would leave the app on a blank screen. Analytics is never worth that.
+try {
+  analytics.init({
+    projectKey: "hck_pk_69puY7GnAEbkY1oa-6tm0d2OxsP10vj3",
+    install: {
+      framework: "react-native",
+      // React Native is still 0.x, so its release line is the minor (0.81).
+      frameworkVersion: "0.81",
+      agent: "claude-code",
+    },
+  });
+} catch {
+  /* analytics must never break the app */
+}
 
 function AuthenticatedApp({ session }: { session: Session }) {
   useConfigPushNotifications(session);
@@ -287,6 +315,9 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
   if (!isMounted) return;
   console.log("Auth change:", event, "session?", !!newSession);
   setSession(newSession ?? null);
+  // Covers every sign-out path (Profile, account deletion, a revoked refresh
+  // token) so the next person on this device starts anonymous in HeyCatch.
+  if (event === "SIGNED_OUT") clearIdentity();
 
   if (event === "INITIAL_SESSION") setBooting(false);
 });
@@ -296,6 +327,17 @@ const { data: sub } = supabase.auth.onAuthStateChange((event, newSession) => {
       sub.subscription.unsubscribe();
     };
   }, []);
+
+  // Link this device's activity to the signed-in user in HeyCatch. Keyed on
+  // id + email so a token refresh (a new session object, same user) does not
+  // re-send it.
+  const sessionUser = session?.user ?? null;
+  const sessionUserId = sessionUser?.id;
+  const sessionUserEmail = sessionUser?.email;
+  useEffect(() => {
+    if (sessionUser) identifyUser(sessionUser);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionUserId, sessionUserEmail]);
 
   useEffect(() => {
     const userId = session?.user?.id;
@@ -514,7 +556,9 @@ const styles = StyleSheet.create({
 export default function App() {
   return (
     <SafeAreaProvider>
-      <AppRoot />
+      <HeyCatchProvider>
+        <AppRoot />
+      </HeyCatchProvider>
     </SafeAreaProvider>
   );
 }

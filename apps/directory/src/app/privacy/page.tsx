@@ -56,9 +56,11 @@ export default function PrivacyPage() {
             features used, device type, browser type, IP address, and
             approximate location. We use Vercel Analytics to collect
             aggregated, privacy-friendly website analytics, and HeyCatch to
-            understand how visitors find and use the site — the pages you
-            view, what you click, and the link or campaign that brought you
-            here.
+            understand how people find and use the site and the mobile app —
+            the pages and screens you view, what you click or tap, and the
+            link or campaign that brought you here. In the mobile app, once
+            you sign in, this activity is associated with your account (your
+            account ID, email address, and name).
           </p>
 
           <h3 className="font-semibold text-foreground mt-4 mb-2">
@@ -100,7 +102,7 @@ export default function PrivacyPage() {
           <p>
             We share data with trusted service providers who help us operate
             the Platform, including Supabase (database and authentication),
-            Vercel (hosting and analytics), HeyCatch (website analytics), and
+            Vercel (hosting and analytics), HeyCatch (website and mobile app analytics), and
             Google and Apple (OAuth authentication).
           </p>
 

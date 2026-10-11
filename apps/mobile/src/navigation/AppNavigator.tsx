@@ -1,7 +1,7 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import React, { useRef } from "react";
+import React, { useCallback, useRef } from "react";
 import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TabBarIcon } from "../../components/ui/tab-bar-icon";
@@ -14,6 +14,8 @@ import { useUnreadNotificationsBadge } from "../hooks/useUnreadNotificationsBadg
 import { SharedItineraryScreen } from "../screens/SharedItineraryScreen";
 import { UpdateAvailableModal } from "../components/UpdateAvailableModal";
 import { useCurrentUser } from "../hooks/useCurrentUser";
+import { trackScreenView } from "../lib/heycatch";
+import { createScreenViewTracker } from "../lib/screenViewTracker";
 import { ActivityScreen } from "../screens/ActivityScreen";
 import { AuthScreen } from "../screens/AuthScreen";
 import { FavoritesScreen } from "../screens/FavoritesScreen";
@@ -123,9 +125,26 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
   useActivityDeepLink(navigationRef);
   useCheckinPrimeHandoff(navigationRef);
 
+  // HeyCatch screen views. Automatic screen capture only exists for Expo
+  // Router, so on React Navigation the install guide has us report the current
+  // route from the container: once when it is ready (the first screen) and on
+  // every state change after, skipping repeats. Route name only — never params.
+  const screenViewsRef = useRef<((name: unknown) => void) | null>(null);
+  if (screenViewsRef.current === null) {
+    screenViewsRef.current = createScreenViewTracker(trackScreenView);
+  }
+  const reportCurrentScreen = useCallback(() => {
+    screenViewsRef.current?.(navigationRef.current?.getCurrentRoute?.()?.name);
+  }, []);
+
   return (
     <>
-    <NavigationContainer ref={navigationRef} theme={navTheme}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={navTheme}
+      onReady={reportCurrentScreen}
+      onStateChange={reportCurrentScreen}
+    >
       <Stack.Navigator>
         <Stack.Screen
           name="AppTabs"
