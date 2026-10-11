@@ -164,6 +164,42 @@ test("monthly: 'last Friday' and a fifth weekday that only some months have", ()
   assert.equal(nextOccurrence(fifth, NOW).toISOString(), "2026-10-31T00:00:00.000Z");
 });
 
+test("monthly: a fifth weekday three calendar months away is still found", () => {
+  // After Mon Mar 30 2026 the next fifth Monday is Jun 29 — 91 days on. A
+  // two-month search returned null and the series vanished from every surface.
+  const fifthMon = series("Fifth Monday", "2026-01-01T01:00:00Z", "FREQ=MONTHLY;BYDAY=5MO");
+  const from = new Date("2026-04-01T12:00:00Z");
+  assert.equal(nextOccurrence(fifthMon, from).toISOString(), "2026-06-30T00:00:00.000Z"); // Mon Jun 29, 7 PM CDT
+  assert.equal(isEventLive(fifthMon, from), true);
+});
+
+test("a typo in the timezone column falls back to Kansas City instead of throwing", () => {
+  // The column is free text. Intl throws RangeError on a bad zone, and
+  // shapeVenue runs this for every event on every city page.
+  const typo = { ...series("Taco Tuesday", "2026-06-02T16:00:00Z", "FREQ=WEEKLY;BYDAY=TU"), timezone: "America/Chciago" };
+  assert.doesNotThrow(() => liveEventsSorted([typo], NOW));
+  assert.equal(nextOccurrence(typo, NOW).toISOString(), "2026-10-13T16:00:00.000Z");
+  assert.equal(occursOnLocalDate(typo, 2026, 10, 13), true);
+});
+
+test("a date-only UNTIL runs through the end of that day in the event's zone", () => {
+  // Saturdays 7 PM Central, UNTIL=20261010. 23:59 UTC on the 10th is 6:59 PM
+  // Central — an hour before the final show starts.
+  const ev = series("Final Saturday", "2026-09-06T00:00:00Z", "FREQ=WEEKLY;BYDAY=SA;UNTIL=20261010");
+  assert.equal(seriesEnd(ev).toISOString(), "2026-10-11T04:59:59.000Z");
+  assert.equal(occursOnLocalDate(ev, 2026, 10, 10), true);
+  assert.equal(occursOnLocalDate(ev, 2026, 10, 17), false);
+  assert.equal(nextOccurrence(ev, new Date("2026-10-10T18:00:00Z")).toISOString(), "2026-10-11T00:00:00.000Z");
+});
+
+test("a series stays listed through its final night, then goes", () => {
+  // UNTIL equals the last occurrence's start (7 PM Central, Sat Oct 10).
+  const ev = series("Last Night", "2026-09-06T00:00:00Z", "FREQ=WEEKLY;BYDAY=SA;UNTIL=20261011T000000Z", "2026-09-06T03:00:00Z");
+  assert.equal(isEventLive(ev, new Date("2026-10-11T01:00:00Z")), true); // 8 PM, an hour in
+  assert.equal(isEventLive(ev, new Date("2026-10-11T02:59:00Z")), true); // 9:59 PM
+  assert.equal(isEventLive(ev, new Date("2026-10-11T03:30:00Z")), false); // 10:30 PM, grace over
+});
+
 test("a series does not occur before its own first date", () => {
   // Entered ahead of time: starts Thursday Nov 5.
   const future = series("New Night", "2026-11-06T01:00:00Z", "FREQ=WEEKLY;BYDAY=TH");
@@ -315,6 +351,11 @@ test("expiry migration: snapshots each row before deleting it", () => {
   assert.ok(migName, "the expire_venue_events migration must exist");
   assert.match(mig, /insert into archive\.venue_events_expired/);
   assert.match(mig, /to_jsonb\(ve\)/);
+  // Child rows cascade with the event, so they must be in the snapshot too.
+  assert.match(mig, /'_event_media'/);
+  assert.match(mig, /'_intake_submission_events'/);
+  // Rows are locked and re-checked, so a concurrent reschedule is not deleted.
+  assert.match(mig, /for update of ve skip locked/);
   // The delete is driven by the rows the snapshot insert returned.
   assert.match(mig, /delete from public\.venue_events ve\s+using archived a/);
 });

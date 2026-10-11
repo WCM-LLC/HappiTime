@@ -15,7 +15,9 @@
 --
 -- SAFETY NET: a job that deletes unattended needs an undo. Each row is copied
 -- to archive.venue_events_expired as JSON before it is removed, and kept there
--- for 90 days. The archive schema is not exposed through the API. To restore:
+-- for 90 days, along with any event_media / intake_submission_events rows that
+-- cascade with it (under "_event_media" and "_intake_submission_events" in the
+-- snapshot). The archive schema is not exposed through the API. To restore:
 --
 --   insert into public.venue_events
 --   select (jsonb_populate_record(null::public.venue_events, snapshot)).*
@@ -59,7 +61,10 @@ alter table archive.venue_events_expired enable row level security;
 revoke all on archive.venue_events_expired from public, anon, authenticated;
 
 -- The instant in a rule's UNTIL=YYYYMMDD[THHMMSS]Z, or null when there is none.
--- A date-only UNTIL means "through that day". Malformed digits (month 13) give
+-- A date-only UNTIL means "through that day"; it is read here as 23:59:59 UTC,
+-- a few hours earlier than the end of that day in Kansas City, which is what
+-- the UI uses. The 24-hour grace below more than covers the difference, so the
+-- job never deletes a series the UI still shows. Malformed digits (month 13) give
 -- null rather than an error: one bad rule must not stop the whole nightly run.
 create or replace function public.venue_event_series_until(p_rule text)
 returns timestamptz
@@ -103,30 +108,47 @@ declare
   v_cutoff  timestamptz := now() - p_grace;
   v_deleted integer;
 begin
-  with scored as (
+  with doomed as (
+    -- Lock what we are about to remove. Under READ COMMITTED a row that an
+    -- owner is rescheduling right now is either skipped (still locked) or
+    -- re-checked against this WHERE once their update commits — so an event
+    -- that was just moved into the future is never deleted on its old dates.
     select
       ve.id,
-      case
-        when not ve.is_recurring
-         and greatest(ve.starts_at, coalesce(ve.ends_at, ve.starts_at)) < v_cutoff
-          then 'one_off_ended'
-        when ve.is_recurring
-         and (
+      case when ve.is_recurring then 'series_ended' else 'one_off_ended' end as reason
+    from public.venue_events ve
+    where (
+            not ve.is_recurring
+        and greatest(ve.starts_at, coalesce(ve.ends_at, ve.starts_at)) < v_cutoff
+          )
+       or (
+            ve.is_recurring
+        and (
                public.venue_event_series_until(ve.recurrence_rule) < v_cutoff
             or (ve.ends_at - ve.starts_at > interval '36 hours' and ve.ends_at < v_cutoff)
-             )
-          then 'series_ended'
-      end as reason
-    from public.venue_events ve
+            )
+          )
+    for update of ve skip locked
   ),
   archived as (
     insert into archive.venue_events_expired
       (event_id, venue_id, title, status, is_recurring, starts_at, reason, snapshot)
     select ve.id, ve.venue_id, ve.title, ve.status, ve.is_recurring, ve.starts_at,
-           s.reason, to_jsonb(ve)
+           d.reason,
+           -- event_media and intake_submission_events cascade on delete, so
+           -- their rows ride along in the snapshot under underscore keys.
+           -- jsonb_populate_record ignores keys that are not columns, so the
+           -- restore statement in the header still works unchanged.
+           to_jsonb(ve) || jsonb_build_object(
+             '_event_media',
+               (select coalesce(jsonb_agg(to_jsonb(m)), '[]'::jsonb)
+                  from public.event_media m where m.event_id = ve.id),
+             '_intake_submission_events',
+               (select coalesce(jsonb_agg(to_jsonb(i)), '[]'::jsonb)
+                  from public.intake_submission_events i where i.event_id = ve.id)
+           )
       from public.venue_events ve
-      join scored s on s.id = ve.id
-     where s.reason is not null
+      join doomed d on d.id = ve.id
     -- An id can only already be here if the row was restored and expired again.
     on conflict (event_id) do update
       set snapshot = excluded.snapshot,

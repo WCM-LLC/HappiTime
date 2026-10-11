@@ -41,6 +41,9 @@ export const ONE_OFF_GRACE_MS = 3 * 60 * 60 * 1000;
 /** On a recurring row, an `ends_at` further than this from `starts_at` is the end of the SERIES. */
 export const SERIES_SPAN_MS = 36 * 60 * 60 * 1000;
 
+/** How far ahead nextOccurrence looks before concluding a series has no more dates. */
+const MAX_SCAN_DAYS = 366;
+
 const DAY_CODES = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const ORDINALS = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th", "-1": "Last" };
@@ -63,9 +66,27 @@ function fmt(tz) {
   return f;
 }
 
+const zoneOk = new Map();
+/**
+ * The event's IANA zone, or DEFAULT_TZ when it is missing or not one the
+ * runtime knows. The timezone column is free text with no constraint, and
+ * Intl throws a RangeError on a bad zone — one typo ("America/Chciago") would
+ * otherwise take down every page that lists that venue.
+ */
 function zoneOf(event) {
   const tz = typeof event.timezone === "string" ? event.timezone.trim() : "";
-  return tz || DEFAULT_TZ;
+  if (!tz) return DEFAULT_TZ;
+  let ok = zoneOk.get(tz);
+  if (ok === undefined) {
+    try {
+      fmt(tz);
+      ok = true;
+    } catch {
+      ok = false;
+    }
+    zoneOk.set(tz, ok);
+  }
+  return ok ? tz : DEFAULT_TZ;
 }
 
 /** Wall-clock components of an instant, as seen in `tz`. */
@@ -112,16 +133,19 @@ function toDate(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-function parseUntil(rule) {
+/**
+ * The instant a rule's UNTIL refers to. `UNTIL=YYYYMMDDTHHMMSSZ` is that UTC
+ * instant. A date-only `UNTIL=YYYYMMDD` means "through that day" — the end of
+ * that calendar day in the EVENT's zone, not in UTC, or a 7 PM Central show on
+ * the final date would fall after it.
+ */
+function parseUntil(rule, tz = DEFAULT_TZ) {
   const m = rule.match(/UNTIL=(\d{8})(?:T(\d{6}))?/);
   if (!m) return null;
-  const d = m[1];
-  // A date-only UNTIL means "through that day".
-  const t = m[2] ?? "235959";
-  const ms = Date.UTC(
-    Number(d.slice(0, 4)), Number(d.slice(4, 6)) - 1, Number(d.slice(6, 8)),
-    Number(t.slice(0, 2)), Number(t.slice(2, 4)), Number(t.slice(4, 6)),
-  );
+  const y = Number(m[1].slice(0, 4)), mo = Number(m[1].slice(4, 6)), d = Number(m[1].slice(6, 8));
+  if (!(mo >= 1 && mo <= 12 && d >= 1 && d <= 31)) return null;
+  if (!m[2]) return zonedToUtc({ y, m: mo, d, h: 23, mi: 59, s: 59 }, tz);
+  const ms = Date.UTC(y, mo - 1, d, Number(m[2].slice(0, 2)), Number(m[2].slice(2, 4)), Number(m[2].slice(4, 6)));
   return Number.isFinite(ms) ? new Date(ms) : null;
 }
 
@@ -129,7 +153,7 @@ function parseUntil(rule) {
  * Parse the supported slice of RRULE. Returns null for anything this module
  * cannot place on a calendar — callers treat null as "unknown schedule".
  */
-export function parseRule(rule) {
+export function parseRule(rule, tz = DEFAULT_TZ) {
   const r = (rule ?? "").trim().toUpperCase();
   if (!r.startsWith("FREQ=")) return null;
 
@@ -157,7 +181,7 @@ export function parseRule(rule) {
   // A numbered day only means something monthly.
   if (freq !== "MONTHLY" && byday.some((b) => b.nth !== null)) return null;
 
-  return { freq, byday, until: parseUntil(r) };
+  return { freq, byday, until: parseUntil(r, tz) };
 }
 
 /** `ends_at` when it closes a single occurrence; null when absent or when it marks the series end. */
@@ -173,7 +197,7 @@ export function occurrenceEnd(event) {
 export function seriesEnd(event) {
   if (!event.is_recurring) return null;
   const ends = [];
-  const until = parseUntil((event.recurrence_rule ?? "").toUpperCase());
+  const until = parseUntil((event.recurrence_rule ?? "").toUpperCase(), zoneOf(event));
   if (until) ends.push(until.getTime());
   const start = toDate(event.starts_at);
   const end = toDate(event.ends_at);
@@ -221,9 +245,11 @@ export function nextOccurrence(event, from = new Date()) {
   const floorLocal = localParts(floor, tz);
   const tod = { h: startLocal.h, mi: startLocal.mi, s: startLocal.s };
 
-  // 62 days always spans two full calendar months, which is the longest gap
-  // between occurrences any supported rule can have ("5th Friday").
-  for (let i = 0; i <= 62; i++) {
+  // A year, not two months: "5th Monday" can skip three calendar months in a
+  // row (Mar 30 → Jun 29, 2026), and a rule that can never match should end
+  // the search rather than run forever. Weekly and daily rules return within
+  // the first week, so the bound costs nothing in the common case.
+  for (let i = 0; i <= MAX_SCAN_DAYS; i++) {
     const [y, m, d] = shiftDate(floorLocal.y, floorLocal.m, floorLocal.d, i);
     if (!matchesPattern(parsed, startLocal, y, m, d)) continue;
     const candidate = zonedToUtc({ y, m, d, ...tod }, tz);
@@ -274,7 +300,9 @@ export function isEventLive(event, now = new Date()) {
   }
 
   const end = seriesEnd(event);
-  if (end && end.getTime() < now.getTime()) return false;
+  // UNTIL bounds when the last occurrence may START, so the series gets the
+  // same grace a one-off does: its final night must not vanish at 7:01 PM.
+  if (end && end.getTime() + ONE_OFF_GRACE_MS < now.getTime()) return false;
   if (!parseRule(event.recurrence_rule)) return true;
   // Open series always have a next occurrence; a bounded one may have run out
   // of dates before its UNTIL.

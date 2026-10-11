@@ -25,7 +25,7 @@ export declare function zonedToUtc(
   tz?: string,
 ): Date;
 
-export declare function parseRule(rule: string | null | undefined): {
+export declare function parseRule(rule: string | null | undefined, tz?: string): {
   freq: "DAILY" | "WEEKLY" | "MONTHLY";
   byday: { nth: number | null; dow: number }[];
   until: Date | null;
