@@ -94,3 +94,14 @@ All three fixed in `20261011060000_guide_itinerary_followups.sql`:
 - **Racing re-syncs.** `sync_guide_itinerary` takes a per-guide advisory lock before reading
   anything, so a sync that waited cannot act on eligibility that was lost while it waited.
   Multi-guide re-syncs take those locks in id order.
+  Deleting a guide retires its link under the same lock.
+
+Two points from the review of that migration are deliberately left:
+
+- **After a guide is deleted, its list is an ordinary list.** `source_guide_id` is cleared, so a
+  friend it was shared with can credit the author again — the same as any private list an Insider
+  shares with a friend. That is existing itinerary behaviour, not guide credit.
+- **Bulk venue writes in two transactions can deadlock on the per-guide locks**, because the
+  triggers are row-level and the locks are held to commit. Postgres aborts one sync, the venue
+  write still commits (the trigger swallows it with a warning), and that guide's companion is
+  stale until its next re-sync.

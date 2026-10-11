@@ -111,6 +111,26 @@ end;
 $$;
 revoke all on function public.sync_guide_itinerary(uuid) from public, anon, authenticated;
 
+-- From 20261011050000. Deleting a guide retires its link under the same lock.
+create or replace function public.guides_retire_itinerary()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- Same per-guide lock as sync_guide_itinerary. Without it a sync that had
+  -- already read this guide as eligible could resume after the delete and mint
+  -- a new link on the list this is about to detach.
+  perform pg_advisory_xact_lock(hashtextextended('guide_itinerary:' || old.id::text, 0));
+
+  update public.user_lists set share_token = null
+  where source_guide_id = old.id and share_token is not null;
+  return old;
+end;
+$$;
+revoke all on function public.guides_retire_itinerary() from public, anon, authenticated;
+
 -- ── 1. Venues born published ─────────────────────────────────────────────────
 -- From 20261011050000. Now also handles INSERT, and re-syncs guides in id order.
 create or replace function public.venues_resync_guide_itineraries()
@@ -266,6 +286,7 @@ $$;
 
 -- ── DOWN (manual) ──────────────────────────────────────────────────────────
 -- drop trigger if exists venues_resync_guide_itineraries_ins_trg on public.venues;
--- (restore sync_guide_itinerary, venues_resync_guide_itineraries and
+-- (restore sync_guide_itinerary, guides_retire_itinerary,
+--  venues_resync_guide_itineraries and
 --  user_profiles_resync_guide_itineraries from 20261011050000, and
 --  record_itinerary_touch from 20261011031500)

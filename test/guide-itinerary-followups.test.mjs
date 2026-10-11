@@ -40,6 +40,19 @@ test("sync: the only change is a per-guide advisory lock, taken before anything 
   );
 });
 
+test("guide delete: retires the link under the same per-guide lock, and still fails closed", () => {
+  const next = grab(sql, "guides_retire_itinerary");
+  const { added, removed } = diff(grab(guards, "guides_retire_itinerary"), next);
+  assert.deepEqual(removed, []);
+  assert.deepEqual(code(added), [
+    "  perform pg_advisory_xact_lock(hashtextextended('guide_itinerary:' || old.id::text, 0));",
+  ]);
+  // The key must be built exactly as the sync builds it, or the two never contend.
+  const key = (t) => t.match(/hashtextextended\('([^']+)' \|\| \w+(?:\.\w+)?::text, 0\)/)[1];
+  assert.equal(key(next), key(grab(sql, "sync_guide_itinerary")));
+  assert.doesNotMatch(next, /exception when/, "a failure still aborts the delete");
+});
+
 test("touch RPC: the only change is that a retired companion earns nothing", () => {
   const { added, removed } = diff(
     grab(influence, "record_itinerary_touch"),
@@ -89,8 +102,8 @@ test("a venue born published re-syncs; a draft waits for the existing UPDATE tri
 
 test("definer functions pin search_path and trigger functions stay uncallable", () => {
   const definers = sql.match(/security definer\s+set search_path = public/g) ?? [];
-  assert.equal(definers.length, 4);
-  for (const f of ["sync_guide_itinerary(uuid)", "venues_resync_guide_itineraries()", "user_profiles_resync_guide_itineraries()"]) {
+  assert.equal(definers.length, 5);
+  for (const f of ["sync_guide_itinerary(uuid)", "guides_retire_itinerary()", "venues_resync_guide_itineraries()", "user_profiles_resync_guide_itineraries()"]) {
     assert.ok(sql.includes(`revoke all on function public.${f} from public, anon, authenticated;`), f);
   }
 });
