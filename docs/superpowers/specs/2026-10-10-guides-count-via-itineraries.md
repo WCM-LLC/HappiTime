@@ -96,7 +96,7 @@ All three fixed in `20261011060000_guide_itinerary_followups.sql`:
   Multi-guide re-syncs take those locks in id order.
   Deleting a guide retires its link under the same lock.
 
-Two points from the review of that migration are deliberately left:
+Three points from the review of that migration are deliberately left:
 
 - **After a guide is deleted, its list is an ordinary list.** `source_guide_id` is cleared, so a
   friend it was shared with can credit the author again — the same as any private list an Insider
@@ -105,3 +105,8 @@ Two points from the review of that migration are deliberately left:
   triggers are row-level and the locks are held to commit. Postgres aborts one sync, the venue
   write still commits (the trigger swallows it with a warning), and that guide's companion is
   stale until its next re-sync.
+- **Deleting a guide at the instant a re-sync creates its first companion can deadlock.** The
+  delete holds the guide row and waits for the per-guide lock; the sync holds the lock and its
+  insert waits on the guide row for the foreign-key check. Postgres aborts one after its deadlock
+  timeout: either the delete fails and can be retried, or the sync fails with a warning. Nothing
+  is left inconsistent.
