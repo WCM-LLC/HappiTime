@@ -131,16 +131,18 @@ export default async function ReferralsPage() {
           </p>
         </div>
 
-        {!handle ? (
-          <div className="rounded-lg border border-dashed border-border-strong bg-surface/50 p-12 text-center">
-            <p className="text-body-sm font-medium text-foreground mb-1">Set your handle first</p>
-            <p className="text-body-sm text-muted">
-              Your QR is built from your handle. Set one in the HappiTime app (Profile → Handle), then come back here.
-            </p>
-          </div>
-        ) : (
-          <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-            {/* QR + share link */}
+        {/* The stats render with or without a handle — itinerary influence does not need one.
+            Only the QR and its print assets do. */}
+        <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
+          {!handle ? (
+            <div className="rounded-lg border border-dashed border-border-strong bg-surface/50 p-12 text-center">
+              <p className="text-body-sm font-medium text-foreground mb-1">Set your handle first</p>
+              <p className="text-body-sm text-muted">
+                Your QR is built from your handle. Set one in the HappiTime app (Profile → Handle), then come back here.
+              </p>
+            </div>
+          ) : (
+            // QR + share link
             <section className="rounded-lg border border-border bg-surface shadow-sm p-6 flex flex-col items-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img loading="lazy" decoding="async"
@@ -158,63 +160,65 @@ export default async function ReferralsPage() {
                 Scans open the app if it&apos;s installed, or send new people to the right app store.
               </p>
             </section>
+          )}
 
-            <div className="flex flex-col gap-6">
-              {/* Influence — venue-level */}
-              <section>
-                <h2 className="text-heading-sm font-semibold text-foreground mb-1">Your influence</h2>
-                <p className="text-body-sm text-muted mb-3">
-                  Verified check-ins at a venue within 7 days of someone opening, tapping or saving it in one of your itineraries.
-                </p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {influenceStats.map((s) => (
-                    <div key={s.label} className="rounded-lg border border-border bg-surface shadow-sm px-4 py-3">
-                      <p className="text-display-sm font-bold text-foreground">{s.value}</p>
-                      <p className="text-body-sm text-muted mt-0.5">{s.label}</p>
-                    </div>
-                  ))}
-                </div>
-                {venueRows.length > 0 ? (
-                  <div className="mt-3 rounded-lg border border-border bg-surface shadow-sm overflow-hidden">
-                    <table className="w-full text-body-sm">
-                      <thead>
-                        <tr className="border-b border-border bg-background/50">
-                          <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Venue</th>
-                          <th className="text-right px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Check-ins</th>
-                          <th className="text-right px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">New faces</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {venueRows.map((v) => (
-                          <tr key={v.venue_id} className="border-b border-border last:border-0">
-                            <td className="px-4 py-2.5 text-foreground">{venueNameById.get(v.venue_id) ?? 'Venue'}</td>
-                            <td className="px-4 py-2.5 text-right font-medium text-foreground">{v.influenced_checkins}</td>
-                            <td className="px-4 py-2.5 text-right text-muted">{v.influenced_new_faces}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+          <div className="flex flex-col gap-6">
+            {/* Influence — venue-level */}
+            <section>
+              <h2 className="text-heading-sm font-semibold text-foreground mb-1">Your influence</h2>
+              <p className="text-body-sm text-muted mb-3">
+                Verified check-ins at a venue within 7 days of someone opening, tapping or saving it in one of your itineraries.
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {influenceStats.map((s) => (
+                  <div key={s.label} className="rounded-lg border border-border bg-surface shadow-sm px-4 py-3">
+                    <p className="text-display-sm font-bold text-foreground">{s.value}</p>
+                    <p className="text-body-sm text-muted mt-0.5">{s.label}</p>
                   </div>
-                ) : null}
-              </section>
-
-              {/* Referrals — person-level */}
-              <section>
-                <h2 className="text-heading-sm font-semibold text-foreground mb-1">Your referrals</h2>
-                <p className="text-body-sm text-muted mb-3">
-                  People who joined through your QR or link, and what they went on to do.
-                </p>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {stats.map((s) => (
-                    <div key={s.label} className="rounded-lg border border-border bg-surface shadow-sm px-4 py-3">
-                      <p className="text-display-sm font-bold text-foreground">{s.value}</p>
-                      <p className="text-body-sm text-muted mt-0.5">{s.label}</p>
-                    </div>
-                  ))}
+                ))}
+              </div>
+              {venueRows.length > 0 ? (
+                <div className="mt-3 rounded-lg border border-border bg-surface shadow-sm overflow-hidden">
+                  <table className="w-full text-body-sm">
+                    <thead>
+                      <tr className="border-b border-border bg-background/50">
+                        <th className="text-left px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Venue</th>
+                        <th className="text-right px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">Check-ins</th>
+                        <th className="text-right px-4 py-2.5 text-caption font-semibold text-muted uppercase tracking-wider">New faces</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {venueRows.map((v) => (
+                        <tr key={v.venue_id} className="border-b border-border last:border-0">
+                          <td className="px-4 py-2.5 text-foreground">{venueNameById.get(v.venue_id) ?? 'Venue'}</td>
+                          <td className="px-4 py-2.5 text-right font-medium text-foreground">{v.influenced_checkins}</td>
+                          <td className="px-4 py-2.5 text-right text-muted">{v.influenced_new_faces}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              </section>
+              ) : null}
+            </section>
 
-              {/* Downloads */}
+            {/* Referrals — person-level */}
+            <section>
+              <h2 className="text-heading-sm font-semibold text-foreground mb-1">Your referrals</h2>
+              <p className="text-body-sm text-muted mb-3">
+                People who joined through your QR or link, and what they went on to do.
+              </p>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {stats.map((s) => (
+                  <div key={s.label} className="rounded-lg border border-border bg-surface shadow-sm px-4 py-3">
+                    <p className="text-display-sm font-bold text-foreground">{s.value}</p>
+                    <p className="text-body-sm text-muted mt-0.5">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Downloads — QR assets, so they need a handle */}
+            {handle ? (
               <section>
                 <h2 className="text-heading-sm font-semibold text-foreground mb-3">Print &amp; download</h2>
                 <div className="rounded-lg border border-border bg-surface shadow-sm divide-y divide-border">
@@ -258,9 +262,9 @@ export default async function ReferralsPage() {
                   ))}
                 </div>
               </section>
-            </div>
+            ) : null}
           </div>
-        )}
+        </div>
       </main>
     </div>
   );

@@ -123,7 +123,9 @@ export default async function AdminSuperUserDetailsPage({
     people: number;
     last_checkin_at: string | null;
   };
+  const VENUE_ROW_LIMIT = 50;
   let venueInfluence: VenueInfluence[] = [];
+  let venueInfluenceFailed = false;
   const venueNameById = new Map<string, string>();
   {
     const { data: vi, error: viErr } = await (db as any)
@@ -132,8 +134,9 @@ export default async function AdminSuperUserDetailsPage({
       .eq('super_user_id', userId)
       .order('influenced_checkins', { ascending: false })
       .order('last_checkin_at', { ascending: false })
-      .limit(50);
-    if (!viErr && vi) venueInfluence = vi as VenueInfluence[];
+      .limit(VENUE_ROW_LIMIT);
+    if (viErr) venueInfluenceFailed = true;   // never show a failed read as "none yet"
+    else if (vi) venueInfluence = vi as VenueInfluence[];
     if (venueInfluence.length > 0) {
       const { data: venues } = await (db as any)
         .from('venues')
@@ -276,23 +279,25 @@ export default async function AdminSuperUserDetailsPage({
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
             <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
               <p className="text-caption font-semibold uppercase tracking-wider text-muted">Influenced check-ins</p>
-              <p className="text-display-md font-bold text-foreground mt-2">{trafficSummary?.influenced_checkins ?? 0}</p>
+              <p className="text-display-md font-bold text-foreground mt-2">{trafficSummary !== null ? (trafficSummary.influenced_checkins ?? 0) : '—'}</p>
               <p className="text-caption text-muted-light mt-0.5">within 7 days of an itinerary touch</p>
             </div>
             <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
               <p className="text-caption font-semibold uppercase tracking-wider text-muted">New faces</p>
-              <p className="text-display-md font-bold text-foreground mt-2">{trafficSummary?.influenced_new_faces ?? 0}</p>
+              <p className="text-display-md font-bold text-foreground mt-2">{trafficSummary !== null ? (trafficSummary.influenced_new_faces ?? 0) : '—'}</p>
               <p className="text-caption text-muted-light mt-0.5">first visit to that venue</p>
             </div>
             <div className="rounded-lg border border-border bg-surface p-4 shadow-sm">
               <p className="text-caption font-semibold uppercase tracking-wider text-muted">Influenced venues</p>
-              <p className="text-display-md font-bold text-foreground mt-2">{trafficSummary?.influenced_venues ?? 0}</p>
+              <p className="text-display-md font-bold text-foreground mt-2">{trafficSummary !== null ? (trafficSummary.influenced_venues ?? 0) : '—'}</p>
               <p className="text-caption text-muted-light mt-0.5">with at least one</p>
             </div>
           </div>
 
           <div className="rounded-lg border border-border bg-surface shadow-sm overflow-hidden mt-3">
-            {venueInfluence.length === 0 ? (
+            {venueInfluenceFailed ? (
+              <p className="text-body-sm text-muted p-5">Couldn&apos;t load the per-venue breakdown. Reload to try again.</p>
+            ) : venueInfluence.length === 0 ? (
               <p className="text-body-sm text-muted p-5">No check-ins credited to this Insider yet.</p>
             ) : (
               <table className="w-full text-body-sm">
@@ -321,6 +326,16 @@ export default async function AdminSuperUserDetailsPage({
               </table>
             )}
           </div>
+          {venueInfluence.length >= VENUE_ROW_LIMIT ? (
+            <p className="text-caption text-muted-light mt-2">
+              Showing the top {VENUE_ROW_LIMIT} venues by influenced check-ins. Venues below that are not listed.
+            </p>
+          ) : null}
+          {trafficSummary === null ? (
+            <p className="text-caption text-muted-light mt-2">
+              — means no traffic has been recorded for this Insider yet, or the summary could not be read.
+            </p>
+          ) : null}
         </section>
 
         <section className="mb-8">

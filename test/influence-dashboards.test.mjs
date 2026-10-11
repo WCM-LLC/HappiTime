@@ -55,3 +55,32 @@ test("admin detail shows the per-venue split between influence and referral", ()
   assert.match(adminDetail, /referral_first_checkins/);
   assert.match(adminDetail, /\.eq\('super_user_id', userId\)/);
 });
+
+test("My QR shows the stats even when the Insider has no handle", () => {
+  // A handle is only needed for the QR and its print assets. Itinerary influence
+  // accrues without one, so the numbers must not sit behind the handle gate.
+  const gate = myQr.indexOf("{!handle ? (");
+  const gateEnd = myQr.indexOf(")}", myQr.indexOf("QR + share link"));
+  const gated = myQr.slice(gate, myQr.indexOf("<div className=\"flex flex-col gap-6\">"));
+  assert.ok(gate !== -1 && gateEnd > gate);
+  assert.doesNotMatch(gated, /influenceStats|Your influence|Your referrals/);
+  assert.ok(myQr.indexOf("Your influence") > myQr.indexOf("<div className=\"flex flex-col gap-6\">"));
+  assert.match(myQr, /\{handle \? \(\s*<section>\s*<h2[^>]*>Print &amp; download/, "only the downloads stay handle-gated");
+});
+
+test("admin detail never shows an unread summary as zero, or a failed read as empty", () => {
+  for (const col of INFLUENCE_COLUMNS) {
+    assert.match(adminDetail, new RegExp(`trafficSummary !== null \\? \\(trafficSummary\\.${col} \\?\\? 0\\) : '—'`));
+  }
+  assert.match(adminDetail, /if \(viErr\) venueInfluenceFailed = true;/);
+  assert.ok(
+    adminDetail.indexOf("venueInfluenceFailed ? (") < adminDetail.indexOf("No check-ins credited to this Insider yet."),
+    "the failure message is checked before the empty state",
+  );
+});
+
+test("admin detail says so when the per-venue table is truncated", () => {
+  assert.match(adminDetail, /\.limit\(VENUE_ROW_LIMIT\)/);
+  assert.match(adminDetail, /venueInfluence\.length >= VENUE_ROW_LIMIT \?/);
+  assert.match(adminDetail, /Showing the top \{VENUE_ROW_LIMIT\} venues/);
+});
