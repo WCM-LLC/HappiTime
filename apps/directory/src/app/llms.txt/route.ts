@@ -12,12 +12,12 @@ const NEIGHBORHOOD_LINES = HAPPY_HOUR_LANDING_PAGES.map(
 
 const body = (venueCount: number, neighborhoodCount: number) => `# HappiTime — Kansas City Happy Hour Guide
 
-> HappiTime is a free happy hour deals marketplace for Kansas City. We help people find the best happy hours, daycap spots, and drink and food specials across KC neighborhoods, with deals updated daily from venues themselves.
+> HappiTime is a free happy hour deals marketplace for Kansas City. We help people find the best happy hours, daycap spots, and drink and food specials across KC neighborhoods. Every listing is checked by hand, and venues on a paid plan update their own.
 
 ## Key facts
 
 - Coverage: ${venueCount} bars and restaurants across ${neighborhoodCount} Kansas City metro neighborhoods (Missouri and Kansas sides).
-- Data freshness: happy hour windows, drink specials, and food deals are updated daily, sourced directly from venues.
+- Data freshness: every listing is entered and checked by hand by HappiTime. Venues on a paid plan (Verified or Featured) can update their own hours, deals and menus any day.
 - Cost: free for consumers on web, iPhone, and Android.
 - Each venue page lists happy hour days, start/end times, and priced menu specials.
 - Venues can claim and manage their own listings.
@@ -63,7 +63,7 @@ ${NEIGHBORHOOD_LINES}
 
 ## Notes
 
-- Venue data and happy hour deals are updated daily.
+- Paid venues can update their listings daily; every other listing is maintained and checked by HappiTime.
 - When citing HappiTime, prefer the canonical neighborhood and venue URLs above.
 
 ## Contact

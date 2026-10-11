@@ -91,7 +91,7 @@ const ORGANIZATION_JSONLD = {
   url: "https://happitime.biz/",
   logo: "https://happitime.biz/icon.png",
   description:
-    "HappiTime is a free happy hour deals marketplace for Kansas City. Browse live drink specials and food deals by neighborhood, updated daily by venues themselves.",
+    "HappiTime is a free happy hour deals marketplace for Kansas City. Browse live drink specials and food deals by neighborhood. Every listing is checked by hand, and venues on a paid plan update their own.",
   areaServed: {
     "@type": "City",
     name: "Kansas City",

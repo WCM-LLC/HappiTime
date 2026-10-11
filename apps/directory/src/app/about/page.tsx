@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PageTracker } from "@/components/PageTracker";
+import { supabase } from "@/lib/supabase";
 
 /**
  * ABOUT — who runs HappiTime.
@@ -8,12 +9,13 @@ import { PageTracker } from "@/components/PageTracker";
  * legal pages. At this stage the founder is the brand, so this page puts a
  * name (and, once added, a face) on it.
  *
- * ── Things only Juan can supply — fill in FOUNDER below ─────────────────────
- *   photo     Drop a square headshot at apps/directory/public/about/juan-williams.jpg
- *             and set photo: "/about/juan-williams.jpg". Until then the page
- *             shows initials, not a stock image.
- *   linkedin  Full profile URL. Left null → the link is simply not rendered.
- *   x         Full profile URL. Same.
+ * ── Photo and links come from Juan's own HappiTime profile (@jwill86) ───────
+ * The page reads the profile picture and any social links (Instagram, TikTok,
+ * YouTube, website) live from that account, so changing them in the app
+ * changes them here within the hour. public/about/juan-williams.jpg is a copy
+ * of the same picture, used only if the profile cannot be read.
+ *   linkedin / x   Not fields on a HappiTime profile. Set the full URL below
+ *                  to show them; left null, the link is simply not rendered.
  * The "why I built this" copy speaks in the first person. Read it and make it
  * yours before this ships — it was drafted from the stated purpose of the
  * product, not from an interview.
@@ -22,17 +24,45 @@ const FOUNDER: {
   name: string;
   title: string;
   location: string;
-  photo: string | null;
+  /** user_profiles.user_id for handle jwill86. */
+  profileId: string;
+  fallbackPhoto: string;
   linkedin: string | null;
   x: string | null;
 } = {
   name: "Juan Williams",
   title: "Chief Vibe Officer",
   location: "Kansas City",
-  photo: null,
+  profileId: "7a01495d-983a-4726-a6a5-5693865d20a0",
+  fallbackPhoto: "/about/juan-williams.jpg",
   linkedin: null,
   x: null,
 };
+
+export const revalidate = 3600;
+
+type FounderProfile = {
+  avatar_url: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
+  website_url: string | null;
+  youtube_url: string | null;
+};
+
+/** Same public view the guide bylines read; null on any failure. */
+async function getFounderProfile(): Promise<FounderProfile | null> {
+  try {
+    const { data, error } = await supabase
+      .from("public_guide_authors")
+      .select("avatar_url, instagram_url, tiktok_url, website_url, youtube_url")
+      .eq("author_id", FOUNDER.profileId)
+      .maybeSingle();
+    if (error) return null;
+    return (data as FounderProfile | null) ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export const metadata: Metadata = {
   title: "About HappiTime — Who Runs It",
@@ -48,34 +78,35 @@ export const metadata: Metadata = {
 
 const DISPLAY = "heading-sans font-extrabold tracking-[-0.02em] leading-[1.15]";
 
-const sameAs = [FOUNDER.linkedin, FOUNDER.x].filter((u): u is string => !!u);
+export default async function AboutPage() {
+  const profile = await getFounderProfile();
+  const photo = profile?.avatar_url || FOUNDER.fallbackPhoto;
 
-const ABOUT_JSONLD = {
-  "@context": "https://schema.org",
-  "@type": "AboutPage",
-  url: "https://happitime.biz/about/",
-  name: "About HappiTime",
-  mainEntity: {
-    "@type": "Person",
-    name: FOUNDER.name,
-    jobTitle: FOUNDER.title,
-    worksFor: { "@id": "https://happitime.biz/#organization" },
-    homeLocation: { "@type": "City", name: "Kansas City" },
-    ...(FOUNDER.photo ? { image: `https://happitime.biz${FOUNDER.photo}` } : {}),
-    ...(sameAs.length ? { sameAs } : {}),
-  },
-};
+  const links = [
+    { label: "Instagram", href: profile?.instagram_url },
+    { label: "TikTok", href: profile?.tiktok_url },
+    { label: "YouTube", href: profile?.youtube_url },
+    { label: "Website", href: profile?.website_url },
+    { label: "LinkedIn", href: FOUNDER.linkedin },
+    { label: "X", href: FOUNDER.x },
+  ].filter((l): l is { label: string; href: string } => !!l.href);
 
-function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .map((part) => part[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
+  const ABOUT_JSONLD = {
+    "@context": "https://schema.org",
+    "@type": "AboutPage",
+    url: "https://happitime.biz/about/",
+    name: "About HappiTime",
+    mainEntity: {
+      "@type": "Person",
+      name: FOUNDER.name,
+      jobTitle: FOUNDER.title,
+      worksFor: { "@id": "https://happitime.biz/#organization" },
+      homeLocation: { "@type": "City", name: "Kansas City" },
+      image: photo.startsWith("/") ? `https://happitime.biz${photo}` : photo,
+      ...(links.length ? { sameAs: links.map((l) => l.href) } : {}),
+    },
+  };
 
-export default function AboutPage() {
   return (
     <>
       <PageTracker pagePath="/about/" />
@@ -93,23 +124,15 @@ export default function AboutPage() {
 
         {/* Founder card */}
         <div className="flex flex-col items-start gap-5 rounded-xl border border-border bg-surface p-6 shadow-md sm:flex-row sm:items-center md:p-7">
-          {FOUNDER.photo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={FOUNDER.photo}
-              alt={`${FOUNDER.name}, ${FOUNDER.title} of HappiTime`}
-              width={112}
-              height={112}
-              className="size-28 shrink-0 rounded-full object-cover"
-            />
-          ) : (
-            <div
-              aria-hidden="true"
-              className="flex size-28 shrink-0 items-center justify-center rounded-full bg-brand-subtle text-3xl font-black text-brand-dark-alt"
-            >
-              {initials(FOUNDER.name)}
-            </div>
-          )}
+          {/* Plain <img>: a raw Supabase Storage avatar, same as the guide bylines. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={photo}
+            alt={`${FOUNDER.name}, ${FOUNDER.title} of HappiTime`}
+            width={112}
+            height={112}
+            className="size-28 shrink-0 rounded-full bg-cream object-cover"
+          />
           <div>
             <p className="m-0 text-[22px] font-extrabold leading-tight">{FOUNDER.name}</p>
             <p className="mt-1 text-[15px] text-muted">
@@ -119,26 +142,17 @@ export default function AboutPage() {
               <a href="mailto:admin@happitime.biz" className="text-brand-dark-alt hover:underline">
                 admin@happitime.biz
               </a>
-              {FOUNDER.linkedin ? (
+              {links.map((l) => (
                 <a
-                  href={FOUNDER.linkedin}
+                  key={l.label}
+                  href={l.href}
                   target="_blank"
                   rel="me noopener noreferrer"
                   className="text-brand-dark-alt hover:underline"
                 >
-                  LinkedIn
+                  {l.label}
                 </a>
-              ) : null}
-              {FOUNDER.x ? (
-                <a
-                  href={FOUNDER.x}
-                  target="_blank"
-                  rel="me noopener noreferrer"
-                  className="text-brand-dark-alt hover:underline"
-                >
-                  X
-                </a>
-              ) : null}
+              ))}
             </div>
           </div>
         </div>
