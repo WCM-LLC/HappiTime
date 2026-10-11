@@ -83,7 +83,9 @@ export default async function ReferralsPage() {
   referral = (refRes.data as ReferralSummaryRow | null) ?? null;
   traffic = (trafRes.data as TrafficSummaryRow | null) ?? null;
 
-  const venueRows = ((venueRes.data ?? []) as VenueInfluenceRow[]) ?? [];
+  // A failed read is not "no venues": say so rather than silently dropping the table.
+  const venueRowsFailed = Boolean(venueRes.error);
+  const venueRows = venueRowsFailed ? [] : ((venueRes.data ?? []) as VenueInfluenceRow[]);
   const venueNameById = new Map<string, string>();
   if (venueRows.length > 0) {
     const { data: venues } = await service
@@ -198,6 +200,8 @@ export default async function ReferralsPage() {
                     </tbody>
                   </table>
                 </div>
+              ) : venueRowsFailed ? (
+                <p className="mt-3 text-body-sm text-muted">Couldn&apos;t load your venue breakdown. Reload to try again.</p>
               ) : null}
             </section>
 

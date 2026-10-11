@@ -190,10 +190,12 @@ export function SuperUsersTable({ rows }: { rows: SuperUserRow[] }) {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-muted hidden lg:table-cell">
-                      <span className="font-medium text-foreground">{row.influenced_checkins ?? 0}</span>
-                      <span className="block text-caption text-muted-light">
-                        {row.influenced_new_faces ?? 0} new
+                      <span className="font-medium text-foreground">
+                        {row.influenced_checkins !== undefined ? row.influenced_checkins : '—'}
                       </span>
+                      {row.influenced_new_faces !== undefined ? (
+                        <span className="block text-caption text-muted-light">{row.influenced_new_faces} new</span>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3 text-muted hidden lg:table-cell">
                       <span className="font-medium text-foreground">{row.itinerary_saves ?? 0}</span>

@@ -84,3 +84,10 @@ test("admin detail says so when the per-venue table is truncated", () => {
   assert.match(adminDetail, /venueInfluence\.length >= VENUE_ROW_LIMIT \?/);
   assert.match(adminDetail, /Showing the top \{VENUE_ROW_LIMIT\} venues/);
 });
+
+test("unavailable is never shown as zero in the list, and a failed venue read is surfaced on My QR", () => {
+  assert.match(adminTable, /row\.influenced_checkins !== undefined \? row\.influenced_checkins : '—'/);
+  assert.doesNotMatch(adminTable, /influenced_(checkins|new_faces) \?\? 0/);
+  assert.match(myQr, /const venueRowsFailed = Boolean\(venueRes\.error\);/);
+  assert.match(myQr, /venueRowsFailed \? \(/);
+});
