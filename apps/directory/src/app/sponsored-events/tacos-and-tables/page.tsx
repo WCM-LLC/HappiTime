@@ -14,14 +14,14 @@ const bricolage = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
-  title: "Tacos & Tables with Good Company — Spades Tournament, Oct 13",
+  title: "Tacos & Tables with Good Company — Spades Tournament, Oct 20",
   description:
-    "Spades tournament night at In Good Company in the Crossroads. Tuesday, October 13: doors 5 PM, first deal 6 PM. $20 per player plus $5 non-member entry, 16-team double-elimination bracket. Tacos from the NotCho' Taco truck outside, music by DJ Stixx. Register by October 12.",
+    "Spades tournament night at In Good Company in the Crossroads, round two. Tuesday, October 20: doors 5 PM, first deal 6 PM. $20 per player plus $5 non-member entry, 8-team single-elimination bracket, cash prize. Tacos from the NotCho' Taco truck outside, music by DJ Stixx, sponsored by Lifted Spirits. Register by October 19.",
   alternates: { canonical: "/sponsored-events/tacos-and-tables/" },
   openGraph: {
-    title: "Tacos & Tables with Good Company — Spades Tournament",
+    title: "Tacos & Tables with Good Company — Spades Tournament, round two",
     description:
-      "Tuesday 10.13 at In Good Company, Crossroads. Doors 5 PM, first deal 6 PM. $20 per player. Register by October 12.",
+      "Tuesday 10.20 at In Good Company, Crossroads. Doors 5 PM, first deal 6 PM. $20 per player, 8 teams, cash prize. Register by October 19.",
     url: "https://happitime.biz/sponsored-events/tacos-and-tables/",
     images: [{ url: "/sponsored-events/tacos-and-tables/og.jpg", width: 1200, height: 630 }],
   },
@@ -39,11 +39,11 @@ export default function TacosAndTablesPage() {
           <section className="top" aria-labelledby="title">
             <div className="card">
               <div className="index index-tl" aria-hidden="true">
-                <span>13</span>
+                <span>{EVENT.dayNumber}</span>
                 <Spade />
               </div>
               <div className="index index-br" aria-hidden="true">
-                <span>13</span>
+                <span>{EVENT.dayNumber}</span>
                 <Spade />
               </div>
 
@@ -81,7 +81,7 @@ export default function TacosAndTablesPage() {
                   <div>
                     <dt>Format</dt>
                     <dd>
-                      {EVENT.teamCap}-team double elimination, {EVENT.ageMin}+
+                      {EVENT.formatLabel}, {EVENT.ageMin}+
                     </dd>
                   </div>
                 </dl>
@@ -110,16 +110,17 @@ export default function TacosAndTablesPage() {
               <div>
                 <h3>{EVENT.firstDeal}</h3>
                 <p>
-                  First deal, on the dot, across {EVENT.tables} tables. Double elimination:
-                  lose once and you drop to the losers&rsquo; bracket, lose twice and you&rsquo;re
-                  out. Solo players are paired up at check-in.
+                  First deal, on the dot, across {EVENT.tables} tables. Single elimination:{" "}
+                  {EVENT.teamCap} teams, three rounds, lose a game and you&rsquo;re out of the
+                  bracket. Solo players are paired up at check-in.
                 </p>
               </div>
               <div>
-                <h3>The finals</h3>
+                <h3>The final</h3>
                 <p>
-                  Semifinal and grand final are best of five hands. The bracket is capped
-                  at {EVENT.teamCap} teams; after that, you&rsquo;re on the waitlist.
+                  Semifinal and final are best of five hands; the whole thing runs about two
+                  hours. The bracket is capped at {EVENT.teamCap} teams; after that, you&rsquo;re
+                  on the waitlist.
                 </p>
               </div>
             </div>

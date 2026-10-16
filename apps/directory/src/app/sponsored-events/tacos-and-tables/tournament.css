@@ -309,6 +309,7 @@
 .tnt .submit:focus-visible { outline: 3px solid var(--stock); outline-offset: 3px; }
 .tnt .submit[disabled] { opacity: 0.6; cursor: progress; transform: none; }
 .tnt .fine { margin: 0; font-size: 13px; line-height: 1.45; color: rgba(244, 239, 227, 0.72); }
+.tnt .fine.reach { margin: 4px 0 -4px; font-weight: 700; color: rgba(244, 239, 227, 0.9); }
 
 /* Done state */
 .tnt .done { display: grid; gap: 18px; }
