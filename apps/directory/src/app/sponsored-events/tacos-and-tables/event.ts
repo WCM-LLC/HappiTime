@@ -33,7 +33,7 @@ export const EVENT = {
   tables: 4,
   formatLabel: "8-team single elimination",
   ageMin: 21,
-  sponsors: ["HappiTime", "Lifted Spirits", "NotCho' Taco", "DJ Stixx"],
+  sponsors: ["HappiTime", "NotCho' Taco", "DJ Stixx"],
 
   /**
    * Where to send the entry fee. Leave a handle empty to hide it.
@@ -105,7 +105,7 @@ export const DRINKS: { name: string; suit: Suit; suitName: string; red: boolean;
     spec: "London dry gin · Swedish punsch · fresh lime · pomegranate grenadine",
   },
 ];
-export const DRINKS_CREDIT = "Poured with Lifted Spirits.";
+export const DRINKS_CREDIT = "";
 
 export const RULES: { title: string; body?: string }[] = [
   {

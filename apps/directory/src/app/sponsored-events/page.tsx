@@ -46,7 +46,7 @@ const EVENTS: SponsoredEvent[] = [
     title: "Tacos & Tables",
     edition: "with Good Company",
     hosts: "Spades tournament night · round two",
-    partners: ["HappiTime", "Lifted Spirits", "NotCho' Taco", "DJ Stixx"],
+    partners: ["HappiTime", "NotCho' Taco", "DJ Stixx"],
     // Round one ran Tuesday October 13 at the same venue.
     starts: "2026-10-20T17:00:00-05:00",
     ends: "2026-10-20T21:00:00-05:00",

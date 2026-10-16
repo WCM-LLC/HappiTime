@@ -16,7 +16,7 @@ const bricolage = Bricolage_Grotesque({
 export const metadata: Metadata = {
   title: "Tacos & Tables with Good Company — Spades Tournament, Oct 20",
   description:
-    "Spades tournament night at In Good Company in the Crossroads, round two. Tuesday, October 20: doors 5 PM, first deal 6 PM. $20 per player plus $5 non-member entry, 8-team single-elimination bracket, cash prize. Four signature cocktails, one per suit, poured with Lifted Spirits; tacos from the NotCho' Taco truck outside; music by DJ Stixx. Register by October 19.",
+    "Spades tournament night at In Good Company in the Crossroads, round two. Tuesday, October 20: doors 5 PM, first deal 6 PM. $20 per player plus $5 non-member entry, 8-team single-elimination bracket, cash prize. Four signature cocktails, one per suit; tacos from the NotCho' Taco truck outside; music by DJ Stixx. Register by October 19.",
   alternates: { canonical: "/sponsored-events/tacos-and-tables/" },
   openGraph: {
     title: "Tacos & Tables with Good Company — Spades Tournament, round two",
