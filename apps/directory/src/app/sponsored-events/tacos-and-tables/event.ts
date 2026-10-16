@@ -66,6 +66,47 @@ export const EVENT = {
 export const REGISTRATION_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbxwnqc49RUdlgyc6TZOtza7MZHXRIHy6FJPwg79dRwLzU0IpmSPgIx8oEY2tdqxKLvA/exec";
 
+/**
+ * Signature cocktails, one per suit. Red suits render in card red.
+ * `credit` is the line under the menu; empty hides it.
+ */
+export type Suit = "spade" | "club" | "diamond" | "heart";
+export const DRINKS: { name: string; suit: Suit; suitName: string; red: boolean; desc: string; spec: string }[] = [
+  {
+    name: "Ace of Spades",
+    suit: "spade",
+    suitName: "Spades",
+    red: false,
+    desc: "Gin, pomegranate and blue curaçao shaken hard over ice, finished with a cherry.",
+    spec: "Gin · pomegranate juice · blue curaçao · lime · maraschino liqueur",
+  },
+  {
+    name: "Clover Club",
+    suit: "club",
+    suitName: "Clubs",
+    red: false,
+    desc: "The pre-Prohibition classic: gin, lemon and raspberry, clear and pink, with dry vermouth underneath.",
+    spec: "Gin · fresh lemon · rich raspberry syrup · dry vermouth",
+  },
+  {
+    name: "Ruby Diamond",
+    suit: "diamond",
+    suitName: "Diamonds",
+    red: true,
+    desc: "Gin split with mezcal, a ruby aperitif, lemon and a splash of blood orange. Smoke, then bitter, then bright.",
+    spec: "Gin + mezcal · Cappelletti · lemon · blood orange",
+  },
+  {
+    name: "Have a Heart",
+    suit: "heart",
+    suitName: "Hearts",
+    red: true,
+    desc: "London dry gin, Swedish punsch and lime with pomegranate grenadine, served up in a Nick & Nora.",
+    spec: "London dry gin · Swedish punsch · fresh lime · pomegranate grenadine",
+  },
+];
+export const DRINKS_CREDIT = "Poured with Lifted Spirits.";
+
 export const RULES: { title: string; body?: string }[] = [
   {
     title: `Registration closes ${EVENT.closesLabel}.`,

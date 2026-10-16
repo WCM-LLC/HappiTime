@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque } from "next/font/google";
 import { PageTracker } from "@/components/PageTracker";
 import { Register } from "./Register";
-import { Spade } from "./Spade";
-import { EVENT, RULES } from "./event";
+import { Spade, Suit } from "./Spade";
+import { DRINKS, DRINKS_CREDIT, EVENT, RULES } from "./event";
 import "./tournament.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -16,7 +16,7 @@ const bricolage = Bricolage_Grotesque({
 export const metadata: Metadata = {
   title: "Tacos & Tables with Good Company — Spades Tournament, Oct 20",
   description:
-    "Spades tournament night at In Good Company in the Crossroads, round two. Tuesday, October 20: doors 5 PM, first deal 6 PM. $20 per player plus $5 non-member entry, 8-team single-elimination bracket, cash prize. Tacos from the NotCho' Taco truck outside, music by DJ Stixx, sponsored by Lifted Spirits. Register by October 19.",
+    "Spades tournament night at In Good Company in the Crossroads, round two. Tuesday, October 20: doors 5 PM, first deal 6 PM. $20 per player plus $5 non-member entry, 8-team single-elimination bracket, cash prize. Four signature cocktails, one per suit, poured with Lifted Spirits; tacos from the NotCho' Taco truck outside; music by DJ Stixx. Register by October 19.",
   alternates: { canonical: "/sponsored-events/tacos-and-tables/" },
   openGraph: {
     title: "Tacos & Tables with Good Company — Spades Tournament, round two",
@@ -103,8 +103,9 @@ export default function TacosAndTablesPage() {
                 <h3>{EVENT.doors}</h3>
                 <p>
                   Doors open. Check in, grab tacos from the NotCho&rsquo; Taco truck parked
-                  outside, get a drink, and find your table. DJ Stixx is on all night. Not an
-                  In Good Company member? It&rsquo;s ${EVENT.nonMemberEntry} at the door.
+                  outside, pick a suit at the bar (four signature cocktails, one per suit), and
+                  find your table. DJ Stixx is on all night. Not an In Good Company member?
+                  It&rsquo;s ${EVENT.nonMemberEntry} at the door.
                 </p>
               </div>
               <div>
@@ -130,6 +131,31 @@ export default function TacosAndTablesPage() {
               </p>
             )}
           </section>
+
+          {/* Signature cocktails */}
+          {DRINKS.length > 0 && (
+            <section className="drinks" aria-labelledby="drinks-title">
+              <div className="drinks-head">
+                <h2 id="drinks-title">Four suits, four cocktails</h2>
+                <p>
+                  One signature drink for every suit in the deck, on the menu all night.
+                  Order by name or just point at the card.
+                </p>
+              </div>
+              <ul className="menu">
+                {DRINKS.map((d) => (
+                  <li key={d.name} className={d.red ? "red" : undefined}>
+                    <Suit kind={d.suit} className="corner" />
+                    <h3>{d.name}</h3>
+                    <Suit kind={d.suit} className="menu-pip" />
+                    <p>{d.desc}</p>
+                    <p className="spec">{d.spec}</p>
+                  </li>
+                ))}
+              </ul>
+              {DRINKS_CREDIT && <p className="drinks-credit">{DRINKS_CREDIT}</p>}
+            </section>
+          )}
 
           {/* Rules */}
           <section className="rules" aria-labelledby="rules-title">
