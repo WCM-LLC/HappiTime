@@ -60,8 +60,15 @@ export function Register() {
     const next: Errors = {};
     if (!v("first")) next.first = "Add your first name.";
     if (!v("last")) next.last = "Add your last name.";
-    if (!EMAIL.test(v("email"))) next.email = "Enter an email like name@example.com.";
+    // Mobile is required. Email OR a social handle is required, so we can reach you.
     if (digits(v("phone")).length !== 10) next.phone = "Enter a 10-digit mobile number.";
+    const social = v("social").replace(/^@+/, "");
+    if (v("email") && !EMAIL.test(v("email"))) {
+      next.email = "Enter an email like name@example.com, or leave it blank and add a handle.";
+    } else if (!v("email") && !social) {
+      next.email = "Add an email, or an Instagram or TikTok handle below. We need one to reach you.";
+      next.social = "Add a handle here, or an email above.";
+    }
     if (entry === "team") {
       if (!v("partnerFirst")) next.partnerFirst = "Add your partner's first name.";
       if (!v("partnerLast")) next.partnerLast = "Add your partner's last name.";
@@ -79,7 +86,7 @@ export function Register() {
 
     const partner = entry === "team" ? `${v("partnerFirst")} ${v("partnerLast")}` : "";
     const data = {
-      event: "Tacos & Tables with Good Company — Spades Tournament (2026-10-13)",
+      event: "Tacos & Tables with Good Company — Spades Tournament (2026-10-20)",
       entry_type: entry,
       team_name: entry === "team" ? v("teamName") : "",
       first: v("first"),
@@ -89,7 +96,7 @@ export function Register() {
       partner_first: entry === "team" ? v("partnerFirst") : "",
       partner_last: entry === "team" ? v("partnerLast") : "",
       partner_phone: entry === "team" ? prettyPhone(v("partnerPhone")) : "",
-      instagram: v("instagram"),
+      social: social ? "@" + social : "",
       players: entry === "team" ? 2 : 1,
       amount_due: amount,
       age_ack: true,
@@ -165,7 +172,7 @@ export function Register() {
       <div className="panel" id="register">
         <h2>Registration is closed</h2>
         <p className="lede">
-          Registration ended Monday, October 12. If a table opens up, walk-ups are taken at
+          Registration ended {EVENT.closesLabel}. If a table opens up, walk-ups are taken at
           the door from {EVENT.doors}, cash or Cash App, first come first served.
         </p>
         {EVENT.contactPhone && (
@@ -202,16 +209,16 @@ export function Register() {
               </ul>
               <p>
                 Put <strong>Spades {done.last}</strong> in the note so we can match it.
-                Your spot is confirmed once the payment lands. Unpaid registrations are
-                released after October 12. Non-members of {EVENT.venue} pay ${EVENT.nonMemberEntry}{" "}
-                entry at the door.
+                Your spot is confirmed once the payment lands and we&rsquo;ll let you know by
+                email or text. Unpaid registrations are released after {EVENT.closesShort}.
+                Non-members of {EVENT.venue} pay ${EVENT.nonMemberEntry} entry at the door.
               </p>
             </>
           ) : (
             <p>
               Watch your phone: payment instructions are on the way by text. Your spot
               is confirmed once the ${done.amount} lands. Unpaid registrations are released
-              after October 12.
+              after {EVENT.closesShort}.
             </p>
           )}
         </div>
@@ -228,8 +235,8 @@ export function Register() {
             <span>{EVENT.venue}, {EVENT.area}</span>
           </div>
           <div className="stub">
-            <small>Oct</small>
-            <strong>13</strong>
+            <small>{EVENT.monthShort}</small>
+            <strong>{EVENT.dayNumber}</strong>
           </div>
         </div>
 
@@ -266,7 +273,7 @@ export function Register() {
     <div className="panel" id="register">
       <div className="panel-head">
         <h2>Register</h2>
-        <p>Closes Monday, October 12</p>
+        <p>Closes {EVENT.closesLabel}</p>
       </div>
 
       <form ref={formRef} onSubmit={onSubmit} noValidate>
@@ -302,15 +309,22 @@ export function Register() {
           {field("first", "First name", { autoComplete: "given-name", required: true })}
           {field("last", "Last name", { autoComplete: "family-name", required: true })}
         </div>
+        {field("phone", "Mobile", {
+          type: "tel",
+          autoComplete: "tel",
+          inputMode: "tel",
+          placeholder: "(816) 555-0123",
+          required: true,
+          onBlur: (e) => (e.currentTarget.value = prettyPhone(e.currentTarget.value)),
+        })}
+        <p className="fine reach">One of these two, so we can reach you about the bracket:</p>
         <div className="row">
-          {field("email", "Email", { type: "email", autoComplete: "email", inputMode: "email", required: true })}
-          {field("phone", "Mobile", {
-            type: "tel",
-            autoComplete: "tel",
-            inputMode: "tel",
-            placeholder: "(816) 555-0123",
-            required: true,
-            onBlur: (e) => (e.currentTarget.value = prettyPhone(e.currentTarget.value)),
+          {field("email", "Email", { type: "email", autoComplete: "email", inputMode: "email" })}
+          {field("social", "Instagram or TikTok", {
+            placeholder: "@yourhandle",
+            autoCapitalize: "off",
+            spellCheck: false,
+            autoComplete: "off",
           })}
         </div>
 
@@ -336,8 +350,6 @@ export function Register() {
             </div>
           </div>
         )}
-
-        {field("instagram", "Instagram", { placeholder: "@yourhandle", autoCapitalize: "off", spellCheck: false }, true)}
 
         <div className={`check${errors.ageAck ? " invalid" : ""}`}>
           <label>
@@ -383,7 +395,7 @@ export function Register() {
         <p className="fine">
           Your details go to HappiTime and the night&rsquo;s hosts to run the bracket and
           match your payment. Spots are confirmed when the entry fee lands; unpaid
-          registrations are released after October 12.
+          registrations are released after {EVENT.closesShort}.
         </p>
       </form>
     </div>

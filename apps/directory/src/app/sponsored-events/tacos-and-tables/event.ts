@@ -1,19 +1,24 @@
-// Tacos & Tables with Good Company — Spades tournament, Tuesday October 13, 2026.
-// Everything editable about the event lives here. The page, the form and the
-// confirmation copy all read from this file.
+// Tacos & Tables with Good Company — Spades tournament, round two.
+// Tuesday October 20, 2026. Everything editable about the event lives here. The
+// page, the form and the confirmation copy all read from this file.
 
 export const EVENT = {
   slug: "tacos-and-tables",
   title: "Tacos & Tables",
   subtitle: "with Good Company",
-  tagline: "Spades tournament night",
+  tagline: "Spades tournament night · round two",
   /** ISO timestamps with Central offset (CDT). */
-  starts: "2026-10-13T17:00:00-05:00",
-  ends: "2026-10-13T21:30:00-05:00",
-  /** Registration closes at the end of Monday, October 12 (Central). */
-  registrationCloses: "2026-10-13T00:00:00-05:00",
-  dateLabel: "Tuesday, October 13",
-  dateLong: "Tuesday, October 13, 2026",
+  starts: "2026-10-20T17:00:00-05:00",
+  ends: "2026-10-20T21:00:00-05:00",
+  /** Registration closes at the end of Monday, October 19 (Central). */
+  registrationCloses: "2026-10-20T00:00:00-05:00",
+  closesLabel: "Monday, October 19",
+  closesShort: "October 19",
+  dateLabel: "Tuesday, October 20",
+  dateLong: "Tuesday, October 20, 2026",
+  /** Card-corner index and ticket stub. */
+  dayNumber: "20",
+  monthShort: "Oct",
   doors: "5:00 PM",
   firstDeal: "6:00 PM",
   venue: "In Good Company",
@@ -23,10 +28,12 @@ export const EVENT = {
   entryFee: 20,
   /** In Good Company door cover for non-members, paid at the door to the venue. */
   nonMemberEntry: 5,
-  teamCap: 16,
-  tables: 8,
+  /** 8 teams, single elimination: three rounds, done in about two hours. */
+  teamCap: 8,
+  tables: 4,
+  formatLabel: "8-team single elimination",
   ageMin: 21,
-  sponsors: ["HappiTime", "Tacos Valentina", "NotCho' Taco", "DJ Stixx"],
+  sponsors: ["HappiTime", "NotCho' Taco", "DJ Stixx"],
 
   /**
    * Where to send the entry fee. Leave a handle empty to hide it.
@@ -53,14 +60,56 @@ export const EVENT = {
 /**
  * Where registrations are sent. Empty = preview mode (nothing is stored and
  * the confirmation screen says so). Set to the Google Apps Script web-app URL
- * from My Assistant/outreach/2026-10-09_tacos-and-tables-registration/.
+ * from My Assistant/outreach/2026-10-16_spades-oct20/ (same deployment as
+ * October 13, updated to a new version; the URL does not change).
  */
 export const REGISTRATION_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbxwnqc49RUdlgyc6TZOtza7MZHXRIHy6FJPwg79dRwLzU0IpmSPgIx8oEY2tdqxKLvA/exec";
 
+/**
+ * Signature cocktails, one per suit. Red suits render in card red.
+ * `credit` is the line under the menu; empty hides it.
+ */
+export type Suit = "spade" | "club" | "diamond" | "heart";
+export const DRINKS: { name: string; suit: Suit; suitName: string; red: boolean; desc: string; spec: string }[] = [
+  {
+    name: "Ace of Spades",
+    suit: "spade",
+    suitName: "Spades",
+    red: false,
+    desc: "Gin, pomegranate and blue curaçao shaken hard over ice, finished with a cherry.",
+    spec: "Gin · pomegranate juice · blue curaçao · lime · maraschino liqueur",
+  },
+  {
+    name: "Clover Club",
+    suit: "club",
+    suitName: "Clubs",
+    red: false,
+    desc: "The pre-Prohibition classic: gin, lemon and raspberry, clear and pink, with dry vermouth underneath.",
+    spec: "Gin · fresh lemon · rich raspberry syrup · dry vermouth",
+  },
+  {
+    name: "Ruby Diamond",
+    suit: "diamond",
+    suitName: "Diamonds",
+    red: true,
+    desc: "Gin split with mezcal, a ruby aperitif, lemon and a splash of blood orange. Smoke, then bitter, then bright.",
+    spec: "Gin + mezcal · Cappelletti · lemon · blood orange",
+  },
+  {
+    name: "Have a Heart",
+    suit: "heart",
+    suitName: "Hearts",
+    red: true,
+    desc: "London dry gin, Swedish punsch and lime with pomegranate grenadine, served up in a Nick & Nora.",
+    spec: "London dry gin · Swedish punsch · fresh lime · pomegranate grenadine",
+  },
+];
+export const DRINKS_CREDIT = "";
+
 export const RULES: { title: string; body?: string }[] = [
   {
-    title: "Registration closes Monday, October 12.",
+    title: `Registration closes ${EVENT.closesLabel}.`,
     body: `Entry is $${EVENT.entryFee} per player, paid in advance; a team of two pays $${EVENT.entryFee * 2}. Non-members of ${EVENT.venue} also pay a $${EVENT.nonMemberEntry} entry at the door.`,
   },
   {
@@ -68,8 +117,12 @@ export const RULES: { title: string; body?: string }[] = [
     body: "In that order, highest to lowest.",
   },
   {
-    title: "Dealing starts promptly at 6:00 PM.",
+    title: `Dealing starts promptly at ${EVENT.firstDeal}.`,
     body: "Be checked in and seated at your table before the first deal.",
+  },
+  {
+    title: "Single elimination.",
+    body: `${EVENT.teamCap} teams, three rounds. Lose a game and your night at the table is over; the bar is still open.`,
   },
   {
     title: "Every game has a 30-minute limit.",
@@ -77,7 +130,7 @@ export const RULES: { title: string; body?: string }[] = [
   },
   {
     title: "Games are best of three hands.",
-    body: "The semifinal and the grand final are best of five hands.",
+    body: "The semifinal and the final are best of five hands.",
   },
   {
     title: "Bidding is required on every hand.",

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Bricolage_Grotesque } from "next/font/google";
 import { PageTracker } from "@/components/PageTracker";
 import { Register } from "./Register";
-import { Spade } from "./Spade";
-import { EVENT, RULES } from "./event";
+import { Spade, Suit } from "./Spade";
+import { DRINKS, DRINKS_CREDIT, EVENT, RULES } from "./event";
 import "./tournament.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -14,14 +14,14 @@ const bricolage = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
-  title: "Tacos & Tables with Good Company — Spades Tournament, Oct 13",
+  title: "Tacos & Tables with Good Company — Spades Tournament, Oct 20",
   description:
-    "Spades tournament night at In Good Company in the Crossroads. Tuesday, October 13: doors 5 PM, first deal 6 PM. $20 per player plus $5 non-member entry, 16-team double-elimination bracket. Tacos from the NotCho' Taco truck outside, music by DJ Stixx. Register by October 12.",
+    "Spades tournament night at In Good Company in the Crossroads, round two. Tuesday, October 20: doors 5 PM, first deal 6 PM. $20 per player plus $5 non-member entry, 8-team single-elimination bracket, cash prize. Four signature cocktails, one per suit; tacos from the NotCho' Taco truck outside; music by DJ Stixx. Register by October 19.",
   alternates: { canonical: "/sponsored-events/tacos-and-tables/" },
   openGraph: {
-    title: "Tacos & Tables with Good Company — Spades Tournament",
+    title: "Tacos & Tables with Good Company — Spades Tournament, round two",
     description:
-      "Tuesday 10.13 at In Good Company, Crossroads. Doors 5 PM, first deal 6 PM. $20 per player. Register by October 12.",
+      "Tuesday 10.20 at In Good Company, Crossroads. Doors 5 PM, first deal 6 PM. $20 per player, 8 teams, cash prize. Register by October 19.",
     url: "https://happitime.biz/sponsored-events/tacos-and-tables/",
     images: [{ url: "/sponsored-events/tacos-and-tables/og.jpg", width: 1200, height: 630 }],
   },
@@ -39,11 +39,11 @@ export default function TacosAndTablesPage() {
           <section className="top" aria-labelledby="title">
             <div className="card">
               <div className="index index-tl" aria-hidden="true">
-                <span>13</span>
+                <span>{EVENT.dayNumber}</span>
                 <Spade />
               </div>
               <div className="index index-br" aria-hidden="true">
-                <span>13</span>
+                <span>{EVENT.dayNumber}</span>
                 <Spade />
               </div>
 
@@ -81,7 +81,7 @@ export default function TacosAndTablesPage() {
                   <div>
                     <dt>Format</dt>
                     <dd>
-                      {EVENT.teamCap}-team double elimination, {EVENT.ageMin}+
+                      {EVENT.formatLabel}, {EVENT.ageMin}+
                     </dd>
                   </div>
                 </dl>
@@ -103,23 +103,25 @@ export default function TacosAndTablesPage() {
                 <h3>{EVENT.doors}</h3>
                 <p>
                   Doors open. Check in, grab tacos from the NotCho&rsquo; Taco truck parked
-                  outside, get a drink, and find your table. DJ Stixx is on all night. Not an
-                  In Good Company member? It&rsquo;s ${EVENT.nonMemberEntry} at the door.
+                  outside, pick a suit at the bar (four signature cocktails, one per suit), and
+                  find your table. DJ Stixx is on all night. Not an In Good Company member?
+                  It&rsquo;s ${EVENT.nonMemberEntry} at the door.
                 </p>
               </div>
               <div>
                 <h3>{EVENT.firstDeal}</h3>
                 <p>
-                  First deal, on the dot, across {EVENT.tables} tables. Double elimination:
-                  lose once and you drop to the losers&rsquo; bracket, lose twice and you&rsquo;re
-                  out. Solo players are paired up at check-in.
+                  First deal, on the dot, across {EVENT.tables} tables. Single elimination:{" "}
+                  {EVENT.teamCap} teams, three rounds, lose a game and you&rsquo;re out of the
+                  bracket. Solo players are paired up at check-in.
                 </p>
               </div>
               <div>
-                <h3>The finals</h3>
+                <h3>The final</h3>
                 <p>
-                  Semifinal and grand final are best of five hands. The bracket is capped
-                  at {EVENT.teamCap} teams; after that, you&rsquo;re on the waitlist.
+                  Semifinal and final are best of five hands; the whole thing runs about two
+                  hours. The bracket is capped at {EVENT.teamCap} teams; after that, you&rsquo;re
+                  on the waitlist.
                 </p>
               </div>
             </div>
@@ -129,6 +131,31 @@ export default function TacosAndTablesPage() {
               </p>
             )}
           </section>
+
+          {/* Signature cocktails */}
+          {DRINKS.length > 0 && (
+            <section className="drinks" aria-labelledby="drinks-title">
+              <div className="drinks-head">
+                <h2 id="drinks-title">Four suits, four cocktails</h2>
+                <p>
+                  One signature drink for every suit in the deck, on the menu all night.
+                  Order by name or just point at the card.
+                </p>
+              </div>
+              <ul className="menu">
+                {DRINKS.map((d) => (
+                  <li key={d.name} className={d.red ? "red" : undefined}>
+                    <Suit kind={d.suit} className="corner" />
+                    <h3>{d.name}</h3>
+                    <Suit kind={d.suit} className="menu-pip" />
+                    <p>{d.desc}</p>
+                    <p className="spec">{d.spec}</p>
+                  </li>
+                ))}
+              </ul>
+              {DRINKS_CREDIT && <p className="drinks-credit">{DRINKS_CREDIT}</p>}
+            </section>
+          )}
 
           {/* Rules */}
           <section className="rules" aria-labelledby="rules-title">
