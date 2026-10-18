@@ -1,5 +1,13 @@
 import type { VenueWithWindows, HappyHourWindow } from "./queries";
 
+/**
+ * Serialize JSON-LD for a <script> tag. Escapes "<" so user-written text (guide
+ * titles, author names) containing "</script>" cannot close the tag early.
+ */
+export function jsonLdHtml(data: object): { __html: string } {
+  return { __html: JSON.stringify(data).replace(/</g, "\\u003c") };
+}
+
 const DOW_NAMES = [
   "Sunday",
   "Monday",
@@ -102,6 +110,7 @@ export function articleJsonLd({
   publishedTime,
   modifiedTime,
   authorName,
+  authorUrl,
 }: {
   title: string;
   description: string;
@@ -110,6 +119,7 @@ export function articleJsonLd({
   publishedTime?: string;
   modifiedTime?: string;
   authorName?: string;
+  authorUrl?: string;
 }): object {
   return {
     "@context": "https://schema.org",
@@ -121,8 +131,8 @@ export function articleJsonLd({
     datePublished: publishedTime ?? undefined,
     dateModified: modifiedTime ?? publishedTime ?? undefined,
     author: authorName
-      ? { "@type": "Person", name: authorName }
-      : { "@type": "Organization", name: "HappiTime" },
+      ? { "@type": "Person", name: authorName, ...(authorUrl ? { url: authorUrl } : {}) }
+      : { "@type": "Organization", name: "HappiTime", url: "https://happitime.biz/about/" },
     publisher: {
       "@type": "Organization",
       name: "HappiTime",
@@ -187,5 +197,36 @@ export function breadcrumbJsonLd(
       name: item.name,
       item: item.url,
     })),
+  };
+}
+
+/**
+ * Page-level JSON-LD: what this URL is (a page, a collection, a contact page),
+ * tied to the sitewide WebSite node. Venue and landing pages already describe
+ * their subject (Restaurant, ItemList); this says what the page itself is.
+ */
+export function webPageJsonLd({
+  type = "WebPage",
+  name,
+  url,
+  description,
+  about,
+}: {
+  type?: "WebPage" | "CollectionPage" | "ContactPage";
+  name: string;
+  url: string;
+  description: string;
+  about?: object;
+}): object {
+  return {
+    "@context": "https://schema.org",
+    "@type": type,
+    name,
+    url,
+    description,
+    isPartOf: { "@id": "https://happitime.biz/#website" },
+    publisher: { "@id": "https://happitime.biz/#organization" },
+    inLanguage: "en-US",
+    ...(about ? { about } : {}),
   };
 }

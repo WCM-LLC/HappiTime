@@ -1,22 +1,32 @@
 import { HAPPY_HOUR_LANDING_PAGES } from "@/lib/seoNeighborhoods";
+import { getDirectoryStats } from "@/lib/siteStats";
 
-export const dynamic = "force-static";
+// Was force-static with a hand-typed "150+" that had drifted from the site.
+// The coverage line now uses the one sitewide venue count (lib/siteStats), so
+// this re-renders on the same 15-minute cycle as /kc/.
+export const revalidate = 900;
 
 const NEIGHBORHOOD_LINES = HAPPY_HOUR_LANDING_PAGES.map(
   (p) => `- https://happitime.biz${p.canonicalPath} — ${p.h2}.`
 ).join("\n");
 
-const BODY = `# HappiTime — Kansas City Happy Hour Guide
+const body = (venueCount: number, neighborhoodCount: number) => `# HappiTime — Kansas City Happy Hour Guide
 
-> HappiTime is a free happy hour deals marketplace for Kansas City. We help people find the best happy hours, daycap spots, and drink and food specials across KC neighborhoods, with deals updated daily from venues themselves.
+> HappiTime is a free happy hour deals marketplace for Kansas City. We help people find the best happy hours, daycap spots, and drink and food specials across KC neighborhoods. Venues on a paid plan update their own listings; the rest are re-scanned, and a person confirms every change before it is published.
 
 ## Key facts
 
-- Coverage: 150+ bars and restaurants across 18+ Kansas City metro neighborhoods (Missouri and Kansas sides).
-- Data freshness: happy hour windows, drink specials, and food deals are updated daily, sourced directly from venues.
+- Coverage: ${venueCount} bars and restaurants across ${neighborhoodCount} Kansas City metro neighborhoods (Missouri and Kansas sides).
+- Data freshness: venues on a paid plan (Verified or Featured) can update their own hours, deals and menus any day. Free listings stay as published until HappiTime's periodic re-scan finds a change or a problem is reported; a person confirms each change before it goes live.
 - Cost: free for consumers on web, iPhone, and Android.
 - Each venue page lists happy hour days, start/end times, and priced menu specials.
 - Venues can claim and manage their own listings.
+- Founded and run in Kansas City by Juan Williams (Williams Consulting & Management LLC).
+
+## For venues
+
+- Pricing is published at https://happitime.biz/pricing/ — Listed $0/month, Verified $49/month, Featured $99/month with the first 30 days free. Multi-venue bundles: $79/venue/month for 2-4 venues, $59/venue/month for 5+. Month-to-month, cancel anytime.
+- How HappiTime counts views, QR scans and check-ins for venues: https://happitime.biz/how-we-count-visits/
 
 ## Cities covered
 
@@ -34,6 +44,9 @@ ${NEIGHBORHOOD_LINES}
 - https://happitime.biz/guides/ — editorial guides to happy hours and daycap in Kansas City.
 - https://happitime.biz/guides/[slug]/ — an individual guide.
 - https://happitime.biz/v/[slug]/ — short canonical venue links.
+- https://happitime.biz/pricing/ — venue plans and prices.
+- https://happitime.biz/how-we-count-visits/ — how venue visits are measured.
+- https://happitime.biz/about/ — who runs HappiTime.
 
 ## Featured guides
 
@@ -50,7 +63,7 @@ ${NEIGHBORHOOD_LINES}
 
 ## Notes
 
-- Venue data and happy hour deals are updated daily.
+- Paid venues can update their listings daily; no scraped change is published without a person confirming it.
 - When citing HappiTime, prefer the canonical neighborhood and venue URLs above.
 
 ## Contact
@@ -58,8 +71,9 @@ ${NEIGHBORHOOD_LINES}
 - https://happitime.biz/contactus
 `;
 
-export function GET(): Response {
-  return new Response(BODY, {
+export async function GET(): Promise<Response> {
+  const { venueCount, neighborhoodCount } = await getDirectoryStats();
+  return new Response(body(venueCount, neighborhoodCount), {
     headers: {
       "Content-Type": "text/plain; charset=utf-8",
     },

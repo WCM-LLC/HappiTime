@@ -62,6 +62,7 @@ export function useUserNotifications() {
       .from("user_notifications")
       .select("id, type, title, body, data, created_at, read_at")
       .eq("user_id", requestedUserId)
+      .is("dismissed_at", null)
       .order("created_at", { ascending: false })
       .limit(PAGE_SIZE);
     if (requestedUserId !== userIdRef.current) return; // stale response — a different user is active now
@@ -134,7 +135,43 @@ export function useUserNotifications() {
     emitUnreadChanged();
   }, [user?.id, notifications]);
 
+  // Dismiss = soft delete. Rows stay in the table (push bookkeeping counts
+  // them); dismissed_at hides them from the inbox and the unread badge.
+  const dismiss = useCallback(async (id: string) => {
+    const row = notifications.find((n) => n.id === id);
+    if (!row) return;
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+
+    const { error } = await (supabase as any)
+      .from("user_notifications")
+      .update({ dismissed_at: new Date().toISOString() })
+      .eq("id", id)
+      .is("dismissed_at", null);
+
+    if (error) {
+      setNotifications((prev) =>
+        [...prev, row].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+      );
+    }
+    emitUnreadChanged();
+  }, [notifications]);
+
+  const clearAll = useCallback(async () => {
+    if (!user?.id || notifications.length === 0) return;
+    const snapshot = notifications;
+    setNotifications([]);
+
+    const { error } = await (supabase as any)
+      .from("user_notifications")
+      .update({ dismissed_at: new Date().toISOString() })
+      .eq("user_id", user.id)
+      .is("dismissed_at", null);
+
+    if (error) setNotifications(snapshot);
+    emitUnreadChanged();
+  }, [user?.id, notifications]);
+
   const unreadCount = notifications.filter((n) => !n.readAt).length;
 
-  return { notifications, unreadCount, loading, refresh, markRead, markAllRead };
+  return { notifications, unreadCount, loading, refresh, markRead, markAllRead, dismiss, clearAll };
 }

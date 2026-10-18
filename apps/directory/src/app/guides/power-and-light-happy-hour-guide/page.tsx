@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
+import { GuideSchedule } from "@/components/GuideSchedule";
+import { getVenuesByNeighborhood, withMenuItems } from "@/lib/queries";
+import { getNeighborhood } from "@/lib/neighborhoods";
 
 const BASE = "https://happitime.biz";
 const CANONICAL = `${BASE}/guides/power-and-light-happy-hour-guide/`;
@@ -20,6 +24,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: CANONICAL },
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     title: "Power & Light District Happy Hour Guide | HappiTime",
     description:
       "Rooftop bars, craft cocktails, and downtown KC's best after-work deals.",
@@ -74,7 +79,11 @@ const faqData = {
   ],
 };
 
-export default function PowerAndLightGuide() {
+// ISR: the schedule section reads published happy hour times.
+export const revalidate = 900;
+
+export default async function PowerAndLightGuide() {
+  const venues = await withMenuItems(await getVenuesByNeighborhood(getNeighborhood("power-and-light")!));
   const breadcrumbs = breadcrumbJsonLd([
     { name: "HappiTime", url: `${BASE}/` },
     { name: "Guides", url: `${BASE}/guides/` },
@@ -192,6 +201,14 @@ export default function PowerAndLightGuide() {
           <li><Link href="/happy-hour/downtown-kansas-city/" className="text-brand hover:underline">Downtown KC</Link> — surrounding blocks with steakhouses and lounges</li>
         </ul>
       </section>
+
+      <GuideSchedule
+        heading="When is happy hour at each Power & Light spot?"
+        answer="Most Power & Light happy hours start in the afternoon, and a few run at lunch or late at night. These are the published times for each spot on HappiTime, earliest start first."
+        venues={venues}
+        showSpecials
+        showAddress
+      />
 
       {/* FAQ */}
       <section className="mb-10">

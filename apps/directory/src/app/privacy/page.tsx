@@ -1,19 +1,27 @@
 import type { Metadata } from "next";
+import { jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy",
+  alternates: { canonical: "/privacy/" },
+  title: "HappiTime Privacy Policy",
   description:
-    "Privacy Policy for HappiTime, the venue management platform for Happy Hour marketing.",
+    "How HappiTime collects, uses and protects information from people looking for Kansas City happy hours and from the venues that list on it.",
 };
 
 export default function PrivacyPage() {
   return (
     <article className="mx-auto max-w-3xl px-6 py-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={jsonLdHtml(
+          webPageJsonLd({ name: "HappiTime Privacy Policy", url: "https://happitime.biz/privacy/", description: metadata.description ?? "" }),
+        )}
+      />
       <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">
         Privacy Policy
       </h1>
       <p className="text-sm text-muted mb-10">
-        Effective Date: April 20, 2026
+        Effective Date: October 11, 2026
       </p>
 
       <div className="prose">
@@ -55,7 +63,12 @@ export default function PrivacyPage() {
             We automatically collect usage data including pages visited,
             features used, device type, browser type, IP address, and
             approximate location. We use Vercel Analytics to collect
-            aggregated, privacy-friendly website analytics.
+            aggregated, privacy-friendly website analytics, and HeyCatch to
+            understand how people find and use the site and the mobile app —
+            the pages and screens you view, what you click or tap, and the
+            link or campaign that brought you here. In the mobile app, once
+            you sign in, this activity is associated with your account ID
+            only. We do not send HeyCatch your email address or name.
           </p>
 
           <h3 className="font-semibold text-foreground mt-4 mb-2">
@@ -97,8 +110,8 @@ export default function PrivacyPage() {
           <p>
             We share data with trusted service providers who help us operate
             the Platform, including Supabase (database and authentication),
-            Vercel (hosting and analytics), and Google and Apple (OAuth
-            authentication).
+            Vercel (hosting and analytics), HeyCatch (website and mobile app analytics), and
+            Google and Apple (OAuth authentication).
           </p>
 
           <h3 className="font-semibold text-foreground mt-4 mb-2">

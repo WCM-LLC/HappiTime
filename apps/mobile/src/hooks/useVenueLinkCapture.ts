@@ -20,6 +20,7 @@ import { parseVenueLink } from "../lib/parseVenueLink";
 import { parseItineraryLink } from "../lib/parseItineraryLink";
 import { parseReferralLink } from "../lib/parseReferralLink";
 import { setPendingVenueLink } from "../lib/pendingVenueLink";
+import { setPendingItineraryLink } from "../lib/pendingItineraryLink";
 import { setPendingReferral } from "../lib/pendingReferral";
 
 export function useVenueLinkCapture(onVenueLink: () => void) {
@@ -34,10 +35,16 @@ export function useVenueLinkCapture(onVenueLink: () => void) {
         return;
       }
 
-      // Itinerary link — stash ref if present (routing handled by useItineraryDeepLink).
+      // Itinerary link — stash ref if present, and stash the URL itself so it
+      // survives the gate. useItineraryDeepLink routes it: immediately if the
+      // navigator is mounted (the stash then refuses or drops it), otherwise when
+      // it mounts.
+      // Unlike a venue scan this does NOT leave the gate — the person signs in or
+      // onboards as normal and then lands on the itinerary.
       const itinerary = parseItineraryLink(url);
       if (itinerary) {
         if (itinerary.ref) void setPendingReferral(itinerary.ref);
+        setPendingItineraryLink(url);
         return;
       }
 

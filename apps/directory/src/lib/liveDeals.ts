@@ -1,6 +1,7 @@
 import { getAllKCVenues } from "@/lib/queries";
 import type { LiveDeal } from "@/components/ForkOpener";
 import { formatClock, kcNowParts } from "@/lib/kcTime";
+import { statsFromVenues } from "@/lib/siteStats";
 
 /* The opener's headline reads "in Kansas City", so every time calculation here
    runs in KC's timezone — not the visitor's. Someone opening the site from
@@ -56,14 +57,20 @@ export function toLiveDeals(venues: Awaited<ReturnType<typeof getAllKCVenues>>):
 /** Everything the opener needs, resilient to the venue query failing. */
 export async function getOpenerProps() {
   let all: LiveDeal[] = [];
+  let venues: Awaited<ReturnType<typeof getAllKCVenues>> = [];
   try {
-    all = toLiveDeals(await getAllKCVenues());
+    venues = await getAllKCVenues();
+    all = toLiveDeals(venues);
   } catch {
     // The fork is the point; a missing ticker must never take the page down.
   }
 
   const { minutes } = kcNowParts();
+  // Same venue query, so the homepage count is the count /kc/ shows.
+  const { venueCount, avatars } = statsFromVenues(venues);
   return {
+    venueCount,
+    avatars,
     deals: all.slice(0, 4),
     liveCount: all.length,
     firstEndsAt: all[0]?.endsAt ?? null,

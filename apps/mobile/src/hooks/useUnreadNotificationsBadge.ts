@@ -37,7 +37,8 @@ export function useUnreadNotificationsBadge(): number {
       .from("user_notifications")
       .select("id", { count: "exact", head: true })
       .eq("user_id", requestedUserId)
-      .is("read_at", null);
+      .is("read_at", null)
+      .is("dismissed_at", null);
     if (requestedUserId !== userIdRef.current) return; // stale response — a different user is active now
     setCount(unread ?? 0);
   }, [user?.id]);

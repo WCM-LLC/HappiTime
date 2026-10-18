@@ -9,6 +9,7 @@ import {
   Pressable,
   ActivityIndicator,
   TextInput,
+  Alert,
 } from "react-native";
 import { useFocusEffect, useNavigation, useRoute } from "@react-navigation/native";
 import { SegmentedTabs } from "../components/SegmentedTabs";
@@ -219,7 +220,8 @@ const ActivityCard: React.FC<{ item: ActivityItem }> = ({ item }) => (
 const NotificationCard: React.FC<{
   item: UserNotification;
   onPress: (n: UserNotification) => void;
-}> = ({ item, onPress }) => (
+  onDismiss: (id: string) => void;
+}> = ({ item, onPress, onDismiss }) => (
   <Pressable
     accessibilityRole="button"
     onPress={() => onPress(item)}
@@ -242,6 +244,15 @@ const NotificationCard: React.FC<{
         {item.body}
       </Text>
     </View>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Dismiss notification: ${item.title}`}
+      hitSlop={10}
+      onPress={() => onDismiss(item.id)}
+      style={({ pressed }) => [styles.notifDismiss, pressed && styles.buttonPressed]}
+    >
+      <Text style={styles.notifDismissText}>×</Text>
+    </Pressable>
   </Pressable>
 );
 
@@ -526,7 +537,20 @@ export const ActivityScreen: React.FC = () => {
     refresh: refreshNotifications,
     markRead,
     markAllRead,
+    dismiss: dismissNotification,
+    clearAll: clearAllNotifications,
   } = useUserNotifications();
+
+  const confirmClearAll = () => {
+    Alert.alert(
+      "Clear all notifications?",
+      "They'll be removed from your inbox. This can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Clear all", style: "destructive", onPress: () => void clearAllNotifications() },
+      ],
+    );
+  };
 
   const handleNotificationPress = (n: UserNotification) => {
     void markRead(n.id);
@@ -671,14 +695,23 @@ export const ActivityScreen: React.FC = () => {
           onRefresh={() => void refreshNotifications()}
           refreshing={notificationsLoading}
           ListHeaderComponent={
-            unreadCount > 0 ? (
+            notifications.length > 0 ? (
               <View style={styles.notifHeaderRow}>
+                {unreadCount > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => void markAllRead()}
+                    style={({ pressed }) => [pressed && styles.buttonPressed]}
+                  >
+                    <Text style={styles.notifMarkAll}>Mark all read</Text>
+                  </Pressable>
+                ) : null}
                 <Pressable
                   accessibilityRole="button"
-                  onPress={() => void markAllRead()}
+                  onPress={confirmClearAll}
                   style={({ pressed }) => [pressed && styles.buttonPressed]}
                 >
-                  <Text style={styles.notifMarkAll}>Mark all read</Text>
+                  <Text style={styles.notifClearAll}>Clear all</Text>
                 </Pressable>
               </View>
             ) : null
@@ -692,7 +725,11 @@ export const ActivityScreen: React.FC = () => {
             </View>
           }
           renderItem={({ item }) => (
-            <NotificationCard item={item} onPress={handleNotificationPress} />
+            <NotificationCard
+              item={item}
+              onPress={handleNotificationPress}
+              onDismiss={(id) => void dismissNotification(id)}
+            />
           )}
         />
       ) : tab === "friends" ? (
@@ -1211,12 +1248,27 @@ const styles = StyleSheet.create({
   notifHeaderRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
+    gap: spacing.lg,
     paddingBottom: spacing.sm,
   },
   notifMarkAll: {
     fontSize: 13,
     fontWeight: "600",
     color: colors.brandDark,
+  },
+  notifClearAll: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: colors.textMuted,
+  },
+  notifDismiss: {
+    paddingLeft: spacing.sm,
+    paddingTop: 2,
+  },
+  notifDismissText: {
+    fontSize: 18,
+    lineHeight: 20,
+    color: colors.textMuted,
   },
   friendSearchWrap: {
     flexDirection: "row",

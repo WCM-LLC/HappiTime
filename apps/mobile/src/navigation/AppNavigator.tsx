@@ -1,10 +1,10 @@
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import React, { useRef } from "react";
+import React, { useCallback, useRef } from "react";
 import { StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { IconSymbol } from "../../components/ui/icon-symbol";
+import { TabBarIcon } from "../../components/ui/tab-bar-icon";
 import { useNotificationNavigation } from "../hooks/useNotificationNavigation";
 import { useVenueDeepLink } from "../hooks/useVenueDeepLink";
 import { useItineraryDeepLink } from "../hooks/useItineraryDeepLink";
@@ -14,6 +14,7 @@ import { useUnreadNotificationsBadge } from "../hooks/useUnreadNotificationsBadg
 import { SharedItineraryScreen } from "../screens/SharedItineraryScreen";
 import { UpdateAvailableModal } from "../components/UpdateAvailableModal";
 import { useCurrentUser } from "../hooks/useCurrentUser";
+import { reportScreen } from "../lib/heycatch";
 import { ActivityScreen } from "../screens/ActivityScreen";
 import { AuthScreen } from "../screens/AuthScreen";
 import { FavoritesScreen } from "../screens/FavoritesScreen";
@@ -80,30 +81,13 @@ function AppTabs({ initialRouteName }: { initialRouteName?: keyof MainTabParamLi
         },
         tabBarActiveTintColor: colors.tabBarActiveTint,
         tabBarInactiveTintColor: colors.tabBarInactiveTint,
-        tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => {
-          let name:
-            | "house.fill"
-            | "star.fill"
-            | "map.fill"
-            | "bell.fill"
-            | "person.crop.circle.fill" = "house.fill";
-          const size = 22;
-
-          if (route.name === "Home") name = "house.fill";
-          if (route.name === "Map") name = "map.fill";
-          if (route.name === "Favorites") name = "star.fill";
-          if (route.name === "Activity") name = "bell.fill";
-          if (route.name === "Profile") name = "person.crop.circle.fill";
-
-          return (
-            <IconSymbol
-              name={name}
-              size={size}
-              color={color}
-              weight={focused ? "semibold" : "regular"}
-            />
-          );
-        }
+        // Selection is carried by the glyph's fill, not by tint alone. The
+        // previous version rendered a .fill glyph in both states and leaned on
+        // `weight`, which IconSymbol silently discarded — so the only
+        // difference between selected and unselected was colour.
+        tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+          <TabBarIcon route={route.name} focused={focused} color={color} />
+        )
       })}
     >
       <Tab.Screen name="Map" component={MapScreen} />
@@ -140,9 +124,24 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
   useActivityDeepLink(navigationRef);
   useCheckinPrimeHandoff(navigationRef);
 
+  // HeyCatch screen views. Automatic screen capture only exists for Expo
+  // Router, so on React Navigation the install guide has us report the current
+  // route from the container: once when it is ready (the first screen) and on
+  // every state change after, skipping repeats. Route name only — never params.
+  // The app-wide reporter (lib/heycatch), shared with the gate screens App.tsx
+  // renders outside this navigator, so repeats are skipped across the hand-off.
+  const reportCurrentScreen = useCallback(() => {
+    reportScreen(navigationRef.current?.getCurrentRoute?.()?.name);
+  }, []);
+
   return (
     <>
-    <NavigationContainer ref={navigationRef} theme={navTheme}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={navTheme}
+      onReady={reportCurrentScreen}
+      onStateChange={reportCurrentScreen}
+    >
       <Stack.Navigator>
         <Stack.Screen
           name="AppTabs"

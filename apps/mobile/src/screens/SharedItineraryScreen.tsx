@@ -14,6 +14,7 @@ import { colors } from "../theme/colors";
 import { spacing } from "../theme/spacing";
 import type { ItineraryMapVenue, RootStackParamList } from "../navigation/types";
 import { useSaveSharedItinerary } from "../hooks/useSaveSharedItinerary";
+import { recordItineraryTouch } from "../api/itineraryTouch";
 
 // Read-only viewer for an itinerary opened via a share link. Data comes from the
 // get_shared_itinerary(p_token) RPC (SECURITY DEFINER → bypasses RLS), so it renders
@@ -126,6 +127,12 @@ export const SharedItineraryScreen: React.FC<Props> = ({ route, navigation }) =>
       cancelled = true;
     };
   }, [token]);
+
+  // Insider attribution: the list id only exists once the token has resolved.
+  const sharedListId = itinerary?.id;
+  useEffect(() => {
+    if (sharedListId) recordItineraryTouch(sharedListId);
+  }, [sharedListId]);
 
   if (status === "loading") {
     return (
@@ -240,7 +247,10 @@ export const SharedItineraryScreen: React.FC<Props> = ({ route, navigation }) =>
             <Pressable
               accessibilityRole="button"
               key={item.venue_id}
-              onPress={() => navigation.navigate("VenuePreview", { venueId: item.venue_id })}
+              onPress={() => {
+                recordItineraryTouch(itinerary.id, item.venue_id);
+                navigation.navigate("VenuePreview", { venueId: item.venue_id });
+              }}
               style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
             >
               <View style={styles.badge}>

@@ -231,12 +231,19 @@ and small inset differences.
 2. **`README.md` states `runtimeVersion` is "currently 1.0.3"; `app.json` says 1.0.8.** The README's
    OTA instructions are stale.
 
-**Corrected here, because the codebase contradicts its own documentation:** there are **no SF
+**Corrected here, because the codebase contradicted its own documentation:** there are **no SF
 Symbols in the React Native layer.** `icon-symbol.tsx` is the only implementation, `expo-symbols` is
 not a dependency, and every platform renders Material Icons — the SF Symbol strings are merely keys
-into a mapping table, and the `weight` prop is accepted and discarded. The file's docstring claims
-otherwise and is wrong. The only real SF Symbols in the product are the three inside the native
-Swift panel.
+into a mapping table. The only real SF Symbols in the product are the three inside the native Swift
+panel.
+
+The file's docstring used to claim otherwise, and the `weight` prop it advertised was accepted and
+discarded (MaterialIcons is a single-weight font, so it could not have worked). Both were fixed on
+2026-10-09: the docstring now describes what renders, the prop is gone rather than left as a lie,
+and `test/mobile-tab-bar-icons.test.mjs` permits the SF Symbols claim only when `expo-symbols` is a
+dependency *and* an `icon-symbol.ios.tsx` exists to back it. The one caller that depended on
+`weight` was the tab bar, distinguishing the selected destination; that now uses a filled/outlined
+glyph pair (`components/ui/tab-bar-icon.tsx`).
 
 ## Product Principles
 

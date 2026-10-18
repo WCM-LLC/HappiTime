@@ -5,6 +5,7 @@ import "./globals.css";
 import { AppDownloadStrip } from "@/components/AppDownloadStrip";
 import { AuthRecoveryRedirect } from "@/components/AuthRecoveryRedirect";
 import { HappiTimeLogo } from "@/components/Logo";
+import { formatAppRating, getAppStoreRating } from "@/lib/appRating";
 
 export const metadata: Metadata = {
   title: {
@@ -32,10 +33,11 @@ export const metadata: Metadata = {
     "bar deals",
   ],
   metadataBase: new URL("https://happitime.biz"),
-  alternates: {
-    canonical: "/",
-  },
+  // No canonical here: a layout-level canonical is inherited by every page that
+  // doesn't set its own, which declared ~200 venue pages duplicates of the
+  // homepage. Each page sets its own (the homepage's is in app/page.tsx).
   openGraph: {
+    images: [DEFAULT_OG_IMAGE],
     type: "website",
     locale: "en_US",
     siteName: "HappiTime",
@@ -76,6 +78,7 @@ const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID?.trim() || "";
 
 import { ItineraryProvider } from "@/components/ItineraryContext";
 import { SiteNav } from "@/components/SiteNav";
+import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
 
 /**
  * Sitewide Organization + WebSite JSON-LD.
@@ -90,10 +93,16 @@ const ORGANIZATION_JSONLD = {
   url: "https://happitime.biz/",
   logo: "https://happitime.biz/icon.png",
   description:
-    "HappiTime is a free happy hour deals marketplace for Kansas City. Browse live drink specials and food deals by neighborhood, updated daily by venues themselves.",
+    "HappiTime is a free happy hour deals marketplace for Kansas City. Browse live drink specials and food deals by neighborhood. Venues on a paid plan update their own listings; the rest are re-scanned, and a person confirms every change before it is published.",
   areaServed: {
     "@type": "City",
     name: "Kansas City",
+  },
+  founder: {
+    "@type": "Person",
+    name: "Juan Williams",
+    jobTitle: "Chief Vibe Officer",
+    url: "https://happitime.biz/about/",
   },
   sameAs: [
     "https://www.instagram.com/happitime.biz/",
@@ -218,10 +227,13 @@ function SiteHeader() {
   );
 }
 
-function SiteFooter() {
+async function SiteFooter() {
+  // Live from Apple, cached a day; null (and nothing shown) if it has no ratings.
+  const rating = await getAppStoreRating();
+
   return (
     <footer className="border-t border-border bg-surface mt-16">
-      <AppDownloadStrip />
+      <AppDownloadStrip ratingLabel={rating ? formatAppRating(rating) : null} />
       <div className="mx-auto max-w-5xl px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted">
         <div className="flex items-center gap-3">
           <HappiTimeLogo className="h-5" />
@@ -233,6 +245,15 @@ function SiteFooter() {
             className="hover:text-foreground transition-colors"
           >
             Manage Your Venue
+          </a>
+          <a href="/sponsored-events/" className="hover:text-foreground transition-colors">
+            Events
+          </a>
+          <a href="/pricing/" className="hover:text-foreground transition-colors">
+            Pricing
+          </a>
+          <a href="/about/" className="hover:text-foreground transition-colors">
+            About
           </a>
           <a href="/privacy/" className="hover:text-foreground transition-colors">
             Privacy

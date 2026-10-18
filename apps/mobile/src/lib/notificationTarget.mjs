@@ -30,7 +30,12 @@ export function resolveNotificationTarget(data) {
     // Land on the venue's in-app Events & Specials page when the payload
     // carries the venue; old payloads fall back to the calendar.
     if (typeof data.venueId === "string") {
-      return { screen: "VenueEvents", params: { venueId: data.venueId } };
+      // eventId lets the page pin + highlight the event the user tapped on
+      // (2026-10-09: "Viernes de Karaoke tap didn't go to Dos Lokos" — it did,
+      // but the page was titled generically and the event sat mid-list).
+      const params = { venueId: data.venueId };
+      if (typeof data.eventId === "string") params.eventId = data.eventId;
+      return { screen: "VenueEvents", params };
     }
     return { screen: "EventCalendar", params: undefined };
   }

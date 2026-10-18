@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
-import { KC_NEIGHBORHOODS } from "@/lib/neighborhoods";
+import { venuePath } from "@/lib/neighborhoods";
 import { HAPPY_HOUR_LANDING_PAGES } from "@/lib/seoNeighborhoods";
 import { getAllKCVenues } from "@/lib/queries";
 import { supabase } from "@/lib/supabase";
+import { authorPath, getGuideAuthors } from "@/lib/authors";
+import { livePartners } from "@/lib/partners";
 
 const STATIC_GUIDE_SLUGS = new Set([
   "best-happy-hours-kansas-city",
@@ -30,6 +32,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
+      // Hub for venues outside every neighborhood radius.
+      url: `${baseUrl}/kc/kansas-city/`,
+      lastModified: new Date(),
+      changeFrequency: "daily",
+      priority: 0.7,
+    },
+    {
       url: `${baseUrl}/terms/`,
       lastModified: new Date("2026-04-20"),
       changeFrequency: "yearly",
@@ -46,6 +55,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/about/`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
+    {
+      url: `${baseUrl}/how-we-count-visits/`,
+      lastModified: new Date(),
+      changeFrequency: "monthly",
+      priority: 0.5,
     },
     {
       url: `${baseUrl}/sponsored-events/`,
@@ -133,33 +154,34 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // If DB is unavailable, skip dynamic guide pages
   }
 
+  // Guide author pages (linked from each guide's byline)
+  let authorPages: MetadataRoute.Sitemap = [];
+  try {
+    authorPages = (await getGuideAuthors()).map(({ slug }) => ({
+      url: `${baseUrl}${authorPath(slug)}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.4,
+    }));
+  } catch {
+    // If DB is unavailable, skip author pages
+  }
+
+  // Partner pages — live ones only; coming-soon partners 404 (lib/partners.ts).
+  const partnerPages: MetadataRoute.Sitemap = livePartners().map((p) => ({
+    url: `${baseUrl}/partners/${p.slug}/`,
+    lastModified: new Date(),
+    changeFrequency: "weekly" as const,
+    priority: 0.6,
+  }));
+
   // Venue detail pages
   let venuePages: MetadataRoute.Sitemap = [];
   try {
     const venues = await getAllKCVenues();
     venuePages = venues.map((venue) => {
-      // Find best neighborhood for URL
-      let bestSlug = "kansas-city";
-      let bestDist = Infinity;
-      for (const n of KC_NEIGHBORHOODS) {
-        if (venue.lat == null || venue.lng == null) continue;
-        const dlat = venue.lat - n.lat;
-        const dlng = venue.lng - n.lng;
-        const dist = dlat * dlat + dlng * dlng;
-        const latDelta = n.radiusMiles / 69;
-        const lngDelta =
-          n.radiusMiles / (69 * Math.cos((n.lat * Math.PI) / 180));
-        if (
-          dist < bestDist &&
-          Math.abs(dlat) <= latDelta &&
-          Math.abs(dlng) <= lngDelta
-        ) {
-          bestDist = dist;
-          bestSlug = n.slug;
-        }
-      }
       return {
-        url: `${baseUrl}/kc/${bestSlug}/${venue.slug}/`,
+        url: `${baseUrl}${venuePath(venue)}`,
         lastModified: new Date(),
         changeFrequency: "daily" as const,
         priority: 0.7,
@@ -172,6 +194,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticPages,
     ...dynamicGuidePages,
+    ...authorPages,
+    ...partnerPages,
     ...happyHourLandingPages,
     ...venuePages,
   ];
