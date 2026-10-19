@@ -38,8 +38,8 @@ export const EVENT = {
   vendor: {
     name: "Extra Babez Accessories",
     tagline: "Always extra, never basic.",
-    instagram: "only1extrababe",
-    tiktok: "1extrababe",
+    instagram: "shopextrababez",
+    tiktok: "shopextrababez",
   },
 
   /**
