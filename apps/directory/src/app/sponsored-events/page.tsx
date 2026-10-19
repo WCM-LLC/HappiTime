@@ -64,7 +64,7 @@ const EVENTS: SponsoredEvent[] = [
     access: "Open registration",
     cta: "Register your spot",
     blurb:
-      "Round two. An 8-team single-elimination Spades tournament at In Good Company, three rounds and done in about two hours. $20 per player, solo or with a partner, cash prize for the winning team. Tacos from the NotCho' Taco truck outside, music by DJ Stixx. Register by October 19.",
+      "Round two. An 8-team single-elimination Spades tournament at In Good Company, three rounds and done in about two hours. $20 per player, solo or with a partner, cash prize for the winning team. Tacos from the NotCho' Taco truck outside, music by DJ Stixx, pop-up shopping from Extra Babez Accessories. Register by October 19.",
     image: "/sponsored-events/tacos-and-tables/cover.jpg",
     imageWidth: 990,
     imageHeight: 1142,

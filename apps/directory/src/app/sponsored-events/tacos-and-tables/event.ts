@@ -34,6 +34,13 @@ export const EVENT = {
   formatLabel: "8-team single elimination",
   ageMin: 21,
   sponsors: ["HappiTime", "NotCho' Taco", "DJ Stixx"],
+  /** Pop-up vendor set up in the room for the night. Leave name empty to hide. */
+  vendor: {
+    name: "Extra Babez Accessories",
+    tagline: "Always extra, never basic.",
+    instagram: "shopextrababez",
+    tiktok: "shopextrababez",
+  },
 
   /**
    * Where to send the entry fee. Leave a handle empty to hide it.
