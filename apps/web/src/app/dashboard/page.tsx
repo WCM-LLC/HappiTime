@@ -140,12 +140,13 @@ export default async function DashboardPage({
           <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
             <h2 className="text-heading-sm font-semibold text-foreground">Your Insider console</h2>
             <p className="text-body-sm text-muted mt-0.5 mb-4">
-              Write guides, track your referrals, and manage your public profile.
+              Write guides, propose events, track your referrals, and manage your public profile.
             </p>
             <div className="flex flex-wrap gap-2">
               {[
                 { href: '/dashboard/guides', label: 'Guides' },
                 { href: '/dashboard/referrals', label: 'Referrals' },
+                { href: '/dashboard/events', label: 'Events' },
                 { href: '/dashboard/profile', label: 'Profile' },
               ].map((link) => (
                 <Link key={link.href} href={link.href}>

@@ -11,6 +11,7 @@ Super Users are trusted content creators — HappiTime Insiders — who can writ
 | Uses the mobile app | ✓ | ✓ | ✓ |
 | Visible badge in the app | — | ★ wine circle | — |
 | Authors guides on console | — | ✓ | ✓ |
+| Proposes events on console | — | ✓ | ✓ (publishes directly) |
 | Approves / rejects guides | — | — | ✓ |
 | Manages other users | — | — | ✓ |
 | Stored in | `user_profiles.role` | `user_profiles.role = 'super_user'` | `admin_users` table |
@@ -51,6 +52,18 @@ Apple and Google sign-in finish on the same host they started on, so a login beg
 
 Super Users with `auto_publish_enabled = true` skip the review queue entirely — submitting a guide publishes it immediately on the public directory. This flag is set per-user by a Super Admin.
 
+### Proposing events (`/dashboard/events`)
+
+- **Propose** an event at any published venue: title, type, one date or weekly days, times,
+  details, price line, link
+- It lands as a draft in the venue's review queue (or HappiTime staff's, if the venue has no
+  owner on the platform) and **goes live the moment it is approved** — events are the one
+  intake type where approval publishes
+- **Track** every proposed event and its status (waiting / live / not approved with reason)
+- Cannot edit or publish an event directly; cannot attach events to unpublished venues
+
+Design: `docs/superpowers/specs/2026-10-21-tastemaker-events-design.md`.
+
 ### In the mobile app
 
 - Their profile shows a **★ wine-colored badge** (HappiTime Insider) wherever their name appears: activity feed, follower lists, search results, suggested people
@@ -66,6 +79,7 @@ Super Users with `auto_publish_enabled = true` skip the review queue entirely �
 - Cannot promote or demote other users
 - Cannot edit or delete guides authored by other Super Users
 - Cannot publish directly without Super Admin approval (unless `auto_publish_enabled` is set)
+- Cannot publish an event — a proposed event waits for the venue (or staff) to approve it
 - Cannot see other users' private check-ins or draft content
 
 ---
@@ -91,7 +105,7 @@ Published → [Unpublish] → Archived
 
 - Super User controls: **Save draft**, **Submit**
 - Super Admin controls: **Approve**, **Reject** (with notes back to author), **Unpublish**
-- Published guides appear on the public directory at `happitime.com/guides/[slug]`
+- Published guides appear on the public directory at `happitime.biz/guides/[slug]`
 - Rejected guides return to Draft status with the Super Admin's notes visible to the author
 
 ---
