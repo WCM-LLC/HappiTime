@@ -83,7 +83,8 @@ async function notifySubmitter(
 }
 
 /**
- * Approve: accept the submission WITHOUT publishing anything.
+ * Approve: accept the submission WITHOUT publishing anything — except an
+ * events-only submission, which goes live on approval (see below).
  *
  * Approving used to flip the menu, its windows and any events straight to
  * 'published'. It no longer does. Scanned content reaches a public listing
@@ -112,6 +113,19 @@ export async function approveSubmission(
     if (eventIds.length === 0) {
       throw new Error('Submission has nothing to approve (it may have been deleted)');
     }
+    // Events-only is the one case where approving DOES publish (decided
+    // 2026-10-21, docs/superpowers/specs/2026-10-21-tastemaker-events-design.md).
+    // An event is time-bound: a second step the owner never takes means the
+    // night passes unlisted, which is worse than the one-human-decision rule
+    // it bends. Only rows still in draft are touched — an event the owner
+    // already published, archived or canceled keeps that state.
+    const { error: pubErr } = await (db as any)
+      .from('venue_events')
+      .update({ status: 'published', published_at: new Date().toISOString() })
+      .in('id', eventIds)
+      .eq('status', 'draft');
+    if (pubErr) throw new Error(pubErr.message);
+
     await markReviewed(db, sub, reviewerId, 'approved');
     await notifySubmitter(db, sub.submitted_by, sub.venue_id, true);
     return;
