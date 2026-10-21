@@ -84,16 +84,21 @@ test("manager and host can scan but cannot approve", () => {
 
 // ── C ────────────────────────────────────────────────────────────────────
 
-test("approving a submission produces a draft, never a publish", () => {
+test("approving a menu submission produces a draft, never a publish", () => {
+  // Events-only submissions are the one exception (2026-10-21; see
+  // intake-content-classification.test.mjs). A menu still reaches a public
+  // listing only when the owner publishes it as a separate, deliberate step.
   const fn = review.slice(
     review.indexOf("export async function approveSubmission"),
     review.indexOf("export async function rejectSubmission"),
   );
   assert.ok(fn.length > 0, "approveSubmission not found");
+  const menuPath = fn.slice(fn.indexOf("return;"));
+  assert.ok(menuPath.length > 0, "the menu path after the events-only branch not found");
   assert.doesNotMatch(
-    fn,
+    menuPath,
     /status:\s*'published'/,
-    "approval must not publish — the owner publishes as a separate, deliberate step",
+    "menu approval must not publish — the owner publishes as a separate, deliberate step",
   );
   // It must still record the decision, or the queue never drains.
   assert.match(fn, /'approved'/, "the submission must still be marked approved");

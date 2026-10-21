@@ -6,6 +6,7 @@ import { createClient, createServiceClient } from '@/utils/supabase/server';
 import { isAdminEmail } from '@/utils/admin-emails';
 import { EVENTS_PATH, loginPathFor } from '@/utils/auth-paths';
 import { buildEventRows } from '@/utils/intake-content';
+import type { ContributorTier } from '@/utils/contribution-attribution';
 import { notifyIntakeReviewers, resolveReviewRoute } from '@/utils/intake-access';
 import { parseTastemakerEventForm } from '@/utils/tastemakerEvent.mjs';
 
@@ -73,22 +74,33 @@ export async function submitTastemakerEvent(formData: FormData) {
 
   const publishNow = adminOk;
   const publishedAt = publishNow ? new Date().toISOString() : null;
+  const contributorTier: ContributorTier = adminOk ? 'admin' : 'super_user';
   const { rows, unschedulable } = buildEventRows([parsed.proposed], {
     venueId: venueRow.id,
     timezone,
     status: publishNow ? 'published' : 'draft',
     createdBy: auth.user.id,
-    createdByTier: adminOk ? 'admin' : 'super_user',
+    createdByTier: contributorTier,
     publishedAt,
   });
   if (rows.length === 0 || unschedulable.length > 0) {
     redirect(`${EVENTS_PATH}/new?error=unschedulable`);
   }
-  if (parsed.externalUrl) rows[0].external_url = parsed.externalUrl;
+
+  // Attribution restated at the insert site. buildEventRows already wrote
+  // these; saying them again here is what lets the repo-wide guard in
+  // test/contribution-attribution-sites.test.mjs see them next to the insert
+  // instead of trusting a helper call it cannot follow.
+  const eventRow = {
+    ...rows[0],
+    created_by: auth.user.id,
+    created_by_tier: contributorTier,
+    external_url: parsed.externalUrl,
+  };
 
   const { data: inserted, error: insertErr } = (await db
     .from('venue_events')
-    .insert(rows[0])
+    .insert(eventRow)
     .select('id')
     .single()) as { data: { id: string } | null; error: { message: string } | null };
   if (insertErr || !inserted) {

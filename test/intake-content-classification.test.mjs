@@ -250,21 +250,33 @@ test("an event that can't be scheduled is reported, not dropped", () => {
   assert.match(content, /unschedulable\.push\(title\)/);
 });
 
-test("approving accepts the submission without publishing its events", () => {
-  // This test previously asserted the OPPOSITE — that approving flipped the
-  // events to 'published'. Changed 2026-08-13: approval no longer publishes
-  // anything. The owner publishes from the venue page as a separate,
-  // deliberate act, so scanned content reaches a public listing only on an
-  // explicit human decision (HT-SOP-003).
+test("approving publishes an events-only submission, and nothing else", () => {
+  // History: this asserted "approval flips events to published" (Aug 12), then
+  // the opposite — "approval publishes nothing; the owner publishes from the
+  // venue page" (#178, 2026-08-13). On 2026-10-21 J carved out ONE exception:
+  // an events-only submission (a Tastemaker's proposed night, or a flyer scan)
+  // goes live on approval, because an event is time-bound and a second step
+  // the owner never takes means the night passes unlisted. Menus keep the
+  // two-step. Design: docs/superpowers/specs/2026-10-21-tastemaker-events-design.md.
   const review = read("apps/web/src/utils/intake-review.ts");
   assert.match(review, /from\('intake_submission_events'\)/, "events are still resolved");
   const approve = review.slice(
     review.indexOf("export async function approveSubmission"),
     review.indexOf("export async function rejectSubmission"),
   );
-  assert.doesNotMatch(approve, /status:\s*'published'/, "approval must not publish");
   // An events-only submission has no menu; requiring one made it unapprovable.
   assert.match(approve, /if \(eventIds\.length === 0\) \{[\s\S]{0,120}nothing to approve/);
+
+  // The publish lives inside the no-menu branch, writes venue_events only, and
+  // touches only rows still in draft (an owner's own publish/cancel stands).
+  const eventsOnly = approve.slice(approve.indexOf("if (!sub.menu_id)"), approve.indexOf("return;"));
+  assert.match(eventsOnly, /from\('venue_events'\)[\s\S]{0,200}status:\s*'published'/, "events-only approval publishes the events");
+  assert.match(eventsOnly, /\.eq\('status',\s*'draft'\)/, "only draft events are published");
+  assert.match(eventsOnly, /published_at:/, "published_at is stamped so the event scores");
+
+  // Everything after that branch — the menu path — still publishes nothing.
+  const menuPath = approve.slice(approve.indexOf("return;"));
+  assert.doesNotMatch(menuPath, /status:\s*'published'/, "menu approval must not publish");
 });
 
 test("events written by a scan match the console's own column shape", () => {
