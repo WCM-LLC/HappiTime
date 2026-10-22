@@ -66,6 +66,10 @@ jobs:
           done
           echo "::error::could not pull $IMG from ghcr.io or Docker Hub"; exit 1
       - name: Start Supabase (db only)
+        # Pull every service image from Docker Hub instead of ghcr.io — the CLI
+        # still pulls images it does not start, and ghcr.io was throttling.
+        env:
+          SUPABASE_INTERNAL_IMAGE_REGISTRY: docker.io
         run: supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: Install PostgreSQL 17 client (read-only pg_dump, no SET ROLE)
         run: |
