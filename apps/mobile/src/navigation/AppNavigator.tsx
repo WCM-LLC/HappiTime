@@ -32,6 +32,7 @@ import { ItineraryDetailScreen } from "../screens/ItineraryDetailScreen";
 import { EventCalendarScreen } from "../screens/EventCalendarScreen";
 import { GuidesScreen } from "../screens/GuidesScreen";
 import { GuideDetailScreen } from "../screens/GuideDetailScreen";
+import { SuperUserMetricsScreen } from "../screens/SuperUserMetricsScreen";
 import { CheckInScreen } from "../screens/CheckInScreen";
 import { RoundRedemptionScreen } from "../screens/RoundRedemptionScreen";
 import { colors } from "../theme/colors";
@@ -261,6 +262,19 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
           options={{
             headerShown: true,
             title: "Guide",
+            headerBackTitle: "Back",
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontSize: 17, fontWeight: "600" },
+          }}
+        />
+        <Stack.Screen
+          name="SuperUserMetrics"
+          component={SuperUserMetricsScreen}
+          options={{
+            headerShown: true,
+            title: "Your metrics",
             headerBackTitle: "Back",
             headerTintColor: colors.text,
             headerStyle: { backgroundColor: colors.background },

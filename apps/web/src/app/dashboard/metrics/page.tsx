@@ -199,9 +199,9 @@ export default async function MetricsPage({ searchParams }: { searchParams: Prom
             <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 items-start">
               <Section id="influence" title="Influence" sub="What happened at venues because of you">
                 <div className="grid grid-cols-2 gap-3.5">
-                  <Mini label="New faces" value={fmtInt(inf?.new_faces ?? 0)} {...(inf ? delta(inf.new_faces, inf.new_faces_prior) : {})} info={DEF.new_faces} />
-                  <Mini label="Venues moved" value={fmtInt(inf?.venues_moved ?? 0)} {...(inf ? delta(inf.venues_moved, inf.venues_moved_prior) : {})} info={DEF.venues_moved} />
-                  <Mini label="Redemptions" value={fmtInt(inf?.redemptions ?? 0)} {...(inf ? delta(inf.redemptions, inf.redemptions_prior) : {})} info={DEF.redemptions} />
+                  <Mini label="New faces" value={fmtInt(inf?.new_faces ?? 0)} note={inf ? delta(inf.new_faces, inf.new_faces_prior).text : undefined} tone={inf ? delta(inf.new_faces, inf.new_faces_prior).tone : undefined} info={DEF.new_faces} />
+                  <Mini label="Venues moved" value={fmtInt(inf?.venues_moved ?? 0)} note={inf ? delta(inf.venues_moved, inf.venues_moved_prior).text : undefined} tone={inf ? delta(inf.venues_moved, inf.venues_moved_prior).tone : undefined} info={DEF.venues_moved} />
+                  <Mini label="Redemptions" value={fmtInt(inf?.redemptions ?? 0)} note={inf ? delta(inf.redemptions, inf.redemptions_prior).text : undefined} tone={inf ? delta(inf.redemptions, inf.redemptions_prior).tone : undefined} info={DEF.redemptions} />
                   <Mini label="Venues touched" value={fmtInt(inf?.venues_touched ?? 0)} info={DEF.venues_touched} />
                 </div>
                 <div className="flex flex-col gap-2.5">
@@ -215,10 +215,10 @@ export default async function MetricsPage({ searchParams }: { searchParams: Prom
 
               <Section id="guides" title="Guides" sub="How each one is read and acted on">
                 <div className="grid grid-cols-2 gap-3.5">
-                  <Mini label="Views" value={fmtInt(g?.views ?? 0)} {...(g ? deltaPct(g.views, g.views_prior) : {})} info={DEF.views} />
-                  <Mini label="Venue clicks" value={fmtInt(g?.venue_clicks ?? 0)} {...(g ? deltaPct(g.venue_clicks, g.venue_clicks_prior) : {})} info={DEF.venue_clicks} />
+                  <Mini label="Views" value={fmtInt(g?.views ?? 0)} note={g ? deltaPct(g.views, g.views_prior).text : undefined} tone={g ? deltaPct(g.views, g.views_prior).tone : undefined} info={DEF.views} />
+                  <Mini label="Venue clicks" value={fmtInt(g?.venue_clicks ?? 0)} note={g ? deltaPct(g.venue_clicks, g.venue_clicks_prior).text : undefined} tone={g ? deltaPct(g.venue_clicks, g.venue_clicks_prior).tone : undefined} info={DEF.venue_clicks} />
                   <Mini label="Click-through" value={g && g.views >= 20 ? fmtPct(g.venue_clicks / g.views) : '—'} note={g && g.views < 20 ? 'shown at 20+ views' : undefined} info={DEF.ctr} />
-                  <Mini label="People sent" value={fmtInt(g?.people_sent ?? 0)} {...(g ? delta(g.people_sent, g.people_sent_prior) : {})} info="Check-ins after someone opened one of your guides as an itinerary in the app." />
+                  <Mini label="People sent" value={fmtInt(g?.people_sent ?? 0)} note={g ? delta(g.people_sent, g.people_sent_prior).text : undefined} tone={g ? delta(g.people_sent, g.people_sent_prior).tone : undefined} info="Check-ins after someone opened one of your guides as an itinerary in the app." />
                 </div>
                 <div className="flex flex-col gap-2">
                   <div className="flex items-baseline justify-between">
@@ -252,8 +252,8 @@ export default async function MetricsPage({ searchParams }: { searchParams: Prom
 
               <Section id="referrals" title="Referrals" sub="People who joined HappiTime through you">
                 <div className="grid grid-cols-2 gap-3.5">
-                  <Mini label="Joined" value={fmtInt(r?.joined ?? 0)} {...(r ? delta(r.joined, r.joined_prior) : {})} info={DEF.joined} />
-                  <Mini label="QR scans" value={fmtInt(r?.qr_scans ?? 0)} {...(r ? delta(r.qr_scans, r.qr_scans_prior) : {})} info={DEF.qr_scans} />
+                  <Mini label="Joined" value={fmtInt(r?.joined ?? 0)} note={r ? delta(r.joined, r.joined_prior).text : undefined} tone={r ? delta(r.joined, r.joined_prior).tone : undefined} info={DEF.joined} />
+                  <Mini label="QR scans" value={fmtInt(r?.qr_scans ?? 0)} note={r ? delta(r.qr_scans, r.qr_scans_prior).text : undefined} tone={r ? delta(r.qr_scans, r.qr_scans_prior).tone : undefined} info={DEF.qr_scans} />
                   <Mini label="First check-ins" value={fmtInt(r?.first_checkins ?? 0)} note={r ? `of ${fmtInt(r.joined_all)} joined` : undefined} info={DEF.first_checkins} />
                   <Mini label="Itinerary saves" value={fmtInt(r?.itinerary_saves ?? 0)} info={DEF.itinerary_saves} />
                 </div>
