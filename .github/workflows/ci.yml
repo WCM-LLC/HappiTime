@@ -24,11 +24,20 @@ jobs:
 
   supabase-migrations:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     steps:
       - uses: actions/checkout@v4
       - uses: supabase/setup-cli@v1
         with:
           version: 2.95.6
+      # Anonymous ghcr.io pulls share a rate limit across GitHub's runners and
+      # the Postgres image pull failed four times in a row on 2026-10-22
+      # ("toomanyrequests") before a single migration ran. Authenticated pulls
+      # are not subject to that pool.
+      - name: Log in to ghcr.io
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: Start Supabase (db only)
         run: supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: Apply migrations + seed
