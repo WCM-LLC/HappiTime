@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 import UserBar from '@/components/layout/UserBar';
+import VenueGuidesPanel from '@/components/VenueGuidesPanel';
 import VenueMenusManager from '@/components/venue/VenueMenusManager';
 import VenueDashboardShell, { type ShellTab, OrgMark, ShellCrumb } from '@/components/venue/VenueDashboardShell';
 import { SubmitButton } from '@/components/ui/SubmitButton';
@@ -1729,6 +1730,9 @@ export default async function VenuePage({
         {canEditMenuItems && scanSummary ? (
           <VenueScanAnalytics summary={scanSummary} />
         ) : null}
+        {/* Tastemaker guides that link this venue — reads via venue_guide_stats()
+            with the signed-in user's client (the function checks org membership). */}
+        <VenueGuidesPanel supabase={authClient} venueId={venueId} venueName={venue?.name ?? 'this venue'} />
         <div className="rounded-lg border border-border bg-surface p-6 shadow-sm mb-8">
           <div className="mb-5">
             <h2 className="text-heading-sm font-semibold text-foreground">Analytics</h2>

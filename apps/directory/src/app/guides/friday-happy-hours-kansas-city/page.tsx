@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PageTracker } from "@/components/PageTracker";
 import { articleJsonLd, breadcrumbJsonLd } from "@/lib/structuredData";
 import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
 import { GuideSchedule } from "@/components/GuideSchedule";
@@ -98,6 +99,7 @@ export default async function FridayHappyHours() {
 
   return (
     <article className="mx-auto max-w-3xl px-6 py-12">
+      <PageTracker pagePath="/guides/friday-happy-hours-kansas-city/" meta={{ guide_slug: "friday-happy-hours-kansas-city" }} />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }}

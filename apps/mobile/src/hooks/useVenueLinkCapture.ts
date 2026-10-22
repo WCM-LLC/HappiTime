@@ -22,6 +22,29 @@ import { parseReferralLink } from "../lib/parseReferralLink";
 import { setPendingVenueLink } from "../lib/pendingVenueLink";
 import { setPendingItineraryLink } from "../lib/pendingItineraryLink";
 import { setPendingReferral } from "../lib/pendingReferral";
+import { supabase } from "../api/supabaseClient";
+
+// A referral link opened by someone already signed in never reaches the web
+// landing (Universal Links send /r/{handle} straight here), so the scan would be
+// invisible to the Insider's "QR scans" count. Log it as a user_event; the
+// anonymous web landing logs its own page_view. Fire-and-forget, never blocks.
+function logQrScanIfSignedIn(handle: string) {
+  void (async () => {
+    try {
+      const { data } = await supabase.auth.getUser();
+      const uid = data.user?.id;
+      if (!uid) return;
+      await supabase.from("user_events").insert({
+        user_id: uid,
+        event_type: "qr_scan",
+        venue_id: null,
+        meta: { referrer_handle: handle, source: "app" },
+      });
+    } catch {
+      /* tracking only */
+    }
+  })();
+}
 
 export function useVenueLinkCapture(onVenueLink: () => void) {
   useEffect(() => {
@@ -53,6 +76,7 @@ export function useVenueLinkCapture(onVenueLink: () => void) {
       const referral = parseReferralLink(url);
       if (referral) {
         void setPendingReferral(referral.handle);
+        logQrScanIfSignedIn(referral.handle);
         return;
       }
 

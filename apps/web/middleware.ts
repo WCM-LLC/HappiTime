@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { getPublicSupabaseEnv } from "@happitime/shared-env";
 import {
   LOGIN_PATH,
+  SUPER_USER_HOME_PATH,
   SUPER_USER_LOGIN_PATH,
   isGuideAuthoringPath,
   loginPathFor,
@@ -94,7 +95,7 @@ export async function middleware(request: NextRequest) {
     (pathname === LOGIN_PATH || pathname === SUPER_USER_LOGIN_PATH) &&
     !request.nextUrl.searchParams.get("error")
   ) {
-    const fallback = pathname === SUPER_USER_LOGIN_PATH ? "/dashboard/guides" : "/dashboard";
+    const fallback = pathname === SUPER_USER_LOGIN_PATH ? SUPER_USER_HOME_PATH : "/dashboard";
     const next = safeNextPath(request.nextUrl.searchParams.get("next")) ?? fallback;
     return NextResponse.redirect(new URL(next, request.url));
   }

@@ -2,12 +2,13 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import ReactMarkdown from "react-markdown";
 import { articleJsonLd, breadcrumbJsonLd, jsonLdHtml } from "@/lib/structuredData";
 import { supabase } from "@/lib/supabase";
 import { guideCoverImageSrc, normalizeGuideCoverImageUrl } from "@/lib/guideCoverUrl";
 import ImageLightbox from "@/components/ImageLightbox";
 import AuthorByline from "@/components/AuthorByline";
+import { GuideBody, venueSlugFromHref } from "@/components/GuideBody";
+import { PageTracker } from "@/components/PageTracker";
 import { authorPath, getGuideAuthorById } from "@/lib/authors";
 import { DEFAULT_OG_IMAGE, fitDescription, fitTitle } from "@/lib/seoText";
 
@@ -41,6 +42,27 @@ async function getGuideItinerary(guideId: string): Promise<GuideItinerary | null
 
 async function getAuthor(authorId: string | null) {
   return getGuideAuthorById(authorId);
+}
+
+// venue slug → id for every venue page the body links to, so a click on one can
+// be recorded against that venue (GuideBody) — the same URL shapes
+// guide_venue_slugs() matches in SQL for the companion itinerary.
+async function getLinkedVenueIds(body: string | null): Promise<Record<string, string>> {
+  const slugs = new Set<string>();
+  for (const m of (body ?? "").matchAll(/\]\(\s*([^)\s]+)|https?:\/\/(?:www\.)?happitime\.biz\/[^\s)]+/gi)) {
+    const href = m[1] ?? m[0];
+    const slug = venueSlugFromHref(href);
+    if (slug) slugs.add(slug);
+  }
+  if (slugs.size === 0) return {};
+  const { data } = await supabase
+    .from("venues")
+    .select("id, slug")
+    .in("slug", Array.from(slugs))
+    .eq("status", "published");
+  const out: Record<string, string> = {};
+  for (const v of data ?? []) if (v.slug) out[String(v.slug).toLowerCase()] = String(v.id);
+  return out;
 }
 
 export async function generateMetadata({
@@ -101,9 +123,10 @@ export default async function GuidePage({
   const guide = await getGuide(slug);
   if (!guide) notFound();
 
-  const [author, itinerary] = await Promise.all([
+  const [author, itinerary, venueIds] = await Promise.all([
     getAuthor(guide.author_id),
     getGuideItinerary(guide.id),
+    getLinkedVenueIds(guide.body_md),
   ]);
   // Same shape the app's own share sheet produces: /i/{token}?ref={handle}.
   const itineraryHref = itinerary
@@ -140,6 +163,10 @@ export default async function GuidePage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={jsonLdHtml(article)}
+      />
+      <PageTracker
+        pagePath={`/guides/${slug}/`}
+        meta={{ guide_id: guide.id, author_id: guide.author_id, guide_slug: slug }}
       />
 
       {/* Breadcrumb nav */}
@@ -214,7 +241,13 @@ export default async function GuidePage({
 
         {/* Body */}
         <article className="prose prose-gray max-w-none">
-          <ReactMarkdown>{guide.body_md ?? ""}</ReactMarkdown>
+          <GuideBody
+            body={guide.body_md ?? ""}
+            guideId={guide.id}
+            authorId={guide.author_id}
+            slug={slug}
+            venueIds={venueIds}
+          />
         </article>
       </ImageLightbox>
 

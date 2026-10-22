@@ -64,7 +64,8 @@ test("/super-user/login renders app-style auth methods", async (t) => {
   assert.match(html, /Log in with Apple/);
   assert.match(html, /Log in with Google/);
   assert.match(html, /Send magic link/);
-  assert.match(html, /name="next" value="\/dashboard\/guides\/new"/);
+  // Super Users land on their Home (/dashboard), not the guide editor — spec 2026-10-22.
+  assert.match(html, /name="next" value="\/dashboard"/);
 });
 
 test("Super User OAuth finishes on the same origin it started on", async () => {
@@ -93,7 +94,9 @@ test("Super User OAuth finishes on the same origin it started on", async () => {
   assert.match(errorPage, /describeAuthError/);
   assert.match(errorPage, /loginPathFor\(/, "Try again must return to the login the user came from");
   assert.match(loginPage, /loginPathFor\(GUIDE_EDITOR_PATH\)/);
-  assert.match(superUserLoginPage, /GUIDE_EDITOR_PATH/);
+  // The default landing is the role-branched Home, with an explicit ?next= still honored.
+  assert.match(superUserLoginPage, /SUPER_USER_HOME_PATH/);
+  assert.match(superUserLoginPage, /isSuperUserNextPath/);
 });
 
 test("Supabase deployment docs require query-safe console auth redirect URLs", async () => {

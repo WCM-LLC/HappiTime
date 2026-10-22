@@ -752,6 +752,18 @@ export const HomeScreen: React.FC<Props> = ({ navigation }) => {
 
         <Pressable
           accessibilityRole="button"
+          onPress={() => navigation.navigate("Guides")}
+          style={({ pressed }) => [styles.eventsEntryCard, pressed && { opacity: 0.75 }]}
+        >
+          <View style={styles.eventsEntryLeft}>
+            <Text style={styles.eventsEntryTitle}>Tastemaker Guides</Text>
+            <Text style={styles.eventsEntrySubtitle}>Nights out and happy hours, picked by locals</Text>
+          </View>
+          <Text style={styles.eventsEntryChevron}>›</Text>
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
           onPress={() => navigation.navigate("EventCalendar")}
           style={({ pressed }) => [styles.eventsEntryCard, pressed && { opacity: 0.75 }]}
         >
