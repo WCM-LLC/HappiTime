@@ -86,6 +86,7 @@ export async function GET(request: Request) {
   const maxVenue = Math.max(1, ...topVenues.map((v) => v.people_sent));
   const logoUrl = new URL('/brand/happitime-wordmark.png', request.url).toString();
 
+  try {
   return new ImageResponse(
     (
       <div
@@ -114,7 +115,7 @@ export async function GET(request: Request) {
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: -0.8, lineHeight: 1.1 }}>{name}</div>
-              <div style={{ fontSize: 26, color: MUTED, fontWeight: 400 }}>{handle ? `@${handle} · ` : ''}Kansas City Tastemaker</div>
+              <div style={{ fontSize: 26, color: MUTED, fontWeight: 400 }}>{`${handle ? `@${handle} · ` : ''}Kansas City Tastemaker`}</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', padding: '10px 22px', borderRadius: 999, border: `2px solid ${COPPER}`, color: COPPER, fontSize: 22, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
@@ -124,7 +125,7 @@ export async function GET(request: Request) {
 
         {/* Hero */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: MUTED }}>People I sent to KC bars {subject}</div>
+          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: MUTED }}>{`People I sent to KC bars ${subject}`}</div>
           <div style={{ fontSize: 300, fontWeight: 700, letterSpacing: -18, lineHeight: 0.9, color: COPPER }}>{fmt(m.influence.people_sent)}</div>
           <div style={{ display: 'flex', gap: 48, marginTop: 12 }}>
             {[
@@ -196,4 +197,10 @@ export async function GET(request: Request) {
       },
     },
   );
+  } catch (err) {
+    // Satori is strict (e.g. every multi-child element needs display:flex) and its
+    // errors otherwise surface as a bare 500 with nothing in the logs.
+    console.error('[metrics][card] render failed', err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'card render failed' }, { status: 500 });
+  }
 }
