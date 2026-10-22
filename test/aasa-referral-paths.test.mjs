@@ -9,4 +9,8 @@ test("AASA covers itinerary and referral paths", () => {
   assert.ok(comps.includes("/i/*"));
   assert.ok(comps.includes("/r/*"), "adds /r/*");
   assert.ok(detail.paths.includes("/r/*"));
+  // Guides open in the app (GuideDetail, 2026-10-22); the index page does not.
+  assert.ok(comps.includes("/guides/*"), "adds /guides/*");
+  assert.ok((detail.components ?? []).some((c) => c["/"] === "/guides/" && c.exclude === true), "excludes the /guides/ index");
+  assert.ok(detail.paths.includes("NOT /guides/"));
 });
