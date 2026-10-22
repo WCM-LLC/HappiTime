@@ -46,7 +46,10 @@ test("/login renders Super User Access", async (t) => {
   assert.equal(res.status, 200);
   const html = await res.text();
   assert.match(html, /Super User Access/);
-  assert.match(html, /href="\/super-user\/login\?next=%2Fdashboard%2Fguides%2Fnew"/);
+  // No ?next= here: the Super User login defaults to Home (/dashboard), and a
+  // next pointing at the guide editor used to drag every login into /guides/new.
+  assert.match(html, /href="\/super-user\/login"/);
+  assert.doesNotMatch(html, /super-user\/login\?next=%2Fdashboard%2Fguides%2Fnew/);
   assert.doesNotMatch(html, /Log in with Apple/);
   assert.doesNotMatch(html, /Log in with Google/);
 });
@@ -93,7 +96,8 @@ test("Super User OAuth finishes on the same origin it started on", async () => {
   assert.match(callbackRoute, /searchParams\.set\('next'/, "the error page needs next to pick the right login");
   assert.match(errorPage, /describeAuthError/);
   assert.match(errorPage, /loginPathFor\(/, "Try again must return to the login the user came from");
-  assert.match(loginPage, /loginPathFor\(GUIDE_EDITOR_PATH\)/);
+  assert.match(loginPage, /href=\{SUPER_USER_LOGIN_PATH\}/, "Super User Access must not carry next=/guides/new");
+  assert.doesNotMatch(loginPage, /GUIDE_EDITOR_PATH/);
   // The default landing is the role-branched Home, with an explicit ?next= still honored.
   assert.match(superUserLoginPage, /SUPER_USER_HOME_PATH/);
   assert.match(superUserLoginPage, /isSuperUserNextPath/);
