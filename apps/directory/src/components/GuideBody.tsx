@@ -3,17 +3,7 @@
 import ReactMarkdown from "react-markdown";
 import { trackEvent } from "@/lib/tracking";
 
-// Matches the venue-page URL shapes guide_venue_slugs() recognises in SQL:
-//   https://happitime.biz/kc/<area>/<slug>[/]   /kc/<area>/<slug>   /v/<slug>
-// Neighborhood pages (/kc/<area>/) have no slug segment and do not match.
-const VENUE_HREF_RE =
-  /^(?:https?:\/\/(?:www\.)?happitime\.biz)?\/(?:kc\/[a-z0-9-]+|v)\/([a-z0-9][a-z0-9-]*)\/?(?:[?#].*)?$/i;
-
-export function venueSlugFromHref(href: string | undefined): string | null {
-  if (!href) return null;
-  const m = VENUE_HREF_RE.exec(href.trim());
-  return m ? m[1].toLowerCase() : null;
-}
+import { venueSlugFromHref } from "@/lib/guideVenueLinks";
 
 type Props = {
   body: string;
