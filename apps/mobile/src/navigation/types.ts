@@ -50,6 +50,9 @@ export type RootStackParamList = {
   // happitime://guides/{slug}) only needs to route here.
   Guides: undefined;
   GuideDetail: { slug: string };
+  // A Tastemaker's own metrics (super_user_metrics RPC); Profile shows the entry
+  // only for role = super_user.
+  SuperUserMetrics: undefined;
   InsiderCode: undefined;
   // Self-serve menu intake for venue owners and super users. Opened without
   // params from Profile; deep links may preselect a venue and skip the picker.

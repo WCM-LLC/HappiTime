@@ -1,5 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { NextResponse } from 'next/server';
+import { createClient as createSupaClient, type SupabaseClient } from '@supabase/supabase-js';
+import { getPublicSupabaseEnv } from '@happitime/shared-env';
 import { createClient } from '@/utils/supabase/server';
 import { getSuperUserMetrics, parseRange } from '@/lib/super-user-metrics';
 import { INTER_BOLD_TTF_BASE64, INTER_REGULAR_TTF_BASE64 } from '@/app/api/referrals/print/fonts';
@@ -39,15 +41,32 @@ function b64(s: string): ArrayBuffer {
   return buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
 }
 
-export async function GET(request: Request) {
+// The mobile app has a Supabase session but no console cookies, so it sends
+// its access token as a Bearer header; the browser path keeps using cookies.
+async function clientFor(request: Request): Promise<{ supabase: SupabaseClient; userId: string | null }> {
+  const bearer = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (bearer) {
+    const { url, anonKey } = getPublicSupabaseEnv();
+    const supabase = createSupaClient(url, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: `Bearer ${bearer}` } },
+    });
+    const { data } = await supabase.auth.getUser(bearer);
+    return { supabase, userId: data.user?.id ?? null };
+  }
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) return NextResponse.json({ error: 'authentication required' }, { status: 401 });
+  const { data } = await supabase.auth.getUser();
+  return { supabase: supabase as unknown as SupabaseClient, userId: data.user?.id ?? null };
+}
+
+export async function GET(request: Request) {
+  const { supabase, userId } = await clientFor(request);
+  if (!userId) return NextResponse.json({ error: 'authentication required' }, { status: 401 });
 
   const url = new URL(request.url);
   const range = parseRange(url.searchParams.get('range') ?? undefined);
   const [{ data: profile }, { data: m, error }] = await Promise.all([
-    supabase.from('user_profiles').select('handle, display_name, avatar_url').eq('user_id', auth.user.id).maybeSingle(),
+    supabase.from('user_profiles').select('handle, display_name, avatar_url').eq('user_id', userId).maybeSingle(),
     getSuperUserMetrics(supabase, range),
   ]);
   if (error || !m) return NextResponse.json({ error: error ?? 'no metrics' }, { status: 500 });

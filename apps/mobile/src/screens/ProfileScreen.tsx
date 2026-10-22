@@ -602,13 +602,22 @@ export const ProfileScreen: React.FC = () => {
         </View>
 
         {profile?.role === "super_user" ? (
-          <Pressable
-            accessibilityRole="button"
-            style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
-            onPress={() => navigation.navigate("InsiderCode")}
-          >
-            <Text style={styles.secondaryButtonText}>My Insider Code</Text>
-          </Pressable>
+          <>
+            <Pressable
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
+              onPress={() => navigation.navigate("SuperUserMetrics")}
+            >
+              <Text style={styles.secondaryButtonText}>Your Metrics</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.secondaryButton, pressed && styles.secondaryButtonPressed]}
+              onPress={() => navigation.navigate("InsiderCode")}
+            >
+              <Text style={styles.secondaryButtonText}>My Insider Code</Text>
+            </Pressable>
+          </>
         ) : null}
 
         {canScanMenus ? (
