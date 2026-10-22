@@ -8,6 +8,7 @@ import { TabBarIcon } from "../../components/ui/tab-bar-icon";
 import { useNotificationNavigation } from "../hooks/useNotificationNavigation";
 import { useVenueDeepLink } from "../hooks/useVenueDeepLink";
 import { useItineraryDeepLink } from "../hooks/useItineraryDeepLink";
+import { useGuideDeepLink } from "../hooks/useGuideDeepLink";
 import { useActivityDeepLink } from "../hooks/useActivityDeepLink";
 import { useCheckinPrimeHandoff } from "../hooks/useCheckinPrimeHandoff";
 import { useUnreadNotificationsBadge } from "../hooks/useUnreadNotificationsBadge";
@@ -29,6 +30,8 @@ import { ScanMenuScreen } from "../screens/ScanMenuScreen";
 import { VenuePreviewScreen } from "../screens/VenuePreviewScreen";
 import { ItineraryDetailScreen } from "../screens/ItineraryDetailScreen";
 import { EventCalendarScreen } from "../screens/EventCalendarScreen";
+import { GuidesScreen } from "../screens/GuidesScreen";
+import { GuideDetailScreen } from "../screens/GuideDetailScreen";
 import { CheckInScreen } from "../screens/CheckInScreen";
 import { RoundRedemptionScreen } from "../screens/RoundRedemptionScreen";
 import { colors } from "../theme/colors";
@@ -121,6 +124,7 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
   useNotificationNavigation(navigationRef);
   useVenueDeepLink(navigationRef);
   useItineraryDeepLink(navigationRef);
+  useGuideDeepLink(navigationRef);
   useActivityDeepLink(navigationRef);
   useCheckinPrimeHandoff(navigationRef);
 
@@ -232,6 +236,32 @@ export function AppNavigator({ initialTab }: { initialTab?: keyof MainTabParamLi
             headerShown: true,
             title: "Invite a Friend",
             headerBackTitle: "Cancel",
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontSize: 17, fontWeight: "600" },
+          }}
+        />
+        <Stack.Screen
+          name="Guides"
+          component={GuidesScreen}
+          options={{
+            headerShown: true,
+            title: "Guides",
+            headerBackTitle: "Back",
+            headerTintColor: colors.text,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+            headerTitleStyle: { fontSize: 17, fontWeight: "600" },
+          }}
+        />
+        <Stack.Screen
+          name="GuideDetail"
+          component={GuideDetailScreen}
+          options={{
+            headerShown: true,
+            title: "Guide",
+            headerBackTitle: "Back",
             headerTintColor: colors.text,
             headerStyle: { backgroundColor: colors.background },
             headerShadowVisible: false,

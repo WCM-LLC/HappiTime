@@ -1,7 +1,7 @@
 import OAuthButtons from '@/components/OAuthButtons';
 import { Logo } from '@/components/ui/Logo';
 import { sendSuperUserMagicLink } from '@/actions/login-actions';
-import { GUIDE_EDITOR_PATH, isGuideAuthoringPath, safeNextPath } from '@/utils/auth-paths';
+import { SUPER_USER_HOME_PATH, isSuperUserNextPath, safeNextPath } from '@/utils/auth-paths';
 
 const NOTICE: Record<string, string> = {
   magic_link_sent: 'Magic link sent. Check your email to open guide authoring.',
@@ -21,7 +21,7 @@ export default async function SuperUserLoginPage({
 }) {
   const sp = await searchParams;
   const safeNext = safeNextPath(sp.next);
-  const next = isGuideAuthoringPath(safeNext) ? safeNext! : GUIDE_EDITOR_PATH;
+  const next = isSuperUserNextPath(safeNext) ? safeNext! : SUPER_USER_HOME_PATH;
   const noticeText = sp.notice ? (NOTICE[sp.notice] ?? null) : null;
   const errorText = sp.error ? (ERRORS[sp.error] ?? 'Something went wrong. Try again.') : null;
 

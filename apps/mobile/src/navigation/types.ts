@@ -45,6 +45,11 @@ export type RootStackParamList = {
   };
   InviteScreen: undefined;
   EventCalendar: undefined;
+  // Published Tastemaker guides, read in the app. GuideDetail resolves the slug
+  // itself so a deep link (https://happitime.biz/guides/{slug}/ or
+  // happitime://guides/{slug}) only needs to route here.
+  Guides: undefined;
+  GuideDetail: { slug: string };
   InsiderCode: undefined;
   // Self-serve menu intake for venue owners and super users. Opened without
   // params from Profile; deep links may preselect a venue and skip the picker.

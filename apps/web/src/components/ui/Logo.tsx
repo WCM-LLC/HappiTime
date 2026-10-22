@@ -1,40 +1,39 @@
 import * as React from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
+// The HappiTime wordmark — copper letterforms with the white "iTi" on the copper
+// disc. Source asset: /public/brand/happitime-wordmark.png (974×304, transparent),
+// supplied by J on 2026-10-22 and canonical across web, directory, and the design
+// system bundle. The earlier SVG <text> wordmark (dark "Happ…me") is retired.
+//
+// The mark is copper on transparent, so it reads on both light and dark surfaces;
+// `variant` is kept for API compatibility with existing callers and currently
+// renders the same asset.
+
+const WORDMARK_W = 974;
+const WORDMARK_H = 304;
+
 interface LogoProps {
-  /** Height in pixels (width scales proportionally from viewBox 439×148) */
+  /** Rendered height in pixels; width scales from the 974×304 asset. */
   height?: number;
-  /** Light variant: cream text on dark backgrounds */
+  /** Kept for call-site compatibility; both variants render the copper mark. */
   variant?: 'dark' | 'light';
   className?: string;
 }
 
-export function Logo({ height = 28, variant = 'dark', className }: LogoProps) {
-  const outerColor = variant === 'light' ? '#F5F0EB' : '#1A1A1A';
+export function Logo({ height = 28, variant: _variant = 'dark', className }: LogoProps) {
+  const width = Math.round((height * WORDMARK_W) / WORDMARK_H);
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 439 148"
+    <Image
+      src="/brand/happitime-wordmark.png"
+      alt="HappiTime"
+      width={width}
       height={height}
-      aria-label="HappiTime"
-      role="img"
-      className={cn('shrink-0', className)}
-      style={{ width: 'auto' }}
-    >
-      <circle cx="260.2" cy="74.0" r="47.9" fill="#C8965A" />
-      <text
-        x="30"
-        y="93.0"
-        fontFamily="var(--font-display), 'Plus Jakarta Sans', sans-serif"
-        fontWeight="800"
-        fontSize="72"
-        letterSpacing="-0.02em"
-      >
-        <tspan fill={outerColor}>Happ</tspan>
-        <tspan fill="#ffffff">iTi</tspan>
-        <tspan fill={outerColor}>me</tspan>
-      </text>
-    </svg>
+      priority
+      className={cn('shrink-0 select-none', className)}
+      style={{ height, width: 'auto' }}
+    />
   );
 }
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PageTracker } from "@/components/PageTracker";
 import { breadcrumbJsonLd, jsonLdHtml, webPageJsonLd } from "@/lib/structuredData";
 import { supabase } from "@/lib/supabase";
 import { DEFAULT_OG_IMAGE } from "@/lib/seoText";
@@ -95,6 +96,7 @@ export default async function GuidesHub() {
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-12">
+      <PageTracker pagePath="/guides/" />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={jsonLdHtml(

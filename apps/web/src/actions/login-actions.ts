@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { isAdminEmail } from '@/utils/admin-emails';
-import { GUIDE_AUTHORING_PATH, GUIDE_EDITOR_PATH, isGuideAuthoringPath, loginPathFor, safeNextPath } from '@/utils/auth-paths';
+import { GUIDE_AUTHORING_PATH, SUPER_USER_HOME_PATH, SUPER_USER_LOGIN_PATH, isGuideAuthoringPath, isSuperUserNextPath, loginPathFor, safeNextPath } from '@/utils/auth-paths';
 import { resolveConsoleOrigin } from '@/utils/auth-redirects';
 import { createClient, createServiceClient, getServiceRoleKeyError } from '@/utils/supabase/server';
 
@@ -143,10 +143,10 @@ export async function signup(formData: FormData) {
 export async function sendSuperUserMagicLink(formData: FormData) {
   const supabase = await createClient();
   const email = String(formData.get('email') ?? '').trim().toLowerCase();
-  const next = safeNextPath(String(formData.get('next') ?? '').trim()) ?? GUIDE_EDITOR_PATH;
+  const next = safeNextPath(String(formData.get('next') ?? '').trim()) ?? SUPER_USER_HOME_PATH;
 
-  if (!email || !isGuideAuthoringPath(next)) {
-    redirect(loginPathFor(GUIDE_EDITOR_PATH, 'magic_link_failed'));
+  if (!email || !isSuperUserNextPath(next)) {
+    redirect(`${SUPER_USER_LOGIN_PATH}?error=magic_link_failed`);
   }
 
   const origin = resolveConsoleOrigin(await headers());
@@ -169,5 +169,5 @@ export async function sendSuperUserMagicLink(formData: FormData) {
     redirect(loginPathFor(next, 'magic_link_failed'));
   }
 
-  redirect(`${loginPathFor(next)}&notice=magic_link_sent`);
+  redirect(`${SUPER_USER_LOGIN_PATH}?next=${encodeURIComponent(next)}&notice=magic_link_sent`);
 }

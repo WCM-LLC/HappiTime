@@ -10,6 +10,7 @@ import { Logo } from '@/components/ui/Logo';
 export default function UserBar() {
   const [email, setEmail] = useState<string | null>(null);
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [isSuperUser, setIsSuperUser] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -18,6 +19,17 @@ export default function UserBar() {
     // Cosmetic only — /admin is enforced server-side by its layout. This just
     // stops advertising a console the signed-in user cannot open.
     supabase.rpc('is_happitime_admin').then(({ data }) => setIsPlatformAdmin(data === true));
+    // Cosmetic as well — Super User pages are gated in middleware; this only
+    // decides whether the Super User nav is shown.
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      supabase
+        .from('user_profiles')
+        .select('role')
+        .eq('user_id', data.user.id)
+        .maybeSingle()
+        .then(({ data: profile }) => setIsSuperUser((profile as any)?.role === 'super_user'));
+    });
   }, []);
 
   async function signOut() {
@@ -46,9 +58,29 @@ export default function UserBar() {
 
         {/* Nav links */}
         <nav className="flex items-center gap-1">
-          <Link href="/dashboard" className={isDashboard ? navActive : navInactive}>
-            Dashboard
-          </Link>
+          {isSuperUser ? (
+            <>
+              <Link href="/dashboard" className={pathname === '/dashboard' ? navActive : navInactive}>
+                Home
+              </Link>
+              <Link href="/dashboard/guides" className={pathname?.startsWith('/dashboard/guides') ? navActive : navInactive}>
+                Guides
+              </Link>
+              <Link href="/dashboard/metrics" className={pathname?.startsWith('/dashboard/metrics') ? navActive : navInactive}>
+                Metrics
+              </Link>
+              <Link href="/dashboard/referrals" className={pathname?.startsWith('/dashboard/referrals') ? navActive : navInactive}>
+                My QR
+              </Link>
+              <Link href="/dashboard/events" className={`${pathname?.startsWith('/dashboard/events') ? navActive : navInactive} hidden sm:inline-flex`}>
+                Events
+              </Link>
+            </>
+          ) : (
+            <Link href="/dashboard" className={isDashboard ? navActive : navInactive}>
+              Dashboard
+            </Link>
+          )}
           {isPlatformAdmin ? (
             <Link href="/admin" className={isAdmin ? navActive : navInactive}>
               Admin

@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/server';
 import { createOrganization, deleteOrganization, updateOrganization } from '../../actions/dashboard-actions';
 import ConfirmDeleteForm from '@/components/ConfirmDeleteForm';
 import SocialsPromptBanner from './SocialsPromptBanner';
+import SuperUserHome from './SuperUserHome';
 import { isAdmin } from '@/utils/admin';
 
 type MembershipRow = {
@@ -26,7 +27,7 @@ const DASHBOARD_ERROR_MESSAGES: Record<string, string> = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; view?: string }>;
 }) {
   const sp = await searchParams;
   const pageError = sp?.error;
@@ -60,6 +61,38 @@ export default async function DashboardPage({
     .from("org_members")
     .select("role, organizations:organizations ( id, name, slug )")
     .eq("user_id", user.id);
+
+  // Super Users land on their own Home (peek metrics, published guides, venues
+  // they're moving). Venue staff and admins who are not Super Users keep the
+  // org dashboard below. A Super User who also belongs to an org gets Home with
+  // a link to their organizations rather than two dashboards stacked.
+  const superUserOrgCount = (data ?? []).filter((m: any) => m.organizations).length;
+  if (isSuperUser && sp?.view !== 'orgs') {
+    return (
+      <div className="min-h-screen bg-background">
+        <UserBar />
+        {pageErrorMessage ? (
+          <div className="max-w-[var(--width-content)] mx-auto px-6 pt-6">
+            <div className="rounded-md border border-error bg-error-light px-4 py-3">
+              <p className="text-body-sm font-medium text-error">Something went wrong</p>
+              <p className="text-body-sm text-error/80 mt-0.5">{pageErrorMessage}</p>
+            </div>
+          </div>
+        ) : null}
+        <SuperUserHome supabase={supabase} user={user} />
+        {superUserOrgCount > 0 || canCreateOrganization ? (
+          <div className="max-w-[var(--width-content)] mx-auto px-6 pb-10 -mt-2 flex flex-wrap gap-3 text-body-sm text-muted">
+            {superUserOrgCount > 0 ? (
+              <Link href="/dashboard?view=orgs" className="font-medium text-foreground hover:underline">Your organizations ({superUserOrgCount}) →</Link>
+            ) : null}
+            {canCreateOrganization ? (
+              <Link href="/admin" className="font-medium text-foreground hover:underline">Admin console →</Link>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
 
   const orgMemberships =
     (data ?? [])

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getReferralProfileByHandle } from "@/lib/queries";
 import { ReferralLandingClient } from "./ReferralLandingClient";
+import { PageTracker } from "@/components/PageTracker";
 
 // Referral / Insider landing: https://happitime.biz/r/{handle}
 // A new user arriving via an Insider's personal link lands here. The client
@@ -40,6 +41,7 @@ export default async function ReferralLandingPage({ params }: Props) {
 
   return (
     <main className="min-h-screen bg-[#F5F0EB] px-4 py-12">
+      <PageTracker pagePath={`/r/${profile.handle}/`} meta={{ referrer_handle: profile.handle, cta: "qr_landing" }} />
       <section className="mx-auto max-w-md">
         <div className="rounded-2xl border border-[#E5E0D8] bg-white p-6 text-center shadow-sm">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#C8965A]">
