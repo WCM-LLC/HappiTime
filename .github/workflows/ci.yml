@@ -38,6 +38,20 @@ jobs:
       # are not subject to that pool.
       - name: Log in to ghcr.io
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      # ghcr.io throttled this image pull ("toomanyrequests") for over an hour
+      # on 2026-10-22, authenticated or not, and the CLI's own retry is 4s/8s.
+      # Pre-pull with a long retry window, falling back to the identical image on
+      # Docker Hub retagged under the ghcr.io name the CLI looks for.
+      - name: Pre-pull Postgres image (retry + Docker Hub fallback)
+        run: |
+          IMG="ghcr.io/supabase/postgres:17.6.1.106"
+          HUB="supabase/postgres:17.6.1.106"
+          for i in $(seq 1 16); do
+            if docker pull "$IMG"; then exit 0; fi
+            if docker pull "$HUB"; then docker tag "$HUB" "$IMG" && exit 0; fi
+            echo "attempt $i failed; sleeping 30s"; sleep 30
+          done
+          echo "::error::could not pull $IMG from ghcr.io or Docker Hub"; exit 1
       - name: Start Supabase (db only)
         run: supabase start -x gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: Apply migrations + seed
