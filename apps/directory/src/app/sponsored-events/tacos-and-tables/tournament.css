@@ -532,3 +532,72 @@
 @media (prefers-reduced-motion: reduce) {
   .tnt * { transition: none !important; }
 }
+
+/* Handle field (HandleField component) */
+.tnt .handle-wrap { position: relative; }
+.tnt .handle-wrap input { padding-right: 44px; }
+.tnt .handle-state {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1;
+  color: #8a8273;
+}
+.tnt .handle-state.found { color: #2f8f5b; }
+.tnt .handle-state.missing { color: #e2695b; }
+.tnt .handle-status:empty { display: none; }
+.tnt .handle-status p { margin: 0; }
+.tnt .handle-ok { font-size: 13px; font-weight: 700; color: #9fe0b8; }
+.tnt .handle-missing {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--stock);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.tnt .handle-missing .fine { color: #5a5347; }
+.tnt .handle-missing .fine a { color: inherit; font-weight: 700; }
+.tnt .handle-missing .link-btn { justify-self: start; color: var(--ink); }
+.tnt .handle-missing .stores a { background: #fff; }
+
+/* Three-way entry picker + hosted payment link (blakk-co-spades) */
+.tnt .seg.seg-3 { grid-template-columns: repeat(3, 1fr); }
+.tnt fieldset + fieldset { margin-top: 4px; }
+.tnt fieldset .fine { margin-top: 8px; }
+.tnt .paylink {
+  display: inline-block;
+  margin: 0 0 12px;
+  padding: 12px 18px;
+  border-radius: 999px;
+  background: var(--felt);
+  color: var(--stock);
+  font-weight: 800;
+  text-decoration: none;
+}
+.tnt .paylink:hover { background: var(--felt-deep); }
+@media (max-width: 560px) {
+  .tnt .seg.seg-3 { grid-template-columns: 1fr; }
+}
+
+/* Prize pool block (blakk-co-spades) */
+.tnt .prize-block {
+  margin-top: 28px;
+  padding: 20px 22px;
+  border-radius: 14px;
+  border: 1px solid var(--felt-line);
+  background: rgba(255, 255, 255, 0.04);
+}
+.tnt .prize-block h3 { margin: 0 0 6px; font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+.tnt .prize-block > p { margin: 0 0 14px; font-size: 15px; color: rgba(244, 239, 227, 0.88); }
+.tnt .prize-split { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.tnt .prize-split li { display: grid; gap: 2px; padding: 12px 14px; border-radius: 12px; background: var(--stock); color: var(--ink); }
+.tnt .prize-split span { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-soft); }
+.tnt .prize-split strong { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; color: var(--marigold-ink); font-variant-numeric: tabular-nums; }
+.tnt .prize-split small { font-size: 12px; color: var(--ink-soft); }
+@media (max-width: 560px) { .tnt .prize-split { grid-template-columns: 1fr; } }

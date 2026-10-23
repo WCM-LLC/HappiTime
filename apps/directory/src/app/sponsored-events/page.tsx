@@ -50,6 +50,26 @@ type SponsoredEvent = {
 
 const EVENTS: SponsoredEvent[] = [
   {
+    slug: "blakk-co-spades",
+    title: "Spades Night",
+    edition: "at The Blakk Co.",
+    hosts: "The Inaugural tournament · 12 teams, double elimination",
+    partners: ["HappiTime", "The Blakk Co."],
+    starts: "2026-11-05T18:00:00-06:00",
+    ends: "2026-11-05T23:00:00-06:00",
+    dateLabel: "Thursday, November 5",
+    timeLabel: "Doors 6 PM, first deal 7 PM",
+    area: "Midtown",
+    access: "Open registration",
+    cta: "Register your spot",
+    blurb:
+      "The Inaugural: a 12-team double-elimination Spades tournament at The Blakk Co. Blakk Co. members play for $10, everyone else $20, solo or with a partner; members watch free. Cash prizes paid within 48 hours. HappiTime app required to check in. Register by November 3.",
+    image: "/sponsored-events/blakk-co-spades/cover.jpg",
+    imageWidth: 990,
+    imageHeight: 1142,
+    imageAlt: "A playing card for Spades Night at The Blakk Co.",
+  },
+  {
     slug: "tacos-and-tables",
     title: "Tacos & Tables",
     edition: "with Good Company",
